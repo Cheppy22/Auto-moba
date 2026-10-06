@@ -1,3 +1,4 @@
+import { maybeSwapLane } from './ai/swap';
 import {
   TPS,
   HERO_ASSIST_WINDOW,
@@ -129,6 +130,8 @@ function killUnit(ctx: Ctx, u: Unit): void {
       const h = u.hero!;
       h.deaths++;
       h.streak = 0;
+      h.lossStreak = ctx.s.tick - h.lastDeathTick > ctx.t.ai.lossWindowTicks ? 1 : h.lossStreak + 1;
+      h.lastDeathTick = ctx.s.tick;
       h.recall = null;
       h.goal = null;
       h.respawnAt = ctx.s.tick + respawnTicks(ctx, u);
@@ -137,6 +140,7 @@ function killUnit(ctx: Ctx, u: Unit): void {
       if (killerHero && killerTeam) {
         const kh = killerHero.hero!;
         kh.kills++;
+        kh.lossStreak = 0;
         kh.streak++;
         giveGold(
           ctx,
@@ -157,6 +161,7 @@ function killUnit(ctx: Ctx, u: Unit): void {
         x: u.x,
         y: u.y,
       });
+      maybeSwapLane(ctx, u);
       break;
     }
     case 'minion': {

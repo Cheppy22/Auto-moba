@@ -6,13 +6,13 @@
   "attackKind": "ranged",
   "playstyle": "A support-carry that speeds up and strengthens the whole team. Stay close to allies, call Full Sail when a fight starts and let your friends hit harder.",
   "stats": {
-    "maxHp": 1104.5,
+    "maxHp": 1126.25,
     "hpRegen": 2,
     "armor": 18,
     "resist": 20,
-    "bladeDmg": 63.8,
+    "bladeDmg": 65.05,
     "atkSpeed": 0.95,
-    "soulPower": 36.8,
+    "soulPower": 37.52,
     "moveSpeed": 46,
     "cdr": 0,
     "range": 115

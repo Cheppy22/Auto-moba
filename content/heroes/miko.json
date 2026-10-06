@@ -6,13 +6,13 @@
   "attackKind": "ranged",
   "playstyle": "A ranged healer-mage that keeps allies topped up and slows enemy heroes. Stay behind your team and keep your bell ready for the wounded.",
   "stats": {
-    "maxHp": 1045.5,
+    "maxHp": 961.86,
     "hpRegen": 2.5,
     "armor": 18,
     "resist": 30,
-    "bladeDmg": 39.9,
+    "bladeDmg": 36.71,
     "atkSpeed": 0.9,
-    "soulPower": 58.6,
+    "soulPower": 53.91,
     "moveSpeed": 45,
     "cdr": 0,
     "range": 95

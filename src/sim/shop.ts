@@ -1,6 +1,6 @@
 import { dist } from './core/math';
 import type { Ctx } from './ctx';
-import type { CommandResult, PlayTeam, Unit } from './types';
+import type { CommandResult, Unit } from './types';
 
 export function itemCost(ctx: Ctx, id: string): number {
   return ctx.c.itemById.get(id)?.cost ?? 0;
@@ -23,12 +23,12 @@ export function giveGold(ctx: Ctx, u: Unit, amount: number, source: string, sile
   if (!silent) ctx.emit('gold', { id: u.id, amount: real, source });
 }
 
-export function baseCatalog(ctx: Ctx, team: PlayTeam): string[] {
-  const out: string[] = [];
-  for (const it of ctx.c.items) {
-    if (it.tier <= 2 || ctx.s.teams[team].unlocks.includes(it.id)) out.push(it.id);
-  }
-  return out;
+export function baseCatalog(ctx: Ctx): string[] {
+  return ctx.c.items.filter((it) => it.tier <= 2).map((it) => it.id);
+}
+
+export function jungleCatalog(ctx: Ctx): string[] {
+  return ctx.c.items.filter((it) => it.tier === 3).map((it) => it.id);
 }
 
 export function nearBase(ctx: Ctx, u: Unit): boolean {
@@ -60,33 +60,26 @@ export function shopAt(ctx: Ctx, u: Unit): string | null {
 export interface Access {
   base: boolean;
   keeper: boolean;
+  jungle: boolean;
 }
+
+export type Where = 'here' | 'base' | 'jungle';
 
 export function shopAccess(ctx: Ctx, u: Unit): Access {
-  if (ctx.s.phase.kind === 'prep') return { base: true, keeper: true };
-  if (ctx.s.phase.kind !== 'live' || !u.alive) return { base: false, keeper: false };
-  return { base: nearBase(ctx, u) || nearJungleShop(ctx, u), keeper: nearKeeper(ctx, u) };
+  if (ctx.s.phase.kind === 'prep') return { base: true, keeper: true, jungle: false };
+  if (ctx.s.phase.kind !== 'live' || !u.alive) return { base: false, keeper: false, jungle: false };
+  const jungle = nearJungleShop(ctx, u);
+  return { base: nearBase(ctx, u) || jungle, keeper: nearKeeper(ctx, u), jungle };
 }
 
-export interface Quote {
-  price: number;
-  consumed: string[];
-}
-
-export function quote(
+export function itemPrice(
   ctx: Ctx,
   u: Unit,
   itemId: string,
-  ignoreAccess = false,
-): Quote | { error: string } {
+): { price: number; consumed: string[] } | null {
   const h = u.hero;
   const item = ctx.c.itemById.get(itemId);
-  if (!h || !item || u.team === 'neutral') return { error: 'unknown item' };
-  const access = ignoreAccess ? { base: true, keeper: false } : shopAccess(ctx, u);
-  const inBase = access.base && baseCatalog(ctx, u.team).includes(itemId);
-  const inKeeper = access.keeper && ctx.s.keeper.stock.includes(itemId);
-  if (!inBase && !inKeeper)
-    return { error: access.base || access.keeper ? 'not in catalog' : 'no shop in reach' };
+  if (!h || !item || u.team === 'neutral') return null;
   const owned = h.items.slice();
   const consumed: string[] = [];
   let discount = 0;
@@ -98,9 +91,41 @@ export function quote(
       discount += itemCost(ctx, comp);
     }
   }
-  const price = Math.max(0, item.cost - discount);
-  if (owned.length + 1 > ctx.t.shop.slots) return { error: 'no free slot' };
-  return { price, consumed };
+  const unlocked = item.tier === 3 && ctx.s.teams[u.team].unlocks.includes(itemId);
+  const gross = unlocked ? Math.round(item.cost * (1 - ctx.t.shop.unlockDiscount)) : item.cost;
+  return { price: Math.max(0, gross - discount), consumed };
+}
+
+export interface Quote {
+  price: number;
+  consumed: string[];
+}
+
+export function quote(
+  ctx: Ctx,
+  u: Unit,
+  itemId: string,
+  where: Where = 'here',
+): Quote | { error: string } {
+  const h = u.hero;
+  const item = ctx.c.itemById.get(itemId);
+  if (!h || !item || u.team === 'neutral') return { error: 'unknown item' };
+  const access: Access =
+    where === 'base'
+      ? { base: true, keeper: false, jungle: false }
+      : where === 'jungle'
+        ? { base: true, keeper: false, jungle: true }
+        : shopAccess(ctx, u);
+  const inBase = access.base && baseCatalog(ctx).includes(itemId);
+  const inJungle = access.jungle && jungleCatalog(ctx).includes(itemId);
+  const inKeeper = access.keeper && ctx.s.keeper.stock.includes(itemId);
+  if (!inBase && !inJungle && !inKeeper) {
+    if (item.tier === 3 && !access.keeper) return { error: 'sold at the jungle stalls' };
+    return { error: access.base || access.keeper ? 'not in catalog' : 'no shop in reach' };
+  }
+  const p = itemPrice(ctx, u, itemId)!;
+  if (h.items.length - p.consumed.length + 1 > ctx.t.shop.slots) return { error: 'no free slot' };
+  return p;
 }
 
 export function buyItem(ctx: Ctx, u: Unit, itemId: string): CommandResult {

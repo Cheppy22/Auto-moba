@@ -9,6 +9,7 @@ import { closestLane, enemyTowerTarget, lanePath, pointAtProgress, progressAt } 
 import { matchupAt } from './power';
 import { aiShop, nextPurchase } from './shopping';
 import { shopAt } from '../shop';
+import { isWary } from './swap';
 
 interface Cand {
   goal: Goal;
@@ -250,8 +251,14 @@ export function strategicUpdate(ctx: Ctx, u: Unit): void {
     }
   }
 
+  const wary = isWary(ctx, h);
   const healing = cur !== null && (cur.kind === 'retreat' || cur.kind === 'base');
-  const needHeal = hp < pers.retreatHp || (healing && hp < 0.78) || h.engage === 'flee';
+  const foesClose = enemiesNear(ctx, u, u.x, u.y, 600) > 0;
+  const needHeal =
+    hp < pers.retreatHp + (wary ? 0.12 : 0) ||
+    (healing && hp < 0.78) ||
+    h.engage === 'flee' ||
+    (hp < ai.ai.healSafeHp && !foesClose);
   if (needHeal) {
     const threatened = enemiesNear(ctx, u, u.x, u.y, 220) > 0;
     if (distBase <= ai.ai.healBaseRadius) {
@@ -265,7 +272,7 @@ export function strategicUpdate(ctx: Ctx, u: Unit): void {
     }
   } else {
     if (!h.isPlayer && distBase > 400 && enemiesNear(ctx, u, u.x, u.y, 260) === 0) {
-      const p = nextPurchase(ctx, u, true);
+      const p = nextPurchase(ctx, u, 'base');
       const since = ctx.s.tick - (h.lastRecallTick ?? -9999);
       let shopClose = false;
       for (const sh of ctx.world.map.shops)
@@ -457,31 +464,44 @@ export function strategicUpdate(ctx: Ctx, u: Unit): void {
       if (bestCamp) cands.push(bestCamp);
     }
 
+    // Rescue and join: count this hero in the fight, wherever it stands within reach.
     let bestFight: Cand | null = null;
+    const healer = def.abilities.some(
+      (a, i) => h.cd[i] <= 0 && a.effects.some((e) => e.type === 'heal'),
+    );
     for (const id of ctx.s.teams[team].heroIds) {
       const ally = ctx.unit(id);
       if (!ally || ally.id === u.id || !ally.alive) continue;
-      if (ctx.s.tick - ally.lastDamagedTick > 80) continue;
       const d = dist(u.x, u.y, ally.x, ally.y);
-      if (d > ai.ai.joinFightRadius || d < 90) continue;
-      const m = matchupAt(ctx, team, ally.x, ally.y, u);
-      if (m.enemyHeroes === 0 || m.ratio * pers.riskTaking < pers.engageRatio) continue;
-      const score = 0.85 * (post.joinFight ?? 1) * (1 - d / (ai.ai.joinFightRadius * 1.3));
-      if (!bestFight || score > bestFight.score) {
+      if (d > ai.ai.rescueRadius || d < 90) continue;
+      const inFight = ctx.s.tick - ally.lastDamagedTick <= 100;
+      const hurt = hpPct(ally) < 0.6;
+      if (!inFight && !(healer && hurt)) continue;
+      const m = matchupAt(ctx, team, ally.x, ally.y, u, u);
+      const resolve = (0.8 + 0.2 * pers.riskTaking) * (wary ? 0.8 : 1);
+      if (m.enemyHeroes > 0 && m.ratio * resolve < ai.ai.rescueRatio) continue;
+      const losing = matchupAt(ctx, team, ally.x, ally.y, u).ratio < 1.1;
+      const urgency = (losing ? 1 : 0.85) * (hpPct(ally) < 0.5 ? 1.1 : 1);
+      const score =
+        ai.ai.rescueScore * urgency * (post.joinFight ?? 1) * (1 - d / (ai.ai.rescueRadius * 1.3));
+      const midPenalty = h.lane !== 'mid' && closestLane(ctx, ally) === 'mid' ? 0.6 : 1;
+      const wantHeal = healer && hurt;
+      const total = (m.enemyHeroes === 0 ? (wantHeal ? score * 0.6 : 0) : score) * midPenalty;
+      if (total > 0 && (!bestFight || total > bestFight.score)) {
         bestFight = cand(
           'joinFight',
           ally.x,
           ally.y,
           goalKey('joinFight', ally.id),
-          score,
+          total,
           ally.id,
         );
       }
     }
     if (bestFight) cands.push(bestFight);
 
-    // Attackers hunt: go after enemy heroes they can beat instead of waiting for them to arrive.
-    if ((post.hunt ?? 1) > 0.5 && hp > 0.55) {
+    // Hunt: attackers chase beatable heroes; anyone finishes a weak, isolated enemy.
+    if (hp > 0.55 && !wary) {
       let bestHunt: Cand | null = null;
       for (const id of ctx.s.teams[other(team)].heroIds) {
         const foe = ctx.unit(id);
@@ -489,9 +509,12 @@ export function strategicUpdate(ctx: Ctx, u: Unit): void {
         const d = dist(u.x, u.y, foe.x, foe.y);
         if (d > ai.ai.huntRadius || d < 70) continue;
         if (h.lane !== 'mid' && closestLane(ctx, foe) === 'mid') continue;
-        const mm = matchupAt(ctx, team, foe.x, foe.y, u);
-        if (mm.ratio * pers.riskTaking < pers.engageRatio) continue;
-        const score = ai.ai.huntScore * (post.hunt ?? 1) * (1 - d / (ai.ai.huntRadius * 1.25));
+        const weak = hpPct(foe) < ai.ai.easyKillHp;
+        const weight = Math.max(post.hunt ?? 1, weak ? 1.2 : 0);
+        if (weight <= 0.5) continue;
+        const mm = matchupAt(ctx, team, foe.x, foe.y, u, u);
+        if (mm.ratio * pers.riskTaking * (weak ? 1.4 : 1) < pers.engageRatio) continue;
+        const score = ai.ai.huntScore * weight * (1 - d / (ai.ai.huntRadius * 1.25));
         if (!bestHunt || score > bestHunt.score) {
           bestHunt = cand(
             'joinFight',
@@ -550,17 +573,33 @@ export function strategicUpdate(ctx: Ctx, u: Unit): void {
     };
     if (h.suggest.length > 0) {
       shopCand(h.suggest[0], ai.ai.suggestScore);
-    } else if (!h.isPlayer && h.gold >= ai.ai.shopTripGold && nextPurchase(ctx, u, true)) {
-      let bestShop: { id: string; d: number } | null = null;
-      for (const sh of ctx.world.map.shops) {
-        const d = dist(u.x, u.y, sh.x, sh.y);
-        if (d <= ai.ai.shopTripRadius && (!bestShop || d < bestShop.d)) bestShop = { id: sh.id, d };
+    } else if (!h.isPlayer && h.gold >= ai.ai.shopTripGold) {
+      const big = nextPurchase(ctx, u, 'jungle');
+      const smallOnly = nextPurchase(ctx, u, 'base');
+      const wantsT3 = !!big && ctx.c.itemById.get(big.id)?.tier === 3;
+      const radius = wantsT3 ? ai.ai.tier3TripRadius : ai.ai.shopTripRadius;
+      if ((wantsT3 || smallOnly) && enemiesNear(ctx, u, u.x, u.y, 420) === 0) {
+        let bestShop: { id: string; d: number } | null = null;
+        for (const sh of ctx.world.map.shops) {
+          const d = dist(u.x, u.y, sh.x, sh.y);
+          if (d <= radius && (!bestShop || d < bestShop.d)) bestShop = { id: sh.id, d };
+        }
+        if (bestShop)
+          shopCand(
+            bestShop.id,
+            (wantsT3 ? ai.ai.tier3TripScore : ai.ai.shopTripScore) * (1.2 - bestShop.d / radius),
+          );
       }
-      if (bestShop)
-        shopCand(bestShop.id, ai.ai.shopTripScore * (1.2 - bestShop.d / ai.ai.shopTripRadius));
     }
   }
 
+  if (wary) {
+    for (const c of cands) {
+      if (c.goal.kind === 'pushTower') c.score *= 0.45;
+      else if (c.goal.kind === 'joinFight') c.score *= 0.6;
+      else if (c.goal.kind === 'farmLane' || c.goal.kind === 'defendTower') c.score *= 1.5;
+    }
+  }
   let best: Cand | null = null;
   for (const c of cands) {
     const bonus = cur && cur.key === c.goal.key ? 0.12 : 0;

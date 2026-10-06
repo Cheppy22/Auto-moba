@@ -15,7 +15,7 @@ import { tickObelisks } from './obelisks';
 import { enterPrep, endLive } from './phase';
 import { tickSpiritTide } from './pressure';
 import { aiShop } from './ai/shopping';
-import { baseCatalog, nearBase, quote } from './shop';
+import { itemPrice, nearBase, quote } from './shop';
 import {
   passiveGold,
   processDeaths,
@@ -487,22 +487,10 @@ export class Match {
     const s = this.ctx.s;
     const p = s.playerHeroId !== null ? this.ctx.unit(s.playerHeroId) : undefined;
     if (!p || !p.hero || p.team === 'neutral') return [];
-    const base = new Set(baseCatalog(this.ctx, p.team));
     const out: ShopEntry[] = [];
     for (const it of this.content.items) {
-      const inBase = base.has(it.id);
       const inKeeper = s.keeper.stock.includes(it.id);
-      const owned = p.hero.items.slice();
-      const consumed: string[] = [];
-      let discount = 0;
-      for (const comp of it.from) {
-        const i = owned.indexOf(comp);
-        if (i >= 0) {
-          owned.splice(i, 1);
-          consumed.push(comp);
-          discount += this.content.itemById.get(comp)?.cost ?? 0;
-        }
-      }
+      const pr = itemPrice(this.ctx, p, it.id)!;
       const q = quote(this.ctx, p, it.id);
       const canBuy = !('error' in q) && p.hero.gold >= q.price;
       let reason = '';
@@ -514,9 +502,9 @@ export class Match {
         category: it.category,
         tier: it.tier,
         cost: it.cost,
-        price: Math.max(0, it.cost - discount),
-        consumed,
-        source: inBase ? 'base' : inKeeper ? 'keeper' : 'locked',
+        price: pr.price,
+        consumed: pr.consumed,
+        source: it.tier <= 2 ? 'base' : inKeeper ? 'keeper' : 'jungle',
         canBuy,
         reason,
         desc: it.desc,

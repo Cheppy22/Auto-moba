@@ -44,7 +44,7 @@ export function startLive(ctx: Ctx): CommandResult {
       return { ok: false, reason: 'answer the curse offer first' };
     }
   }
-  if (s.phase.n === 3 && !s.auction.resolved) resolveAuction(ctx);
+  if (ctx.t.auction.enabled && s.phase.n === 3 && !s.auction.resolved) resolveAuction(ctx);
   if (s.auction.awaitingRecipient)
     return { ok: false, reason: 'choose who receives the holy item' };
   s.phase = { kind: 'live', n: s.phase.n, startTick: s.tick };

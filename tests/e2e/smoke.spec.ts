@@ -43,10 +43,6 @@ test('draft, play a phase, read the report, start the next phase', async ({ page
   await expect(page.getByTestId('buy-confirm-box')).toBeVisible();
   await page.getByTestId('buy-confirm').click();
   await expect(page.locator('.slot.filled')).toHaveCount(1);
-  await page.getByTestId('tab-auction').click();
-  await page.getByTestId('bid-gold').fill('100');
-  await page.getByTestId('bid').click();
-  await expect(page.getByText('Your bids so far: 0 pts, 100g')).toBeVisible();
   await page.getByTestId('start-phase').click();
 
   await expect(page.getByTestId('phase')).toHaveText('Phase 1');

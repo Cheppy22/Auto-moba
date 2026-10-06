@@ -51,7 +51,7 @@ function CatGlyph({ cat, size = 18 }: { cat: string; size?: number }) {
 
 function Tile(props: { e: ShopEntry; selected: boolean; onPick: () => void; count: number }) {
   const { e } = props;
-  const state = e.source === 'locked' ? 'locked' : e.canBuy ? 'ready' : 'poor';
+  const state = e.canBuy ? 'ready' : 'poor';
   return (
     <button
       class={`tile t${e.tier} cat-${e.category} ${state} ${props.selected ? 'sel' : ''} ${
@@ -80,9 +80,15 @@ function Attunement({ cat, owned }: { cat: Cat; owned: number }) {
   const slots = s.content.tuning.shop.slots;
   const active = [...tiers].reverse().find((t) => owned >= t.count);
   const next = tiers.find((t) => owned < t.count);
+  const full = [
+    BLURB[cat],
+    active ? `${active.title} (${active.count}): ${active.text}` : `Own 2 ${cat} items to attune.`,
+    next ? `${next.count - owned} more for ${next.title}: ${next.text}` : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
   return (
-    <div class={`attune cat-${cat}`} data-testid="attunement">
-      <div class="small dim">{BLURB[cat]}</div>
+    <div class={`attune cat-${cat}`} data-testid="attunement" title={full}>
       <div class="attune-track" aria-label={`${owned} of ${slots} ${cat} items owned`}>
         {Array.from({ length: slots }, (_, i) => (
           <span
@@ -91,24 +97,21 @@ function Attunement({ cat, owned }: { cat: Cat; owned: number }) {
           />
         ))}
       </div>
-      <div class="small">
+      <span class="attune-line tiny">
         {active ? (
           <>
-            <b>
-              {active.title} ({active.count}):
-            </b>{' '}
-            {active.text}
+            <b>{active.title}</b> {active.text}
           </>
         ) : (
-          <span class="dim">Own 2 {cat} items to attune.</span>
+          <span class="dim">Own 2 {cat} items to attune</span>
         )}
         {next && (
           <span class="dim">
             {' '}
-            · {next.count - owned} more for {next.title}: {next.text}
+            · +{next.count - owned} for {next.title}
           </span>
         )}
-      </div>
+      </span>
     </div>
   );
 }
@@ -159,7 +162,7 @@ export function ShopPanel() {
               <div class="dim tiny">
                 {def.category} · tier {def.tier}
                 {selEntry.source === 'keeper' ? ' · Keeper stock' : ''}
-                {selEntry.source === 'locked' ? ' · locked' : ''}
+                {selEntry.source === 'jungle' ? ' · Jungle stock' : ''}
               </div>
             </div>
           </div>
@@ -314,26 +317,28 @@ export function ShopPanel() {
             ))}
           </div>
           <Attunement cat={cat} owned={ownedByCat[cat] ?? 0} />
-          {[1, 2, 3].map((tier) => {
-            const list = entries.filter((e) => e.category === cat && e.tier === tier);
-            if (list.length === 0) return null;
-            return (
-              <div class="tier-row" key={tier}>
-                <div class="tier-label">Tier {tier}</div>
-                <div class="tiles">
-                  {list.map((e) => (
-                    <Tile
-                      key={e.id}
-                      e={e}
-                      selected={sel?.kind === 'shop' && sel.id === e.id}
-                      count={owned.filter((x) => x === e.id).length}
-                      onPick={() => pick({ kind: 'shop', id: e.id })}
-                    />
-                  ))}
+          <div class="col shop-tiles">
+            {[1, 2, 3].map((tier) => {
+              const list = entries.filter((e) => e.category === cat && e.tier === tier);
+              if (list.length === 0) return null;
+              return (
+                <div class="tier-row" key={tier}>
+                  <div class="tier-label">Tier {tier}</div>
+                  <div class="tiles">
+                    {list.map((e) => (
+                      <Tile
+                        key={e.id}
+                        e={e}
+                        selected={sel?.kind === 'shop' && sel.id === e.id}
+                        count={owned.filter((x) => x === e.id).length}
+                        onPick={() => pick({ kind: 'shop', id: e.id })}
+                      />
+                    ))}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
         <aside class="panel shop-detail">{detail()}</aside>
       </div>

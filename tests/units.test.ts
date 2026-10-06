@@ -81,7 +81,7 @@ describe('damage and shop', () => {
     expect(hero.hero!.gold).toBe(before - 350 + 450);
   });
 
-  it('tier 3 items are not in the base catalog until unlocked or stocked', () => {
+  it('tier 3 items are not in the base catalog; only the keeper stock sells them there', () => {
     const q = quote(m.ctx, hero, 'soot_reaver');
     const stocked = m.state.keeper.stock.includes('soot_reaver');
     expect('price' in q).toBe(stocked);

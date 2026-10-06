@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { Match, type Command } from '../src/sim';
 import { tryCast } from '../src/sim/combat';
 import { grantSpecial } from '../src/sim/curses';
@@ -196,6 +196,12 @@ describe('cursed items', () => {
 });
 
 describe('holy auction', () => {
+  beforeAll(() => {
+    content.tuning.auction.enabled = true;
+  });
+  afterAll(() => {
+    content.tuning.auction.enabled = false;
+  });
   it('keeps bids sealed, resolves at phase 3, and lets the winning player choose the carrier', () => {
     const m = playerMatch(51);
     const id = m.state.playerHeroId!;
@@ -227,7 +233,7 @@ describe('holy auction', () => {
   });
 
   it('refunds half the losing side gold and spends the points', () => {
-    const m = playerMatch(52);
+    const m = playerMatch(56);
     const id = m.state.playerHeroId!;
     const p = m.unitById(id)!;
     p.hero!.gold = 400;

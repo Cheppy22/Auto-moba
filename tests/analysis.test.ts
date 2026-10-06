@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildReport, inputFromMatch, mostTakenType } from '../src/analysis';
 import { Match } from '../src/sim';
 import { content, runAi } from './helpers';
@@ -70,6 +70,12 @@ describe('analysis', () => {
 });
 
 describe('sealed auction in reports', () => {
+  beforeAll(() => {
+    content.tuning.auction.enabled = true;
+  });
+  afterAll(() => {
+    content.tuning.auction.enabled = false;
+  });
   it('hides the other side bids until the auction resolves', () => {
     const live = Match.create(content, { seed: 81, player: { heroId: 'smelter', role: 'top' } });
     const id = live.state.playerHeroId!;

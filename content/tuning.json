@@ -236,7 +236,8 @@
     "baseRadius": 110,
     "keeperRadius": 120,
     "jungleRadius": 60,
-    "keeperStock": 3
+    "keeperStock": 3,
+    "unlockDiscount": 0.25
   },
   "recall": {
     "baseSec": 3
@@ -275,6 +276,20 @@
     "shopTripGold": 700,
     "shopTripRadius": 380,
     "shopTripScore": 0.9,
+    "tier3TripRadius": 1300,
+    "swapAfterDeaths": 3,
+    "dominatedGap": 3,
+    "lossWindowTicks": 3600,
+    "cautiousDeaths": 2,
+    "cautiousTicks": 1800,
+    "healSafeHp": 0.45,
+    "rescueRadius": 900,
+    "rescueScore": 2.4,
+    "rescueRatio": 1.0,
+    "commitBonus": 1.5,
+    "easyKillHp": 0.4,
+    "holdBraveCap": 1.2,
+    "tier3TripScore": 1.1,
     "holdPatience": 400,
     "huntRadius": 650,
     "huntScore": 0.8
@@ -320,7 +335,7 @@
       "pushTower": 0.6,
       "defendTower": 0.9,
       "clearCamp": 1.4,
-      "joinFight": 0.8,
+      "joinFight": 1.1,
       "takeObelisk": 1.0,
       "hunt": 0.35
     },
@@ -349,6 +364,7 @@
     "minPhase": 2
   },
   "auction": {
+    "enabled": false,
     "pointRate": 3,
     "loserRefund": 0.5
   },

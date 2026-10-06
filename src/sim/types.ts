@@ -102,6 +102,8 @@ export interface HeroState {
   holdTicks: number;
   lastRecallTick: number;
   suggest: string[];
+  lossStreak: number;
+  lastDeathTick: number;
 }
 
 export interface CampState {
@@ -380,6 +382,7 @@ export interface EventPayloads {
   curseAccepted: { hero: number; item: string; flaw: string };
   curseRefused: { hero: number; item: string };
   pressure: { event: string; name: string };
+  laneSwap: { a: number; b: number };
   keeperMoved: { spot: string; x: number; y: number; stock: string[] };
   commandRejected: { cmd: string; reason: string };
   matchEnd: { winner: PlayTeam | null; phase: number };
@@ -555,7 +558,7 @@ export interface ShopEntry {
   cost: number;
   price: number;
   consumed: string[];
-  source: 'base' | 'keeper' | 'locked';
+  source: 'base' | 'keeper' | 'jungle';
   canBuy: boolean;
   reason: string;
   desc: string;

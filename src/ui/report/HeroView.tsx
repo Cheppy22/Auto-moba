@@ -267,7 +267,7 @@ export function HeroView(props: {
           </div>
         </div>
         <button class="btn" onClick={() => s.setUi({ reportHero: null })} data-testid="back-team">
-          Back to teams
+          Close hero
         </button>
       </div>
       <div class="row wrap" style={{ gap: '6px' }}>

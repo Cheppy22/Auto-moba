@@ -271,14 +271,14 @@
       ]
     },
     {
-      "id": "shop_n",
-      "name": "Northern Stall",
-      "x": 480,
-      "y": 190,
+      "id": "shop_e",
+      "name": "Eastern Stall",
+      "x": 810,
+      "y": 520,
       "radius": 44,
       "ports": [
         {
-          "lane": "top",
+          "lane": "bot",
           "t": 0.7185
         },
         {

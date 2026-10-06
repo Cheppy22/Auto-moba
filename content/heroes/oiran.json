@@ -6,13 +6,13 @@
   "attackKind": "melee",
   "playstyle": "A fragile assassin that leaps onto a single enemy hero and deletes them. Pick off the weakest or most exposed target, then slip away; she is weak if caught.",
   "stats": {
-    "maxHp": 918.6,
+    "maxHp": 1076.42,
     "hpRegen": 2,
     "armor": 16,
     "resist": 16,
-    "bladeDmg": 121.6,
+    "bladeDmg": 142.49,
     "atkSpeed": 1.05,
-    "soulPower": 0,
+    "soulPower": 0.0,
     "moveSpeed": 54,
     "cdr": 0,
     "range": 22

@@ -3,6 +3,7 @@ import { dist } from './core/math';
 import { hpPct, isEnemy, isTargetable, type Ctx } from './ctx';
 import { matchupAt } from './ai/power';
 import { retreatLanePath } from './ai/strategic';
+import { isWary } from './ai/swap';
 import { findPath, LANES } from './world/map';
 import { tickRecall } from './recall';
 import type { PlayTeam, Unit } from './types';
@@ -99,7 +100,11 @@ function updateEngage(ctx: Ctx, u: Unit): void {
   const prev = h.engage;
   if (m.enemyHeroes === 0) h.engage = 'fight';
   else {
-    const eff = m.ratio * pers.riskTaking * (1 + h.holdTicks / ctx.t.ai.holdPatience);
+    const hpFactor = Math.min(1, 0.35 + (u.hp / u.stats.maxHp) * 1.3);
+    const wary = isWary(ctx, h) ? 0.8 : 1;
+    const patience = Math.min(ctx.t.ai.holdBraveCap, 1 + h.holdTicks / ctx.t.ai.holdPatience);
+    const committed = h.goal?.kind === 'joinFight' ? ctx.t.ai.commitBonus : 1;
+    const eff = m.ratio * pers.riskTaking * patience * hpFactor * wary * committed;
     if (eff >= pers.engageRatio) h.engage = 'fight';
     else if (eff >= pers.engageRatio * 0.5) h.engage = 'hold';
     else h.engage = 'flee';

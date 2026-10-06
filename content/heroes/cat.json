@@ -6,13 +6,13 @@
   "attackKind": "ranged",
   "playstyle": "A support that heals and shields teammates. Stay behind your allies and keep the hurt ones alive; it does little damage itself.",
   "stats": {
-    "maxHp": 970,
+    "maxHp": 902.1,
     "hpRegen": 2.5,
     "armor": 18,
     "resist": 28,
-    "bladeDmg": 34,
+    "bladeDmg": 31.62,
     "atkSpeed": 0.85,
-    "soulPower": 66,
+    "soulPower": 61.38,
     "moveSpeed": 48,
     "cdr": 0,
     "range": 90

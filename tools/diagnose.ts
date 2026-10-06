@@ -44,6 +44,10 @@ const agg = {
   heroesWithT3: 0,
   unlocks: [] as number[],
   entryHp: [] as number[],
+  killerKinds: {} as Record<string, number>,
+  deathsByStreak: [0, 0, 0, 0, 0, 0] as number[],
+  swaps: 0,
+  byHero: {} as Record<string, { n: number; d: number; k: number }>,
   healSelf: 0,
   healAlly: 0,
   healerMiss: 0,
@@ -111,6 +115,7 @@ for (let k = 0; k < N; k++) {
       const evs = m.events;
       for (; evI < evs.length; evI++) {
         const e = evs[evI] as { type: string; tick: number; payload: Record<string, unknown> };
+        if (e.type === 'laneSwap') agg.swaps++;
         if (e.type === 'recall' && e.payload.stage === 'start') {
           const u = m.unitById(e.payload.id as number);
           if (u?.hero) {
@@ -148,6 +153,9 @@ for (let k = 0; k < N; k++) {
           const v = m.unitById(e.payload.id as number)!;
           const team = v.team as PlayTeam;
           agg.deaths++;
+          const kk = String(e.payload.killerKind);
+          agg.killerKinds[kk] = (agg.killerKinds[kk] ?? 0) + 1;
+          agg.deathsByStreak[Math.min(5, v.hero!.lossStreak)]++;
           const fs = fightStart.get(v.id);
           if (fs && tick - fs.tick < 200) agg.entryHp.push(fs.hp);
           const kid = e.payload.killer as number;
@@ -287,6 +295,10 @@ for (let k = 0; k < N; k++) {
     if (h.items.some((id) => content.itemById.get(id)?.tier === 3)) agg.heroesWithT3++;
     const dd = agg.byDisp[h.disposition as Disp];
     dd.n++;
+    const bh = (agg.byHero[h.defId] ??= { n: 0, d: 0, k: 0 });
+    bh.n++;
+    bh.d += h.deaths;
+    bh.k += h.kills;
     dd.deaths += h.deaths;
     const tk = ctx.s.teams[u.team as PlayTeam].kills;
     dd.kp += tk > 0 ? (h.kills + h.assists) / tk : 0;
@@ -344,6 +356,20 @@ console.log(
 console.log('\n== Feeding ==');
 console.log(
   `median worst-deaths per match ${med(agg.maxDeaths)}, max ${Math.max(...agg.maxDeaths)}; hero-games with 8+ deaths ${pct(agg.feeders8, agg.heroMatches)}; with 4+ deaths in a row without a kill ${pct(agg.streak4, agg.heroMatches)}`,
+);
+console.log(
+  'killer kinds',
+  agg.killerKinds,
+  'deaths at loss-streak 0..5+',
+  agg.deathsByStreak,
+  'lane swaps/match',
+  (agg.swaps / agg.matches).toFixed(1),
+);
+console.log(
+  'deaths/kills per game by hero:',
+  Object.entries(agg.byHero)
+    .map(([k, v]) => `${k} ${(v.d / v.n).toFixed(1)}/${(v.k / v.n).toFixed(1)}`)
+    .join(', '),
 );
 console.log('\n== Tier 3 ==');
 console.log(

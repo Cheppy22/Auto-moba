@@ -99,17 +99,45 @@ html:not([data-layout='desktop']) .codex-detail {
   max-height: calc(100dvh - 230px);
 }
 
-/* shop */
-html:not([data-layout='desktop']) .shop-body {
-  grid-template-columns: 1fr;
+/* shop: side panel on landscape, docked bottom detail on portrait */
+html:not([data-layout='desktop']) .shop {
+  --shop-h: calc(100dvh - 255px);
+  min-height: 300px;
 }
-html:not([data-layout='desktop']) .shop-detail {
-  order: -1;
+html:not([data-layout='desktop']) .shop-scroll .shop {
+  --shop-h: calc(100dvh - 80px);
+}
+html:not([data-layout='desktop']) .shop-scroll {
+  max-height: none;
+}
+html[data-layout='landscape'] .shop {
+  --shop-h: calc(100dvh - 215px);
+  min-height: 200px;
+}
+html[data-layout='landscape'] .shop-scroll .shop {
+  --shop-h: calc(100dvh - 70px);
+}
+html[data-layout='landscape'] .shop-body {
+  grid-template-columns: minmax(0, 1fr) 240px;
+  gap: var(--sp-3);
+}
+html[data-layout='portrait'] .shop-body {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: var(--sp-2);
+}
+html[data-layout='portrait'] .shop-detail {
   position: static;
+  align-self: stretch;
   min-height: 0;
+  max-height: 44dvh;
+  padding: var(--sp-2) var(--sp-3);
 }
 html:not([data-layout='desktop']) .tiles {
-  grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+}
+html:not([data-layout='desktop']) .tile {
+  min-height: 100px;
 }
 
 /* hud */
