@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CUSTOM_BEHAVIORS, validateRefs } from '../src/sim';
+import { TPS } from '../src/sim/combat';
 import { content } from './helpers';
 
 describe('content', () => {
@@ -19,6 +20,10 @@ describe('content', () => {
       'keeper_debts',
       'restless_guardians',
     ]);
+  });
+
+  it('keeps the tick rate constant in step with tuning.json', () => {
+    expect(content.tuning.tickRate).toBe(TPS);
   });
 
   it('caps custom behaviors at five', () => {

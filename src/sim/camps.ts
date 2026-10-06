@@ -45,9 +45,8 @@ function spawnSpot(ctx: Ctx, slot: SlotState, spot: number): void {
   const pos = biome.camps[spot];
   const sdef = ctx.world.map.slots.find((s) => s.id === slot.id)!;
   if (!type || !pos) return;
-  const sign = slot.mirrored ? -1 : 1;
-  const hx = sdef.x + pos.dx * sign;
-  const hy = sdef.y + pos.dy * sign;
+  const hx = sdef.x + (slot.mirrored ? pos.dy : pos.dx);
+  const hy = sdef.y + (slot.mirrored ? pos.dx : pos.dy);
   const ids: number[] = [];
   for (let i = 0; i < type.count; i++) {
     const ox = type.count > 1 ? (i - (type.count - 1) / 2) * 14 : 0;

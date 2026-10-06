@@ -21,9 +21,15 @@
       [890, 110]
     ]
   },
-  "bases": { "A": [110, 890], "B": [890, 110] },
+  "bases": {
+    "A": [110, 890],
+    "B": [890, 110]
+  },
   "guardianOffset": 46,
-  "towerFractions": { "outer": 0.3, "inner": 0.14 },
+  "towerFractions": {
+    "outer": 0.3,
+    "inner": 0.14
+  },
   "slots": [
     {
       "id": "tlc",
@@ -32,9 +38,18 @@
       "radius": 95,
       "openPhase": 1,
       "ports": [
-        { "lane": "top", "t": 0.359 },
-        { "lane": "top", "t": 0.641 },
-        { "lane": "mid", "t": 0.5 }
+        {
+          "lane": "top",
+          "t": 0.359
+        },
+        {
+          "lane": "top",
+          "t": 0.641
+        },
+        {
+          "lane": "mid",
+          "t": 0.5
+        }
       ]
     },
     {
@@ -44,9 +59,18 @@
       "radius": 95,
       "openPhase": 1,
       "ports": [
-        { "lane": "bot", "t": 0.359 },
-        { "lane": "bot", "t": 0.641 },
-        { "lane": "mid", "t": 0.5 }
+        {
+          "lane": "bot",
+          "t": 0.359
+        },
+        {
+          "lane": "bot",
+          "t": 0.641
+        },
+        {
+          "lane": "mid",
+          "t": 0.5
+        }
       ]
     },
     {
@@ -56,19 +80,31 @@
       "radius": 85,
       "openPhase": 2,
       "ports": [
-        { "lane": "top", "t": 0.16 },
-        { "lane": "mid", "t": 0.2436 }
+        {
+          "lane": "top",
+          "t": 0.16
+        },
+        {
+          "lane": "mid",
+          "t": 0.2436
+        }
       ]
     },
     {
-      "id": "brb",
-      "x": 760,
-      "y": 360,
+      "id": "tlb",
+      "x": 640,
+      "y": 240,
       "radius": 85,
       "openPhase": 2,
       "ports": [
-        { "lane": "bot", "t": 0.84 },
-        { "lane": "mid", "t": 0.7564 }
+        {
+          "lane": "top",
+          "t": 0.84
+        },
+        {
+          "lane": "mid",
+          "t": 0.7564
+        }
       ]
     },
     {
@@ -78,40 +114,122 @@
       "radius": 85,
       "openPhase": 3,
       "ports": [
-        { "lane": "bot", "t": 0.16 },
-        { "lane": "mid", "t": 0.2436 }
+        {
+          "lane": "bot",
+          "t": 0.16
+        },
+        {
+          "lane": "mid",
+          "t": 0.2436
+        }
       ]
     },
     {
-      "id": "tlb",
-      "x": 640,
-      "y": 240,
+      "id": "brb",
+      "x": 760,
+      "y": 360,
       "radius": 85,
       "openPhase": 3,
       "ports": [
-        { "lane": "top", "t": 0.84 },
-        { "lane": "mid", "t": 0.7564 }
+        {
+          "lane": "bot",
+          "t": 0.84
+        },
+        {
+          "lane": "mid",
+          "t": 0.7564
+        }
       ]
     }
   ],
   "obeliskNodes": [
-    { "id": "ob_mid", "x": 500, "y": 500 },
-    { "id": "ob_top_w", "x": 110, "y": 500 },
-    { "id": "ob_top_n", "x": 500, "y": 110 },
-    { "id": "ob_bot_s", "x": 500, "y": 890 },
-    { "id": "ob_bot_e", "x": 890, "y": 500 },
-    { "id": "ob_tlc", "x": 330, "y": 300, "slot": "tlc" },
-    { "id": "ob_brc", "x": 670, "y": 700, "slot": "brc" },
-    { "id": "ob_tla", "x": 220, "y": 660, "slot": "tla" },
-    { "id": "ob_brb", "x": 780, "y": 340, "slot": "brb" },
-    { "id": "ob_bra", "x": 340, "y": 780, "slot": "bra" },
-    { "id": "ob_tlb", "x": 660, "y": 220, "slot": "tlb" }
+    {
+      "id": "ob_mid",
+      "x": 500,
+      "y": 500
+    },
+    {
+      "id": "ob_top_w",
+      "x": 110,
+      "y": 500
+    },
+    {
+      "id": "ob_top_n",
+      "x": 500,
+      "y": 110
+    },
+    {
+      "id": "ob_bot_s",
+      "x": 500,
+      "y": 890
+    },
+    {
+      "id": "ob_bot_e",
+      "x": 890,
+      "y": 500
+    },
+    {
+      "id": "ob_tlc",
+      "x": 310,
+      "y": 310,
+      "slot": "tlc"
+    },
+    {
+      "id": "ob_brc",
+      "x": 690,
+      "y": 690,
+      "slot": "brc"
+    },
+    {
+      "id": "ob_tla",
+      "x": 220,
+      "y": 660,
+      "slot": "tla"
+    },
+    {
+      "id": "ob_brb",
+      "x": 780,
+      "y": 340,
+      "slot": "brb"
+    },
+    {
+      "id": "ob_bra",
+      "x": 340,
+      "y": 780,
+      "slot": "bra"
+    },
+    {
+      "id": "ob_tlb",
+      "x": 660,
+      "y": 220,
+      "slot": "tlb"
+    }
   ],
   "keeperSpots": [
-    { "id": "k_west", "x": 400, "y": 600 },
-    { "id": "k_east", "x": 600, "y": 400 },
-    { "id": "k_nw", "x": 300, "y": 300 },
-    { "id": "k_se", "x": 700, "y": 700 },
-    { "id": "k_core", "x": 500, "y": 500 }
+    {
+      "id": "k_west",
+      "x": 400,
+      "y": 600
+    },
+    {
+      "id": "k_east",
+      "x": 600,
+      "y": 400
+    },
+    {
+      "id": "k_nw",
+      "x": 300,
+      "y": 300
+    },
+    {
+      "id": "k_se",
+      "x": 700,
+      "y": 700
+    },
+    {
+      "id": "k_core",
+      "x": 500,
+      "y": 500
+    }
   ]
 }

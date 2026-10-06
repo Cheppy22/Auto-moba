@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Match, type Command } from '../src/sim';
+import { tryCast } from '../src/sim/combat';
 import { grantSpecial } from '../src/sim/curses';
 import { recompute } from '../src/sim/stats';
 import { content } from './helpers';
@@ -90,6 +91,17 @@ describe('cursed items', () => {
     return { m, id };
   }
 
+  it('brings the keeper to the nearest spot when it makes an offer', () => {
+    const { m, id } = cursedSetup();
+    const p = m.unitById(id)!;
+    const k = m.unitById(m.state.keeper.unitId)!;
+    const nearest = content.map.keeperSpots
+      .map((s) => ({ s, d: Math.hypot(s.x - p.x, s.y - p.y) }))
+      .sort((a, b) => a.d - b.d)[0].s;
+    expect(m.state.keeper.spot).toBe(nearest.id);
+    expect(Math.hypot(k.x - nearest.x, k.y - nearest.y)).toBeLessThan(1);
+  });
+
   it('offers a curse to the furthest-behind hero on the losing team, once', () => {
     const { m, id } = cursedSetup();
     const offers = m.state.curseOffers.filter((o) => o.phase === 2);
@@ -150,8 +162,15 @@ describe('cursed items', () => {
     const taken1 = p.stats.damageTakenMult;
     m.state.tagMult.curse = 2;
     recompute(m.ctx, p);
-    expect(p.stats.bladeDmg / dmg1).toBeCloseTo(2.0 / 1.5, 5);
-    expect(p.stats.damageTakenMult / taken1).toBeCloseTo(1.5 / 1.25, 5);
+    const boon = content.cursedById
+      .get('hungry_mask')!
+      .boons.find((b) => b.stat === 'bladeDmg')!.value;
+    const flaw = content.cursedById
+      .get('hungry_mask')!
+      .flaws.find((f) => f.id === 'gnaw')!
+      .mods.find((x) => x.stat === 'damageTakenMult')!.value;
+    expect(p.stats.bladeDmg / dmg1).toBeCloseTo(((boon - 1) * 2 + 1) / boon, 5);
+    expect(p.stats.damageTakenMult / taken1).toBeCloseTo(((flaw - 1) * 2 + 1) / flaw, 5);
   });
 
   it('revives once with the Lantern of the Drowned', () => {
@@ -307,5 +326,38 @@ describe('obelisks', () => {
     m.step(4800);
     expect(m.events.filter((e) => e.type === 'obeliskSpawn').length).toBe(before);
     expect(before).toBeGreaterThan(0);
+  });
+});
+
+describe('area abilities', () => {
+  it('burst abilities hit enemies around the target and never the caster or allies', () => {
+    const m = Match.create(content, {
+      seed: 71,
+      player: null,
+      draft: { A: Array(5).fill('cartographer'), B: Array(5).fill('smelter') },
+    });
+    m.issue({ type: 'startPhase' });
+    m.step(1);
+    const [caster, ally] = m.state.teams.A.heroIds.map((id) => m.unitById(id)!);
+    const [enemy, bystander] = m.state.teams.B.heroIds.map((id) => m.unitById(id)!);
+    for (const u of m.state.units) if (u.kind === 'hero') u.x = u.y = 0;
+    m.state.units = m.state.units.filter((u) => u.kind === 'hero' || u.kind === 'keeper');
+    caster.x = 500;
+    caster.y = 500;
+    enemy.x = 560;
+    enemy.y = 500;
+    ally.x = 565;
+    ally.y = 505;
+    bystander.x = 570;
+    bystander.y = 510;
+    m.ctx.grid.clear();
+    for (const u of m.state.units) if (u.alive) m.ctx.grid.insert(u);
+    const hp = new Map([caster, ally, enemy, bystander].map((u) => [u.id, u.hp]));
+    caster.hero!.cd = [0, 0, 0, 0];
+    expect(tryCast(m.ctx, caster, 3)).toBe(true);
+    expect(enemy.hp).toBeLessThan(hp.get(enemy.id)!);
+    expect(bystander.hp).toBeLessThan(hp.get(bystander.id)!);
+    expect(ally.hp).toBe(hp.get(ally.id));
+    expect(caster.hp).toBe(hp.get(caster.id));
   });
 });

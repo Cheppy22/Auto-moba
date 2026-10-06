@@ -5,31 +5,58 @@
       "name": "The Hungry Mask",
       "category": "blade",
       "boons": [
-        { "stat": "bladeDmg", "kind": "mul", "value": 1.5 },
-        { "stat": "atkSpeed", "kind": "mul", "value": 1.1 }
+        {
+          "stat": "bladeDmg",
+          "kind": "mul",
+          "value": 1.9
+        },
+        {
+          "stat": "atkSpeed",
+          "kind": "mul",
+          "value": 1.25
+        }
       ],
-      "boonText": "+50% Blade damage, +10% attack speed",
+      "boonText": "+90% Blade damage, +25% attack speed",
       "flawType": "Hunger",
       "flaws": [
         {
           "id": "starve",
           "text": "Lose 3% max health per second while out of combat",
           "triggers": [
-            { "on": "periodic", "everySec": 1, "custom": "outOfCombatDrain", "param": 0.03 }
+            {
+              "on": "periodic",
+              "everySec": 1,
+              "custom": "outOfCombatDrain",
+              "param": 0.03
+            }
           ]
         },
         {
           "id": "hollow",
           "text": "Regeneration halved and max health reduced by 15%",
           "mods": [
-            { "stat": "hpRegen", "kind": "mul", "value": 0.5 },
-            { "stat": "maxHp", "kind": "mul", "value": 0.85 }
+            {
+              "stat": "hpRegen",
+              "kind": "mul",
+              "value": 0.5
+            },
+            {
+              "stat": "maxHp",
+              "kind": "mul",
+              "value": 0.85
+            }
           ]
         },
         {
           "id": "gnaw",
           "text": "Take 25% more damage",
-          "mods": [{ "stat": "damageTakenMult", "kind": "mul", "value": 1.25 }]
+          "mods": [
+            {
+              "stat": "damageTakenMult",
+              "kind": "mul",
+              "value": 1.25
+            }
+          ]
         }
       ],
       "desc": "It is always hungry, and it takes before it gives."
@@ -39,27 +66,57 @@
       "name": "Borrowed Years",
       "category": "flesh",
       "boons": [
-        { "stat": "atkSpeed", "kind": "mul", "value": 1.4 },
-        { "stat": "moveSpeed", "kind": "mul", "value": 1.15 },
-        { "stat": "maxHp", "kind": "add", "value": 150 }
+        {
+          "stat": "atkSpeed",
+          "kind": "mul",
+          "value": 1.55
+        },
+        {
+          "stat": "moveSpeed",
+          "kind": "mul",
+          "value": 1.25
+        },
+        {
+          "stat": "maxHp",
+          "kind": "add",
+          "value": 320
+        }
       ],
-      "boonText": "+40% attack speed, +15% move speed, +150 health",
+      "boonText": "+55% attack speed, +25% move speed, +320 health",
       "flawType": "Debt",
       "flaws": [
         {
           "id": "slow_return",
           "text": "Respawn time doubled",
-          "mods": [{ "stat": "respawnMult", "kind": "mul", "value": 2 }]
+          "mods": [
+            {
+              "stat": "respawnMult",
+              "kind": "mul",
+              "value": 2
+            }
+          ]
         },
         {
           "id": "thin_purse",
           "text": "Gold income reduced by 30%",
-          "mods": [{ "stat": "incomeMult", "kind": "mul", "value": 0.7 }]
+          "mods": [
+            {
+              "stat": "incomeMult",
+              "kind": "mul",
+              "value": 0.7
+            }
+          ]
         },
         {
           "id": "brittle",
           "text": "Armor reduced by 40%",
-          "mods": [{ "stat": "armor", "kind": "mul", "value": 0.6 }]
+          "mods": [
+            {
+              "stat": "armor",
+              "kind": "mul",
+              "value": 0.6
+            }
+          ]
         }
       ],
       "desc": "Time is lent, and always called in."
@@ -68,25 +125,55 @@
       "id": "lantern_of_the_drowned",
       "name": "Lantern of the Drowned",
       "category": "soul",
-      "boons": [{ "stat": "soulPower", "kind": "add", "value": 40 }],
-      "triggers": [{ "on": "lowHp", "custom": "reviveOnce", "param": 0.4 }],
-      "boonText": "+40 Soul power; revive once at 40% health",
+      "boons": [
+        {
+          "stat": "soulPower",
+          "kind": "add",
+          "value": 75
+        }
+      ],
+      "triggers": [
+        {
+          "on": "lowHp",
+          "custom": "reviveOnce",
+          "param": 0.6
+        }
+      ],
+      "boonText": "+75 Soul power; revive once at 60% health",
       "flawType": "Burden",
       "flaws": [
         {
           "id": "heavy_water",
           "text": "Resist reduced by 35%",
-          "mods": [{ "stat": "resist", "kind": "mul", "value": 0.65 }]
+          "mods": [
+            {
+              "stat": "resist",
+              "kind": "mul",
+              "value": 0.65
+            }
+          ]
         },
         {
           "id": "slow_flame",
           "text": "Cooldowns 30% slower",
-          "mods": [{ "stat": "cdr", "kind": "add", "value": -0.3 }]
+          "mods": [
+            {
+              "stat": "cdr",
+              "kind": "add",
+              "value": -0.3
+            }
+          ]
         },
         {
           "id": "dragging",
           "text": "Move speed reduced by 22%",
-          "mods": [{ "stat": "moveSpeed", "kind": "mul", "value": 0.78 }]
+          "mods": [
+            {
+              "stat": "moveSpeed",
+              "kind": "mul",
+              "value": 0.78
+            }
+          ]
         }
       ],
       "desc": "A drowned light that refuses to go out."
@@ -96,31 +183,62 @@
       "name": "Pact of Ash",
       "category": "blade",
       "boons": [
-        { "stat": "bladeDmg", "kind": "mul", "value": 1.3 },
-        { "stat": "soulPower", "kind": "mul", "value": 1.3 },
-        { "stat": "maxHp", "kind": "mul", "value": 1.2 }
+        {
+          "stat": "bladeDmg",
+          "kind": "mul",
+          "value": 1.55
+        },
+        {
+          "stat": "soulPower",
+          "kind": "mul",
+          "value": 1.55
+        },
+        {
+          "stat": "maxHp",
+          "kind": "mul",
+          "value": 1.35
+        }
       ],
-      "boonText": "+30% Blade and Soul power, +20% health",
+      "boonText": "+55% Blade and Soul power, +35% health",
       "flawType": "Price",
       "flaws": [
         {
           "id": "ashen_skin",
           "text": "Armor and resist reduced by 40%",
           "mods": [
-            { "stat": "armor", "kind": "mul", "value": 0.6 },
-            { "stat": "resist", "kind": "mul", "value": 0.6 }
+            {
+              "stat": "armor",
+              "kind": "mul",
+              "value": 0.6
+            },
+            {
+              "stat": "resist",
+              "kind": "mul",
+              "value": 0.6
+            }
           ]
         },
         {
           "id": "open_wound",
           "text": "Take 30% more damage",
-          "mods": [{ "stat": "damageTakenMult", "kind": "mul", "value": 1.3 }]
+          "mods": [
+            {
+              "stat": "damageTakenMult",
+              "kind": "mul",
+              "value": 1.3
+            }
+          ]
         },
         {
           "id": "burning_pact",
           "text": "Lose 3% max health per second while out of combat",
           "triggers": [
-            { "on": "periodic", "everySec": 1, "custom": "outOfCombatDrain", "param": 0.03 }
+            {
+              "on": "periodic",
+              "everySec": 1,
+              "custom": "outOfCombatDrain",
+              "param": 0.03
+            }
           ]
         }
       ],

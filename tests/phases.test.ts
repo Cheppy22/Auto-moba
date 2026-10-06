@@ -26,15 +26,15 @@ describe('phases and biomes', () => {
     m.issue({ type: 'startPhase' });
     m.step(4800);
     m.issue({ type: 'continue' });
-    expect(openIds(m).sort()).toEqual(['brb', 'brc', 'tla', 'tlc']);
+    expect(openIds(m).sort()).toEqual(['brc', 'tla', 'tlb', 'tlc']);
     m.issue({ type: 'startPhase' });
     m.step(4800);
     m.issue({ type: 'continue' });
     expect(openIds(m)).toHaveLength(6);
     const byId = Object.fromEntries(m.state.slots.map((s) => [s.id, s]));
     expect(byId.tlc.biomeId).toBe(byId.brc.biomeId);
-    expect(byId.tla.biomeId).toBe(byId.brb.biomeId);
-    expect(byId.bra.biomeId).toBe(byId.tlb.biomeId);
+    expect(byId.tla.biomeId).toBe(byId.tlb.biomeId);
+    expect(byId.bra.biomeId).toBe(byId.brb.biomeId);
   });
 
   it('randomizes biomes by seed', () => {

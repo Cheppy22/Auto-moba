@@ -18,8 +18,12 @@ export function Report(props: { scope: 'phase' | 'match' }) {
     [m, s.content, st.phase.kind, st.phase.n],
   );
   const key = scope.kind === 'match' ? 'match' : `phase${scope.n}`;
-  const report = useMemo(() => buildReport(input, scope), [input, key]);
-  const whole = useMemo(() => buildReport(input, { kind: 'match' }), [input]);
+  const viewer =
+    m.state.playerHeroId !== null
+      ? (m.unitById(m.state.playerHeroId)?.team as 'A' | 'B')
+      : undefined;
+  const report = useMemo(() => buildReport(input, scope, viewer), [input, key, viewer]);
+  const whole = useMemo(() => buildReport(input, { kind: 'match' }, viewer), [input, viewer]);
   const phases = whole.phases;
   const hero = s.ui.reportHero;
   const title = props.scope === 'match' ? 'Match report' : `Phase ${current} report`;

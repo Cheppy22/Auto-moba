@@ -39,6 +39,27 @@ export function teamNetWorth(ctx: Ctx, team: PlayTeam): number {
   return sum;
 }
 
+function moveKeeperNear(ctx: Ctx, hero: Unit): void {
+  const k = ctx.unit(ctx.s.keeper.unitId);
+  if (!k) return;
+  let best = ctx.world.map.keeperSpots[0];
+  let bestD = Infinity;
+  for (const spot of ctx.world.map.keeperSpots) {
+    const d = Math.hypot(spot.x - hero.x, spot.y - hero.y);
+    if (d < bestD) {
+      bestD = d;
+      best = spot;
+    }
+  }
+  if (best.id === ctx.s.keeper.spot) return;
+  k.x = best.x;
+  k.y = best.y;
+  k.px = best.x;
+  k.py = best.y;
+  ctx.s.keeper.spot = best.id;
+  ctx.emit('keeperMoved', { spot: best.id, x: best.x, y: best.y, stock: ctx.s.keeper.stock });
+}
+
 export function evaluateCurseOffers(ctx: Ctx): void {
   const n = ctx.s.phase.n;
   ctx.s.teams.A.curseOffers = 0;
@@ -86,6 +107,7 @@ export function evaluateCurseOffers(ctx: Ctx): void {
   ctx.s.curseOffers.push(offer);
   ctx.s.teams[loser].curseOffers++;
   ctx.emit('curseOffered', { hero: cand.id, item: item.id, flawType: item.flawType });
+  moveKeeperNear(ctx, cand);
   if (!cand.hero!.isPlayer) {
     const desperation = Math.max(0, (avg - candNw) / Math.max(1, avg));
     const p = Math.min(0.95, ctx.t.ai.curseAcceptBase + desperation * 0.6);

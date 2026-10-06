@@ -15,6 +15,7 @@ void initAuction;
 export function enterPrep(ctx: Ctx, n: number): void {
   const s = ctx.s;
   s.phase = { kind: 'prep', n, startTick: s.tick };
+  ctx.emit('phaseStart', { phase: n, kind: 'prep' });
   const before = new Set(s.slots.filter((x) => x.open).map((x) => x.id));
   openSlotsForPhase(ctx);
   if (n >= 2)
@@ -32,7 +33,6 @@ export function enterPrep(ctx: Ctx, n: number): void {
     }
   }
   dirtyAll(ctx);
-  ctx.emit('phaseStart', { phase: n, kind: 'prep' });
 }
 
 export function startLive(ctx: Ctx): CommandResult {

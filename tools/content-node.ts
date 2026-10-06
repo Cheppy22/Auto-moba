@@ -12,7 +12,18 @@ const readDir = (dir: string): unknown[] =>
     .sort()
     .map((f) => readJson(join(root, dir, f)));
 
+function deepMerge(base: unknown, patch: unknown): unknown {
+  if (typeof base !== 'object' || base === null || typeof patch !== 'object' || patch === null)
+    return patch;
+  const out: Record<string, unknown> = { ...(base as Record<string, unknown>) };
+  for (const [k, v] of Object.entries(patch as Record<string, unknown>))
+    out[k] = deepMerge(out[k], v);
+  return out;
+}
+
 function applyScale(raw: RawContentFiles): RawContentFiles {
+  if (process.env.BALANCE_TUNING)
+    raw.tuning = deepMerge(raw.tuning, JSON.parse(process.env.BALANCE_TUNING));
   const patch = process.env.BALANCE_PATCH;
   if (patch) {
     const patches = JSON.parse(patch) as Record<string, Record<string, unknown>>;

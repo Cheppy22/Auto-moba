@@ -253,7 +253,7 @@ function windowFor(events: GameEvent[], scope: Scope): Window {
 
 const WINDOW_BEFORE_DEATH = 120;
 
-export function buildReport(input: AnalysisInput, scope: Scope): Report {
+export function buildReport(input: AnalysisInput, scope: Scope, viewer?: PlayTeam): Report {
   const events = input.events;
   const matchStart = events.find((e) => e.type === 'matchStart');
   const roster: RosterEntry[] = matchStart
@@ -269,6 +269,7 @@ export function buildReport(input: AnalysisInput, scope: Scope): Report {
   const teams: Record<PlayTeam, TeamModel> = { A: newTeam('A'), B: newTeam('B') };
   const teamOf = new Map<number, PlayTeam>(roster.map((r) => [r.id, r.team]));
   const w = windowFor(events, scope);
+  const auctionResolved = events.some((e) => e.type === 'auctionResolved' && e.seq <= w.seqTo);
   const special: SpecialFacts = {
     obelisks: [],
     curses: [],
@@ -433,6 +434,7 @@ export function buildReport(input: AnalysisInput, scope: Scope): Report {
         if (e.payload.amount > 0) teams[e.payload.team].pointsEarned += e.payload.amount;
         break;
       case 'bid':
+        if (viewer && e.payload.team !== viewer && !auctionResolved) break;
         teams[e.payload.team].pointsSpent += e.payload.points;
         special.bids.push({ tick: e.tick, ...e.payload });
         break;
