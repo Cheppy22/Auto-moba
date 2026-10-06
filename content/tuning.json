@@ -42,7 +42,7 @@
     "structureMulPerPhase": 1.2
   },
   "tower": {
-    "hp": 2000,
+    "hp": 3000,
     "damage": 75,
     "range": 120,
     "atkSpeed": 0.8,
@@ -53,7 +53,7 @@
     "heroFocusSec": 3
   },
   "guardian": {
-    "hp": 4600,
+    "hp": 6800,
     "damage": 90,
     "range": 140,
     "atkSpeed": 0.9,
@@ -85,15 +85,29 @@
         "count": 2,
         "title": "Drilled",
         "text": "+6% Blade damage",
-        "mods": [{ "stat": "bladeDmg", "kind": "mul", "value": 1.06 }]
+        "mods": [
+          {
+            "stat": "bladeDmg",
+            "kind": "mul",
+            "value": 1.06
+          }
+        ]
       },
       {
         "count": 4,
         "title": "Adept",
         "text": "+12% Blade damage, +8% attack speed",
         "mods": [
-          { "stat": "bladeDmg", "kind": "mul", "value": 1.12 },
-          { "stat": "atkSpeed", "kind": "mul", "value": 1.08 }
+          {
+            "stat": "bladeDmg",
+            "kind": "mul",
+            "value": 1.12
+          },
+          {
+            "stat": "atkSpeed",
+            "kind": "mul",
+            "value": 1.08
+          }
         ]
       },
       {
@@ -101,8 +115,16 @@
         "title": "Master",
         "text": "+20% Blade damage, +15% attack speed",
         "mods": [
-          { "stat": "bladeDmg", "kind": "mul", "value": 1.2 },
-          { "stat": "atkSpeed", "kind": "mul", "value": 1.15 }
+          {
+            "stat": "bladeDmg",
+            "kind": "mul",
+            "value": 1.2
+          },
+          {
+            "stat": "atkSpeed",
+            "kind": "mul",
+            "value": 1.15
+          }
         ]
       }
     ],
@@ -111,15 +133,29 @@
         "count": 2,
         "title": "Hardened",
         "text": "+6% health",
-        "mods": [{ "stat": "maxHp", "kind": "mul", "value": 1.06 }]
+        "mods": [
+          {
+            "stat": "maxHp",
+            "kind": "mul",
+            "value": 1.06
+          }
+        ]
       },
       {
         "count": 4,
         "title": "Steeled",
         "text": "+12% health, +8 armor",
         "mods": [
-          { "stat": "maxHp", "kind": "mul", "value": 1.12 },
-          { "stat": "armor", "kind": "add", "value": 8 }
+          {
+            "stat": "maxHp",
+            "kind": "mul",
+            "value": 1.12
+          },
+          {
+            "stat": "armor",
+            "kind": "add",
+            "value": 8
+          }
         ]
       },
       {
@@ -127,9 +163,21 @@
         "title": "Unbroken",
         "text": "+20% health, +15 armor, +2 regeneration",
         "mods": [
-          { "stat": "maxHp", "kind": "mul", "value": 1.2 },
-          { "stat": "armor", "kind": "add", "value": 15 },
-          { "stat": "hpRegen", "kind": "add", "value": 2 }
+          {
+            "stat": "maxHp",
+            "kind": "mul",
+            "value": 1.2
+          },
+          {
+            "stat": "armor",
+            "kind": "add",
+            "value": 15
+          },
+          {
+            "stat": "hpRegen",
+            "kind": "add",
+            "value": 2
+          }
         ]
       }
     ],
@@ -138,15 +186,29 @@
         "count": 2,
         "title": "Stirred",
         "text": "+6% Soul power",
-        "mods": [{ "stat": "soulPower", "kind": "mul", "value": 1.06 }]
+        "mods": [
+          {
+            "stat": "soulPower",
+            "kind": "mul",
+            "value": 1.06
+          }
+        ]
       },
       {
         "count": 4,
         "title": "Awakened",
         "text": "+12% Soul power, +8% cooldown reduction",
         "mods": [
-          { "stat": "soulPower", "kind": "mul", "value": 1.12 },
-          { "stat": "cdr", "kind": "add", "value": 0.08 }
+          {
+            "stat": "soulPower",
+            "kind": "mul",
+            "value": 1.12
+          },
+          {
+            "stat": "cdr",
+            "kind": "add",
+            "value": 0.08
+          }
         ]
       },
       {
@@ -154,8 +216,16 @@
         "title": "Ascendant",
         "text": "+20% Soul power, +15% cooldown reduction",
         "mods": [
-          { "stat": "soulPower", "kind": "mul", "value": 1.2 },
-          { "stat": "cdr", "kind": "add", "value": 0.15 }
+          {
+            "stat": "soulPower",
+            "kind": "mul",
+            "value": 1.2
+          },
+          {
+            "stat": "cdr",
+            "kind": "add",
+            "value": 0.15
+          }
         ]
       }
     ]
@@ -195,16 +265,19 @@
     "siegeScore": 2.4,
     "siegeWaitTicks": 300,
     "siegeAssignedBonus": 0.1,
-    "siegeMidPenalty": 0,
+    "siegeMidPenalty": 0.2,
     "siegeLaneStick": 0.6,
     "laneHugRadius": 150,
     "joinFightRadius": 450,
     "defendOffLaneRadius": 600,
+    "guardianThreatRadius": 400,
     "suggestScore": 1.5,
     "shopTripGold": 700,
     "shopTripRadius": 380,
     "shopTripScore": 0.9,
-    "holdPatience": 400
+    "holdPatience": 400,
+    "huntRadius": 650,
+    "huntScore": 0.8
   },
   "personalities": {
     "reckless": {
@@ -239,7 +312,8 @@
       "defendTower": 0.7,
       "clearCamp": 0.8,
       "joinFight": 1.0,
-      "takeObelisk": 1.0
+      "takeObelisk": 1.0,
+      "hunt": 1.5
     },
     "farm": {
       "farmLane": 1.5,
@@ -247,7 +321,8 @@
       "defendTower": 0.9,
       "clearCamp": 1.4,
       "joinFight": 0.8,
-      "takeObelisk": 1.0
+      "takeObelisk": 1.0,
+      "hunt": 0.35
     },
     "defend": {
       "farmLane": 1.0,
@@ -255,7 +330,8 @@
       "defendTower": 1.9,
       "clearCamp": 0.8,
       "joinFight": 1.2,
-      "takeObelisk": 0.8
+      "takeObelisk": 0.8,
+      "hunt": 0.25
     },
     "default": {
       "farmLane": 1.0,
@@ -263,7 +339,8 @@
       "defendTower": 1.0,
       "clearCamp": 1.0,
       "joinFight": 1.0,
-      "takeObelisk": 1.0
+      "takeObelisk": 1.0,
+      "hunt": 1.0
     }
   },
   "curse": {

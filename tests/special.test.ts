@@ -309,11 +309,15 @@ describe('obelisks', () => {
     m.issue({ type: 'startPhase' });
     m.step(1010);
     const ob = m.state.units.find((u) => u.kind === 'obelisk')!;
-    const a = m.state.teams.A.heroIds[0];
-    const b = m.state.teams.B.heroIds[0];
+    const alive = (t: 'A' | 'B'): number =>
+      m.state.teams[t].heroIds.find((id) => m.unitById(id)!.alive) ?? m.state.teams[t].heroIds[0];
+    const a = alive('A');
+    const b = alive('B');
+    const claimed = (): number => m.events.filter((e) => e.type === 'obeliskClaimed').length;
+    const before = claimed();
     isolate(m, [a, b]);
     hold(m, [a, b], ob.x, ob.y, 130);
-    expect(m.events.some((e) => e.type === 'obeliskClaimed')).toBe(false);
+    expect(claimed()).toBe(before);
   });
 
   it('only spawn during phases one to three', () => {

@@ -3,17 +3,16 @@
   "name": "Kagura, the Bell-Keeper",
   "title": "Shrine maiden of the drowned shrine",
   "era": "Heian",
-  "preferredRole": "bot",
   "attackKind": "ranged",
   "playstyle": "A ranged healer-mage that keeps allies topped up and slows enemy heroes. Stay behind your team and keep your bell ready for the wounded.",
   "stats": {
-    "maxHp": 968.1,
+    "maxHp": 1045.5,
     "hpRegen": 2.5,
     "armor": 18,
     "resist": 30,
-    "bladeDmg": 36.9,
+    "bladeDmg": 39.9,
     "atkSpeed": 0.9,
-    "soulPower": 54.3,
+    "soulPower": 58.6,
     "moveSpeed": 45,
     "cdr": 0,
     "range": 95
@@ -105,7 +104,6 @@
     }
   ],
   "passives": [],
-  "defaultPosture": "defend",
   "personality": "cautious",
   "buildList": [
     "candle_stub",
@@ -122,5 +120,6 @@
     "glyph": "crane"
   },
   "blurb": "She keeps the shrine bell that calms drowned spirits.",
-  "autoSoulScale": 0.3
+  "autoSoulScale": 0.3,
+  "disposition": "defender"
 }

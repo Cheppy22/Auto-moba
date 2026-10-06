@@ -22,9 +22,29 @@ const ROLE_LABELS: Record<string, string> = {
   top: 'left lane',
   mid: 'mid lane',
   bot: 'right lane',
-  jungle: 'jungle',
 };
 
 export function roleLabel(role: string): string {
   return ROLE_LABELS[role] ?? role;
+}
+
+export const DISPOSITIONS: Record<string, { label: string; blurb: string }> = {
+  farmer: {
+    label: 'Farmer',
+    blurb:
+      'Leans toward minions and jungle camps. Grows rich, drifts into the jungle, fights when it must.',
+  },
+  attacker: {
+    label: 'Attacker',
+    blurb:
+      'Leans toward fights and towers. Hunts enemy heroes and drifts to where the fighting is.',
+  },
+  defender: {
+    label: 'Defender',
+    blurb: 'Leans toward holding ground. Stays near its lane and towers and answers threats.',
+  },
+};
+
+export function dispositionLabel(d: string): string {
+  return DISPOSITIONS[d]?.label ?? d;
 }

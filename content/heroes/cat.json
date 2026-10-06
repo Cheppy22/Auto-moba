@@ -3,7 +3,6 @@
   "name": "Mokume, the Wish-Eating Cat",
   "title": "Shopkeeper's familiar",
   "era": "Modern",
-  "preferredRole": "bot",
   "attackKind": "ranged",
   "playstyle": "A support that heals and shields teammates. Stay behind your allies and keep the hurt ones alive; it does little damage itself.",
   "stats": {
@@ -116,7 +115,6 @@
       "desc": "Allies within 120 recover +2 health per second."
     }
   ],
-  "defaultPosture": "defend",
   "personality": "cautious",
   "buildList": [
     "candle_stub",
@@ -133,5 +131,6 @@
     "glyph": "paw"
   },
   "blurb": "A shop cat that eats wishes and coughs up luck.",
-  "autoSoulScale": 0.25
+  "autoSoulScale": 0.25,
+  "disposition": "defender"
 }

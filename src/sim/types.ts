@@ -1,7 +1,15 @@
 import type { RngState } from './core/rng';
-import type { DamageType, LaneId, Posture, Role, StatKey, Stats } from './content/schema';
+import type {
+  DamageType,
+  Disposition,
+  LaneId,
+  Posture,
+  Role,
+  StatKey,
+  Stats,
+} from './content/schema';
 
-export type { DamageType, LaneId, Posture, Role, StatKey, Stats };
+export type { DamageType, Disposition, LaneId, Posture, Role, StatKey, Stats };
 
 export type TeamId = 'A' | 'B' | 'neutral';
 export type PlayTeam = 'A' | 'B';
@@ -67,6 +75,8 @@ export interface HeroState {
   role: Role;
   lane: LaneId | null;
   posture: Posture;
+  disposition: Disposition;
+  jungler: boolean;
   items: string[];
   flaws: Record<string, string>;
   gold: number;

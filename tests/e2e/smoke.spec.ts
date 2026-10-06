@@ -51,12 +51,14 @@ test('draft, play a phase, read the report, start the next phase', async ({ page
 
   await expect(page.getByTestId('phase')).toHaveText('Phase 1');
   await page.getByTestId('speed-4').click();
-  const farmBefore = await page.getByTestId('farm-toggle').getAttribute('aria-pressed');
-  await page.getByTestId('farm-toggle').click();
-  await expect(page.getByTestId('farm-toggle')).toHaveAttribute(
-    'aria-pressed',
-    farmBefore === 'true' ? 'false' : 'true',
-  );
+  if (await page.getByTestId('farm-toggle').count()) {
+    const farmBefore = await page.getByTestId('farm-toggle').getAttribute('aria-pressed');
+    await page.getByTestId('farm-toggle').click();
+    await expect(page.getByTestId('farm-toggle')).toHaveAttribute(
+      'aria-pressed',
+      farmBefore === 'true' ? 'false' : 'true',
+    );
+  }
   await page.waitForTimeout(1500);
   expect(await canvasHasInk(page)).toBe(true);
   const shops = JSON.parse((await page.getByTestId('stage').getAttribute('data-shops')) ?? '[]');

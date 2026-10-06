@@ -3,7 +3,6 @@
   "name": "Brynja, the Frostbound",
   "title": "Draugr shieldmaiden of the long winter",
   "era": "Viking Age",
-  "preferredRole": "bot",
   "attackKind": "melee",
   "playstyle": "A frontline engager that charges the enemy, shields her team and soaks hits. Start the fight by charging in; she heals herself once when nearly dead.",
   "stats": {
@@ -138,7 +137,6 @@
       "desc": "Below 30% health she restores 20% of her max health (once every 90s)."
     }
   ],
-  "defaultPosture": "push",
   "personality": "steadfast",
   "buildList": [
     "iron_lung",
@@ -154,5 +152,6 @@
     "spokes": 7,
     "glyph": "shield"
   },
-  "blurb": "A shieldmaiden frozen mid-charge, walking again to finish the battle."
+  "blurb": "A shieldmaiden frozen mid-charge, walking again to finish the battle.",
+  "disposition": "defender"
 }

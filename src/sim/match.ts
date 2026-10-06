@@ -45,7 +45,7 @@ import type {
   Unit,
 } from './types';
 
-const ROLE_SLOTS: Role[] = ['top', 'mid', 'bot', 'bot', 'jungle'];
+const ROLE_SLOTS: Role[] = ['top', 'top', 'bot', 'bot', 'mid'];
 
 function initialState(
   content: Content,
@@ -161,31 +161,54 @@ function buildCtx(content: Content, state: MatchState): Ctx {
   return ctx;
 }
 
+interface Placed {
+  defId: string;
+  role: Role;
+  isPlayer: boolean;
+  jungler: boolean;
+}
+
+/**
+ * Two heroes hold each side lane and one holds mid. The mid slot goes to an attacker (a roamer) if
+ * the team has one; side lanes are paired so a lane gets different dispositions where possible.
+ * In a pair the first farmer is the jungler: the partner holds the lane while the farmer clears
+ * camps.
+ */
 function assignRoles(
   ctx: Ctx,
   heroIds: string[],
   fixed: { id: string; role: Role } | null,
-): { defId: string; role: Role; isPlayer: boolean }[] {
+): Placed[] {
+  const disp = (id: string): string => ctx.c.heroById.get(id)!.disposition;
   const pool = ROLE_SLOTS.slice();
-  const out: { defId: string; role: Role; isPlayer: boolean; order: number }[] = [];
+  const lanes: Record<Role, Placed[]> = { top: [], mid: [], bot: [] };
   if (fixed) {
     pool.splice(pool.indexOf(fixed.role), 1);
-    out.push({ defId: fixed.id, role: fixed.role, isPlayer: true, order: -1 });
+    lanes[fixed.role].push({ defId: fixed.id, role: fixed.role, isPlayer: true, jungler: false });
   }
-  const pending = heroIds.map((defId, order) => ({ defId, order }));
-  const unplaced: typeof pending = [];
-  for (const p of pending) {
-    const pref = ctx.c.heroById.get(p.defId)!.preferredRole;
-    const i = pool.indexOf(pref);
-    if (i >= 0) {
-      pool.splice(i, 1);
-      out.push({ defId: p.defId, role: pref, isPlayer: false, order: p.order });
-    } else unplaced.push(p);
+  const rest = heroIds.slice();
+  const place = (role: Role, i: number): void => {
+    const [id] = rest.splice(i, 1);
+    pool.splice(pool.indexOf(role), 1);
+    lanes[role].push({ defId: id, role, isPlayer: false, jungler: false });
+  };
+  if (pool.includes('mid')) {
+    const i = rest.findIndex((id) => disp(id) === 'attacker');
+    place('mid', i >= 0 ? i : 0);
   }
-  for (const p of unplaced) {
-    const role = pool.shift()!;
-    out.push({ defId: p.defId, role, isPlayer: false, order: p.order });
+  for (const role of ['top', 'bot'] as Role[]) {
+    while (pool.includes(role) && rest.length > 0) {
+      const have = new Set(lanes[role].map((p) => disp(p.defId)));
+      const i = rest.findIndex((id) => !have.has(disp(id)));
+      place(role, i >= 0 ? i : 0);
+    }
   }
+  for (const role of ['top', 'bot'] as Role[]) {
+    const farmer =
+      lanes[role].length === 2 ? lanes[role].find((p) => disp(p.defId) === 'farmer') : undefined;
+    if (farmer) farmer.jungler = true;
+  }
+  const out = [...lanes.top, ...lanes.bot, ...lanes.mid];
   out.sort((a, b) => ROLE_SLOTS.indexOf(a.role) - ROLE_SLOTS.indexOf(b.role));
   return out;
 }
@@ -202,13 +225,14 @@ function finalizeDraft(ctx: Ctx): void {
   }
   createKeeper(ctx);
   const fixed = d.playerHero && d.playerRole ? { id: d.playerHero, role: d.playerRole } : null;
-  const roster: Record<PlayTeam, { defId: string; role: Role; isPlayer: boolean }[]> = {
+  const roster: Record<PlayTeam, Placed[]> = {
     A: assignRoles(ctx, d.aiHeroes.A, fixed),
     B: assignRoles(ctx, d.aiHeroes.B, null),
   };
   for (const team of ['A', 'B'] as PlayTeam[]) {
     roster[team].forEach((r, slot) => {
       const u = makeHero(ctx, team, slot, r.defId, r.role, r.isPlayer);
+      u.hero!.jungler = r.jungler;
       if (r.isPlayer) s.playerHeroId = u.id;
     });
   }

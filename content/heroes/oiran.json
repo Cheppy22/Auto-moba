@@ -3,15 +3,14 @@
   "name": "Yugiri, the Lacquer Courtesan",
   "title": "Spirit of the lantern-lit quarter",
   "era": "Heian",
-  "preferredRole": "jungle",
   "attackKind": "melee",
   "playstyle": "A fragile assassin that leaps onto a single enemy hero and deletes them. Pick off the weakest or most exposed target, then slip away; she is weak if caught.",
   "stats": {
-    "maxHp": 967,
+    "maxHp": 918.6,
     "hpRegen": 2,
     "armor": 16,
     "resist": 16,
-    "bladeDmg": 128,
+    "bladeDmg": 121.6,
     "atkSpeed": 1.05,
     "soulPower": 0,
     "moveSpeed": 54,
@@ -129,7 +128,6 @@
       "desc": "Every kill restores 12% of her max health."
     }
   ],
-  "defaultPosture": "farm",
   "personality": "opportunist",
   "buildList": [
     "rusted_cleaver",
@@ -145,5 +143,6 @@
     "spokes": 5,
     "glyph": "petal"
   },
-  "blurb": "A courtesan whose lacquered smile outlived the quarter that made her."
+  "blurb": "A courtesan whose lacquered smile outlived the quarter that made her.",
+  "disposition": "attacker"
 }

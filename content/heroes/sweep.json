@@ -3,15 +3,14 @@
   "name": "Sooty Jack, the Flue-Sweep",
   "title": "Chimney sweep of the Great Smog",
   "era": "Victorian",
-  "preferredRole": "bot",
   "attackKind": "ranged",
   "playstyle": "A marksman that wins by standing back and shooting steadily. Keep it alive and behind the front line; the longer the fight lasts, the more damage it does.",
   "stats": {
-    "maxHp": 633.6,
+    "maxHp": 582.9,
     "hpRegen": 2,
     "armor": 16,
     "resist": 14,
-    "bladeDmg": 50.8,
+    "bladeDmg": 46.7,
     "atkSpeed": 1.1,
     "soulPower": 0,
     "moveSpeed": 45,
@@ -123,7 +122,6 @@
       "desc": "Each hit (at most every 2s) makes him shoot 10% faster for 4s."
     }
   ],
-  "defaultPosture": "farm",
   "personality": "cautious",
   "buildList": [
     "rusted_cleaver",
@@ -139,5 +137,6 @@
     "spokes": 7,
     "glyph": "brush"
   },
-  "blurb": "A sweep who still climbs chimneys that burned down long ago."
+  "blurb": "A sweep who still climbs chimneys that burned down long ago.",
+  "disposition": "farmer"
 }

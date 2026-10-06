@@ -3,7 +3,6 @@
   "name": "Last Train",
   "title": "Revenant of the midnight station",
   "era": "1970s",
-  "preferredRole": "jungle",
   "attackKind": "melee",
   "playstyle": "A fast melee skirmisher that dashes into heroes and heals on kills. Hunt weakened enemies and roam the jungle between fights.",
   "stats": {
@@ -121,7 +120,6 @@
       "desc": "Every kill restores 15% of its max health."
     }
   ],
-  "defaultPosture": "farm",
   "personality": "opportunist",
   "buildList": [
     "rusted_cleaver",
@@ -137,5 +135,6 @@
     "spokes": 4,
     "glyph": "rail"
   },
-  "blurb": "A commuter who never left the platform."
+  "blurb": "A commuter who never left the platform.",
+  "disposition": "attacker"
 }

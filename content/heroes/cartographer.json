@@ -3,17 +3,16 @@
   "name": "The Hollow Cartographer",
   "title": "Mapper of places that moved",
   "era": "Unknown",
-  "preferredRole": "mid",
   "attackKind": "ranged",
   "playstyle": "A long-range mage with large area damage and slowing ink. Stay at the back, and drop the big map collapse on grouped enemy heroes.",
   "stats": {
-    "maxHp": 768,
+    "maxHp": 706.6,
     "hpRegen": 2,
     "armor": 18,
     "resist": 24,
-    "bladeDmg": 42,
+    "bladeDmg": 38.6,
     "atkSpeed": 0.8,
-    "soulPower": 50,
+    "soulPower": 46.0,
     "moveSpeed": 44,
     "cdr": 0,
     "range": 115
@@ -113,7 +112,6 @@
     }
   ],
   "passives": [],
-  "defaultPosture": "farm",
   "personality": "steadfast",
   "buildList": [
     "candle_stub",
@@ -130,5 +128,6 @@
     "glyph": "compass"
   },
   "blurb": "Draws maps of rooms that no longer exist.",
-  "autoSoulScale": 0.2
+  "autoSoulScale": 0.2,
+  "disposition": "farmer"
 }

@@ -17,7 +17,7 @@ describe('random drafts', () => {
           .filter((h) => h.team === team)
           .map((h) => h.role)
           .sort();
-        expect(roles).toEqual(['bot', 'bot', 'jungle', 'mid', 'top']);
+        expect(roles).toEqual(['bot', 'bot', 'mid', 'top', 'top']);
       }
     }
   });

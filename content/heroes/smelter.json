@@ -3,15 +3,14 @@
   "name": "Ashen Smelter",
   "title": "Binder of the Hollow Foundry",
   "era": "Victorian",
-  "preferredRole": "top",
   "attackKind": "melee",
   "playstyle": "A sturdy melee fighter that runs at the enemy and hits hard while soaking damage. Good at the front of a lane; pop its fire ritual when a hero fight starts.",
   "stats": {
-    "maxHp": 1464.0,
+    "maxHp": 1610.4,
     "hpRegen": 3,
     "armor": 32,
     "resist": 18,
-    "bladeDmg": 74.4,
+    "bladeDmg": 81.8,
     "atkSpeed": 0.85,
     "soulPower": 0,
     "moveSpeed": 46,
@@ -116,7 +115,6 @@
     }
   ],
   "passives": [],
-  "defaultPosture": "push",
   "personality": "reckless",
   "buildList": [
     "rusted_cleaver",
@@ -132,5 +130,6 @@
     "spokes": 8,
     "glyph": "gear"
   },
-  "blurb": "A foundry-worker who bound a furnace spirit into his hammer."
+  "blurb": "A foundry-worker who bound a furnace spirit into his hammer.",
+  "disposition": "attacker"
 }

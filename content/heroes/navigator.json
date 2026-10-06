@@ -3,17 +3,16 @@
   "name": "Joost van der Zee, the Drowned Pilot",
   "title": "Navigator of the lost spice fleet",
   "era": "Dutch East India",
-  "preferredRole": "bot",
   "attackKind": "ranged",
   "playstyle": "A support-carry that speeds up and strengthens the whole team. Stay close to allies, call Full Sail when a fight starts and let your friends hit harder.",
   "stats": {
-    "maxHp": 936.0,
+    "maxHp": 1104.5,
     "hpRegen": 2,
     "armor": 18,
     "resist": 20,
-    "bladeDmg": 54.1,
+    "bladeDmg": 63.8,
     "atkSpeed": 0.95,
-    "soulPower": 31.2,
+    "soulPower": 36.8,
     "moveSpeed": 46,
     "cdr": 0,
     "range": 115
@@ -124,7 +123,6 @@
       "desc": "Allies within 130 deal +8 Blade damage while the Pilot is near."
     }
   ],
-  "defaultPosture": "default",
   "personality": "cautious",
   "buildList": [
     "rusted_cleaver",
@@ -140,5 +138,6 @@
     "spokes": 8,
     "glyph": "anchor"
   },
-  "blurb": "He steered a fleet into a storm that never ended and still reads the stars."
+  "blurb": "He steered a fleet into a storm that never ended and still reads the stars.",
+  "disposition": "farmer"
 }

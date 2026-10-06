@@ -159,11 +159,13 @@ export function setGoal(ctx: Ctx, u: Unit, g: Goal): void {
     board.claims[g.key] = (board.claims[g.key] ?? 0) + 1;
     h.goalSetTick = ctx.s.tick;
   }
+  const pathEnd = u.path.length > 0 ? u.path[u.path.length - 1] : null;
   const keep =
     old !== null &&
     old.key === g.key &&
     u.pathI < u.path.length &&
-    dist(old.x, old.y, g.x, g.y) < 40;
+    pathEnd !== null &&
+    dist(pathEnd[0], pathEnd[1], g.x, g.y) < 40;
   h.goal = g;
   if (keep) return;
   const route = (x: number, y: number): [number, number][] =>
@@ -390,7 +392,7 @@ export function strategicUpdate(ctx: Ctx, u: Unit): void {
     for (const st of structures) {
       const radius =
         st.kind === 'guardian'
-          ? ai.ai.defendRadius * 2
+          ? ai.ai.guardianThreatRadius
           : st.tower?.index === 1
             ? ai.ai.defendRadius * 1.4
             : ai.ai.defendRadius;
@@ -437,7 +439,7 @@ export function strategicUpdate(ctx: Ctx, u: Unit): void {
               ctx.s.board[team].claims[goalKey('clearCamp', cu.camp!.slot + cu.camp!.spot)] ?? 0;
             const mine = cur?.key === goalKey('clearCamp', cu.camp!.slot + cu.camp!.spot);
             if (claims > (mine ? 1 : 0)) continue;
-            const base0 = h.role === 'jungle' ? 1.1 : 0.3;
+            const base0 = h.jungler ? 1.1 : h.disposition === 'farmer' ? 0.5 : 0.3;
             const score = base0 * (post.clearCamp ?? 1) * Math.max(0.2, 1 - d / 1800);
             if (!bestCamp || score > bestCamp.score) {
               bestCamp = cand(
@@ -478,6 +480,32 @@ export function strategicUpdate(ctx: Ctx, u: Unit): void {
     }
     if (bestFight) cands.push(bestFight);
 
+    // Attackers hunt: go after enemy heroes they can beat instead of waiting for them to arrive.
+    if ((post.hunt ?? 1) > 0.5 && hp > 0.55) {
+      let bestHunt: Cand | null = null;
+      for (const id of ctx.s.teams[other(team)].heroIds) {
+        const foe = ctx.unit(id);
+        if (!foe || !foe.alive) continue;
+        const d = dist(u.x, u.y, foe.x, foe.y);
+        if (d > ai.ai.huntRadius || d < 70) continue;
+        if (h.lane !== 'mid' && closestLane(ctx, foe) === 'mid') continue;
+        const mm = matchupAt(ctx, team, foe.x, foe.y, u);
+        if (mm.ratio * pers.riskTaking < pers.engageRatio) continue;
+        const score = ai.ai.huntScore * (post.hunt ?? 1) * (1 - d / (ai.ai.huntRadius * 1.25));
+        if (!bestHunt || score > bestHunt.score) {
+          bestHunt = cand(
+            'joinFight',
+            foe.x,
+            foe.y,
+            goalKey('joinFight', `hunt${foe.id}`),
+            score,
+            foe.id,
+          );
+        }
+      }
+      if (bestHunt) cands.push(bestHunt);
+    }
+
     for (const ob of ctx.s.units) {
       if (ob.kind !== 'obelisk' || !ob.alive) continue;
       const d = dist(u.x, u.y, ob.x, ob.y);
@@ -486,10 +514,7 @@ export function strategicUpdate(ctx: Ctx, u: Unit): void {
       if (claims > (cur?.key === key ? 1 : 0)) continue;
       if (enemiesNear(ctx, u, ob.x, ob.y, 160) >= 4) continue;
       const score =
-        0.75 *
-        (post.takeObelisk ?? 1) *
-        Math.max(0.1, 1 - d / 2200) *
-        (h.role === 'jungle' ? 1.3 : 1);
+        0.75 * (post.takeObelisk ?? 1) * Math.max(0.1, 1 - d / 2200) * (h.jungler ? 1.3 : 1);
       cands.push(cand('takeObelisk', ob.x, ob.y, key, score, ob.id));
     }
 

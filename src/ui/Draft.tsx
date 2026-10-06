@@ -1,14 +1,19 @@
 import type { Role } from '../sim';
 import { HeroDetail } from './HeroCodex';
 import { SigilIcon } from './SigilIcon';
-import { roleLabel } from './format';
+import { dispositionLabel, roleLabel } from './format';
 import { useSession } from './session';
 
 const LANES: { id: Role; label: string; hint: string; x: number; y: number }[] = [
-  { id: 'top', label: 'Left lane', hint: 'One hero holds the lane', x: 15, y: 58 },
-  { id: 'mid', label: 'Mid lane', hint: 'Short lane, fast fights', x: 50, y: 62 },
-  { id: 'bot', label: 'Right lane', hint: 'Two heroes share the lane', x: 85, y: 58 },
-  { id: 'jungle', label: 'Jungle', hint: 'Clears camps, joins fights', x: 50, y: 30 },
+  { id: 'top', label: 'Left lane', hint: 'Two heroes share this lane', x: 15, y: 52 },
+  {
+    id: 'mid',
+    label: 'Mid lane',
+    hint: 'One hero: short lane, fast fights, free to roam',
+    x: 50,
+    y: 62,
+  },
+  { id: 'bot', label: 'Right lane', hint: 'Two heroes share this lane', x: 85, y: 52 },
 ];
 
 function LaneMap(props: { value: Role | null; onPick: (r: Role) => void }) {
@@ -73,7 +78,7 @@ export function Draft() {
         <SigilIcon spec={h.sigil} team={team} size={38} />
         <div>
           <div class="slot-name">{h.name.split(',')[0]}</div>
-          <div class="dim tiny">usually {roleLabel(h.preferredRole)}</div>
+          <div class="dim tiny">{dispositionLabel(h.disposition)}</div>
         </div>
       </div>
     );
@@ -111,7 +116,7 @@ export function Draft() {
                 <SigilIcon spec={h.sigil} team="A" size={58} />
                 <span class="pick-name">{h.name.split(',')[0]}</span>
                 <span class="dim tiny">
-                  {h.attackKind} · {roleLabel(h.preferredRole)}
+                  {h.attackKind} · {dispositionLabel(h.disposition)}
                 </span>
               </button>
             ))}

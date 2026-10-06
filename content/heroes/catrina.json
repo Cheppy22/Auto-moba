@@ -3,17 +3,16 @@
   "name": "La Calavera, Lady of Marigolds",
   "title": "Keeper of the unfinished feast",
   "era": "Colonial Mexico",
-  "preferredRole": "mid",
   "attackKind": "ranged",
   "playstyle": "A trapper that covers the ground with marigold snares and slows. Throw fields where enemies must walk, then let your team catch them; she is fragile when caught.",
   "stats": {
-    "maxHp": 638.4,
+    "maxHp": 574.6,
     "hpRegen": 2,
     "armor": 16,
     "resist": 26,
-    "bladeDmg": 28.6,
+    "bladeDmg": 25.7,
     "atkSpeed": 0.8,
-    "soulPower": 40.3,
+    "soulPower": 36.3,
     "moveSpeed": 44,
     "cdr": 0,
     "range": 110
@@ -147,7 +146,6 @@
       "desc": "When hit (at most every 12s) she gains a 60 + 50% Soul power shield for 3s."
     }
   ],
-  "defaultPosture": "farm",
   "personality": "cautious",
   "buildList": [
     "candle_stub",
@@ -163,5 +161,6 @@
     "spokes": 10,
     "glyph": "skull"
   },
-  "blurb": "A skeleton in her finest dress, laying out offerings that snare the living."
+  "blurb": "A skeleton in her finest dress, laying out offerings that snare the living.",
+  "disposition": "defender"
 }

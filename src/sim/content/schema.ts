@@ -18,7 +18,8 @@ export const STAT_KEYS = [
 
 export const StatKeySchema = z.enum(STAT_KEYS);
 export const DamageTypeSchema = z.enum(['blade', 'soul', 'true']);
-export const RoleSchema = z.enum(['top', 'mid', 'bot', 'jungle']);
+export const RoleSchema = z.enum(['top', 'mid', 'bot']);
+export const DispositionSchema = z.enum(['farmer', 'attacker', 'defender']);
 export const LaneSchema = z.enum(['top', 'mid', 'bot']);
 export const PostureSchema = z.enum(['push', 'farm', 'defend', 'default']);
 export const CategorySchema = z.enum(['mind', 'body', 'soul']);
@@ -139,14 +140,13 @@ export const HeroSchema = z.object({
   name: z.string(),
   title: z.string(),
   era: z.string(),
-  preferredRole: RoleSchema,
+  disposition: DispositionSchema,
   attackKind: z.enum(['melee', 'ranged']),
   playstyle: z.string().optional(),
   stats: StatsSchema,
   abilities: z.array(AbilitySchema).length(4),
   passives: z.array(TriggerSchema).default([]),
   autoSoulScale: z.number().default(0),
-  defaultPosture: PostureSchema,
   personality: PersonalitySchema,
   buildList: z.array(z.string()),
   sigil: z.object({
@@ -511,6 +511,9 @@ export const TuningSchema = z.object({
     joinFightRadius: z.number(),
     defendOffLaneRadius: z.number(),
     holdPatience: z.number(),
+    guardianThreatRadius: z.number(),
+    huntRadius: z.number(),
+    huntScore: z.number(),
     suggestScore: z.number(),
     shopTripGold: z.number(),
     shopTripRadius: z.number(),
@@ -577,6 +580,7 @@ export type DamageType = z.infer<typeof DamageTypeSchema>;
 export type Role = z.infer<typeof RoleSchema>;
 export type LaneId = z.infer<typeof LaneSchema>;
 export type Posture = z.infer<typeof PostureSchema>;
+export type Disposition = z.infer<typeof DispositionSchema>;
 export type Category = z.infer<typeof CategorySchema>;
 export type Stats = z.infer<typeof StatsSchema>;
 export type ModDef = z.infer<typeof ModSchema>;

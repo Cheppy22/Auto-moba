@@ -3,15 +3,14 @@
   "name": "Kurogane, the Unsheathed",
   "title": "Ronin ghost of the burned castle",
   "era": "Sengoku",
-  "preferredRole": "top",
   "attackKind": "melee",
   "playstyle": "A sword duelist that darts in, trades blows and punishes single targets. Pick one enemy hero and stay on it; its weapon techniques make it scale well with attack items.",
   "stats": {
-    "maxHp": 1080,
+    "maxHp": 1134.0,
     "hpRegen": 2.5,
     "armor": 30,
     "resist": 18,
-    "bladeDmg": 72,
+    "bladeDmg": 75.6,
     "atkSpeed": 0.95,
     "soulPower": 0,
     "moveSpeed": 50,
@@ -134,7 +133,6 @@
       "desc": "Each hit (at most every 4s) leaves a ghost-cut for 25 + 40% Blade damage."
     }
   ],
-  "defaultPosture": "push",
   "personality": "steadfast",
   "buildList": [
     "rusted_cleaver",
@@ -150,5 +148,6 @@
     "spokes": 12,
     "glyph": "blade"
   },
-  "blurb": "A masterless swordsman still bowing to a lord whose castle burned centuries ago."
+  "blurb": "A masterless swordsman still bowing to a lord whose castle burned centuries ago.",
+  "disposition": "attacker"
 }

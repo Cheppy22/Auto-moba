@@ -3,10 +3,11 @@ import type { Ctx } from './ctx';
 import { pendingOffer, resolveCurse } from './curses';
 import { continueFromReport, startLive } from './phase';
 import { startRecall } from './recall';
+import { DISPOSITION_POSTURE } from './units';
 import { buyItem, sellItem } from './shop';
 import type { Command, CommandResult, PlayTeam, Unit } from './types';
 
-const ROLES = new Set(['top', 'mid', 'bot', 'jungle']);
+const ROLES = new Set(['top', 'mid', 'bot']);
 
 function playerHero(ctx: Ctx): Unit | null {
   return ctx.s.playerHeroId === null ? null : (ctx.unit(ctx.s.playerHeroId) ?? null);
@@ -53,8 +54,10 @@ function run(ctx: Ctx, cmd: Command, startMatch: StartMatchFn): CommandResult {
       const p = playerHero(ctx);
       if (!p || !p.hero) return { ok: false, reason: 'no player hero' };
       if (kind !== 'live' && kind !== 'prep') return { ok: false, reason: 'not now' };
-      p.hero.posture = cmd.posture;
-      ctx.emit('posture', { id: p.id, posture: cmd.posture });
+      const next =
+        cmd.posture === 'default' ? DISPOSITION_POSTURE[p.hero.disposition] : cmd.posture;
+      p.hero.posture = next;
+      ctx.emit('posture', { id: p.id, posture: next });
       return { ok: true };
     }
     case 'recall': {

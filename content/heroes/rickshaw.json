@@ -3,7 +3,6 @@
   "name": "Hatsu, the Rickshaw Ghost",
   "title": "Last fare of the Ginza night",
   "era": "Meiji",
-  "preferredRole": "mid",
   "attackKind": "ranged",
   "playstyle": "A caster that fills the ground with slowing ghost-fire. Fight where enemies must stand in the fire and use the slows to let your team catch them.",
   "stats": {
@@ -125,7 +124,6 @@
     }
   ],
   "passives": [],
-  "defaultPosture": "default",
   "personality": "opportunist",
   "buildList": [
     "candle_stub",
@@ -142,5 +140,6 @@
     "glyph": "lantern"
   },
   "blurb": "A puller who still waits for one last passenger.",
-  "autoSoulScale": 0.25
+  "autoSoulScale": 0.25,
+  "disposition": "farmer"
 }

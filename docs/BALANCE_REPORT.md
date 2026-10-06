@@ -210,3 +210,9 @@ Hero stats were scaled in `content/heroes/*.json` after the earlier runs (smelte
 - Median match length 14.0 min (p10 9.5, p90 20.3), 42 kills and 7.3 towers per match.
 - Team A won 44.9% of random drafts (see BUILD_NOTES, known issue).
 - Item pool: tier-3 items are only available from obelisk unlocks and the Keeper, so heroes that finish on a tier-3 item (the tanks) buy it rarely; the tanks were scaled up to compensate.
+
+## After the early-game and disposition changes (800 matches, seeds 29000-29799)
+
+- Win rates: shieldmaiden 44.0, navigator 46.5, smelter 47.4, warden 48.1, cat 49.1, cartographer 49.6, oiran 49.8, rickshaw 49.9, catrina 50.9, revenant 51.1, miko 52.8, cosmonaut 53.2, sweep 53.6, ronin 53.7.
+- Team A won 50.4%. Median length 11.9 min (p10 8.4, p90 17.0). 51.6 kills and 6.8 towers per match, first tower at 2.0 min.
+- Tuning: tower HP 3000, guardian HP 6800, `siegeMidPenalty` 0.2; hero stats rescaled again (see git history).

@@ -1,8 +1,14 @@
 import type { Ctx } from './ctx';
-import type { DamageType, LaneId, Role, Stats } from './content/schema';
+import type { DamageType, Disposition, LaneId, Posture, Role, Stats } from './content/schema';
 import { laneWaypoints } from './world/map';
 import { recompute } from './stats';
 import type { HeroState, PlayTeam, Unit, UnitKind, TeamId } from './types';
+
+export const DISPOSITION_POSTURE: Record<Disposition, Posture> = {
+  farmer: 'farm',
+  attacker: 'push',
+  defender: 'defend',
+};
 
 export function newUnit(
   ctx: Ctx,
@@ -64,14 +70,16 @@ export function makeHero(
   const oy = -dir * (14 + (slot % 2) * 9);
   const u = newUnit(ctx, 'hero', team, defId, base.x + ox, base.y + oy, { ...def.stats });
   u.atkRange = def.stats.range;
-  u.lane = role === 'jungle' ? null : role;
+  u.lane = role;
   const hero: HeroState = {
     defId,
     isPlayer,
     slot,
     role,
     lane: u.lane,
-    posture: def.defaultPosture,
+    posture: DISPOSITION_POSTURE[def.disposition],
+    disposition: def.disposition,
+    jungler: false,
     items: [],
     flaws: {},
     gold: ctx.t.startingGold,

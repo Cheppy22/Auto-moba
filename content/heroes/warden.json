@@ -3,7 +3,6 @@
   "name": "Dust-Mantle, Caravan Warden",
   "title": "Gatekeeper of the buried caravanserai",
   "era": "Tang Silk Road",
-  "preferredRole": "top",
   "attackKind": "melee",
   "playstyle": "A big armored wall that soaks up damage and shields the team around it. Send it into the middle of the fight and let it protect everyone else.",
   "stats": {
@@ -139,7 +138,6 @@
       "desc": "Allies within 120 gain +8 armor while standing near the Warden."
     }
   ],
-  "defaultPosture": "push",
   "personality": "steadfast",
   "buildList": [
     "iron_lung",
@@ -155,5 +153,6 @@
     "spokes": 6,
     "glyph": "gate"
   },
-  "blurb": "A caravan guard who never left his post at the buried gate."
+  "blurb": "A caravan guard who never left his post at the buried gate.",
+  "disposition": "defender"
 }

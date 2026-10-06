@@ -1,7 +1,7 @@
 import { useState } from 'preact/hooks';
 import type { HeroDef } from '../sim';
 import { SigilIcon } from './SigilIcon';
-import { roleLabel } from './format';
+import { DISPOSITIONS } from './format';
 import { useSession } from './session';
 
 const STAT_ROWS: { key: keyof HeroDef['stats']; label: string; hint: string }[] = [
@@ -26,7 +26,10 @@ export function HeroDetail({ hero, compact = false }: { hero: HeroDef; compact?:
           <div class="dim small">
             {hero.title} · {hero.era} · {hero.attackKind}
           </div>
-          <div class="dim tiny">Usually plays {roleLabel(hero.preferredRole)}</div>
+          <div class="tiny disposition" data-testid="hero-disposition">
+            <b>{DISPOSITIONS[hero.disposition].label}</b>{' '}
+            <span class="dim">{DISPOSITIONS[hero.disposition].blurb}</span>
+          </div>
         </div>
       </div>
       <div class="detail-cols">

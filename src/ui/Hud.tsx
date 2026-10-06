@@ -171,16 +171,18 @@ function Controls({ u }: { u: Unit }) {
         <Icon name="shop" />
         <span>Shop</span>
       </button>
-      <button
-        class={`act ${farming ? 'on' : ''}`}
-        data-testid="farm-toggle"
-        aria-pressed={farming}
-        title="Ask your hero to favor minions and camps (a suggestion, not an order)"
-        onClick={() => s.issue({ type: 'setPosture', posture: farming ? 'default' : 'farm' })}
-      >
-        <Icon name="farm" />
-        <span>Farm</span>
-      </button>
+      {u.hero!.disposition !== 'farmer' && (
+        <button
+          class={`act ${farming ? 'on' : ''}`}
+          data-testid="farm-toggle"
+          aria-pressed={farming}
+          title="Ask your hero to favor minions and camps (a suggestion, not an order)"
+          onClick={() => s.issue({ type: 'setPosture', posture: farming ? 'default' : 'farm' })}
+        >
+          <Icon name="farm" />
+          <span>Farm</span>
+        </button>
+      )}
       {u.hero!.recall && <span class="ofuda warn recalling">recalling…</span>}
     </div>
   );
