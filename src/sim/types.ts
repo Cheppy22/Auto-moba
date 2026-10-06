@@ -87,6 +87,7 @@ export interface HeroState {
   distance: number;
   engage: 'fight' | 'hold' | 'flee';
   engageTick: number;
+  holdTicks: number;
   lastRecallTick: number;
 }
 
@@ -209,6 +210,7 @@ export interface DraftState {
 
 export interface Blackboard {
   claims: Record<string, number>;
+  plan: { tick: number; siege: boolean; lane: LaneId };
 }
 
 export interface MatchState {
@@ -364,7 +366,7 @@ export type ReplayOp = { op: 'issue'; cmd: Command } | { op: 'step'; ticks: numb
 export interface MatchConfig {
   seed: number;
   player?: { heroId: string; role: Role; team?: PlayTeam } | null;
-  autoDraft?: boolean;
+  draft?: { A: string[]; B: string[] };
 }
 
 export interface Replay {

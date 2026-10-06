@@ -11,8 +11,8 @@
     "melee": 3,
     "ranged": 1,
     "extraMeleePerPhaseAfter": 1,
-    "extraMeleeFromPhase": 3,
-    "scalePerPhase": 0.1
+    "extraMeleeFromPhase": 2,
+    "scalePerPhase": 0.3
   },
   "minions": {
     "melee": {
@@ -36,29 +36,31 @@
       "atkSpeed": 0.8,
       "moveSpeed": 36,
       "gold": 18
-    }
+    },
+    "structureMul": 1.0,
+    "structureMulPerPhase": 0.9
   },
   "tower": {
-    "hp": 2600,
-    "damage": 85,
+    "hp": 2000,
+    "damage": 75,
     "range": 120,
     "atkSpeed": 0.8,
-    "armor": 45,
-    "resist": 45,
+    "armor": 35,
+    "resist": 35,
     "gold": 200,
     "teamGold": 70,
     "heroFocusSec": 3
   },
   "guardian": {
-    "hp": 6500,
-    "damage": 120,
+    "hp": 4600,
+    "damage": 90,
     "range": 140,
     "atkSpeed": 0.9,
     "armor": 55,
     "resist": 55,
-    "hpRegen": 6,
+    "hpRegen": 2,
     "rageThresholds": [0.66, 0.33],
-    "rageDamageMul": 1.3,
+    "rageDamageMul": 1.2,
     "roamMoveSpeed": 28,
     "roamDamageGrowth": 0.2
   },
@@ -70,7 +72,12 @@
     "killBountyPerStreak": 20,
     "comebackBounty": 0
   },
-  "respawn": { "baseSec": 7, "basePerPhase": 2, "growthPerSec": 0.04, "maxSec": 45 },
+  "respawn": {
+    "baseSec": 10,
+    "basePerPhase": 4,
+    "growthPerSec": 0.1,
+    "maxSec": 60
+  },
   "shop": {
     "slots": 6,
     "sellRefund": 0.5,
@@ -78,8 +85,13 @@
     "keeperRadius": 120,
     "keeperStock": 3
   },
-  "recall": { "baseSec": 3, "keeperSec": 6 },
-  "movement": { "arriveDist": 12 },
+  "recall": {
+    "baseSec": 3,
+    "keeperSec": 6
+  },
+  "movement": {
+    "arriveDist": 12
+  },
   "ai": {
     "aggroRadius": 150,
     "fightRadius": 280,
@@ -93,13 +105,40 @@
     "defendRadius": 320,
     "bidFraction": [0.3, 0.5, 1.0],
     "bidGoldFraction": 0.2,
-    "curseAcceptBase": 0.55
+    "curseAcceptBase": 0.55,
+    "siegeStartHp": 0.55,
+    "siegeKeepHp": 0.4,
+    "siegeAfterTick": 1800,
+    "siegeGather": 2,
+    "siegeScore": 2.4,
+    "siegeWaitTicks": 500,
+    "holdPatience": 400
   },
   "personalities": {
-    "reckless": { "retreatHp": 0.15, "engageRatio": 0.55, "chase": 1.5, "riskTaking": 1.3 },
-    "cautious": { "retreatHp": 0.4, "engageRatio": 1.25, "chase": 0.8, "riskTaking": 0.7 },
-    "opportunist": { "retreatHp": 0.28, "engageRatio": 0.9, "chase": 1.3, "riskTaking": 1.0 },
-    "steadfast": { "retreatHp": 0.3, "engageRatio": 1.0, "chase": 1.0, "riskTaking": 1.0 }
+    "reckless": {
+      "retreatHp": 0.15,
+      "engageRatio": 0.55,
+      "chase": 1.5,
+      "riskTaking": 1.3
+    },
+    "cautious": {
+      "retreatHp": 0.4,
+      "engageRatio": 1.25,
+      "chase": 0.8,
+      "riskTaking": 0.7
+    },
+    "opportunist": {
+      "retreatHp": 0.28,
+      "engageRatio": 0.9,
+      "chase": 1.3,
+      "riskTaking": 1.0
+    },
+    "steadfast": {
+      "retreatHp": 0.3,
+      "engageRatio": 1.0,
+      "chase": 1.0,
+      "riskTaking": 1.0
+    }
   },
   "posture": {
     "push": {
@@ -135,8 +174,15 @@
       "takeObelisk": 1.0
     }
   },
-  "curse": { "threshold": 0.75, "maxPerPhase": 1, "minPhase": 2 },
-  "auction": { "pointRate": 3, "loserRefund": 0.5 },
+  "curse": {
+    "threshold": 0.75,
+    "maxPerPhase": 1,
+    "minPhase": 2
+  },
+  "auction": {
+    "pointRate": 3,
+    "loserRefund": 0.5
+  },
   "obelisk": {
     "spawnSec": [50, 150],
     "claimSec": 5,
@@ -144,13 +190,44 @@
     "points": 3,
     "expireSec": 90,
     "rewards": [
-      { "kind": "points", "weight": 3, "value": 4 },
-      { "kind": "gold", "weight": 3, "value": 150 },
-      { "kind": "buff", "weight": 1, "value": 1.06, "stat": "moveSpeed", "mod": "mul" },
-      { "kind": "buff", "weight": 1, "value": 1.05, "stat": "maxHp", "mod": "mul" },
-      { "kind": "unlock", "weight": 1, "value": 0 }
+      {
+        "kind": "points",
+        "weight": 3,
+        "value": 4
+      },
+      {
+        "kind": "gold",
+        "weight": 3,
+        "value": 150
+      },
+      {
+        "kind": "buff",
+        "weight": 1,
+        "value": 1.06,
+        "stat": "moveSpeed",
+        "mod": "mul"
+      },
+      {
+        "kind": "buff",
+        "weight": 1,
+        "value": 1.05,
+        "stat": "maxHp",
+        "mod": "mul"
+      },
+      {
+        "kind": "unlock",
+        "weight": 1,
+        "value": 0
+      }
     ]
   },
-  "camps": { "respawnSec": 70, "leash": 220, "aggro": 100 },
-  "fight": { "clusterGapSec": 4, "clusterRadius": 220 }
+  "camps": {
+    "respawnSec": 70,
+    "leash": 220,
+    "aggro": 100
+  },
+  "fight": {
+    "clusterGapSec": 4,
+    "clusterRadius": 220
+  }
 }

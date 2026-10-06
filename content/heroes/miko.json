@@ -24,7 +24,14 @@
       "cooldownSec": 6,
       "range": 110,
       "target": "enemy",
-      "effects": [{ "type": "damage", "dmgType": "soul", "base": 45, "soulScale": 0.7 }],
+      "effects": [
+        {
+          "type": "damage",
+          "dmgType": "soul",
+          "base": 45,
+          "soulScale": 0.7
+        }
+      ],
       "desc": "A folded charm that burns on contact."
     },
     {
@@ -33,8 +40,16 @@
       "cooldownSec": 12,
       "radius": 120,
       "target": "allyArea",
-      "effects": [{ "type": "heal", "base": 70, "soulScale": 0.8 }],
-      "condition": { "allyHpBelow": 0.8 },
+      "effects": [
+        {
+          "type": "heal",
+          "base": 60,
+          "soulScale": 0.7
+        }
+      ],
+      "condition": {
+        "allyHpBelow": 0.8
+      },
       "desc": "A chime that mends allies nearby."
     },
     {
@@ -44,10 +59,23 @@
       "range": 100,
       "target": "enemy",
       "effects": [
-        { "type": "damage", "dmgType": "soul", "base": 30, "soulScale": 0.3 },
-        { "type": "statMod", "stat": "moveSpeed", "kind": "mul", "value": 0.5, "durationSec": 2.5 }
+        {
+          "type": "damage",
+          "dmgType": "soul",
+          "base": 30,
+          "soulScale": 0.3
+        },
+        {
+          "type": "statMod",
+          "stat": "moveSpeed",
+          "kind": "mul",
+          "value": 0.5,
+          "durationSec": 2.5
+        }
       ],
-      "condition": { "heroTargetOnly": true },
+      "condition": {
+        "heroTargetOnly": true
+      },
       "desc": "A sacred rope that slows a hero."
     },
     {
@@ -57,10 +85,21 @@
       "radius": 150,
       "target": "allyArea",
       "effects": [
-        { "type": "shield", "base": 150, "soulScale": 1.0, "durationSec": 5 },
-        { "type": "heal", "base": 90, "soulScale": 0.7 }
+        {
+          "type": "shield",
+          "base": 150,
+          "soulScale": 1.0,
+          "durationSec": 5
+        },
+        {
+          "type": "heal",
+          "base": 90,
+          "soulScale": 0.7
+        }
       ],
-      "condition": { "allyHpBelow": 0.55 },
+      "condition": {
+        "allyHpBelow": 0.55
+      },
       "desc": "Paper cranes shield and mend the wounded."
     }
   ],
@@ -75,6 +114,12 @@
     "wanderer_boots",
     "iron_lung"
   ],
-  "sigil": { "hue": 172, "rings": 2, "spokes": 6, "glyph": "crane" },
-  "blurb": "She keeps the shrine bell that calms drowned spirits."
+  "sigil": {
+    "hue": 172,
+    "rings": 2,
+    "spokes": 6,
+    "glyph": "crane"
+  },
+  "blurb": "She keeps the shrine bell that calms drowned spirits.",
+  "autoSoulScale": 0.3
 }

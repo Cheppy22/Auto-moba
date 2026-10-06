@@ -43,8 +43,10 @@ export function spawnWaves(ctx: Ctx): void {
 export function tickUnitState(ctx: Ctx): void {
   const units = ctx.s.units;
   const tick = ctx.s.tick;
-  for (let i = 0; i < units.length; i++) {
-    const u = units[i];
+  const n = units.length;
+  const start = n > 0 ? tick % n : 0;
+  for (let k = 0; k < n; k++) {
+    const u = units[(start + k) % n];
     if (!u.alive) continue;
     cleanExpired(ctx, u);
     if (u.stats.hpRegen > 0 && u.hp < u.stats.maxHp)

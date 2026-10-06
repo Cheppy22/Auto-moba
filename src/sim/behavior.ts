@@ -98,11 +98,12 @@ function updateEngage(ctx: Ctx, u: Unit): void {
   const prev = h.engage;
   if (m.enemyHeroes === 0) h.engage = 'fight';
   else {
-    const eff = m.ratio * pers.riskTaking;
+    const eff = m.ratio * pers.riskTaking * (1 + h.holdTicks / ctx.t.ai.holdPatience);
     if (eff >= pers.engageRatio) h.engage = 'fight';
     else if (eff >= pers.engageRatio * 0.5) h.engage = 'hold';
     else h.engage = 'flee';
   }
+  h.holdTicks = h.engage === 'hold' ? h.holdTicks + 10 : 0;
   if (h.engage === 'flee' && prev !== 'flee') {
     const b = ctx.world.basePos[u.team as PlayTeam];
     u.path = findPath(ctx.world, { x: u.x, y: u.y }, b, openSet(ctx));
@@ -137,6 +138,8 @@ function heroBehavior(ctx: Ctx, u: Unit): void {
       if (e.kind === 'hero' && h.engage === 'hold' && !inRange) continue;
       if (!inRange && !goalPush && !inDanger && underEnemyTower(ctx, team, e.x, e.y)) continue;
       let score = d * 0.5;
+      if (h.goal?.kind === 'pushTower' && h.goal.targetId === e.id && h.engage === 'fight')
+        score -= 130;
       if (e.kind === 'hero') score += hpPct(e) * 60 - 50;
       else if (e.kind === 'minion') score += 20;
       else if (e.kind === 'camp') score += 15;
@@ -260,9 +263,11 @@ function guardianBehavior(ctx: Ctx, u: Unit): void {
 
 export function stepUnits(ctx: Ctx): void {
   const units = ctx.s.units;
-  for (let i = 0; i < units.length; i++) {
-    const u = units[i];
-    if (!u.alive || u.pendingKill) continue;
+  const n = units.length;
+  const start = n > 0 ? ctx.s.tick % n : 0;
+  for (let k = 0; k < n; k++) {
+    const u = units[(start + k) % n];
+    if (!u.alive) continue;
     if (u.atkCd > 0) u.atkCd--;
     switch (u.kind) {
       case 'hero':

@@ -253,9 +253,9 @@ export function abilityMods(ctx: Ctx, hero: Unit, idx: number): AbilityMods {
 
 const ENEMY_KINDS = new Set(['hero', 'minion', 'camp']);
 
-function enemiesNear(ctx: Ctx, from: Unit, radius: number): Unit[] {
+function enemiesNear(ctx: Ctx, from: Unit, radius: number, cx = from.x, cy = from.y): Unit[] {
   const out: Unit[] = [];
-  for (const u of ctx.grid.query(from.x, from.y, radius)) {
+  for (const u of ctx.grid.query(cx, cy, radius)) {
     if (u.alive && isEnemy(from, u) && ENEMY_KINDS.has(u.kind) && isTargetable(ctx, u)) out.push(u);
   }
   return out;
@@ -314,7 +314,7 @@ export function tryCast(ctx: Ctx, u: Unit, idx: number): boolean {
       const near = enemiesNear(ctx, u, range);
       const centre = pickEnemy(near, u, cond.heroTargetOnly === true);
       if (!centre) return false;
-      targets = enemiesNear(ctx, centre, radius);
+      targets = enemiesNear(ctx, u, radius, centre.x, centre.y);
       enemiesCount = targets.length;
       enemyHeroes = targets.filter((e) => e.kind === 'hero').length;
       break;
@@ -512,7 +512,10 @@ export function cleanExpired(ctx: Ctx, u: Unit): void {
 }
 
 export function performAttack(ctx: Ctx, a: Unit, t: Unit): void {
-  const dmg = a.atkType === 'soul' ? a.stats.soulPower || a.stats.bladeDmg : a.stats.bladeDmg;
+  let dmg = a.atkType === 'soul' ? a.stats.soulPower || a.stats.bladeDmg : a.stats.bladeDmg;
+  if (a.hero) dmg += (ctx.c.heroById.get(a.defId)?.autoSoulScale ?? 0) * a.stats.soulPower;
+  if (a.kind === 'minion' && (t.kind === 'tower' || t.kind === 'guardian'))
+    dmg *= ctx.t.minions.structureMul + ctx.t.minions.structureMulPerPhase * (ctx.s.phase.n - 1);
   const origin = a.kind === 'tower' || a.kind === 'guardian' ? a.kind : 'attack';
   dealDamage(ctx, a, t, dmg, a.atkType, origin);
   if (a.hero) fireTriggers(ctx, a, 'hit', { victim: t, damage: dmg });

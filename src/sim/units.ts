@@ -94,6 +94,7 @@ export function makeHero(
     distance: 0,
     engage: 'fight',
     engageTick: 0,
+    holdTicks: 0,
     lastRecallTick: -9999,
   };
   u.hero = hero;

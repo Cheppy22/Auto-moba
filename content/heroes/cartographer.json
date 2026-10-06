@@ -6,13 +6,13 @@
   "preferredRole": "mid",
   "attackKind": "ranged",
   "stats": {
-    "maxHp": 880,
+    "maxHp": 800,
     "hpRegen": 2,
-    "armor": 16,
+    "armor": 18,
     "resist": 24,
-    "bladeDmg": 42,
+    "bladeDmg": 44,
     "atkSpeed": 0.8,
-    "soulPower": 70,
+    "soulPower": 52,
     "moveSpeed": 44,
     "cdr": 0,
     "range": 115
@@ -24,7 +24,14 @@
       "cooldownSec": 6,
       "range": 125,
       "target": "enemy",
-      "effects": [{ "type": "damage", "dmgType": "soul", "base": 70, "soulScale": 0.9 }],
+      "effects": [
+        {
+          "type": "damage",
+          "dmgType": "soul",
+          "base": 54,
+          "soulScale": 0.9
+        }
+      ],
       "desc": "Draws a line of force through a target."
     },
     {
@@ -34,8 +41,17 @@
       "range": 70,
       "target": "enemy",
       "effects": [
-        { "type": "dash", "distance": 60, "toward": "away" },
-        { "type": "shield", "base": 70, "soulScale": 0.4, "durationSec": 3 }
+        {
+          "type": "dash",
+          "distance": 60,
+          "toward": "away"
+        },
+        {
+          "type": "shield",
+          "base": 70,
+          "soulScale": 0.4,
+          "durationSec": 3
+        }
       ],
       "desc": "Folds space to slip away from a close enemy."
     },
@@ -47,10 +63,24 @@
       "radius": 75,
       "target": "enemyBurst",
       "effects": [
-        { "type": "dot", "dmgType": "soul", "base": 40, "soulScale": 0.35, "durationSec": 4 },
-        { "type": "statMod", "stat": "moveSpeed", "kind": "mul", "value": 0.75, "durationSec": 4 }
+        {
+          "type": "dot",
+          "dmgType": "soul",
+          "base": 32,
+          "soulScale": 0.35,
+          "durationSec": 4
+        },
+        {
+          "type": "statMod",
+          "stat": "moveSpeed",
+          "kind": "mul",
+          "value": 0.75,
+          "durationSec": 4
+        }
       ],
-      "condition": { "minEnemies": 2 },
+      "condition": {
+        "minEnemies": 2
+      },
       "desc": "Ink pools and eats at everything standing in it."
     },
     {
@@ -61,10 +91,23 @@
       "radius": 110,
       "target": "enemyBurst",
       "effects": [
-        { "type": "damage", "dmgType": "soul", "base": 220, "soulScale": 1.3 },
-        { "type": "statMod", "stat": "moveSpeed", "kind": "mul", "value": 0.6, "durationSec": 3 }
+        {
+          "type": "damage",
+          "dmgType": "soul",
+          "base": 170,
+          "soulScale": 1.3
+        },
+        {
+          "type": "statMod",
+          "stat": "moveSpeed",
+          "kind": "mul",
+          "value": 0.6,
+          "durationSec": 3
+        }
       ],
-      "condition": { "minEnemyHeroes": 1 },
+      "condition": {
+        "minEnemyHeroes": 1
+      },
       "desc": "The map folds in on a point."
     }
   ],
@@ -79,6 +122,12 @@
     "wanderer_boots",
     "iron_lung"
   ],
-  "sigil": { "hue": 210, "rings": 3, "spokes": 12, "glyph": "compass" },
-  "blurb": "Draws maps of rooms that no longer exist."
+  "sigil": {
+    "hue": 210,
+    "rings": 3,
+    "spokes": 12,
+    "glyph": "compass"
+  },
+  "blurb": "Draws maps of rooms that no longer exist.",
+  "autoSoulScale": 0.2
 }

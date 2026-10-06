@@ -43,6 +43,32 @@ function enemiesNear(ctx: Ctx, u: Unit, x: number, y: number, r: number): number
   return n;
 }
 
+function standoff(u: Unit): number {
+  return Math.max(90, Math.min(130, u.stats.range + 14));
+}
+
+function threatNear(
+  ctx: Ctx,
+  team: PlayTeam,
+  x: number,
+  y: number,
+  r: number,
+  minions = true,
+): number {
+  let heroes = 0;
+  let foeMinions = 0;
+  let ownMinions = 0;
+  for (const e of ctx.grid.query(x, y, r)) {
+    if (!e.alive) continue;
+    if (e.kind === 'hero' && e.team !== team && e.team !== 'neutral') heroes++;
+    else if (e.kind === 'minion') {
+      if (e.team === team) ownMinions++;
+      else foeMinions++;
+    }
+  }
+  return heroes * 2 + (minions ? Math.max(0, foeMinions - ownMinions) * 0.35 : 0);
+}
+
 function alliedMinionsNear(ctx: Ctx, team: PlayTeam, x: number, y: number, r: number): number {
   let n = 0;
   for (const m of ctx.grid.query(x, y, r))
@@ -63,6 +89,45 @@ function alliedHeroesNear(
     if (m.alive && m.team === team && m.kind === 'hero' && m.id !== skip) n++;
   }
   return n;
+}
+
+function teamPlan(ctx: Ctx, team: PlayTeam): { siege: boolean; lane: LaneId } {
+  const board = ctx.s.board[team];
+  const plan = board.plan;
+  if (ctx.s.tick - plan.tick < 20) return plan;
+  plan.tick = ctx.s.tick;
+  const foe = other(team);
+  let aliveA = 0;
+  let hpSum = 0;
+  let aliveE = 0;
+  for (const id of ctx.s.teams[team].heroIds) {
+    const h = ctx.unit(id);
+    if (h?.alive) {
+      aliveA++;
+      hpSum += hpPct(h);
+    }
+  }
+  for (const id of ctx.s.teams[foe].heroIds) if (ctx.unit(id)?.alive) aliveE++;
+  const avg = aliveA > 0 ? hpSum / aliveA : 0;
+  const t = ctx.t.ai;
+  const start = plan.siege
+    ? aliveA >= 3 && avg >= t.siegeKeepHp
+    : aliveA >= 4 && aliveA >= aliveE && avg >= t.siegeStartHp;
+  const myG = ctx.guardians[team];
+  const homeThreat = myG ? threatNear(ctx, team, myG.x, myG.y, ctx.t.ai.defendRadius * 2) : 0;
+  plan.siege = start && ctx.s.tick >= t.siegeAfterTick && homeThreat < 3;
+  let bestLane: LaneId = plan.lane;
+  let bestScore = Infinity;
+  for (const lane of LANES) {
+    const [o, i] = ctx.towers[foe][lane];
+    const score = (o?.alive ? 2 : 0) + (i?.alive ? 1 : 0) - ctx.front[team][lane] * 0.5;
+    if (score < bestScore) {
+      bestScore = score;
+      bestLane = lane;
+    }
+  }
+  plan.lane = bestLane;
+  return plan;
 }
 
 export function setGoal(ctx: Ctx, u: Unit, g: Goal): void {
@@ -143,20 +208,75 @@ export function strategicUpdate(ctx: Ctx, u: Unit): void {
         fp.x,
         fp.y,
         goalKey('farmLane', lane),
-        (laneHero ? 1.0 : 0.2) * (post.farmLane ?? 1),
+        (laneHero ? 0.8 : 0.2) * (post.farmLane ?? 1),
       ),
     );
 
     const foeG = ctx.guardians[other(team)];
     const guardianOpen = foeG !== null && isTargetable(ctx, foeG);
-    const pushTarget: Unit | null = foeTower ?? (guardianOpen ? foeG : null);
+    const plan = teamPlan(ctx, team);
+    if (plan.siege && hp > 0.5) {
+      const st = guardianOpen ? foeG : enemyTowerTarget(ctx, team, plan.lane);
+      if (st) {
+        let sx: number;
+        let sy: number;
+        let stageX: number;
+        let stageY: number;
+        if (st.kind === 'tower') {
+          const lg = ctx.world.lanes[plan.lane].length;
+          const tp = progressAt(ctx, team, plan.lane, st.x, st.y);
+          const atp = pointAtProgress(ctx, team, plan.lane, tp - standoff(u) / lg);
+          const stp = pointAtProgress(ctx, team, plan.lane, tp - 260 / lg);
+          sx = atp.x;
+          sy = atp.y;
+          stageX = stp.x;
+          stageY = stp.y;
+        } else {
+          const dx = base.x - st.x;
+          const dy = base.y - st.y;
+          const l = Math.sqrt(dx * dx + dy * dy) || 1;
+          sx = st.x + (dx / l) * 100;
+          sy = st.y + (dy / l) * 100;
+          stageX = st.x + (dx / l) * 330;
+          stageY = st.y + (dy / l) * 330;
+        }
+        const need = Math.min(
+          ai.ai.siegeGather,
+          ctx.s.teams[team].heroIds.filter((id) => ctx.unit(id)?.alive).length,
+        );
+        const gathered = alliedHeroesNear(ctx, team, stageX, stageY, 420, u.id) + 1;
+        const here = alliedHeroesNear(ctx, team, st.x, st.y, 420, u.id) + 1;
+        const go =
+          gathered >= need || here >= need || ctx.s.tick - h.goalSetTick > ai.ai.siegeWaitTicks;
+        cands.push(
+          go
+            ? cand(
+                'pushTower',
+                sx,
+                sy,
+                goalKey('pushTower', st.id),
+                ai.ai.siegeScore * (0.5 + 0.5 * (post.pushTower ?? 1)),
+                st.id,
+              )
+            : cand(
+                'pushTower',
+                stageX,
+                stageY,
+                goalKey('pushTower', `stage${st.id}`),
+                ai.ai.siegeScore * (0.5 + 0.5 * (post.pushTower ?? 1)),
+                st.id,
+              ),
+        );
+      }
+    }
+    const pushTarget: Unit | null = guardianOpen ? foeG : foeTower;
     if (pushTarget) {
       const target = pushTarget;
       let px: number;
       let py: number;
       if (target.kind === 'tower') {
         const tp = progressAt(ctx, team, lane, target.x, target.y);
-        const p = pointAtProgress(ctx, team, lane, tp - 90 / ctx.world.lanes[lane].length);
+        const p = pointAtProgress(ctx, team, lane, tp - standoff(u) / ctx.world.lanes[lane].length);
         px = p.x;
         py = p.y;
       } else {
@@ -171,7 +291,10 @@ export function strategicUpdate(ctx: Ctx, u: Unit): void {
       let support = Math.min(1, wave * 0.3 + mates * 0.3);
       const foes = enemiesNear(ctx, u, target.x, target.y, 260);
       if (foes >= 4 && mates < 2) support *= 0.5;
-      const score = (0.3 + 0.7 * support + (guardianOpen ? 0.35 : 0)) * (post.pushTower ?? 1);
+      let deadFoes = 0;
+      for (const id of ctx.s.teams[other(team)].heroIds) if (!ctx.unit(id)?.alive) deadFoes++;
+      const score =
+        (0.2 + 0.9 * support + (guardianOpen ? 0.4 : 0) + 0.3 * deadFoes) * (post.pushTower ?? 1);
       cands.push(cand('pushTower', px, py, goalKey('pushTower', target.id), score, target.id));
     }
 
@@ -181,11 +304,25 @@ export function strategicUpdate(ctx: Ctx, u: Unit): void {
     if (myG?.alive) structures.push(myG);
     let bestDef: Cand | null = null;
     for (const st of structures) {
-      const threat = enemiesNear(ctx, u, st.x, st.y, ai.ai.defendRadius);
-      if (threat <= 0) continue;
+      const radius =
+        st.kind === 'guardian'
+          ? ai.ai.defendRadius * 2
+          : st.tower?.index === 1
+            ? ai.ai.defendRadius * 1.4
+            : ai.ai.defendRadius;
+      const ownLane = st.kind === 'tower' && (h.lane === null || st.tower?.lane === h.lane);
+      const threat = threatNear(ctx, team, st.x, st.y, radius, ownLane || st.kind === 'guardian');
+      if (threat < 1.2) continue;
+      const key = goalKey('defendTower', st.id);
+      const claimed = ctx.s.board[team].claims[key] ?? 0;
+      if (claimed > (cur?.key === key ? 2 : 1)) continue;
       const d = dist(u.x, u.y, st.x, st.y);
-      const score =
-        (0.4 + 0.12 * Math.min(6, threat)) * (post.defendTower ?? 1) * Math.max(0.2, 1 - d / 2500);
+      const urgent = st.kind === 'guardian' && threat >= 2;
+      const score = urgent
+        ? (2.6 + 0.15 * Math.min(6, threat)) * (0.6 + 0.4 * (post.defendTower ?? 1))
+        : (0.35 + 0.12 * Math.min(6, threat)) *
+          (post.defendTower ?? 1) *
+          Math.max(0.2, 1 - d / 2500);
       if (!bestDef || score > bestDef.score) {
         const dx = base.x - st.x;
         const dy = base.y - st.y;

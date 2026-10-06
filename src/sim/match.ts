@@ -47,12 +47,21 @@ import type {
 
 const ROLE_SLOTS: Role[] = ['top', 'mid', 'bot', 'bot', 'jungle'];
 
-function initialState(content: Content, seed: number, withPlayer: boolean | null): MatchState {
+function initialState(
+  content: Content,
+  seed: number,
+  withPlayer: boolean | null,
+  fixed?: { A: string[]; B: string[] },
+): MatchState {
   const rng = seedStreams(seed);
   const aiHeroes: Record<PlayTeam, string[]> = { A: [], B: [] };
   const nA = withPlayer === null ? 5 : 4;
   for (let i = 0; i < nA; i++) aiHeroes.A.push(pick(rng, 'draft', content.heroes).id);
   for (let i = 0; i < 5; i++) aiHeroes.B.push(pick(rng, 'draft', content.heroes).id);
+  if (fixed) {
+    aiHeroes.A = fixed.A.slice(0, nA);
+    aiHeroes.B = fixed.B.slice(0, 5);
+  }
   const team = (): MatchState['teams']['A'] => ({
     points: 0,
     unlocks: [],
@@ -102,7 +111,10 @@ function initialState(content: Content, seed: number, withPlayer: boolean | null
       playerRole: null,
       playerTeam: 'A',
     },
-    board: { A: { claims: {} }, B: { claims: {} } },
+    board: {
+      A: { claims: {}, plan: { tick: -999, siege: false, lane: 'mid' } },
+      B: { claims: {}, plan: { tick: -999, siege: false, lane: 'mid' } },
+    },
     tideNextTick: 0,
     lastPassiveTick: 0,
   };
@@ -211,7 +223,8 @@ function stepTick(ctx: Ctx): void {
   tickSpiritTide(ctx);
   tickObelisks(ctx);
   tickCampRespawns(ctx);
-  for (const team of ['A', 'B'] as PlayTeam[]) {
+  const order: PlayTeam[] = Math.floor(s.tick / 20) % 2 === 0 ? ['A', 'B'] : ['B', 'A'];
+  for (const team of order) {
     for (const id of s.teams[team].heroIds) {
       const u = ctx.unit(id);
       if (!u || !u.alive) continue;
@@ -246,7 +259,7 @@ export class Match {
     readonly config: MatchConfig,
   ) {
     const player = config.player;
-    const state = initialState(content, config.seed, player === null ? null : true);
+    const state = initialState(content, config.seed, player === null ? null : true, config.draft);
     this.ctx = buildCtx(content, state);
   }
 
