@@ -917,6 +917,8 @@ html:not([data-layout='desktop']) .tiles {
   z-index: 4;
 }
 .hud-dock {
+  position: static;
+  pointer-events: auto;
   display: flex;
   flex-direction: column;
   gap: 6px;
