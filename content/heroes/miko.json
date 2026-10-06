@@ -1,0 +1,80 @@
+{
+  "id": "miko",
+  "name": "Kagura, the Bell-Keeper",
+  "title": "Shrine maiden of the drowned shrine",
+  "era": "Heian",
+  "preferredRole": "bot",
+  "attackKind": "ranged",
+  "stats": {
+    "maxHp": 950,
+    "hpRegen": 2.5,
+    "armor": 18,
+    "resist": 30,
+    "bladeDmg": 36,
+    "atkSpeed": 0.9,
+    "soulPower": 55,
+    "moveSpeed": 45,
+    "cdr": 0,
+    "range": 95
+  },
+  "abilities": [
+    {
+      "id": "paper_talisman",
+      "name": "Paper Talisman",
+      "cooldownSec": 6,
+      "range": 110,
+      "target": "enemy",
+      "effects": [{ "type": "damage", "dmgType": "soul", "base": 45, "soulScale": 0.7 }],
+      "desc": "A folded charm that burns on contact."
+    },
+    {
+      "id": "purifying_bell",
+      "name": "Purifying Bell",
+      "cooldownSec": 12,
+      "radius": 120,
+      "target": "allyArea",
+      "effects": [{ "type": "heal", "base": 70, "soulScale": 0.8 }],
+      "condition": { "allyHpBelow": 0.8 },
+      "desc": "A chime that mends allies nearby."
+    },
+    {
+      "id": "binding_rope",
+      "name": "Binding Rope",
+      "cooldownSec": 16,
+      "range": 100,
+      "target": "enemy",
+      "effects": [
+        { "type": "damage", "dmgType": "soul", "base": 30, "soulScale": 0.3 },
+        { "type": "statMod", "stat": "moveSpeed", "kind": "mul", "value": 0.5, "durationSec": 2.5 }
+      ],
+      "condition": { "heroTargetOnly": true },
+      "desc": "A sacred rope that slows a hero."
+    },
+    {
+      "id": "thousand_cranes",
+      "name": "Thousand Cranes",
+      "cooldownSec": 55,
+      "radius": 150,
+      "target": "allyArea",
+      "effects": [
+        { "type": "shield", "base": 150, "soulScale": 1.0, "durationSec": 5 },
+        { "type": "heal", "base": 90, "soulScale": 0.7 }
+      ],
+      "condition": { "allyHpBelow": 0.55 },
+      "desc": "Paper cranes shield and mend the wounded."
+    }
+  ],
+  "passives": [],
+  "defaultPosture": "defend",
+  "personality": "cautious",
+  "buildList": [
+    "candle_stub",
+    "ashen_amulet",
+    "spirit_lens",
+    "seance_prism",
+    "wanderer_boots",
+    "iron_lung"
+  ],
+  "sigil": { "hue": 172, "rings": 2, "spokes": 6, "glyph": "crane" },
+  "blurb": "She keeps the shrine bell that calms drowned spirits."
+}

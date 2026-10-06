@@ -1,0 +1,67 @@
+{
+  "id": "foundry",
+  "name": "Hollow Foundry",
+  "era": "Victorian",
+  "palette": { "ground": "#2a1d18", "accent": "#c9732f", "glow": "#ffb66b" },
+  "camps": [
+    { "dx": -40, "dy": -20 },
+    { "dx": 40, "dy": -10 },
+    { "dx": 0, "dy": 45 }
+  ],
+  "campTypes": [
+    {
+      "id": "cinder_imp",
+      "name": "Cinder Imps",
+      "hp": 380,
+      "damage": 22,
+      "armor": 10,
+      "range": 20,
+      "count": 2,
+      "gold": 55
+    },
+    {
+      "id": "slag_golem",
+      "name": "Slag Golem",
+      "hp": 900,
+      "damage": 48,
+      "armor": 30,
+      "range": 22,
+      "count": 1,
+      "gold": 120,
+      "points": 1,
+      "buff": { "stat": "bladeDmg", "kind": "add", "value": 8, "durationSec": 60 }
+    },
+    {
+      "id": "boiler_wraith",
+      "name": "Boiler Wraith",
+      "hp": 1500,
+      "damage": 70,
+      "armor": 25,
+      "resist": 25,
+      "range": 25,
+      "count": 1,
+      "gold": 220,
+      "points": 2
+    }
+  ],
+  "campTable": [
+    {
+      "phaseMin": 1,
+      "phaseMax": 2,
+      "types": [
+        { "id": "cinder_imp", "weight": 3 },
+        { "id": "slag_golem", "weight": 1 }
+      ]
+    },
+    {
+      "phaseMin": 3,
+      "phaseMax": 99,
+      "types": [
+        { "id": "slag_golem", "weight": 2 },
+        { "id": "boiler_wraith", "weight": 1 },
+        { "id": "cinder_imp", "weight": 1 }
+      ]
+    }
+  ],
+  "blurb": "Furnaces that still burn for a shift that never ended. Rich in gold."
+}

@@ -1,0 +1,36 @@
+{
+  "events": [
+    {
+      "id": "thinning_veil",
+      "name": "Thinning Veil",
+      "fromPhase": 4,
+      "desc": "Healing is reduced across the whole map.",
+      "tagMult": { "heal": 0.5 },
+      "rules": []
+    },
+    {
+      "id": "spirit_tide",
+      "name": "Spirit Tide",
+      "fromPhase": 5,
+      "desc": "Jungle camps push into the lanes for both sides.",
+      "tagMult": {},
+      "rules": ["spiritTide"]
+    },
+    {
+      "id": "keeper_debts",
+      "name": "The Keeper Calls In Debts",
+      "fromPhase": 6,
+      "desc": "Cursed items double in both power and flaw.",
+      "tagMult": { "curse": 2 },
+      "rules": []
+    },
+    {
+      "id": "restless_guardians",
+      "name": "Restless Guardians",
+      "fromPhase": 7,
+      "desc": "Both guardians leave their bases and fight in the lanes.",
+      "tagMult": {},
+      "rules": ["roamingGuardians"]
+    }
+  ]
+}

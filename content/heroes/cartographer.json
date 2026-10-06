@@ -1,0 +1,84 @@
+{
+  "id": "cartographer",
+  "name": "The Hollow Cartographer",
+  "title": "Mapper of places that moved",
+  "era": "Unknown",
+  "preferredRole": "mid",
+  "attackKind": "ranged",
+  "stats": {
+    "maxHp": 880,
+    "hpRegen": 2,
+    "armor": 16,
+    "resist": 24,
+    "bladeDmg": 42,
+    "atkSpeed": 0.8,
+    "soulPower": 70,
+    "moveSpeed": 44,
+    "cdr": 0,
+    "range": 115
+  },
+  "abilities": [
+    {
+      "id": "meridian_line",
+      "name": "Meridian Line",
+      "cooldownSec": 6,
+      "range": 125,
+      "target": "enemy",
+      "effects": [{ "type": "damage", "dmgType": "soul", "base": 70, "soulScale": 0.9 }],
+      "desc": "Draws a line of force through a target."
+    },
+    {
+      "id": "fold_the_map",
+      "name": "Fold the Map",
+      "cooldownSec": 14,
+      "range": 70,
+      "target": "enemy",
+      "effects": [
+        { "type": "dash", "distance": 60, "toward": "away" },
+        { "type": "shield", "base": 70, "soulScale": 0.4, "durationSec": 3 }
+      ],
+      "desc": "Folds space to slip away from a close enemy."
+    },
+    {
+      "id": "hollow_ink",
+      "name": "Hollow Ink",
+      "cooldownSec": 16,
+      "range": 120,
+      "radius": 75,
+      "target": "enemyBurst",
+      "effects": [
+        { "type": "dot", "dmgType": "soul", "base": 40, "soulScale": 0.35, "durationSec": 4 },
+        { "type": "statMod", "stat": "moveSpeed", "kind": "mul", "value": 0.75, "durationSec": 4 }
+      ],
+      "condition": { "minEnemies": 2 },
+      "desc": "Ink pools and eats at everything standing in it."
+    },
+    {
+      "id": "atlas_collapse",
+      "name": "Atlas Collapse",
+      "cooldownSec": 55,
+      "range": 135,
+      "radius": 110,
+      "target": "enemyBurst",
+      "effects": [
+        { "type": "damage", "dmgType": "soul", "base": 220, "soulScale": 1.3 },
+        { "type": "statMod", "stat": "moveSpeed", "kind": "mul", "value": 0.6, "durationSec": 3 }
+      ],
+      "condition": { "minEnemyHeroes": 1 },
+      "desc": "The map folds in on a point."
+    }
+  ],
+  "passives": [],
+  "defaultPosture": "farm",
+  "personality": "steadfast",
+  "buildList": [
+    "candle_stub",
+    "spirit_lens",
+    "ashen_amulet",
+    "seance_prism",
+    "wanderer_boots",
+    "iron_lung"
+  ],
+  "sigil": { "hue": 210, "rings": 3, "spokes": 12, "glyph": "compass" },
+  "blurb": "Draws maps of rooms that no longer exist."
+}

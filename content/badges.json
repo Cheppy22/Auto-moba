@@ -1,0 +1,56 @@
+{
+  "badges": [
+    {
+      "id": "tankiest",
+      "metric": "damageTaken",
+      "rank": "max",
+      "label": "Tankiest: most damage taken"
+    },
+    {
+      "id": "top_damage",
+      "metric": "damageDealt",
+      "rank": "max",
+      "label": "Most damage dealt to heroes"
+    },
+    {
+      "id": "objective_damage",
+      "metric": "objectiveDamage",
+      "rank": "max",
+      "label": "Most objective damage"
+    },
+    { "id": "most_gold", "metric": "goldEarned", "rank": "max", "label": "Most gold earned" },
+    { "id": "most_kills", "metric": "kills", "rank": "max", "label": "Most kills" },
+    { "id": "most_deaths", "metric": "deaths", "rank": "max", "label": "Most deaths" },
+    { "id": "most_healing", "metric": "healingDone", "rank": "max", "label": "Most healing done" },
+    {
+      "id": "taken_blade",
+      "metric": "taken.blade",
+      "rank": "max",
+      "label": "Most Blade damage taken"
+    },
+    {
+      "id": "taken_soul",
+      "metric": "taken.soul",
+      "rank": "max",
+      "label": "Most Soul damage taken"
+    },
+    {
+      "id": "taken_true",
+      "metric": "taken.true",
+      "rank": "max",
+      "label": "Most True damage taken"
+    },
+    {
+      "id": "least_traveled",
+      "metric": "distance",
+      "rank": "min",
+      "label": "Least distance traveled"
+    },
+    {
+      "id": "most_traveled",
+      "metric": "distance",
+      "rank": "max",
+      "label": "Most distance traveled"
+    }
+  ]
+}

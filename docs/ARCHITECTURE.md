@@ -21,17 +21,17 @@ The prototype is one browser game in TypeScript. A deterministic simulation core
 
 ## Stack and repo layout
 
-| Piece | Choice | Why |
-| --- | --- | --- |
-| Language | TypeScript, `strict` | Types are the contract between layers |
-| Dev server / bundle | Vite | Zero-config, fast reload |
-| Tests | Vitest | Same config as Vite; runs sim tests in Node |
-| Browser smoke tests | Playwright (preinstalled Chromium) | Checks screens load and a match runs |
-| Game drawing | Canvas 2D, no library | Enough for about 100 units; nothing to port |
-| Screens | Preact | Reports and shop need interactive UI; about 4 KB |
-| Content schemas | Zod | One schema gives both types and load-time validation |
-| Lint / format | ESLint with `no-restricted-imports` per folder, plus Prettier | Enforces layer boundaries without an extra plugin |
-| Node scripts | `tsx` | Runs headless matches and the balance runner |
+| Piece               | Choice                                                        | Why                                                  |
+| ------------------- | ------------------------------------------------------------- | ---------------------------------------------------- |
+| Language            | TypeScript, `strict`                                          | Types are the contract between layers                |
+| Dev server / bundle | Vite                                                          | Zero-config, fast reload                             |
+| Tests               | Vitest                                                        | Same config as Vite; runs sim tests in Node          |
+| Browser smoke tests | Playwright (preinstalled Chromium)                            | Checks screens load and a match runs                 |
+| Game drawing        | Canvas 2D, no library                                         | Enough for about 100 units; nothing to port          |
+| Screens             | Preact                                                        | Reports and shop need interactive UI; about 4 KB     |
+| Content schemas     | Zod                                                           | One schema gives both types and load-time validation |
+| Lint / format       | ESLint with `no-restricted-imports` per folder, plus Prettier | Enforces layer boundaries without an extra plugin    |
+| Node scripts        | `tsx`                                                         | Runs headless matches and the balance runner         |
 
 ```
 content/         JSON: heroes, items, upgrades, biomes, pressure, badges, map, tuning
@@ -154,10 +154,10 @@ Each system owns one slice of `MatchState`, runs at a fixed point in the tick or
 - Between phases, heroes keep their position and hp and shop remotely.
 - **Respawn time** = phase base + growth × seconds into the phase; the phase base rises each phase.
 - **Pressure events** (phase 4+) are data entries that switch on rules and stack:
-    - Thinning Veil: global heal multiplier.
-    - Spirit Tide: neutral waves from camps walk the lanes, reusing the wave system with team `neutral`.
-    - Keeper Calls In Debts: the `curse` tag multiplier goes to 2.
-    - Restless Guardians: guardian AI switches from stationary to roaming.
+  - Thinning Veil: global heal multiplier.
+  - Spirit Tide: neutral waves from camps walk the lanes, reusing the wave system with team `neutral`.
+  - Keeper Calls In Debts: the `curse` tag multiplier goes to 2.
+  - Restless Guardians: guardian AI switches from stationary to roaming.
 
 ### Keeper, curses, auction, obelisks
 
@@ -171,16 +171,16 @@ Each system owns one slice of `MatchState`, runs at a fixed point in the tick or
 
 All game content is JSON in `content/`, with one Zod schema per file type.
 
-| File(s) | Defines |
-| --- | --- |
-| `heroes/*.json` | Stats, 3 abilities plus ultimate (as effect compositions), default posture, personality trait, upgrade pool, AI build list, sigil visual parameters |
-| `items/*.json` | Category, tier, cost, modifiers and effects, recipe partners, upgrade target; cursed items add boons, flaw type and flaw pool; holy items add a hint text |
-| `upgrades/*.json` | Ability tweaks offered in the pick 1 of 3 screen |
-| `biomes/*.json` | Camp spots, camp types per phase, reward table, nav nodes, palette |
-| `pressure.json` | The 4 events in order, as rule switches and tag multipliers |
-| `badges.json` | Report badges: metric, rank rule (max or min), factual label |
-| `map.json` | Lane polylines, tower and base positions, biome slots and entry points |
-| `tuning.json` | Every number not tied to one hero or item: phase length, gold values, respawn curve, curse threshold, auction rate, obelisk schedule |
+| File(s)           | Defines                                                                                                                                                   |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `heroes/*.json`   | Stats, 3 abilities plus ultimate (as effect compositions), default posture, personality trait, upgrade pool, AI build list, sigil visual parameters       |
+| `items/*.json`    | Category, tier, cost, modifiers and effects, recipe partners, upgrade target; cursed items add boons, flaw type and flaw pool; holy items add a hint text |
+| `upgrades/*.json` | Ability tweaks offered in the pick 1 of 3 screen                                                                                                          |
+| `biomes/*.json`   | Camp spots, camp types per phase, reward table, nav nodes, palette                                                                                        |
+| `pressure.json`   | The 4 events in order, as rule switches and tag multipliers                                                                                               |
+| `badges.json`     | Report badges: metric, rank rule (max or min), factual label                                                                                              |
+| `map.json`        | Lane polylines, tower and base positions, biome slots and entry points                                                                                    |
+| `tuning.json`     | Every number not tied to one hero or item: phase length, gold values, respawn curve, curse threshold, auction rate, obelisk schedule                      |
 
 - The loader takes plain objects. The browser bundles JSON by static import; Node tools read it from disk. The sim never touches the file system or the bundler.
 - Ids are stable strings (`item.hungry_mask`). Cross-references are checked by a content test.
@@ -236,15 +236,15 @@ The sim records; `src/analysis` turns the log into numbers; the UI displays. No 
 
 Every task merges only when `npm run check` passes: typecheck, lint (including layer boundaries), unit tests and the content test.
 
-| Test | Proves | From |
-| --- | --- | --- |
-| Unit tests per system | Each system's rules on tiny hand-built states | M1 |
-| Determinism | Same seed and commands, run twice, give an identical event-log hash | M1 |
-| Golden match | A fixed seed finishes with invariants holding: no NaN or negative hp, gold never below 0, a winner exists | M1 |
-| Content validation | Every JSON file passes its schema and every cross-reference resolves | M1 |
-| Boundary lint | `sim` and `analysis` import no browser code; `render` and `ui` import sim types and the public API only | M1 |
-| Browser smoke (Playwright) | The app loads, a match starts, a phase completes, screens render | M2 |
-| Balance runner | Batch stats over many seeds | M6 |
+| Test                       | Proves                                                                                                    | From |
+| -------------------------- | --------------------------------------------------------------------------------------------------------- | ---- |
+| Unit tests per system      | Each system's rules on tiny hand-built states                                                             | M1   |
+| Determinism                | Same seed and commands, run twice, give an identical event-log hash                                       | M1   |
+| Golden match               | A fixed seed finishes with invariants holding: no NaN or negative hp, gold never below 0, a winner exists | M1   |
+| Content validation         | Every JSON file passes its schema and every cross-reference resolves                                      | M1   |
+| Boundary lint              | `sim` and `analysis` import no browser code; `render` and `ui` import sim types and the public API only   | M1   |
+| Browser smoke (Playwright) | The app loads, a match starts, a phase completes, screens render                                          | M2   |
+| Balance runner             | Batch stats over many seeds                                                                               | M6   |
 
 **Performance budgets**
 
@@ -346,29 +346,29 @@ Cheppy plays several matches and decides go, adjust or stop. If agency feels thi
 
 An adversarial pass on the first draft found 16 issues; all are fixed above.
 
-| # | Found in draft | Change |
-| --- | --- | --- |
-| 1 | Phase controller was in M4, but M3's screens need it | A basic controller moved to M1 |
-| 2 | Logging every minion hit meant hundreds of thousands of events | Minion and camp damage summed per second |
-| 3 | A 1 ms tick budget meant about 4 h for 1,000 matches | 0.25 ms per tick plus parallel workers |
-| 4 | An abstract renderer interface was speculative | Removed |
-| 5 | A lint boundaries plugin added a dependency | Built-in `no-restricted-imports` |
-| 6 | Summon and knockback had no hero needing them | Cut from v1 |
-| 7 | The custom-behavior escape hatch was unbounded | Capped at 5, each tested |
-| 8 | One random stream broke golden tests on unrelated changes | 6 purpose streams |
-| 9 | Spirit Tide and camps need a third side | `neutral` team from M1 |
-| 10 | Bundler-only content imports would break Node tools | Loader takes plain objects |
-| 11 | Auction windows started at PREP 2 | Windows are PREP 1–3 |
-| 12 | Travelling to the keeper needs movement control | Recall to keeper = longer channel, then teleport |
-| 13 | A render snapshot every tick wastes headless time | Built once per frame on demand |
-| 14 | Fight detection in the sim added complexity for a report-only concept | Derived in `analysis` |
-| 15 | Hero AI could auto-recall, removing the player's main decision | The player hero never recalls on its own |
-| 16 | Trig can differ across browsers | Determinism scoped to one build and engine; trig in one module |
+| #   | Found in draft                                                        | Change                                                         |
+| --- | --------------------------------------------------------------------- | -------------------------------------------------------------- |
+| 1   | Phase controller was in M4, but M3's screens need it                  | A basic controller moved to M1                                 |
+| 2   | Logging every minion hit meant hundreds of thousands of events        | Minion and camp damage summed per second                       |
+| 3   | A 1 ms tick budget meant about 4 h for 1,000 matches                  | 0.25 ms per tick plus parallel workers                         |
+| 4   | An abstract renderer interface was speculative                        | Removed                                                        |
+| 5   | A lint boundaries plugin added a dependency                           | Built-in `no-restricted-imports`                               |
+| 6   | Summon and knockback had no hero needing them                         | Cut from v1                                                    |
+| 7   | The custom-behavior escape hatch was unbounded                        | Capped at 5, each tested                                       |
+| 8   | One random stream broke golden tests on unrelated changes             | 6 purpose streams                                              |
+| 9   | Spirit Tide and camps need a third side                               | `neutral` team from M1                                         |
+| 10  | Bundler-only content imports would break Node tools                   | Loader takes plain objects                                     |
+| 11  | Auction windows started at PREP 2                                     | Windows are PREP 1–3                                           |
+| 12  | Travelling to the keeper needs movement control                       | Recall to keeper = longer channel, then teleport               |
+| 13  | A render snapshot every tick wastes headless time                     | Built once per frame on demand                                 |
+| 14  | Fight detection in the sim added complexity for a report-only concept | Derived in `analysis`                                          |
+| 15  | Hero AI could auto-recall, removing the player's main decision        | The player hero never recalls on its own                       |
+| 16  | Trig can differ across browsers                                       | Determinism scoped to one build and engine; trig in one module |
 
 ## Decisions (2026-10-06)
 
-| # | Question | Decision |
-| --- | --- | --- |
-| 1 | Do heroes stay where they are between phases? | Yes: keep position and hp, shop remotely |
-| 2 | M6 balance targets | Every hero at 40–60% win rate; median match 11–14 minutes |
-| 3 | Repo copy for the planner agent | Yes: this file and `DESIGN.md` |
+| #   | Question                                      | Decision                                                  |
+| --- | --------------------------------------------- | --------------------------------------------------------- |
+| 1   | Do heroes stay where they are between phases? | Yes: keep position and hp, shop remotely                  |
+| 2   | M6 balance targets                            | Every hero at 40–60% win rate; median match 11–14 minutes |
+| 3   | Repo copy for the planner agent               | Yes: this file and `DESIGN.md`                            |

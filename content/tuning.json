@@ -1,0 +1,156 @@
+{
+  "tickRate": 20,
+  "phaseSeconds": 240,
+  "startingGold": 500,
+  "passiveGoldPerSec": 1.5,
+  "phaseStatGrowth": 0.08,
+  "maxPhases": 10,
+  "waves": {
+    "firstSec": 6,
+    "intervalSec": 30,
+    "melee": 3,
+    "ranged": 1,
+    "extraMeleePerPhaseAfter": 1,
+    "extraMeleeFromPhase": 3,
+    "scalePerPhase": 0.1
+  },
+  "minions": {
+    "melee": {
+      "hp": 340,
+      "damage": 17,
+      "damageType": "blade",
+      "armor": 10,
+      "resist": 0,
+      "range": 20,
+      "atkSpeed": 0.9,
+      "moveSpeed": 36,
+      "gold": 22
+    },
+    "ranged": {
+      "hp": 230,
+      "damage": 24,
+      "damageType": "blade",
+      "armor": 0,
+      "resist": 0,
+      "range": 85,
+      "atkSpeed": 0.8,
+      "moveSpeed": 36,
+      "gold": 18
+    }
+  },
+  "tower": {
+    "hp": 2600,
+    "damage": 85,
+    "range": 120,
+    "atkSpeed": 0.8,
+    "armor": 45,
+    "resist": 45,
+    "gold": 200,
+    "teamGold": 70,
+    "heroFocusSec": 3
+  },
+  "guardian": {
+    "hp": 6500,
+    "damage": 120,
+    "range": 140,
+    "atkSpeed": 0.9,
+    "armor": 55,
+    "resist": 55,
+    "hpRegen": 6,
+    "rageThresholds": [0.66, 0.33],
+    "rageDamageMul": 1.3,
+    "roamMoveSpeed": 28,
+    "roamDamageGrowth": 0.2
+  },
+  "gold": {
+    "heroKill": 200,
+    "assist": 80,
+    "shareRadius": 600,
+    "minionShare": 6,
+    "killBountyPerStreak": 20,
+    "comebackBounty": 0
+  },
+  "respawn": { "baseSec": 7, "basePerPhase": 2, "growthPerSec": 0.04, "maxSec": 45 },
+  "shop": {
+    "slots": 6,
+    "sellRefund": 0.5,
+    "baseRadius": 110,
+    "keeperRadius": 120,
+    "keeperStock": 3
+  },
+  "recall": { "baseSec": 3, "keeperSec": 6 },
+  "movement": { "arriveDist": 12 },
+  "ai": {
+    "aggroRadius": 150,
+    "fightRadius": 280,
+    "allyRadius": 300,
+    "shopAtBaseGold": 300,
+    "recallBelowHp": 0.35,
+    "healBaseRadius": 100,
+    "baseHealPerSec": 0.12,
+    "wanderJitter": 25,
+    "pushWaveRadius": 260,
+    "defendRadius": 320,
+    "bidFraction": [0.3, 0.5, 1.0],
+    "bidGoldFraction": 0.2,
+    "curseAcceptBase": 0.55
+  },
+  "personalities": {
+    "reckless": { "retreatHp": 0.15, "engageRatio": 0.55, "chase": 1.5, "riskTaking": 1.3 },
+    "cautious": { "retreatHp": 0.4, "engageRatio": 1.25, "chase": 0.8, "riskTaking": 0.7 },
+    "opportunist": { "retreatHp": 0.28, "engageRatio": 0.9, "chase": 1.3, "riskTaking": 1.0 },
+    "steadfast": { "retreatHp": 0.3, "engageRatio": 1.0, "chase": 1.0, "riskTaking": 1.0 }
+  },
+  "posture": {
+    "push": {
+      "farmLane": 0.8,
+      "pushTower": 1.7,
+      "defendTower": 0.7,
+      "clearCamp": 0.8,
+      "joinFight": 1.0,
+      "takeObelisk": 1.0
+    },
+    "farm": {
+      "farmLane": 1.5,
+      "pushTower": 0.6,
+      "defendTower": 0.9,
+      "clearCamp": 1.4,
+      "joinFight": 0.8,
+      "takeObelisk": 1.0
+    },
+    "defend": {
+      "farmLane": 1.0,
+      "pushTower": 0.35,
+      "defendTower": 1.9,
+      "clearCamp": 0.8,
+      "joinFight": 1.2,
+      "takeObelisk": 0.8
+    },
+    "default": {
+      "farmLane": 1.0,
+      "pushTower": 1.0,
+      "defendTower": 1.0,
+      "clearCamp": 1.0,
+      "joinFight": 1.0,
+      "takeObelisk": 1.0
+    }
+  },
+  "curse": { "threshold": 0.75, "maxPerPhase": 1, "minPhase": 2 },
+  "auction": { "pointRate": 3, "loserRefund": 0.5 },
+  "obelisk": {
+    "spawnSec": [50, 150],
+    "claimSec": 5,
+    "radius": 65,
+    "points": 3,
+    "expireSec": 90,
+    "rewards": [
+      { "kind": "points", "weight": 3, "value": 4 },
+      { "kind": "gold", "weight": 3, "value": 150 },
+      { "kind": "buff", "weight": 1, "value": 1.06, "stat": "moveSpeed", "mod": "mul" },
+      { "kind": "buff", "weight": 1, "value": 1.05, "stat": "maxHp", "mod": "mul" },
+      { "kind": "unlock", "weight": 1, "value": 0 }
+    ]
+  },
+  "camps": { "respawnSec": 70, "leash": 220, "aggro": 100 },
+  "fight": { "clusterGapSec": 4, "clusterRadius": 220 }
+}

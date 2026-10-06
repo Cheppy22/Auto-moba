@@ -1,0 +1,83 @@
+{
+  "id": "smelter",
+  "name": "Ashen Smelter",
+  "title": "Binder of the Hollow Foundry",
+  "era": "Victorian",
+  "preferredRole": "top",
+  "attackKind": "melee",
+  "stats": {
+    "maxHp": 1250,
+    "hpRegen": 3,
+    "armor": 32,
+    "resist": 18,
+    "bladeDmg": 62,
+    "atkSpeed": 0.85,
+    "soulPower": 0,
+    "moveSpeed": 46,
+    "cdr": 0,
+    "range": 22
+  },
+  "abilities": [
+    {
+      "id": "slag_strike",
+      "name": "Slag Strike",
+      "cooldownSec": 7,
+      "range": 45,
+      "target": "enemy",
+      "effects": [
+        { "type": "damage", "dmgType": "blade", "base": 40, "bladeScale": 0.8 },
+        { "type": "statMod", "stat": "moveSpeed", "kind": "mul", "value": 0.7, "durationSec": 2 }
+      ],
+      "desc": "Hammers a target with molten slag, damaging and slowing it."
+    },
+    {
+      "id": "bellows_shield",
+      "name": "Bellows Shield",
+      "cooldownSec": 14,
+      "radius": 120,
+      "target": "self",
+      "effects": [{ "type": "shield", "base": 120, "bladeScale": 0.5, "durationSec": 4 }],
+      "condition": { "minEnemies": 1 },
+      "desc": "Fans the furnace into a shield of heat."
+    },
+    {
+      "id": "furnace_roar",
+      "name": "Furnace Roar",
+      "cooldownSec": 18,
+      "radius": 95,
+      "target": "enemyArea",
+      "effects": [
+        { "type": "damage", "dmgType": "blade", "base": 55, "bladeScale": 0.5 },
+        { "type": "statMod", "stat": "armor", "kind": "mul", "value": 0.8, "durationSec": 4 }
+      ],
+      "condition": { "minEnemies": 2 },
+      "desc": "A shout of cinders that sears and softens armor."
+    },
+    {
+      "id": "molten_ritual",
+      "name": "Molten Ritual",
+      "cooldownSec": 50,
+      "radius": 130,
+      "target": "self",
+      "effects": [
+        { "type": "statMod", "stat": "bladeDmg", "kind": "mul", "value": 1.35, "durationSec": 8 },
+        { "type": "statMod", "stat": "atkSpeed", "kind": "mul", "value": 1.25, "durationSec": 8 }
+      ],
+      "condition": { "minEnemyHeroes": 1 },
+      "desc": "The binding runs hot: stronger, faster strikes."
+    }
+  ],
+  "passives": [],
+  "defaultPosture": "push",
+  "personality": "reckless",
+  "buildList": [
+    "rusted_cleaver",
+    "iron_lung",
+    "riveted_plate",
+    "boiler_heart",
+    "piston_gauntlet",
+    "cogged_edge"
+  ],
+  "sigil": { "hue": 24, "rings": 3, "spokes": 8, "glyph": "gear" },
+  "blurb": "A foundry-worker who bound a furnace spirit into his hammer."
+}

@@ -1,0 +1,73 @@
+{
+  "id": "shrine",
+  "name": "Drowned Shrine",
+  "era": "Heian",
+  "palette": { "ground": "#1a2630", "accent": "#4aa3a0", "glow": "#9ff3e6" },
+  "camps": [
+    { "dx": -35, "dy": 15 },
+    { "dx": 35, "dy": 20 },
+    { "dx": 0, "dy": -40 }
+  ],
+  "campTypes": [
+    {
+      "id": "lantern_fox",
+      "name": "Lantern Foxes",
+      "hp": 320,
+      "damage": 20,
+      "damageType": "soul",
+      "resist": 8,
+      "range": 60,
+      "atkSpeed": 0.9,
+      "count": 2,
+      "gold": 40,
+      "heal": 120
+    },
+    {
+      "id": "koi_guardian",
+      "name": "Koi Guardian",
+      "hp": 800,
+      "damage": 38,
+      "damageType": "soul",
+      "resist": 25,
+      "range": 40,
+      "count": 1,
+      "gold": 90,
+      "points": 1,
+      "buff": { "stat": "soulPower", "kind": "add", "value": 10, "durationSec": 60 }
+    },
+    {
+      "id": "tide_priestess",
+      "name": "Tide Priestess",
+      "hp": 1400,
+      "damage": 62,
+      "damageType": "soul",
+      "resist": 35,
+      "range": 90,
+      "atkSpeed": 0.7,
+      "count": 1,
+      "gold": 170,
+      "points": 2,
+      "heal": 200
+    }
+  ],
+  "campTable": [
+    {
+      "phaseMin": 1,
+      "phaseMax": 2,
+      "types": [
+        { "id": "lantern_fox", "weight": 3 },
+        { "id": "koi_guardian", "weight": 1 }
+      ]
+    },
+    {
+      "phaseMin": 3,
+      "phaseMax": 99,
+      "types": [
+        { "id": "koi_guardian", "weight": 2 },
+        { "id": "tide_priestess", "weight": 1 },
+        { "id": "lantern_fox", "weight": 1 }
+      ]
+    }
+  ],
+  "blurb": "A flooded shrine where lanterns still float. Camps restore health and sharpen Soul power."
+}

@@ -1,0 +1,69 @@
+{
+  "id": "station",
+  "name": "Midnight Station",
+  "era": "1970s",
+  "palette": { "ground": "#1b1830", "accent": "#8a63d2", "glow": "#d6c2ff" },
+  "camps": [
+    { "dx": -30, "dy": -30 },
+    { "dx": 45, "dy": 0 },
+    { "dx": -10, "dy": 45 }
+  ],
+  "campTypes": [
+    {
+      "id": "platform_ghost",
+      "name": "Platform Ghosts",
+      "hp": 350,
+      "damage": 24,
+      "armor": 6,
+      "range": 20,
+      "count": 2,
+      "gold": 35,
+      "points": 1
+    },
+    {
+      "id": "third_rail_serpent",
+      "name": "Third-Rail Serpent",
+      "hp": 850,
+      "damage": 44,
+      "armor": 20,
+      "resist": 15,
+      "range": 30,
+      "count": 1,
+      "gold": 85,
+      "points": 2,
+      "buff": { "stat": "moveSpeed", "kind": "add", "value": 5, "durationSec": 60 }
+    },
+    {
+      "id": "last_train_phantom",
+      "name": "Last Train Phantom",
+      "hp": 1450,
+      "damage": 66,
+      "armor": 25,
+      "resist": 25,
+      "range": 25,
+      "count": 1,
+      "gold": 150,
+      "points": 3
+    }
+  ],
+  "campTable": [
+    {
+      "phaseMin": 1,
+      "phaseMax": 2,
+      "types": [
+        { "id": "platform_ghost", "weight": 3 },
+        { "id": "third_rail_serpent", "weight": 1 }
+      ]
+    },
+    {
+      "phaseMin": 3,
+      "phaseMax": 99,
+      "types": [
+        { "id": "third_rail_serpent", "weight": 2 },
+        { "id": "last_train_phantom", "weight": 1 },
+        { "id": "platform_ghost", "weight": 1 }
+      ]
+    }
+  ],
+  "blurb": "A platform between trains. Camps pay out the points that win auctions."
+}

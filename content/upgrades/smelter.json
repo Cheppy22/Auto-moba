@@ -1,0 +1,70 @@
+{
+  "upgrades": [
+    {
+      "id": "smelter_u1",
+      "hero": "smelter",
+      "name": "Quenched Edge",
+      "ability": 0,
+      "cooldownMul": 1,
+      "powerMul": 1.3,
+      "rangeMul": 1,
+      "radiusMul": 1,
+      "desc": "Slag Strike deals 30% more"
+    },
+    {
+      "id": "smelter_u2",
+      "hero": "smelter",
+      "name": "Short Fuse",
+      "ability": 0,
+      "cooldownMul": 0.8,
+      "powerMul": 1,
+      "rangeMul": 1,
+      "radiusMul": 1,
+      "desc": "Slag Strike cools down 20% faster"
+    },
+    {
+      "id": "smelter_u3",
+      "hero": "smelter",
+      "name": "Deep Bellows",
+      "ability": 1,
+      "cooldownMul": 0.85,
+      "powerMul": 1.3,
+      "rangeMul": 1,
+      "radiusMul": 1,
+      "desc": "Bellows Shield is 30% stronger and 15% faster"
+    },
+    {
+      "id": "smelter_u4",
+      "hero": "smelter",
+      "name": "Wide Roar",
+      "ability": 2,
+      "cooldownMul": 1,
+      "powerMul": 1.2,
+      "rangeMul": 1,
+      "radiusMul": 1.3,
+      "desc": "Furnace Roar hits harder and wider"
+    },
+    {
+      "id": "smelter_u5",
+      "hero": "smelter",
+      "name": "Stoked Ritual",
+      "ability": 3,
+      "cooldownMul": 0.8,
+      "powerMul": 1.2,
+      "rangeMul": 1,
+      "radiusMul": 1,
+      "desc": "Molten Ritual is stronger and recharges faster"
+    },
+    {
+      "id": "smelter_u6",
+      "hero": "smelter",
+      "name": "Ember Reach",
+      "ability": 0,
+      "cooldownMul": 1,
+      "powerMul": 1,
+      "rangeMul": 1.3,
+      "radiusMul": 1,
+      "desc": "Slag Strike reaches 30% farther"
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "upgrades": [
+    {
+      "id": "miko_u1",
+      "hero": "miko",
+      "name": "Sharpened Charm",
+      "ability": 0,
+      "cooldownMul": 1,
+      "powerMul": 1.3,
+      "rangeMul": 1,
+      "radiusMul": 1,
+      "desc": "Paper Talisman deals 30% more"
+    },
+    {
+      "id": "miko_u2",
+      "hero": "miko",
+      "name": "Ringing Bell",
+      "ability": 1,
+      "cooldownMul": 0.8,
+      "powerMul": 1.2,
+      "rangeMul": 1,
+      "radiusMul": 1.2,
+      "desc": "Purifying Bell heals more, wider, and faster"
+    },
+    {
+      "id": "miko_u3",
+      "hero": "miko",
+      "name": "Tight Knot",
+      "ability": 2,
+      "cooldownMul": 0.8,
+      "powerMul": 1.25,
+      "rangeMul": 1,
+      "radiusMul": 1,
+      "desc": "Binding Rope recharges faster and hits harder"
+    },
+    {
+      "id": "miko_u4",
+      "hero": "miko",
+      "name": "Flock of Cranes",
+      "ability": 3,
+      "cooldownMul": 0.8,
+      "powerMul": 1.25,
+      "rangeMul": 1,
+      "radiusMul": 1.2,
+      "desc": "Thousand Cranes is stronger, wider, and faster"
+    },
+    {
+      "id": "miko_u5",
+      "hero": "miko",
+      "name": "Long Cast",
+      "ability": 0,
+      "cooldownMul": 1,
+      "powerMul": 1,
+      "rangeMul": 1.3,
+      "radiusMul": 1,
+      "desc": "Paper Talisman reaches 30% farther"
+    },
+    {
+      "id": "miko_u6",
+      "hero": "miko",
+      "name": "Calm Water",
+      "ability": 1,
+      "cooldownMul": 1,
+      "powerMul": 1.4,
+      "rangeMul": 1,
+      "radiusMul": 1,
+      "desc": "Purifying Bell heals 40% more"
+    }
+  ]
+}

@@ -1,0 +1,71 @@
+{
+  "items": [
+    {
+      "id": "candle_stub",
+      "name": "Candle Stub",
+      "category": "soul",
+      "tier": 1,
+      "cost": 250,
+      "mods": [{ "stat": "soulPower", "kind": "add", "value": 11 }],
+      "desc": "+11 Soul power"
+    },
+    {
+      "id": "spirit_lens",
+      "name": "Spirit Lens",
+      "category": "soul",
+      "tier": 1,
+      "cost": 300,
+      "mods": [
+        { "stat": "resist", "kind": "add", "value": 10 },
+        { "stat": "cdr", "kind": "add", "value": 0.08 }
+      ],
+      "desc": "+10 resist, +8% cooldown reduction"
+    },
+    {
+      "id": "ashen_amulet",
+      "name": "Ashen Amulet",
+      "category": "soul",
+      "tier": 1,
+      "cost": 300,
+      "mods": [
+        { "stat": "soulPower", "kind": "add", "value": 6 },
+        { "stat": "hpRegen", "kind": "add", "value": 2 },
+        { "stat": "maxHp", "kind": "add", "value": 60 }
+      ],
+      "desc": "+6 Soul power, +2 regen, +60 health"
+    },
+    {
+      "id": "seance_prism",
+      "name": "Seance Prism",
+      "category": "soul",
+      "tier": 2,
+      "cost": 900,
+      "from": ["candle_stub", "spirit_lens"],
+      "mods": [
+        { "stat": "soulPower", "kind": "add", "value": 26 },
+        { "stat": "cdr", "kind": "add", "value": 0.12 },
+        { "stat": "resist", "kind": "add", "value": 12 }
+      ],
+      "desc": "+26 Soul power, +12% cooldown reduction, +12 resist"
+    },
+    {
+      "id": "eternal_wick",
+      "name": "Eternal Wick",
+      "category": "soul",
+      "tier": 3,
+      "cost": 1900,
+      "from": ["seance_prism"],
+      "mods": [
+        { "stat": "soulPower", "kind": "add", "value": 52 },
+        { "stat": "cdr", "kind": "add", "value": 0.18 },
+        { "stat": "maxHp", "kind": "add", "value": 150 }
+      ],
+      "triggers": [
+        { "on": "kill", "target": "self", "effects": [{ "type": "heal", "maxHpPct": 0.1 }] }
+      ],
+      "desc": "+52 Soul power, +18% cooldown reduction, +150 health; kills heal 10% health"
+    }
+  ],
+  "cursed": [],
+  "holy": []
+}
