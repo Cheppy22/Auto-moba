@@ -57,3 +57,37 @@ export function closestLane(ctx: Ctx, u: Unit): LaneId {
   }
   return best;
 }
+
+/**
+ * Waypoints that keep a hero on its lane: walk (via the nav graph) to the lane point nearest the
+ * hero, then follow the lane polyline to the goal. Null when the goal is not on the lane, so the
+ * caller falls back to a plain nav-graph path.
+ */
+export function lanePath(
+  ctx: Ctx,
+  u: Unit,
+  lane: LaneId,
+  gx: number,
+  gy: number,
+  maxOff: number,
+  route: (x: number, y: number) => [number, number][],
+): [number, number][] | null {
+  const geo = ctx.world.lanes[lane];
+  const tg = laneT(geo, gx, gy);
+  const pg = lanePoint(geo, tg);
+  if (dist(gx, gy, pg.x, pg.y) > maxOff) return null;
+  const tu = laneT(geo, u.x, u.y);
+  const pu = lanePoint(geo, tu);
+  const out: [number, number][] = [];
+  if (dist(u.x, u.y, pu.x, pu.y) > maxOff) out.push(...route(pu.x, pu.y));
+  else out.push([u.x, u.y]);
+  const lo = Math.min(tu, tg) * geo.length;
+  const hi = Math.max(tu, tg) * geo.length;
+  const mid: [number, number][] = [];
+  for (let i = 0; i < geo.pts.length; i++) {
+    if (geo.cum[i] > lo + 1 && geo.cum[i] < hi - 1) mid.push([geo.pts[i][0], geo.pts[i][1]]);
+  }
+  if (tg < tu) mid.reverse();
+  out.push(...mid, [gx, gy]);
+  return out;
+}

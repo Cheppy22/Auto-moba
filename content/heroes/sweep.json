@@ -1,0 +1,143 @@
+{
+  "id": "sweep",
+  "name": "Sooty Jack, the Flue-Sweep",
+  "title": "Chimney sweep of the Great Smog",
+  "era": "Victorian",
+  "preferredRole": "bot",
+  "attackKind": "ranged",
+  "playstyle": "A marksman that wins by standing back and shooting steadily. Keep it alive and behind the front line; the longer the fight lasts, the more damage it does.",
+  "stats": {
+    "maxHp": 674,
+    "hpRegen": 2,
+    "armor": 16,
+    "resist": 14,
+    "bladeDmg": 54,
+    "atkSpeed": 1.1,
+    "soulPower": 0,
+    "moveSpeed": 45,
+    "cdr": 0,
+    "range": 125
+  },
+  "abilities": [
+    {
+      "id": "soot_shot",
+      "name": "Soot Shot",
+      "cooldownSec": 5,
+      "range": 135,
+      "target": "enemy",
+      "effects": [
+        {
+          "type": "damage",
+          "dmgType": "blade",
+          "base": 30,
+          "bladeScale": 0.8
+        }
+      ],
+      "desc": "A quick shot from the flue-gun for 30 + 80% Blade damage."
+    },
+    {
+      "id": "brush_volley",
+      "name": "Brush Volley",
+      "cooldownSec": 13,
+      "range": 130,
+      "radius": 70,
+      "target": "enemyBurst",
+      "effects": [
+        {
+          "type": "damage",
+          "dmgType": "blade",
+          "base": 35,
+          "bladeScale": 0.6
+        }
+      ],
+      "condition": {
+        "minEnemies": 2
+      },
+      "desc": "Fires a spray of bristles that hits enemies in a 70 area for 35 + 60% Blade damage. Needs 2 enemies."
+    },
+    {
+      "id": "flue_slide",
+      "name": "Flue Slide",
+      "cooldownSec": 14,
+      "range": 60,
+      "target": "enemy",
+      "effects": [
+        {
+          "type": "dash",
+          "distance": 60,
+          "toward": "away"
+        },
+        {
+          "type": "statMod",
+          "stat": "moveSpeed",
+          "kind": "mul",
+          "value": 0.7,
+          "durationSec": 2
+        }
+      ],
+      "desc": "Slides 60 away from a close enemy and slows it 30% for 2s."
+    },
+    {
+      "id": "smog_curtain",
+      "name": "Smog Curtain",
+      "cooldownSec": 45,
+      "range": 130,
+      "radius": 100,
+      "target": "enemyBurst",
+      "effects": [
+        {
+          "type": "dot",
+          "dmgType": "blade",
+          "base": 30,
+          "bladeScale": 0.4,
+          "durationSec": 4
+        },
+        {
+          "type": "statMod",
+          "stat": "moveSpeed",
+          "kind": "mul",
+          "value": 0.8,
+          "durationSec": 4
+        }
+      ],
+      "condition": {
+        "minEnemyHeroes": 1
+      },
+      "desc": "Fills an area with choking smog, dealing 30 + 40% Blade damage per second for 4s and slowing by 20%."
+    }
+  ],
+  "passives": [
+    {
+      "on": "hit",
+      "target": "self",
+      "cooldownSec": 2,
+      "effects": [
+        {
+          "type": "statMod",
+          "stat": "atkSpeed",
+          "kind": "mul",
+          "value": 1.1,
+          "durationSec": 4
+        }
+      ],
+      "desc": "Each hit (at most every 2s) makes him shoot 10% faster for 4s."
+    }
+  ],
+  "defaultPosture": "farm",
+  "personality": "cautious",
+  "buildList": [
+    "rusted_cleaver",
+    "leech_fang",
+    "cogged_edge",
+    "wanderer_boots",
+    "piston_gauntlet",
+    "soot_reaver"
+  ],
+  "sigil": {
+    "hue": 200,
+    "rings": 2,
+    "spokes": 7,
+    "glyph": "brush"
+  },
+  "blurb": "A sweep who still climbs chimneys that burned down long ago."
+}

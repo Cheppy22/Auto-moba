@@ -1,5 +1,6 @@
 import { roleLabel } from './format';
 import type { Role } from '../sim';
+import { HeroDetail } from './HeroCodex';
 import { SigilIcon } from './SigilIcon';
 import { useSession } from './session';
 
@@ -72,16 +73,13 @@ export function Draft() {
                 </div>
               ))}
             </div>
-            {sel && (
-              <div class="card col">
-                <div class="small">{sel.title}</div>
-                {sel.abilities.map((a) => (
-                  <div class="tiny" key={a.id}>
-                    <b>{a.name}</b> <span class="dim">({a.cooldownSec}s)</span> {a.desc}
-                  </div>
-                ))}
-              </div>
-            )}
+            <div class="card">
+              {sel ? (
+                <HeroDetail hero={sel} compact />
+              ) : (
+                <div class="dim">Pick a hero to read what they do.</div>
+              )}
+            </div>
             <h3>Choose your lane</h3>
             <div class="row wrap">
               {ROLES.map((r) => (

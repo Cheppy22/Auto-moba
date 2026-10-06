@@ -53,9 +53,9 @@ for (const v of views) {
       await page.waitForTimeout(1500);
       await shot(page, `${v.name}-hud`);
       expect(await overflow(page)).toBeLessThanOrEqual(0);
-      await tallEnough(page, 'posture-push', 40);
+      await tallEnough(page, 'farm-toggle', 40);
       await tallEnough(page, 'recall-base', 40);
-      await page.getByTestId('posture-push').tap();
+      await page.getByTestId('farm-toggle').tap();
       await page.getByTestId('shop-toggle').tap();
       await shot(page, `${v.name}-hud-shop`);
       await page.getByRole('button', { name: 'Close' }).tap();

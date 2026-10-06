@@ -112,6 +112,12 @@
     "siegeGather": 2,
     "siegeScore": 2.4,
     "siegeWaitTicks": 500,
+    "siegeAssignedBonus": 0.3,
+    "siegeMidPenalty": 0.8,
+    "siegeLaneStick": 0.6,
+    "laneHugRadius": 150,
+    "joinFightRadius": 450,
+    "defendOffLaneRadius": 600,
     "holdPatience": 400
   },
   "personalities": {

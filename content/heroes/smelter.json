@@ -5,6 +5,7 @@
   "era": "Victorian",
   "preferredRole": "top",
   "attackKind": "melee",
+  "playstyle": "A sturdy melee fighter that runs at the enemy and hits hard while soaking damage. Good at the front of a lane; pop its fire ritual when a hero fight starts.",
   "stats": {
     "maxHp": 1220,
     "hpRegen": 3,
@@ -39,7 +40,7 @@
           "durationSec": 2
         }
       ],
-      "desc": "Hammers a target with molten slag, damaging and slowing it."
+      "desc": "Hammers one enemy for 40 + 80% Blade damage and slows it by 30% for 2s."
     },
     {
       "id": "bellows_shield",
@@ -58,7 +59,7 @@
       "condition": {
         "minEnemies": 1
       },
-      "desc": "Fans the furnace into a shield of heat."
+      "desc": "Shields itself for 120 + 50% Blade damage for 4s when an enemy is near."
     },
     {
       "id": "furnace_roar",
@@ -84,7 +85,7 @@
       "condition": {
         "minEnemies": 2
       },
-      "desc": "A shout of cinders that sears and softens armor."
+      "desc": "Hits all enemies within 95 for 55 + 50% Blade damage and cuts their armor by 20% for 4s. Needs 2 enemies."
     },
     {
       "id": "molten_ritual",
@@ -111,7 +112,7 @@
       "condition": {
         "minEnemyHeroes": 1
       },
-      "desc": "The binding runs hot: stronger, faster strikes."
+      "desc": "Gains 35% Blade damage and 25% attack speed for 8s when an enemy hero is near."
     }
   ],
   "passives": [],

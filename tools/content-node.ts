@@ -3,7 +3,8 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadContent, type Content, type RawContentFiles } from '../src/sim';
 
-const root = join(dirname(fileURLToPath(import.meta.url)), '..', 'content');
+const root =
+  process.env.CONTENT_DIR ?? join(dirname(fileURLToPath(import.meta.url)), '..', 'content');
 
 const readJson = (p: string): unknown => JSON.parse(readFileSync(p, 'utf8'));
 const readDir = (dir: string): unknown[] =>

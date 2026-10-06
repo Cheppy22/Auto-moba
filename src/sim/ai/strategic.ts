@@ -2,10 +2,10 @@ import { dist } from '../core/math';
 import { hpPct, isTargetable, type Ctx } from '../ctx';
 import type { LaneId } from '../content/schema';
 import { startRecall } from '../recall';
-import { findPath, LANES } from '../world/map';
+import { findPath, LANES, lanePoint, laneT } from '../world/map';
 import type { Goal, GoalKind, PlayTeam, Unit } from '../types';
 import { other } from '../types';
-import { closestLane, enemyTowerTarget, pointAtProgress, progressAt } from './lanes';
+import { closestLane, enemyTowerTarget, lanePath, pointAtProgress, progressAt } from './lanes';
 import { matchupAt } from './power';
 import { nextPurchase } from './shopping';
 
@@ -116,11 +116,28 @@ function teamPlan(ctx: Ctx, team: PlayTeam): { siege: boolean; lane: LaneId } {
   const myG = ctx.guardians[team];
   const homeThreat = myG ? threatNear(ctx, team, myG.x, myG.y, ctx.t.ai.defendRadius * 2) : 0;
   plan.siege = start && ctx.s.tick >= t.siegeAfterTick && homeThreat < 3;
+  // Siege lane: fewest standing towers, then the lane the team has most heroes assigned to; the
+  // short mid diagonal is penalised so the front-runner lane is not always mid. Sticky once chosen.
+  const assigned: Record<LaneId, number> = { top: 0, mid: 0, bot: 0 };
+  for (const id of ctx.s.teams[team].heroIds) {
+    const l = ctx.unit(id)?.hero?.lane;
+    if (l) assigned[l]++;
+  }
+  const laneScore = (lane: LaneId): number => {
+    const [o, i] = ctx.towers[foe][lane];
+    return (
+      (o?.alive ? 2 : 0) +
+      (i?.alive ? 1 : 0) -
+      ctx.front[team][lane] * 0.5 -
+      assigned[lane] * t.siegeAssignedBonus +
+      (lane === 'mid' ? t.siegeMidPenalty : 0) -
+      (plan.siege && lane === plan.lane ? t.siegeLaneStick : 0)
+    );
+  };
   let bestLane: LaneId = plan.lane;
   let bestScore = Infinity;
   for (const lane of LANES) {
-    const [o, i] = ctx.towers[foe][lane];
-    const score = (o?.alive ? 2 : 0) + (i?.alive ? 1 : 0) - ctx.front[team][lane] * 0.5;
+    const score = laneScore(lane);
     if (score < bestScore) {
       bestScore = score;
       bestLane = lane;
@@ -148,8 +165,39 @@ export function setGoal(ctx: Ctx, u: Unit, g: Goal): void {
     dist(old.x, old.y, g.x, g.y) < 40;
   h.goal = g;
   if (keep) return;
-  u.path = findPath(ctx.world, { x: u.x, y: u.y }, { x: g.x, y: g.y }, openSlots(ctx));
+  const route = (x: number, y: number): [number, number][] =>
+    findPath(ctx.world, { x: u.x, y: u.y }, { x, y }, openSlots(ctx));
+  let lp: [number, number][] | null = null;
+  const tgt = g.kind === 'pushTower' && g.targetId !== null ? ctx.unit(g.targetId) : null;
+  if (tgt?.kind === 'guardian') {
+    // Approach the exposed guardian down a side lane (the siege lane), not across the middle.
+    const team = u.team as PlayTeam;
+    const plan = ctx.s.board[team].plan;
+    const lane: LaneId = plan.siege ? plan.lane : (h.lane ?? closestLane(ctx, u));
+    const fb = ctx.world.basePos[other(team)];
+    const approach = lanePath(ctx, u, lane, fb.x, fb.y, ctx.t.ai.laneHugRadius, route);
+    if (approach) lp = [...approach, [g.x, g.y]];
+  } else {
+    const laneGoal = g.kind === 'pushTower' || g.kind === 'farmLane' ? laneOfGoal(ctx, g) : null;
+    if (laneGoal) lp = lanePath(ctx, u, laneGoal, g.x, g.y, ctx.t.ai.laneHugRadius, route);
+  }
+  u.path = lp ?? route(g.x, g.y);
   u.pathI = 0;
+}
+
+function laneOfGoal(ctx: Ctx, g: Goal): LaneId | null {
+  let best: LaneId | null = null;
+  let bestD = Infinity;
+  for (const lane of LANES) {
+    const geo = ctx.world.lanes[lane];
+    const p = lanePoint(geo, laneT(geo, g.x, g.y));
+    const d = dist(g.x, g.y, p.x, p.y);
+    if (d < bestD) {
+      bestD = d;
+      best = lane;
+    }
+  }
+  return bestD <= ctx.t.ai.laneHugRadius ? best : null;
 }
 
 export function strategicUpdate(ctx: Ctx, u: Unit): void {
@@ -317,6 +365,7 @@ export function strategicUpdate(ctx: Ctx, u: Unit): void {
       const claimed = ctx.s.board[team].claims[key] ?? 0;
       if (claimed > (cur?.key === key ? 2 : 1)) continue;
       const d = dist(u.x, u.y, st.x, st.y);
+      if (!ownLane && st.kind === 'tower' && d > ai.ai.defendOffLaneRadius) continue;
       const urgent = st.kind === 'guardian' && threat >= 2;
       const score = urgent
         ? (2.6 + 0.15 * Math.min(6, threat)) * (0.6 + 0.4 * (post.defendTower ?? 1))
@@ -376,10 +425,10 @@ export function strategicUpdate(ctx: Ctx, u: Unit): void {
       if (!ally || ally.id === u.id || !ally.alive) continue;
       if (ctx.s.tick - ally.lastDamagedTick > 80) continue;
       const d = dist(u.x, u.y, ally.x, ally.y);
-      if (d > 700 || d < 90) continue;
+      if (d > ai.ai.joinFightRadius || d < 90) continue;
       const m = matchupAt(ctx, team, ally.x, ally.y, u);
       if (m.enemyHeroes === 0 || m.ratio * pers.riskTaking < pers.engageRatio) continue;
-      const score = 0.85 * (post.joinFight ?? 1) * (1 - d / 900);
+      const score = 0.85 * (post.joinFight ?? 1) * (1 - d / (ai.ai.joinFightRadius * 1.3));
       if (!bestFight || score > bestFight.score) {
         bestFight = cand(
           'joinFight',

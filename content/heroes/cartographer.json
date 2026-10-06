@@ -5,14 +5,15 @@
   "era": "Unknown",
   "preferredRole": "mid",
   "attackKind": "ranged",
+  "playstyle": "A long-range mage with large area damage and slowing ink. Stay at the back, and drop the big map collapse on grouped enemy heroes.",
   "stats": {
-    "maxHp": 800,
+    "maxHp": 768,
     "hpRegen": 2,
     "armor": 18,
     "resist": 24,
-    "bladeDmg": 44,
+    "bladeDmg": 42,
     "atkSpeed": 0.8,
-    "soulPower": 52,
+    "soulPower": 50,
     "moveSpeed": 44,
     "cdr": 0,
     "range": 115
@@ -32,7 +33,7 @@
           "soulScale": 0.9
         }
       ],
-      "desc": "Draws a line of force through a target."
+      "desc": "Hits one enemy for 54 + 90% Soul damage."
     },
     {
       "id": "fold_the_map",
@@ -53,7 +54,7 @@
           "durationSec": 3
         }
       ],
-      "desc": "Folds space to slip away from a close enemy."
+      "desc": "Jumps 60 away from a close enemy and shields itself for 70 + 40% Soul power for 3s."
     },
     {
       "id": "hollow_ink",
@@ -81,7 +82,7 @@
       "condition": {
         "minEnemies": 2
       },
-      "desc": "Ink pools and eats at everything standing in it."
+      "desc": "Ink on an area deals 32 + 35% Soul damage per second for 4s and slows by 25%. Needs 2 enemies."
     },
     {
       "id": "atlas_collapse",
@@ -108,7 +109,7 @@
       "condition": {
         "minEnemyHeroes": 1
       },
-      "desc": "The map folds in on a point."
+      "desc": "Collapses an area for 170 + 130% Soul damage and slows by 40% for 3s. Needs an enemy hero."
     }
   ],
   "passives": [],

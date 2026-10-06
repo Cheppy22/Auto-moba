@@ -37,8 +37,12 @@ test('draft, play a phase, read the report, start the next phase', async ({ page
   await page.locator('[data-testid^="upgrade-"]').first().click();
   await page.getByTestId('tab-shop').click();
   await expect(page.getByTestId('shop')).toBeVisible();
-  await page.getByTestId('buy-rusted_cleaver').click();
-  await expect(page.getByTestId('shop').getByText('Rusted Cleaver').first()).toBeVisible();
+  await page.getByTestId('item-rusted_cleaver').click();
+  await expect(page.getByTestId('item-detail')).toContainText('Rusted Cleaver');
+  await page.getByTestId('buy').click();
+  await expect(page.getByTestId('buy-confirm-box')).toBeVisible();
+  await page.getByTestId('buy-confirm').click();
+  await expect(page.locator('.slot.filled')).toHaveCount(1);
   await page.getByTestId('tab-auction').click();
   await page.getByTestId('bid-gold').fill('100');
   await page.getByTestId('bid').click();
@@ -47,9 +51,18 @@ test('draft, play a phase, read the report, start the next phase', async ({ page
 
   await expect(page.getByTestId('phase')).toHaveText('Phase 1');
   await page.getByTestId('speed-4').click();
-  await page.getByTestId('posture-push').click();
+  await page.getByTestId('farm-toggle').click();
+  await expect(page.getByTestId('farm-toggle')).toHaveAttribute('aria-pressed', 'true');
   await page.waitForTimeout(1500);
   expect(await canvasHasInk(page)).toBe(true);
+  await page.getByTestId('recall-base').click();
+  await expect(page.getByTestId('shop')).toBeVisible({ timeout: 20_000 });
+  const frozen = await page.getByTestId('clock').textContent();
+  await page.waitForTimeout(800);
+  await expect(page.getByTestId('shop')).toBeVisible();
+  expect(await page.getByTestId('clock').textContent()).toBe(frozen);
+  await page.getByTestId('shop-close').click();
+  await expect(page.getByTestId('shop')).toHaveCount(0);
   await expect(page.getByTestId('player-card')).toBeVisible();
 
   await page.evaluate(() => {

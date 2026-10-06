@@ -1,0 +1,70 @@
+{
+  "upgrades": [
+    {
+      "id": "cat_u1",
+      "hero": "cat",
+      "name": "Warm Paws",
+      "ability": 1,
+      "cooldownMul": 1,
+      "powerMul": 1.3,
+      "rangeMul": 1,
+      "radiusMul": 1,
+      "desc": "Wish Granted heals 30% more"
+    },
+    {
+      "id": "cat_u2",
+      "hero": "cat",
+      "name": "Louder Purr",
+      "ability": 2,
+      "cooldownMul": 1,
+      "powerMul": 1.25,
+      "rangeMul": 1,
+      "radiusMul": 1.2,
+      "desc": "Purr Ward is stronger and wider"
+    },
+    {
+      "id": "cat_u3",
+      "hero": "cat",
+      "name": "Quick Wish",
+      "ability": 1,
+      "cooldownMul": 0.75,
+      "powerMul": 1,
+      "rangeMul": 1,
+      "radiusMul": 1,
+      "desc": "Wish Granted recharges 25% faster"
+    },
+    {
+      "id": "cat_u4",
+      "hero": "cat",
+      "name": "Ninth Life",
+      "ability": 3,
+      "cooldownMul": 0.8,
+      "powerMul": 1.25,
+      "rangeMul": 1,
+      "radiusMul": 1,
+      "desc": "Nine Lives heals more and recharges faster"
+    },
+    {
+      "id": "cat_u5",
+      "hero": "cat",
+      "name": "Sharp Claws",
+      "ability": 0,
+      "cooldownMul": 1,
+      "powerMul": 1.4,
+      "rangeMul": 1,
+      "radiusMul": 1,
+      "desc": "Lucky Swat deals 40% more"
+    },
+    {
+      "id": "cat_u6",
+      "hero": "cat",
+      "name": "Far Wish",
+      "ability": 1,
+      "cooldownMul": 1,
+      "powerMul": 1,
+      "rangeMul": 1.3,
+      "radiusMul": 1,
+      "desc": "Wish Granted reaches 30% farther"
+    }
+  ]
+}

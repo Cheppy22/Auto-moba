@@ -9,7 +9,7 @@ describe('content', () => {
   });
 
   it('ships the prototype scope', () => {
-    expect(content.heroes).toHaveLength(4);
+    expect(content.heroes).toHaveLength(9);
     expect(content.items.length).toBeGreaterThanOrEqual(15);
     expect(content.cursed).toHaveLength(4);
     expect(content.holy).toHaveLength(2);

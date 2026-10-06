@@ -129,6 +129,7 @@ export const TriggerSchema = z.object({
   effects: z.array(EffectSchema).default([]),
   custom: z.string().optional(),
   param: z.number().optional(),
+  desc: z.string().optional(),
 });
 
 export const PersonalitySchema = z.enum(['reckless', 'cautious', 'opportunist', 'steadfast']);
@@ -140,6 +141,7 @@ export const HeroSchema = z.object({
   era: z.string(),
   preferredRole: RoleSchema,
   attackKind: z.enum(['melee', 'ranged']),
+  playstyle: z.string().optional(),
   stats: StatsSchema,
   abilities: z.array(AbilitySchema).length(4),
   passives: z.array(TriggerSchema).default([]),
@@ -151,7 +153,7 @@ export const HeroSchema = z.object({
     hue: z.number(),
     rings: z.number(),
     spokes: z.number(),
-    glyph: z.enum(['gear', 'crane', 'rail', 'compass']),
+    glyph: z.enum(['gear', 'crane', 'rail', 'compass', 'gate', 'petal', 'paw', 'brush', 'lantern']),
   }),
   blurb: z.string().default(''),
 });
@@ -407,6 +409,12 @@ export const TuningSchema = z.object({
     siegeGather: z.number(),
     siegeScore: z.number(),
     siegeWaitTicks: z.number(),
+    siegeAssignedBonus: z.number(),
+    siegeMidPenalty: z.number(),
+    siegeLaneStick: z.number(),
+    laneHugRadius: z.number(),
+    joinFightRadius: z.number(),
+    defendOffLaneRadius: z.number(),
     holdPatience: z.number(),
   }),
   personalities: z.record(

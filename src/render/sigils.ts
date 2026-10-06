@@ -2,7 +2,7 @@ export interface SigilSpec {
   hue: number;
   rings: number;
   spokes: number;
-  glyph: 'gear' | 'crane' | 'rail' | 'compass';
+  glyph: 'gear' | 'crane' | 'rail' | 'compass' | 'gate' | 'petal' | 'paw' | 'brush' | 'lantern';
 }
 
 function ring(g: CanvasRenderingContext2D, x: number, y: number, r: number): void {
@@ -63,6 +63,62 @@ function drawGlyph(
       g.lineTo(x + r * 0.5, y);
       g.lineTo(x, y + r * 0.5);
       g.closePath();
+      break;
+    }
+    case 'gate': {
+      g.moveTo(x - r, y - r * 0.5);
+      g.lineTo(x + r, y - r * 0.5);
+      g.moveTo(x - r * 0.7, y - r * 0.15);
+      g.lineTo(x + r * 0.7, y - r * 0.15);
+      g.moveTo(x - r * 0.55, y - r * 0.5);
+      g.lineTo(x - r * 0.55, y + r);
+      g.moveTo(x + r * 0.55, y - r * 0.5);
+      g.lineTo(x + r * 0.55, y + r);
+      break;
+    }
+    case 'petal': {
+      for (let i = 0; i < 5; i++) {
+        const a = (i / 5) * Math.PI * 2 - Math.PI / 2;
+        const tx = x + Math.cos(a) * r;
+        const ty = y + Math.sin(a) * r;
+        g.moveTo(x, y);
+        g.quadraticCurveTo(
+          x + Math.cos(a + 0.6) * r * 0.8,
+          y + Math.sin(a + 0.6) * r * 0.8,
+          tx,
+          ty,
+        );
+        g.quadraticCurveTo(x + Math.cos(a - 0.6) * r * 0.8, y + Math.sin(a - 0.6) * r * 0.8, x, y);
+      }
+      break;
+    }
+    case 'paw': {
+      g.arc(x, y + r * 0.35, r * 0.45, 0, Math.PI * 2);
+      for (let i = 0; i < 3; i++) {
+        const px = x + (i - 1) * r * 0.6;
+        const py = y - r * (i === 1 ? 0.55 : 0.35);
+        g.moveTo(px + r * 0.17, py);
+        g.arc(px, py, r * 0.17, 0, Math.PI * 2);
+      }
+      break;
+    }
+    case 'brush': {
+      g.moveTo(x, y + r);
+      g.lineTo(x, y - r * 0.2);
+      for (let i = -3; i <= 3; i++) {
+        g.moveTo(x, y - r * 0.2);
+        g.lineTo(x + i * r * 0.28, y - r);
+      }
+      break;
+    }
+    case 'lantern': {
+      g.moveTo(x - r * 0.35, y - r);
+      g.lineTo(x + r * 0.35, y - r);
+      g.moveTo(x, y - r);
+      g.lineTo(x, y - r * 0.8);
+      g.ellipse(x, y + r * 0.05, r * 0.6, r * 0.75, 0, 0, Math.PI * 2);
+      g.moveTo(x - r * 0.35, y + r);
+      g.lineTo(x + r * 0.35, y + r);
       break;
     }
   }

@@ -5,12 +5,13 @@
   "era": "1970s",
   "preferredRole": "jungle",
   "attackKind": "melee",
+  "playstyle": "A fast melee skirmisher that dashes into heroes and heals on kills. Hunt weakened enemies and roam the jungle between fights.",
   "stats": {
-    "maxHp": 980,
+    "maxHp": 1078,
     "hpRegen": 2,
     "armor": 26,
     "resist": 16,
-    "bladeDmg": 84,
+    "bladeDmg": 92,
     "atkSpeed": 1.1,
     "soulPower": 0,
     "moveSpeed": 52,
@@ -37,7 +38,7 @@
           "bladeScale": 0.6
         }
       ],
-      "desc": "Rides the rail to a target and cuts on arrival."
+      "desc": "Dashes 70 to an enemy and cuts for 35 + 60% Blade damage."
     },
     {
       "id": "third_rail",
@@ -53,7 +54,7 @@
           "bladeScale": 0.9
         }
       ],
-      "desc": "A live-wire strike."
+      "desc": "Strikes one enemy for 70 + 90% Blade damage."
     },
     {
       "id": "last_whistle",
@@ -80,7 +81,7 @@
       "condition": {
         "minEnemyHeroes": 1
       },
-      "desc": "A whistle that speeds the final run."
+      "desc": "Gains 50% attack speed and 20% move speed for 3s when an enemy hero is near."
     },
     {
       "id": "express_service",
@@ -104,7 +105,7 @@
       "condition": {
         "heroTargetOnly": true
       },
-      "desc": "No stops: a heavy hit on a hero."
+      "desc": "Dashes onto an enemy hero and hits for 160 + 150% Blade damage."
     }
   ],
   "passives": [
@@ -116,7 +117,8 @@
           "type": "heal",
           "maxHpPct": 0.15
         }
-      ]
+      ],
+      "desc": "Every kill restores 15% of its max health."
     }
   ],
   "defaultPosture": "farm",

@@ -1,133 +1,39 @@
 import { useState } from 'preact/hooks';
-import type { GameEvent, Posture, Unit } from '../sim';
+import type { Unit } from '../sim';
 import { SigilIcon } from './SigilIcon';
-import { mmss, n0, roleLabel } from './format';
+import { mmss, n0 } from './format';
 import { useLayout, type Layout } from './layout';
-import { useSession, type Session, type Speed } from './session';
+import { useSession, type Speed } from './session';
 import { ShopPanel } from './ShopPanel';
 
-const POSTURES: { id: Posture; label: string; hint: string }[] = [
-  {
-    id: 'push',
-    label: 'Push',
-    hint: 'Favor towers and lane pressure (a suggestion, not an order)',
-  },
-  {
-    id: 'farm',
-    label: 'Farm',
-    hint: 'Favor minions and jungle camps (a suggestion, not an order)',
-  },
-  {
-    id: 'defend',
-    label: 'Defend',
-    hint: 'Favor protecting structures (a suggestion, not an order)',
-  },
-];
-
-function heroName(s: Session, id: number): string {
-  const u = s.match!.unitById(id);
-  return u ? (s.content.heroById.get(u.defId)?.name ?? u.defId) : `#${id}`;
-}
-
-function describe(s: Session, e: GameEvent): { text: string; cls: string } | null {
-  switch (e.type) {
-    case 'death': {
-      if (e.payload.kind !== 'hero') return null;
-      const k = e.payload.killerKind;
-      const by =
-        k === 'hero'
-          ? heroName(s, e.payload.killer)
-          : k === 'none'
-            ? ''
-            : k === 'camp'
-              ? 'a camp monster'
-              : `a ${k}`;
-      return {
-        text: `${heroName(s, e.payload.id)} fell${by ? ` to ${by}` : ''}`,
-        cls: e.payload.team === 'A' ? 'teamA' : 'teamB',
-      };
-    }
-    case 'structureDown':
-      return {
-        text: `A ${e.payload.kind} of team ${e.payload.team} fell`,
-        cls: 'gold',
-      };
-    case 'obeliskClaimed':
-      return {
-        text: `Team ${e.payload.team} claimed an obelisk (${e.payload.reward})`,
-        cls: 'gold',
-      };
-    case 'pressure':
-      return { text: `Pressure: ${e.payload.name}`, cls: 'teamB' };
-    case 'curseAccepted':
-      return { text: `${heroName(s, e.payload.hero)} accepted a curse`, cls: 'teamB' };
-    case 'biomeOpen':
-      return {
-        text: `A new place opens: ${s.content.biomeById.get(e.payload.biome)?.name ?? ''}`,
-        cls: 'dim',
-      };
-    default:
-      return null;
-  }
-}
-
-function Ticker({ lines = 6 }: { lines?: number }) {
-  const s = useSession();
-  const m = s.match!;
-  const out: { text: string; cls: string; key: number }[] = [];
-  const ev = m.events;
-  for (let i = ev.length - 1; i >= 0 && out.length < lines; i--) {
-    const d = describe(s, ev[i]);
-    if (d) out.push({ ...d, key: ev[i].seq });
-  }
-  return (
-    <div class="ticker">
-      {out.map((o) => (
-        <div key={o.key} class={o.cls}>
-          {o.text}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function Roster({ team, dir }: { team: 'A' | 'B'; dir: 'row' | 'col' }) {
+function Roster({ team }: { team: 'A' | 'B' }) {
   const s = useSession();
   const m = s.match!;
   return (
     <div
-      class={`roster ${dir} panel`}
+      class="roster"
       data-testid={team === 'A' ? 'roster' : 'roster-enemy'}
       aria-label={team === 'A' ? 'Your team' : 'Enemy team'}
     >
       {m.state.teams[team].heroIds.map((id) => {
         const u = m.unitById(id)!;
         const def = s.content.heroById.get(u.defId)!;
+        const frac = u.alive ? u.hp / u.stats.maxHp : 0;
         return (
           <div
             class={`roster-cell ${u.hero!.isPlayer ? 'me' : ''}`}
             key={id}
-            title={`${def.name} (${roleLabel(u.hero!.role)}) ${u.hero!.kills}/${u.hero!.deaths}`}
+            title={`${def.name} · ${u.hero!.kills} kills, ${u.hero!.deaths} deaths`}
           >
-            <SigilIcon
-              spec={def.sigil}
-              team={team}
-              size={dir === 'col' ? 20 : 26}
-              alive={u.alive}
-            />
+            <SigilIcon spec={def.sigil} team={team} size={26} alive={u.alive} />
             <div class="bar">
               <i
                 style={{
-                  width: `${(u.alive ? u.hp / u.stats.maxHp : 0) * 100}%`,
+                  width: `${frac * 100}%`,
                   background: team === 'A' ? 'var(--a)' : 'var(--b)',
                 }}
               />
             </div>
-            {dir === 'row' && (
-              <div class="tiny dim">
-                {u.hero!.kills}/{u.hero!.deaths}
-              </div>
-            )}
           </div>
         );
       })}
@@ -135,75 +41,31 @@ function Roster({ team, dir }: { team: 'A' | 'B'; dir: 'row' | 'col' }) {
   );
 }
 
-function PlayerCard({ u, layout }: { u: Unit; layout: Layout }) {
+function PlayerCard({ u }: { u: Unit }) {
   const s = useSession();
   const [open, setOpen] = useState(false);
   const def = s.content.heroById.get(u.defId)!;
   const h = u.hero!;
-  const compact = layout !== 'desktop';
   const itemDef = (id: string) =>
     s.content.itemById.get(id) ?? s.content.cursedById.get(id) ?? s.content.holyById.get(id);
+  const dead = !u.alive;
   return (
-    <div
-      class="panel col player-card"
-      style={{ width: compact ? '100%' : '330px', padding: compact ? '8px' : '10px', gap: '6px' }}
-      data-testid="player-card"
-      onClick={() => compact && setOpen(!open)}
-    >
-      <div class="row">
-        <SigilIcon spec={def.sigil} team="A" size={compact ? 32 : 40} alive={u.alive} />
-        <div class="grow">
-          <div class={compact ? 'small' : ''}>{compact ? def.name.split(',')[0] : def.name}</div>
-          <div class="bar" style={{ height: '9px' }}>
-            <i style={{ width: `${(u.hp / u.stats.maxHp) * 100}%`, background: 'var(--a)' }} />
-          </div>
-          <div class="tiny dim">
-            {n0(u.hp)} / {n0(u.stats.maxHp)} hp{' '}
-            {u.alive ? '' : `· respawn ${mmss((h.respawnAt ?? 0) - s.match!.state.tick)}`}
-          </div>
-        </div>
-        <div class="gold" data-testid="gold">
-          {n0(h.gold)}g
-        </div>
-      </div>
-      <div class="row wrap" style={{ gap: '4px' }}>
-        {def.abilities.map((a, i) => (
-          <span class={`chip ${h.cd[i] > 0 ? 'dim' : 'good'}`} key={a.id} title={a.desc}>
-            {a.name.split(' ')[0]} {h.cd[i] > 0 ? (h.cd[i] / 20).toFixed(0) : 'ready'}
-          </span>
-        ))}
-      </div>
-      <div class="row wrap" style={{ gap: '4px', display: compact ? 'none' : undefined }}>
-        {h.items.length === 0 && <span class="dim tiny">No items yet</span>}
-        {h.items.map((id) => {
-          const cls = s.content.cursedById.has(id)
-            ? 'bad'
-            : s.content.holyById.has(id)
-              ? 'gold'
-              : '';
-          const it = itemDef(id);
-          return (
-            <span
-              class={`chip ${cls}`}
-              key={id}
-              title={it && 'desc' in it ? (it as { desc: string }).desc : ''}
-            >
-              {it?.name ?? id}
-            </span>
-          );
-        })}
-      </div>
-      {compact && open && (
-        <div class="col" style={{ gap: '3px' }} data-testid="card-details">
-          {def.abilities.map((a) => (
-            <div class="tiny" key={a.id}>
-              <b>{a.name}</b> <span class="dim">{a.desc}</span>
+    <div class="player-card-wrap">
+      {open && (
+        <div class="panel col card-pop" data-testid="card-details">
+          {def.abilities.map((a, i) => (
+            <div class="small" key={a.id}>
+              <b>
+                {i + 1}. {a.name}
+              </b>{' '}
+              <span class="dim">{a.desc}</span>
             </div>
           ))}
+          {h.items.length === 0 && <div class="dim small">No items yet.</div>}
           {h.items.map((id) => {
             const it = itemDef(id);
             return (
-              <div class="tiny" key={id}>
+              <div class="small" key={id}>
                 <b>{it?.name ?? id}</b>{' '}
                 <span class="dim">{it && 'desc' in it ? (it as { desc: string }).desc : ''}</span>
               </div>
@@ -211,11 +73,42 @@ function PlayerCard({ u, layout }: { u: Unit; layout: Layout }) {
           })}
         </div>
       )}
-      {compact && (
-        <div class="tiny dim">
-          {h.items.length} item{h.items.length === 1 ? '' : 's'} · tap for details
+      <button
+        class="panel player-card"
+        data-testid="player-card"
+        aria-expanded={open}
+        onClick={() => setOpen(!open)}
+      >
+        <SigilIcon spec={def.sigil} team="A" size={34} alive={u.alive} />
+        <div class="player-main">
+          <div class="bar" style={{ height: '8px' }}>
+            <i style={{ width: `${(u.hp / u.stats.maxHp) * 100}%`, background: 'var(--a)' }} />
+          </div>
+          <div class="pips">
+            {def.abilities.map((a, i) => {
+              const total = Math.max(1, a.cooldownSec * 20);
+              const ready = h.cd[i] <= 0;
+              const frac = ready ? 1 : 1 - h.cd[i] / total;
+              return (
+                <span
+                  key={a.id}
+                  class={`pip ${ready ? 'ready' : ''}`}
+                  style={{ '--f': `${Math.round(frac * 360)}deg` }}
+                  title={`${a.name}: ${a.desc}`}
+                >
+                  {i + 1}
+                </span>
+              );
+            })}
+            {dead && (
+              <span class="tiny dim">respawn {mmss((h.respawnAt ?? 0) - s.match!.state.tick)}</span>
+            )}
+          </div>
         </div>
-      )}
+        <div class="gold player-gold" data-testid="gold">
+          {n0(h.gold)}g
+        </div>
+      </button>
     </div>
   );
 }
@@ -238,76 +131,57 @@ function SpeedControls() {
   );
 }
 
-function Controls({ u, layout }: { u: Unit; layout: Layout }) {
+function Controls({ u }: { u: Unit }) {
   const s = useSession();
   const m = s.match!;
-  const compact = layout !== 'desktop';
   const nearShop = m.shopList().some((e) => e.canBuy || e.reason !== 'no shop in reach');
-  const cur = POSTURES.find((x) => x.id === u.hero!.posture);
   const busy = !u.alive || !!u.hero!.recall;
+  const farming = u.hero!.posture === 'farm';
   return (
-    <div class={`panel col controls ${compact ? 'compact' : ''}`} style={{ padding: '10px' }}>
-      <div class="row ctl-row">
-        {!compact && <span class="dim small">Posture</span>}
-        {POSTURES.map((x) => (
-          <button
-            key={x.id}
-            class={`btn grow ${u.hero!.posture === x.id ? 'on' : ''}`}
-            title={x.hint}
-            data-testid={`posture-${x.id}`}
-            onClick={() => s.issue({ type: 'setPosture', posture: x.id })}
-          >
-            {x.label}
-          </button>
-        ))}
-        <button
-          class="btn small"
-          title="Back to this hero's own default posture"
-          data-testid="posture-default"
-          onClick={() => s.issue({ type: 'setPosture', posture: 'default' })}
-        >
-          Default
-        </button>
-      </div>
-      {compact && (
-        <div class="tiny dim" data-testid="posture-hint">
-          {cur ? cur.hint : "This hero's own default posture (a suggestion, not an order)"}
-        </div>
-      )}
-      <div class="row ctl-row">
-        {!compact && <span class="dim small">Recall</span>}
-        <button
-          class="btn grow"
-          disabled={busy}
-          data-testid="recall-base"
-          onClick={() => s.issue({ type: 'recall', dest: 'base' })}
-        >
-          To base
-        </button>
-        <button
-          class="btn grow"
-          disabled={busy}
-          data-testid="recall-keeper"
-          onClick={() => s.issue({ type: 'recall', dest: 'keeper' })}
-        >
-          To the Keeper
-        </button>
-        <button
-          class="btn grow"
-          data-testid="shop-toggle"
-          onClick={() => s.setUi({ shopOpen: !s.ui.shopOpen })}
-        >
-          {nearShop ? 'Shop' : compact ? 'Shop (far)' : 'Shop (not in reach)'}
-        </button>
-        {u.hero!.recall && <span class="chip gold">recalling…</span>}
-      </div>
+    <div class="panel controls">
+      <button
+        class="btn"
+        disabled={busy}
+        data-testid="recall-base"
+        title="Teleport home, then the shop opens"
+        onClick={() => s.issue({ type: 'recall', dest: 'base' })}
+      >
+        Base
+      </button>
+      <button
+        class="btn"
+        disabled={busy}
+        data-testid="recall-keeper"
+        title="Teleport to the Keeper, then the shop opens"
+        onClick={() => s.issue({ type: 'recall', dest: 'keeper' })}
+      >
+        Keeper
+      </button>
+      <button
+        class={`btn ${nearShop ? '' : 'far'}`}
+        data-testid="shop-toggle"
+        title={nearShop ? 'Open the shop' : 'No shop in reach: browse only'}
+        onClick={() => s.setUi({ shopOpen: !s.ui.shopOpen })}
+      >
+        Shop
+      </button>
+      <button
+        class={`btn ${farming ? 'on' : ''}`}
+        data-testid="farm-toggle"
+        aria-pressed={farming}
+        title="Ask your hero to favor minions and camps (a suggestion, not an order)"
+        onClick={() => s.issue({ type: 'setPosture', posture: farming ? 'default' : 'farm' })}
+      >
+        Farm
+      </button>
+      {u.hero!.recall && <span class="chip gold recalling">recalling…</span>}
     </div>
   );
 }
 
 export function Hud() {
   const s = useSession();
-  const layout = useLayout();
+  const layout: Layout = useLayout();
   const m = s.match!;
   const snap = m.snapshot();
   const p = m.state.playerHeroId !== null ? m.unitById(m.state.playerHeroId) : undefined;
@@ -315,24 +189,30 @@ export function Hud() {
     (id) => s.content.pressure.find((x) => x.id === id)?.name ?? id,
   );
   const score = (
-    <div class="panel row hud-score" style={{ padding: '6px 12px' }}>
+    <div class="panel row hud-score">
       <b data-testid="phase">Phase {m.state.phase.n}</b>
       <span data-testid="clock">{mmss(snap.phaseTicksLeft)}</span>
-      <span class="teamA">{snap.points.A} pts</span>
-      <span class="teamB">{snap.points.B} pts</span>
+      <span class="teamA">{snap.points.A}</span>
+      <span class="dim">:</span>
+      <span class="teamB">{snap.points.B}</span>
     </div>
   );
-  const chips = pressure.map((n) => (
-    <span class="chip bad" key={n}>
-      {n}
-    </span>
-  ));
+  const chips = pressure.length > 0 && (
+    <div class="row wrap hud-chips">
+      {pressure.map((n) => (
+        <span class="chip bad" key={n}>
+          {n}
+        </span>
+      ))}
+    </div>
+  );
   const shop = s.ui.shopOpen && (
-    <div class="overlay" style={{ background: 'rgba(6,7,11,0.6)' }}>
-      <div class="panel col" style={{ width: 'min(900px,100%)', maxHeight: '100%' }}>
+    <div class="overlay shop-overlay">
+      <div class="panel col" style={{ width: 'min(960px,100%)', maxHeight: '100%' }}>
         <div class="row">
           <h2 class="grow">Shop</h2>
-          <button class="btn" onClick={() => s.setUi({ shopOpen: false })}>
+          <span class="dim small">The match is paused while you shop.</span>
+          <button class="btn" data-testid="shop-close" onClick={() => s.setUi({ shopOpen: false })}>
             Close
           </button>
         </div>
@@ -343,36 +223,32 @@ export function Hud() {
     </div>
   );
   const toast = s.ui.toast && <div class="toast">{s.ui.toast}</div>;
-
   const speed = (
     <div class="panel speed-panel">
       <SpeedControls />
     </div>
-  );
-  const status = (
-    <>
-      {score}
-      {chips.length > 0 && <div class="row wrap hud-chips">{chips}</div>}
-    </>
   );
 
   if (layout === 'portrait') {
     return (
       <div class="hud-portrait">
         <div class="map-zone">
-          <div class="corner tl">{status}</div>
+          <div class="corner tl">
+            {score}
+            {chips}
+          </div>
           <div class="corner tr">{speed}</div>
           <div class="corner bl">
-            <Roster team="A" dir="col" />
+            <Roster team="A" />
           </div>
           <div class="corner br">
-            <Roster team="B" dir="col" />
+            <Roster team="B" />
           </div>
         </div>
         {toast}
         <div class="hud-dock portrait">
-          {p && <PlayerCard u={p} layout={layout} />}
-          {p && <Controls u={p} layout={layout} />}
+          {p && <PlayerCard u={p} />}
+          {p && <Controls u={p} />}
         </div>
         {shop}
       </div>
@@ -381,16 +257,16 @@ export function Hud() {
   return (
     <div class={`map-zone full ${layout}`}>
       <div class="corner tl">
-        {status}
-        <Roster team="A" dir="row" />
-        {layout === 'desktop' && <Ticker lines={4} />}
+        {score}
+        <Roster team="A" />
+        {chips}
       </div>
       <div class="corner tr">
         {speed}
-        <Roster team="B" dir="row" />
+        <Roster team="B" />
       </div>
-      <div class="corner bl">{p && <PlayerCard u={p} layout={layout} />}</div>
-      <div class="corner br">{p && <Controls u={p} layout={layout} />}</div>
+      <div class="corner bl">{p && <PlayerCard u={p} />}</div>
+      <div class="corner br">{p && <Controls u={p} />}</div>
       {toast}
       {shop}
     </div>

@@ -202,6 +202,242 @@ export class Renderer {
     }
   }
 
+  private lanePt(lane: [number, number][], t: number): [number, number] {
+    let total = 0;
+    const segs: number[] = [];
+    for (let i = 1; i < lane.length; i++) {
+      const d = Math.hypot(lane[i][0] - lane[i - 1][0], lane[i][1] - lane[i - 1][1]);
+      segs.push(d);
+      total += d;
+    }
+    let want = Math.max(0, Math.min(1, t)) * total;
+    for (let i = 0; i < segs.length; i++) {
+      if (want <= segs[i] || i === segs.length - 1) {
+        const f = segs[i] === 0 ? 0 : Math.min(1, want / segs[i]);
+        return [
+          lane[i][0] + (lane[i + 1][0] - lane[i][0]) * f,
+          lane[i][1] + (lane[i + 1][1] - lane[i][1]) * f,
+        ];
+      }
+      want -= segs[i];
+    }
+    return lane[0];
+  }
+
+  private distToLanes(x: number, y: number): number {
+    let best = Infinity;
+    for (const lane of this.lanes) {
+      for (let i = 1; i < lane.length; i++) {
+        const [ax, ay] = lane[i - 1];
+        const [bx, by] = lane[i];
+        const dx = bx - ax;
+        const dy = by - ay;
+        const l2 = dx * dx + dy * dy;
+        const f = l2 === 0 ? 0 : Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / l2));
+        best = Math.min(best, Math.hypot(x - (ax + dx * f), y - (ay + dy * f)));
+      }
+    }
+    return best;
+  }
+
+  private paintGround(b: CanvasRenderingContext2D): void {
+    const lo = 55;
+    const hi = this.size - 55;
+    const p = this.view.p;
+    b.beginPath();
+    [this.S(lo, lo), this.S(hi, lo), this.S(hi, hi), this.S(lo, hi)].forEach((c, i) =>
+      i === 0 ? b.moveTo(c.x, c.y) : b.lineTo(c.x, c.y),
+    );
+    b.closePath();
+    const c = this.S(this.size / 2, this.size / 2);
+    const gr = b.createRadialGradient(c.x, c.y, 0, c.x, c.y, this.view.sx * 760);
+    gr.addColorStop(0, '#1d1a26');
+    gr.addColorStop(1, '#13121a');
+    b.fillStyle = gr;
+    b.fill();
+    let seed = 99;
+    const rnd = (): number => {
+      seed = (seed * 16807) % 2147483647;
+      return seed / 2147483647;
+    };
+    for (let i = 0; i < 420; i++) {
+      const x = lo + rnd() * (hi - lo);
+      const y = lo + rnd() * (hi - lo);
+      const kind = rnd();
+      if (this.distToLanes(x, y) < 36) continue;
+      const q = this.S(x, y);
+      if (kind < 0.55) {
+        b.fillStyle = 'rgba(90,110,80,0.35)';
+        b.beginPath();
+        b.ellipse(q.x, q.y, 2.2 * p, 1.3 * p, 0, 0, TAU);
+        b.fill();
+        b.fillRect(q.x - 0.5 * p, q.y - 3.5 * p, Math.max(1, 0.8 * p), 3 * p);
+      } else {
+        b.fillStyle = 'rgba(120,112,130,0.28)';
+        b.beginPath();
+        b.ellipse(q.x, q.y, 2.6 * p, 1.6 * p, 0, 0, TAU);
+        b.fill();
+      }
+    }
+  }
+
+  private gateGeometry(slotId: string): {
+    ports: { lane: number; gx: number; gy: number; ex: number; ey: number; ang: number }[];
+    cx: number;
+    cy: number;
+    r: number;
+  } | null {
+    const def = this.content.map.slots.find((x) => x.id === slotId);
+    if (!def) return null;
+    const names = ['top', 'mid', 'bot'];
+    const ports = def.ports.map((pt) => {
+      const lane = names.indexOf(pt.lane);
+      const [gx, gy] = this.lanePt(this.lanes[lane], pt.t);
+      const ang = Math.atan2(gy - def.y, gx - def.x);
+      return {
+        lane,
+        gx,
+        gy,
+        ex: def.x + Math.cos(ang) * def.radius,
+        ey: def.y + Math.sin(ang) * def.radius,
+        ang,
+      };
+    });
+    return { ports, cx: def.x, cy: def.y, r: def.radius };
+  }
+
+  private paintWalls(b: CanvasRenderingContext2D, snap: Snapshot): void {
+    const p = this.view.p;
+    for (const s of snap.slots) {
+      if (!s.open || !s.biomeId) continue;
+      const geo = this.gateGeometry(s.id);
+      if (!geo) continue;
+      const biome = this.content.biomeById.get(s.biomeId)!;
+      const gap = 0.2;
+      const gaps = geo.ports.map((q) => q.ang);
+      const inGap = (a: number): boolean =>
+        gaps.some((g) => Math.abs(Math.atan2(Math.sin(a - g), Math.cos(a - g))) < gap);
+      const R = geo.r * 1.04;
+      const steps = 72;
+      for (const [w, col] of [
+        [7 * p, 'rgba(8,7,10,0.9)'],
+        [3.2 * p, biome.palette.accent + 'bb'],
+      ] as const) {
+        b.lineWidth = w;
+        b.strokeStyle = col;
+        b.lineCap = 'butt';
+        let drawing = false;
+        b.beginPath();
+        for (let i = 0; i <= steps; i++) {
+          const a = (i / steps) * TAU;
+          if (inGap(a)) {
+            drawing = false;
+            continue;
+          }
+          const c = this.S(geo.cx + Math.cos(a) * R, geo.cy + Math.sin(a) * R);
+          if (!drawing) {
+            b.moveTo(c.x, c.y);
+            drawing = true;
+          } else b.lineTo(c.x, c.y);
+        }
+        b.stroke();
+      }
+      for (const q of geo.ports) {
+        for (const side of [-1, 1]) {
+          const a = q.ang + side * gap;
+          const c = this.S(geo.cx + Math.cos(a) * R, geo.cy + Math.sin(a) * R);
+          b.fillStyle = biome.palette.glow;
+          b.beginPath();
+          b.arc(c.x, c.y, 2.6 * p, 0, TAU);
+          b.fill();
+        }
+      }
+    }
+  }
+
+  private paintTrails(b: CanvasRenderingContext2D, snap: Snapshot): void {
+    const p = this.view.p;
+    for (const s of snap.slots) {
+      if (!s.open || !s.biomeId) continue;
+      const geo = this.gateGeometry(s.id);
+      if (!geo) continue;
+      for (const q of geo.ports) {
+        const a = this.S(q.gx, q.gy);
+        const e = this.S(q.ex, q.ey);
+        b.beginPath();
+        b.moveTo(a.x, a.y);
+        b.lineTo(e.x, e.y);
+        b.lineCap = 'round';
+        b.strokeStyle = 'rgba(52,44,34,0.9)';
+        b.lineWidth = 11 * p;
+        b.stroke();
+        b.strokeStyle = 'rgba(190,160,100,0.45)';
+        b.lineWidth = 1.2;
+        b.setLineDash([3 * p, 5 * p]);
+        b.stroke();
+        b.setLineDash([]);
+      }
+    }
+  }
+
+  private paintGates(b: CanvasRenderingContext2D, snap: Snapshot): void {
+    const p = this.view.p;
+    for (const s of snap.slots) {
+      if (!s.open || !s.biomeId) continue;
+      const geo = this.gateGeometry(s.id);
+      if (!geo) continue;
+      const biome = this.content.biomeById.get(s.biomeId)!;
+      for (const q of geo.ports) {
+        const c = this.S(q.gx, q.gy);
+        const w = 9 * p;
+        const h = 11 * p;
+        b.strokeStyle = '#120a0c';
+        b.lineWidth = 4.4 * p;
+        b.lineCap = 'round';
+        b.beginPath();
+        b.moveTo(c.x - w, c.y + h * 0.4);
+        b.lineTo(c.x - w, c.y - h * 0.5);
+        b.moveTo(c.x + w, c.y + h * 0.4);
+        b.lineTo(c.x + w, c.y - h * 0.5);
+        b.moveTo(c.x - w * 1.35, c.y - h * 0.55);
+        b.lineTo(c.x + w * 1.35, c.y - h * 0.55);
+        b.stroke();
+        b.strokeStyle = q.lane === 1 ? '#e0a93e' : biome.palette.glow;
+        b.lineWidth = 2 * p;
+        b.stroke();
+      }
+    }
+  }
+
+  private paintLaneLabels(b: CanvasRenderingContext2D): void {
+    const p = this.view.p;
+    const specs: { lane: number; t: number; text: string }[] = [
+      { lane: 0, t: 0.25, text: 'LEFT LANE' },
+      { lane: 1, t: 0.33, text: 'MID' },
+      { lane: 2, t: 0.75, text: 'RIGHT LANE' },
+    ];
+    b.font = `${Math.max(9, Math.round(10 * p * 1.3))}px ${DISPLAY_FONT}`;
+    b.textAlign = 'center';
+    b.fillStyle = 'rgba(224,200,150,0.38)';
+    for (const sp of specs) {
+      const lane = this.lanes[sp.lane];
+      const a = this.lanePt(lane, sp.t - 0.01);
+      const c = this.lanePt(lane, sp.t + 0.01);
+      const A = this.S(a[0], a[1]);
+      const B = this.S(c[0], c[1]);
+      const mid = this.lanePt(lane, sp.t);
+      const M = this.S(mid[0], mid[1]);
+      let ang = Math.atan2(B.y - A.y, B.x - A.x);
+      if (ang > Math.PI / 2) ang -= Math.PI;
+      if (ang < -Math.PI / 2) ang += Math.PI;
+      b.save();
+      b.translate(M.x, M.y);
+      b.rotate(ang);
+      b.fillText(sp.text, 0, -9 * p);
+      b.restore();
+    }
+  }
+
   private paintBackdrop(snap: Snapshot): void {
     const key =
       snap.slots.map((s) => `${s.id}${s.open ? s.biomeId : '-'}`).join('|') +
@@ -212,6 +448,7 @@ export class Renderer {
     const p = this.view.p;
     b.setTransform(1, 0, 0, 1, 0, 0);
     this.paintVoid(b);
+    this.paintGround(b);
     this.paintSeal(b);
     for (const s of snap.slots) {
       const c = this.S(s.x, s.y);
@@ -270,7 +507,10 @@ export class Renderer {
         b.fillText('uncharted', c.x, c.y + 4 * p);
       }
     }
-    for (const lane of this.lanes) {
+    this.paintWalls(b, snap);
+    this.paintTrails(b, snap);
+    const laneTint = ['rgba(120,190,200,0.45)', 'rgba(224,169,62,0.5)', 'rgba(200,120,170,0.45)'];
+    for (const [li, lane] of this.lanes.entries()) {
       const trace = (): void => {
         b.beginPath();
         lane.forEach(([x, y], i) => {
@@ -282,20 +522,22 @@ export class Renderer {
       b.lineCap = 'round';
       b.lineJoin = 'round';
       trace();
-      b.strokeStyle = 'rgba(70,58,40,0.35)';
-      b.lineWidth = 34 * p;
+      b.strokeStyle = laneTint[li].replace(/[\d.]+\)$/, '0.38)');
+      b.lineWidth = 36 * p;
       b.stroke();
       trace();
-      b.strokeStyle = 'rgba(20,18,20,0.95)';
+      b.strokeStyle = '#272233';
       b.lineWidth = 28 * p;
       b.stroke();
       trace();
-      b.strokeStyle = 'rgba(224,169,62,0.3)';
-      b.lineWidth = 1.2;
+      b.strokeStyle = laneTint[li];
+      b.lineWidth = 1.4;
       b.setLineDash([6 * p, 10 * p]);
       b.stroke();
       b.setLineDash([]);
     }
+    this.paintGates(b, snap);
+    this.paintLaneLabels(b);
     for (const t of ['A', 'B'] as const) {
       const [x, y] = this.bases[t];
       const c = this.S(x, y);
