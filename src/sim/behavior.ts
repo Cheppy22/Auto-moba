@@ -2,6 +2,7 @@ import { TPS, performAttack } from './combat';
 import { dist } from './core/math';
 import { hpPct, isEnemy, isTargetable, type Ctx } from './ctx';
 import { matchupAt } from './ai/power';
+import { retreatLanePath } from './ai/strategic';
 import { findPath, LANES } from './world/map';
 import { tickRecall } from './recall';
 import type { PlayTeam, Unit } from './types';
@@ -105,7 +106,8 @@ function updateEngage(ctx: Ctx, u: Unit): void {
   h.holdTicks = h.engage === 'hold' ? h.holdTicks + 10 : 0;
   if (h.engage === 'flee' && prev !== 'flee') {
     const b = ctx.world.basePos[u.team as PlayTeam];
-    u.path = findPath(ctx.world, { x: u.x, y: u.y }, b, openSet(ctx));
+    u.path =
+      retreatLanePath(ctx, u, b.x, b.y) ?? findPath(ctx.world, { x: u.x, y: u.y }, b, openSet(ctx));
     u.pathI = 0;
   }
 }

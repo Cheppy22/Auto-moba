@@ -53,11 +53,30 @@ function applyScale(raw: RawContentFiles): RawContentFiles {
   return raw;
 }
 
+// BALANCE_HEROES="a,b,c" restricts the hero pool (e.g. to measure only a subset of the roster).
+function heroPool(): unknown[] {
+  const all = readDir('heroes');
+  const only = process.env.BALANCE_HEROES;
+  if (!only) return all;
+  const ids = new Set(only.split(','));
+  return all.filter((h) => ids.has((h as { id: string }).id));
+}
+
+function upgradePool(): unknown[] {
+  const all = readDir('upgrades');
+  const only = process.env.BALANCE_HEROES;
+  if (!only) return all;
+  const ids = new Set(only.split(','));
+  return all.filter((f) =>
+    ((f as { upgrades: { hero: string }[] }).upgrades ?? []).every((u) => ids.has(u.hero)),
+  );
+}
+
 export function readRawContent(): RawContentFiles {
   return applyScale({
-    heroes: readDir('heroes'),
+    heroes: heroPool(),
     items: readDir('items'),
-    upgrades: readDir('upgrades'),
+    upgrades: upgradePool(),
     biomes: readDir('biomes'),
     pressure: readJson(join(root, 'pressure.json')),
     badges: readJson(join(root, 'badges.json')),

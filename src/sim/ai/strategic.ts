@@ -167,9 +167,12 @@ export function setGoal(ctx: Ctx, u: Unit, g: Goal): void {
   if (keep) return;
   const route = (x: number, y: number): [number, number][] =>
     findPath(ctx.world, { x: u.x, y: u.y }, { x, y }, openSlots(ctx));
-  let lp: [number, number][] | null = null;
+  let lp: [number, number][] | null =
+    g.kind === 'retreat' || g.kind === 'base' ? retreatLanePath(ctx, u, g.x, g.y) : null;
   const tgt = g.kind === 'pushTower' && g.targetId !== null ? ctx.unit(g.targetId) : null;
-  if (tgt?.kind === 'guardian') {
+  if (lp) {
+    // retreat: already routed down the hero's own lane
+  } else if (tgt?.kind === 'guardian') {
     // Approach the exposed guardian down a side lane (the siege lane), not across the middle.
     const team = u.team as PlayTeam;
     const plan = ctx.s.board[team].plan;
@@ -183,6 +186,20 @@ export function setGoal(ctx: Ctx, u: Unit, g: Goal): void {
   }
   u.path = lp ?? route(g.x, g.y);
   u.pathI = 0;
+}
+
+/** Retreat home down the lane the hero is standing on instead of cutting across the middle. */
+export function retreatLanePath(
+  ctx: Ctx,
+  u: Unit,
+  x: number,
+  y: number,
+): [number, number][] | null {
+  const lane = closestLane(ctx, u);
+  const geo = ctx.world.lanes[lane];
+  const p = lanePoint(geo, laneT(geo, u.x, u.y));
+  if (dist(u.x, u.y, p.x, p.y) > ctx.t.ai.laneHugRadius) return null;
+  return lanePath(ctx, u, lane, x, y, ctx.t.ai.laneHugRadius, () => []);
 }
 
 function laneOfGoal(ctx: Ctx, g: Goal): LaneId | null {

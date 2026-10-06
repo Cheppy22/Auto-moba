@@ -38,8 +38,8 @@
       "moveSpeed": 36,
       "gold": 18
     },
-    "structureMul": 1.0,
-    "structureMulPerPhase": 0.9
+    "structureMul": 1.4,
+    "structureMulPerPhase": 1.2
   },
   "tower": {
     "hp": 2000,
@@ -185,8 +185,8 @@
     "siegeGather": 2,
     "siegeScore": 2.4,
     "siegeWaitTicks": 300,
-    "siegeAssignedBonus": 0.3,
-    "siegeMidPenalty": 0.8,
+    "siegeAssignedBonus": 0.1,
+    "siegeMidPenalty": 0,
     "siegeLaneStick": 0.6,
     "laneHugRadius": 150,
     "joinFightRadius": 450,

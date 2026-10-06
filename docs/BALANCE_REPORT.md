@@ -136,6 +136,19 @@ Rows beat columns at the rate shown. Duplicates are allowed in a draft (heroes a
 | sweep            | 75%          | 100% | 75%  | 50%   | 50%      | 50%      | 75%     | -     | 100%   |
 | warden           | 100%         | 100% | 75%  | 0%    | 0%       | 50%      | 25%     | 0%    | -      |
 
+## Lane discipline (4-hero pool, 100 seeded matches for shares, 400/800 for balance)
+
+`npx tsx tools/lane-share.ts --matches 100` (share by nearest lane; positions within 220 of a base are ignored). Set `BALANCE_HEROES=cartographer,miko,revenant,smelter` to restrict the pool.
+
+| Metric       | Before top/mid/bot | After top/mid/bot  |
+| ------------ | ------------------ | ------------------ |
+| Hero damage  | 4.6 / 89.3 / 6.1   | 28.4 / 35.9 / 35.7 |
+| Hero kills   | 7.0 / 86.0 / 7.0   | 29.0 / 36.6 / 34.4 |
+| Tower damage | 36.0 / 39.7 / 24.4 | 38.1 / 24.2 / 37.7 |
+| Hero time    | 13.8 / 65.5 / 20.7 | 31.1 / 28.1 / 40.8 |
+
+Balance, same seeds, 4 heroes: median length 13.3 -> 13.1 min, p90 22.5 -> 19.1, ended in phase 7 5.5% -> 0.9%, kills per match 71.7 -> 47.7. Win rates after (800 matches): smelter 45.7%, cartographer 50.0%, miko 50.9%, revenant 53.4%; Team A 47.0% (45.0% before; the A-side bias predates this pass). Mirror drafts (300 matches): Team A 48.0% and 49.3% (before and after, order not recorded).
+
 ## Catch-up experiment (cursed items)
 
 500 matches per arm, seeds 3000-3499. Comeback rate = share of matches won by the team that was behind in net worth after phase 1.
@@ -147,3 +160,13 @@ Rows beat columns at the rate shown. Duplicates are allowed in a draft (heroes a
 | Cursed items on, final boon values (committed) | 38.4%         |
 
 The first boon values did not move comebacks. The committed values add about 6.6 points, roughly 2 standard errors. This is a first read only.
+
+## Final pass: nine heroes, lane AI and attunement (600 matches, seeds 5000-5599)
+
+Measured on the full tree (Mind/Body/Soul items with attunement, nine heroes, lane-discipline AI).
+
+- Every hero within 46.3-52.6% win rate (revenant 52.6, cartographer 51.6, sweep 51.2, rickshaw 50.9, oiran 50.4, warden 50.0, miko 49.0, smelter 48.0, cat 46.3).
+- Median match length 13.9 min (p10 9.1, p90 21.4); 4.0% reach phase 7.
+- Kills per match 47.5; first tower at 1.7 min (median).
+- Team A won 45.2% of random-draft matches (standard error about 2 points). Mirror drafts were 48-49% in the lane-AI pass, so a residual bias of 1-3 points toward team B is likely. Not yet chased.
+- Cat is the lowest hero and Revenant the highest; both are inside the band.
