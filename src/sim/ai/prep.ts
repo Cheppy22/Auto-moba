@@ -22,6 +22,10 @@ export function aiPickUpgrade(ctx: Ctx, u: Unit): void {
 }
 
 export function aiPrep(ctx: Ctx): void {
+  const playerTeam = ctx.s.playerHeroId !== null ? ctx.unit(ctx.s.playerHeroId)?.team : null;
+  for (const team of ['A', 'B'] as PlayTeam[]) {
+    if (team !== playerTeam) aiBids(ctx, team);
+  }
   for (const team of ['A', 'B'] as PlayTeam[]) {
     for (const id of ctx.s.teams[team].heroIds) {
       const u = ctx.unit(id);
@@ -29,9 +33,5 @@ export function aiPrep(ctx: Ctx): void {
       aiPickUpgrade(ctx, u);
       aiShop(ctx, u);
     }
-  }
-  for (const team of ['A', 'B'] as PlayTeam[]) {
-    const playerTeam = ctx.s.playerHeroId !== null ? ctx.unit(ctx.s.playerHeroId)?.team : null;
-    if (team !== playerTeam) aiBids(ctx, team);
   }
 }

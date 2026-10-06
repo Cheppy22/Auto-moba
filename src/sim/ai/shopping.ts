@@ -71,7 +71,18 @@ export function nextPurchase(ctx: Ctx, u: Unit, ignoreAccess = false): Purchase 
     if (!('error' in q) && q.price <= h.gold && (!best || q.price > best.price))
       best = { id: it.id, price: q.price };
   }
-  return best;
+  if (best) return best;
+  const def2 = ctx.c.heroById.get(h.defId)!;
+  const primary = def2.stats.soulPower > def2.stats.bladeDmg * 0.8 ? 'soul' : 'blade';
+  let fill: Purchase | null = null;
+  for (const it of ctx.c.items) {
+    if (it.tier !== 2 || (it.category !== primary && it.category !== 'flesh')) continue;
+    if (satisfied(ctx, u, it.id)) continue;
+    const q = quote(ctx, u, it.id, ignoreAccess);
+    if (!('error' in q) && q.price <= h.gold && (!fill || q.price > fill.price))
+      fill = { id: it.id, price: q.price };
+  }
+  return fill;
 }
 
 export function aiShop(ctx: Ctx, u: Unit): void {

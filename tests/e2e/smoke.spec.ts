@@ -37,6 +37,12 @@ test('draft, play a phase, read the report, start the next phase', async ({ page
   await page.locator('[data-testid^="upgrade-"]').first().click();
   await page.getByTestId('tab-shop').click();
   await expect(page.getByTestId('shop')).toBeVisible();
+  await page.getByTestId('buy-rusted_cleaver').click();
+  await expect(page.getByTestId('shop').getByText('Rusted Cleaver').first()).toBeVisible();
+  await page.getByTestId('tab-auction').click();
+  await page.getByTestId('bid-gold').fill('100');
+  await page.getByTestId('bid').click();
+  await expect(page.getByText('Your bids so far: 0 pts, 100g')).toBeVisible();
   await page.getByTestId('start-phase').click();
 
   await expect(page.getByTestId('phase')).toHaveText('Phase 1');
