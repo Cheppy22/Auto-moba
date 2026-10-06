@@ -6,7 +6,13 @@
       "category": "soul",
       "tier": 1,
       "cost": 250,
-      "mods": [{ "stat": "soulPower", "kind": "add", "value": 11 }],
+      "mods": [
+        {
+          "stat": "soulPower",
+          "kind": "add",
+          "value": 11
+        }
+      ],
       "desc": "+11 Soul power"
     },
     {
@@ -16,8 +22,16 @@
       "tier": 1,
       "cost": 300,
       "mods": [
-        { "stat": "resist", "kind": "add", "value": 10 },
-        { "stat": "cdr", "kind": "add", "value": 0.08 }
+        {
+          "stat": "resist",
+          "kind": "add",
+          "value": 10
+        },
+        {
+          "stat": "cdr",
+          "kind": "add",
+          "value": 0.08
+        }
       ],
       "desc": "+10 resist, +8% cooldown reduction"
     },
@@ -28,9 +42,21 @@
       "tier": 1,
       "cost": 300,
       "mods": [
-        { "stat": "soulPower", "kind": "add", "value": 6 },
-        { "stat": "hpRegen", "kind": "add", "value": 2 },
-        { "stat": "maxHp", "kind": "add", "value": 60 }
+        {
+          "stat": "soulPower",
+          "kind": "add",
+          "value": 6
+        },
+        {
+          "stat": "hpRegen",
+          "kind": "add",
+          "value": 2
+        },
+        {
+          "stat": "maxHp",
+          "kind": "add",
+          "value": 60
+        }
       ],
       "desc": "+6 Soul power, +2 regen, +60 health"
     },
@@ -42,9 +68,21 @@
       "cost": 900,
       "from": ["candle_stub", "spirit_lens"],
       "mods": [
-        { "stat": "soulPower", "kind": "add", "value": 26 },
-        { "stat": "cdr", "kind": "add", "value": 0.12 },
-        { "stat": "resist", "kind": "add", "value": 12 }
+        {
+          "stat": "soulPower",
+          "kind": "add",
+          "value": 26
+        },
+        {
+          "stat": "cdr",
+          "kind": "add",
+          "value": 0.12
+        },
+        {
+          "stat": "resist",
+          "kind": "add",
+          "value": 12
+        }
       ],
       "desc": "+26 Soul power, +12% cooldown reduction, +12 resist"
     },
@@ -56,14 +94,300 @@
       "cost": 1900,
       "from": ["seance_prism"],
       "mods": [
-        { "stat": "soulPower", "kind": "add", "value": 52 },
-        { "stat": "cdr", "kind": "add", "value": 0.18 },
-        { "stat": "maxHp", "kind": "add", "value": 150 }
+        {
+          "stat": "soulPower",
+          "kind": "add",
+          "value": 52
+        },
+        {
+          "stat": "cdr",
+          "kind": "add",
+          "value": 0.18
+        },
+        {
+          "stat": "maxHp",
+          "kind": "add",
+          "value": 150
+        }
       ],
       "triggers": [
-        { "on": "kill", "target": "self", "effects": [{ "type": "heal", "maxHpPct": 0.1 }] }
+        {
+          "on": "kill",
+          "target": "self",
+          "effects": [
+            {
+              "type": "heal",
+              "maxHpPct": 0.1
+            }
+          ]
+        }
       ],
       "desc": "+52 Soul power, +18% cooldown reduction, +150 health; kills heal 10% health"
+    },
+    {
+      "category": "soul",
+      "id": "bottled_hour",
+      "name": "Bottled Hour",
+      "tier": 1,
+      "cost": 300,
+      "mods": [
+        {
+          "stat": "soulPower",
+          "kind": "add",
+          "value": 6
+        },
+        {
+          "stat": "cdr",
+          "kind": "add",
+          "value": 0.1
+        }
+      ],
+      "desc": "+6 Soul power, +10% cooldown reduction"
+    },
+    {
+      "category": "soul",
+      "id": "pinprick_votive",
+      "name": "Pinprick Votive",
+      "tier": 1,
+      "cost": 300,
+      "mods": [
+        {
+          "stat": "soulPower",
+          "kind": "add",
+          "value": 6
+        }
+      ],
+      "triggers": [
+        {
+          "on": "periodic",
+          "everySec": 5,
+          "target": "enemyArea",
+          "radius": 200,
+          "effects": [
+            {
+              "type": "damage",
+              "dmgType": "soul",
+              "base": 14,
+              "soulScale": 0.25
+            }
+          ]
+        }
+      ],
+      "desc": "+6 Soul power; every 5s, a pinprick deals 14 (+25% Soul power) Soul damage to enemies within 200"
+    },
+    {
+      "category": "soul",
+      "id": "pocket_reliquary",
+      "name": "Pocket Reliquary",
+      "tier": 2,
+      "cost": 900,
+      "from": ["ashen_amulet", "bottled_hour"],
+      "mods": [
+        {
+          "stat": "soulPower",
+          "kind": "add",
+          "value": 20
+        },
+        {
+          "stat": "cdr",
+          "kind": "add",
+          "value": 0.1
+        },
+        {
+          "stat": "maxHp",
+          "kind": "add",
+          "value": 150
+        }
+      ],
+      "triggers": [
+        {
+          "on": "periodic",
+          "everySec": 10,
+          "target": "self",
+          "effects": [
+            {
+              "type": "shield",
+              "base": 90,
+              "soulScale": 0.5,
+              "durationSec": 4
+            }
+          ]
+        }
+      ],
+      "desc": "+20 Soul power, +10% cooldown reduction, +150 health; every 10s, gain a 90 (+50% Soul power) shield for 4s"
+    },
+    {
+      "category": "soul",
+      "id": "wishgranters_receipt",
+      "name": "Wishgranter's Receipt",
+      "tier": 2,
+      "cost": 880,
+      "from": ["pinprick_votive", "candle_stub"],
+      "mods": [
+        {
+          "stat": "soulPower",
+          "kind": "add",
+          "value": 36
+        },
+        {
+          "stat": "cdr",
+          "kind": "add",
+          "value": 0.06
+        },
+        {
+          "stat": "maxHp",
+          "kind": "add",
+          "value": -80
+        }
+      ],
+      "triggers": [
+        {
+          "on": "periodic",
+          "everySec": 6,
+          "target": "enemyArea",
+          "radius": 260,
+          "effects": [
+            {
+              "type": "damage",
+              "dmgType": "soul",
+              "base": 30,
+              "soulScale": 0.4
+            }
+          ]
+        }
+      ],
+      "desc": "+36 Soul power, +6% cooldown reduction, -80 health (the price); every 6s, enemies within 260 take 30 (+40% Soul power) Soul damage"
+    },
+    {
+      "category": "soul",
+      "id": "shuttered_door",
+      "name": "Shuttered Door",
+      "tier": 2,
+      "cost": 860,
+      "from": ["spirit_lens", "bottled_hour"],
+      "mods": [
+        {
+          "stat": "soulPower",
+          "kind": "add",
+          "value": 14
+        },
+        {
+          "stat": "resist",
+          "kind": "add",
+          "value": 14
+        },
+        {
+          "stat": "cdr",
+          "kind": "add",
+          "value": 0.16
+        }
+      ],
+      "triggers": [
+        {
+          "on": "lowHp",
+          "hpBelow": 0.35,
+          "target": "self",
+          "cooldownSec": 40,
+          "effects": [
+            {
+              "type": "shield",
+              "base": 200,
+              "soulScale": 1,
+              "durationSec": 4
+            }
+          ]
+        }
+      ],
+      "desc": "+14 Soul power, +14 resist, +16% cooldown reduction; below 35% health, gain a 200 (+100% Soul power) shield for 4s (40s cooldown)"
+    },
+    {
+      "category": "soul",
+      "id": "furnished_pocket_dimension",
+      "name": "Furnished Pocket Dimension",
+      "tier": 3,
+      "cost": 1900,
+      "from": ["pocket_reliquary"],
+      "mods": [
+        {
+          "stat": "soulPower",
+          "kind": "add",
+          "value": 48
+        },
+        {
+          "stat": "cdr",
+          "kind": "add",
+          "value": 0.14
+        },
+        {
+          "stat": "maxHp",
+          "kind": "add",
+          "value": 260
+        },
+        {
+          "stat": "resist",
+          "kind": "add",
+          "value": 16
+        }
+      ],
+      "triggers": [
+        {
+          "on": "periodic",
+          "everySec": 8,
+          "target": "allyArea",
+          "radius": 400,
+          "effects": [
+            {
+              "type": "shield",
+              "base": 100,
+              "soulScale": 0.5,
+              "durationSec": 4
+            }
+          ]
+        }
+      ],
+      "desc": "+48 Soul power, +14% cooldown reduction, +260 health, +16 resist; every 8s, you and allies within 400 gain a 100 (+50% Soul power) shield for 4s"
+    },
+    {
+      "category": "soul",
+      "id": "cabinet_of_wishes",
+      "name": "Locked Cabinet of Wishes",
+      "tier": 3,
+      "cost": 2100,
+      "from": ["wishgranters_receipt", "shuttered_door"],
+      "mods": [
+        {
+          "stat": "soulPower",
+          "kind": "add",
+          "value": 54
+        },
+        {
+          "stat": "cdr",
+          "kind": "add",
+          "value": 0.16
+        },
+        {
+          "stat": "resist",
+          "kind": "add",
+          "value": 14
+        }
+      ],
+      "triggers": [
+        {
+          "on": "periodic",
+          "everySec": 5,
+          "target": "enemyArea",
+          "radius": 300,
+          "effects": [
+            {
+              "type": "damage",
+              "dmgType": "soul",
+              "base": 40,
+              "soulScale": 0.5
+            }
+          ]
+        }
+      ],
+      "desc": "+54 Soul power, +16% cooldown reduction, +14 resist; every 5s, enemies within 300 take 40 (+50% Soul power) Soul damage"
     }
   ],
   "cursed": [],

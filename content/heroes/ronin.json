@@ -1,0 +1,154 @@
+{
+  "id": "ronin",
+  "name": "Kurogane, the Unsheathed",
+  "title": "Ronin ghost of the burned castle",
+  "era": "Sengoku",
+  "preferredRole": "top",
+  "attackKind": "melee",
+  "playstyle": "A sword duelist that darts in, trades blows and punishes single targets. Pick one enemy hero and stay on it; its weapon techniques make it scale well with attack items.",
+  "stats": {
+    "maxHp": 1080,
+    "hpRegen": 2.5,
+    "armor": 30,
+    "resist": 18,
+    "bladeDmg": 72,
+    "atkSpeed": 0.95,
+    "soulPower": 0,
+    "moveSpeed": 50,
+    "cdr": 0,
+    "range": 24
+  },
+  "abilities": [
+    {
+      "id": "iai_draw",
+      "name": "Iai Draw",
+      "cooldownSec": 8,
+      "range": 85,
+      "target": "enemy",
+      "effects": [
+        {
+          "type": "dash",
+          "distance": 55,
+          "toward": "target"
+        },
+        {
+          "type": "damage",
+          "dmgType": "blade",
+          "base": 45,
+          "bladeScale": 0.9,
+          "soulScale": 0
+        }
+      ],
+      "desc": "Dashes 55 to an enemy and cuts for 45 + 90% Blade damage."
+    },
+    {
+      "id": "parry_stance",
+      "name": "Parry Stance",
+      "cooldownSec": 14,
+      "radius": 110,
+      "target": "self",
+      "effects": [
+        {
+          "type": "shield",
+          "base": 100,
+          "bladeScale": 0.7,
+          "soulScale": 0,
+          "durationSec": 3
+        }
+      ],
+      "condition": {
+        "minEnemyHeroes": 1
+      },
+      "desc": "Raises a guard worth 100 + 70% Blade damage of shield for 3s when an enemy hero is near."
+    },
+    {
+      "id": "crescent_cut",
+      "name": "Crescent Cut",
+      "cooldownSec": 13,
+      "radius": 90,
+      "target": "enemyArea",
+      "effects": [
+        {
+          "type": "damage",
+          "dmgType": "blade",
+          "base": 50,
+          "bladeScale": 0.7,
+          "soulScale": 0
+        },
+        {
+          "type": "statMod",
+          "stat": "armor",
+          "kind": "mul",
+          "value": 0.85,
+          "durationSec": 4
+        }
+      ],
+      "condition": {
+        "minEnemies": 1
+      },
+      "desc": "Sweeps all enemies within 90 for 50 + 70% Blade damage and cuts their armor by 15% for 4s."
+    },
+    {
+      "id": "hundred_cuts",
+      "name": "Hundred Cuts",
+      "cooldownSec": 45,
+      "range": 60,
+      "target": "enemy",
+      "effects": [
+        {
+          "type": "damage",
+          "dmgType": "blade",
+          "base": 60,
+          "bladeScale": 1,
+          "soulScale": 0
+        },
+        {
+          "type": "dot",
+          "dmgType": "blade",
+          "base": 40,
+          "bladeScale": 0.5,
+          "soulScale": 0,
+          "durationSec": 4
+        }
+      ],
+      "condition": {
+        "heroTargetOnly": true
+      },
+      "desc": "Slashes an enemy hero for 60 + 100% Blade damage, then 40 + 50% Blade damage per second for 4s."
+    }
+  ],
+  "passives": [
+    {
+      "on": "hit",
+      "target": "victim",
+      "cooldownSec": 4,
+      "effects": [
+        {
+          "type": "damage",
+          "dmgType": "blade",
+          "base": 25,
+          "bladeScale": 0.4,
+          "soulScale": 0
+        }
+      ],
+      "desc": "Each hit (at most every 4s) leaves a ghost-cut for 25 + 40% Blade damage."
+    }
+  ],
+  "defaultPosture": "push",
+  "personality": "steadfast",
+  "buildList": [
+    "rusted_cleaver",
+    "cogged_edge",
+    "leech_fang",
+    "piston_gauntlet",
+    "riveted_plate",
+    "wanderer_boots"
+  ],
+  "sigil": {
+    "hue": 350,
+    "rings": 2,
+    "spokes": 12,
+    "glyph": "blade"
+  },
+  "blurb": "A masterless swordsman still bowing to a lord whose castle burned centuries ago."
+}

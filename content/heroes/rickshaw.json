@@ -7,13 +7,13 @@
   "attackKind": "ranged",
   "playstyle": "A caster that fills the ground with slowing ghost-fire. Fight where enemies must stand in the fire and use the slows to let your team catch them.",
   "stats": {
-    "maxHp": 697,
+    "maxHp": 613.4,
     "hpRegen": 2,
     "armor": 18,
     "resist": 26,
-    "bladeDmg": 29,
+    "bladeDmg": 25.5,
     "atkSpeed": 0.8,
-    "soulPower": 43,
+    "soulPower": 37.8,
     "moveSpeed": 46,
     "cdr": 0,
     "range": 105

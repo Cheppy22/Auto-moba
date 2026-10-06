@@ -1,15 +1,40 @@
 import type { Content, Snapshot, SnapUnit } from '../sim';
 import { drawSigil, type SigilSpec } from './sigils';
 import { DISPLAY_FONT, PALETTE, teamColor } from './theme';
-import { makeView, toScreen, type Insets, type View } from './view';
+import {
+  drawShopStall,
+  drawCamp,
+  drawHeroFrame,
+  drawGuardian,
+  drawMinion,
+  drawObelisk,
+  drawTower,
+} from './icons';
+import { makeView, toScreen, toWorld, type Insets, type View } from './view';
+
+export interface CurseMark {
+  heroId: number;
+  startTick: number;
+  life: number;
+  title: string;
+  own: boolean;
+}
 
 export interface DrawOptions {
   alpha: number;
   highlightId?: number | null;
+  curses?: CurseMark[];
 }
 
 const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
 const TAU = Math.PI * 2;
+const GROUND_R = 612;
+const EVENT_COLORS: Record<string, string> = {
+  procession: '#f0b44c',
+  parade: '#c4a8f0',
+  well: '#6fb4d0',
+  oni: '#d04a52',
+};
 
 export function drawButterfly(
   g: CanvasRenderingContext2D,
@@ -181,25 +206,20 @@ export class Renderer {
       b.arc(c.x, c.y, r, 0, TAU);
       b.fill();
     }
-    const lo = 55;
-    const hi = this.size - 55;
-    for (const [inset, alpha] of [
-      [0, 0.5],
-      [14, 0.22],
+    for (const [r, alpha, w] of [
+      [GROUND_R, 0.55, 1.6],
+      [GROUND_R - 14, 0.22, 1],
     ] as const) {
-      b.beginPath();
-      const pts = [
-        this.S(lo - inset, lo - inset),
-        this.S(hi + inset, lo - inset),
-        this.S(hi + inset, hi + inset),
-        this.S(lo - inset, hi + inset),
-      ];
-      pts.forEach((c, i) => (i === 0 ? b.moveTo(c.x, c.y) : b.lineTo(c.x, c.y)));
-      b.closePath();
+      this.ellipse(b, m, m, r);
       b.strokeStyle = `rgba(224,169,62,${alpha})`;
-      b.lineWidth = inset === 0 ? 1.5 : 1;
+      b.lineWidth = w;
+      b.setLineDash([]);
       b.stroke();
     }
+    this.ellipse(b, m, m, 62);
+    b.strokeStyle = 'rgba(224,169,62,0.28)';
+    b.lineWidth = 1.2;
+    b.stroke();
   }
 
   private lanePt(lane: [number, number][], t: number): [number, number] {
@@ -241,14 +261,9 @@ export class Renderer {
   }
 
   private paintGround(b: CanvasRenderingContext2D): void {
-    const lo = 55;
-    const hi = this.size - 55;
     const p = this.view.p;
-    b.beginPath();
-    [this.S(lo, lo), this.S(hi, lo), this.S(hi, hi), this.S(lo, hi)].forEach((c, i) =>
-      i === 0 ? b.moveTo(c.x, c.y) : b.lineTo(c.x, c.y),
-    );
-    b.closePath();
+    const m = this.size / 2;
+    this.ellipse(b, m, m, GROUND_R);
     const c = this.S(this.size / 2, this.size / 2);
     const gr = b.createRadialGradient(c.x, c.y, 0, c.x, c.y, this.view.sx * 760);
     gr.addColorStop(0, '#1d1a26');
@@ -260,11 +275,11 @@ export class Renderer {
       seed = (seed * 16807) % 2147483647;
       return seed / 2147483647;
     };
-    for (let i = 0; i < 420; i++) {
-      const x = lo + rnd() * (hi - lo);
-      const y = lo + rnd() * (hi - lo);
+    for (let i = 0; i < 520; i++) {
+      const x = m - GROUND_R + rnd() * GROUND_R * 2;
+      const y = m - GROUND_R + rnd() * GROUND_R * 2;
       const kind = rnd();
-      if (this.distToLanes(x, y) < 36) continue;
+      if (Math.hypot(x - m, y - m) > GROUND_R - 14 || this.distToLanes(x, y) < 36) continue;
       const q = this.S(x, y);
       if (kind < 0.55) {
         b.fillStyle = 'rgba(90,110,80,0.35)';
@@ -438,6 +453,254 @@ export class Renderer {
     }
   }
 
+  private drawCurseAura(
+    g: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    r: number,
+    tick: number,
+    id: number,
+  ): void {
+    const pulse = 0.5 + 0.5 * Math.sin(tick / 7 + id);
+    g.save();
+    g.translate(x, y);
+    const gr = g.createRadialGradient(0, 0, r * 0.6, 0, 0, r * 2.4);
+    gr.addColorStop(0, `rgba(179,38,46,${0.1 + 0.15 * pulse})`);
+    gr.addColorStop(1, 'rgba(179,38,46,0)');
+    g.fillStyle = gr;
+    g.beginPath();
+    g.arc(0, 0, r * 2.4, 0, TAU);
+    g.fill();
+    g.rotate(tick / 60);
+    g.setLineDash([r * 0.5, r * 0.4]);
+    g.lineWidth = Math.max(1.2, r * 0.12);
+    g.strokeStyle = `rgba(224,84,92,${0.55 + 0.4 * pulse})`;
+    g.beginPath();
+    g.arc(0, 0, r * 1.75, 0, TAU);
+    g.stroke();
+    g.setLineDash([]);
+    for (let i = 0; i < 5; i++) {
+      const ph = (tick / 40 + i / 5) % 1;
+      const a = (i / 5) * TAU + id;
+      g.fillStyle = `rgba(255,140,120,${0.8 * (1 - ph)})`;
+      g.beginPath();
+      g.arc(Math.cos(a) * r * 1.4, Math.sin(a) * r * 1.4 - ph * r * 1.6, r * 0.1, 0, TAU);
+      g.fill();
+    }
+    g.restore();
+  }
+
+  private drawCurseMarks(
+    g: CanvasRenderingContext2D,
+    snap: Snapshot,
+    marks: CurseMark[],
+    byId: Map<number, SnapUnit>,
+    q: number,
+    alpha: number,
+  ): void {
+    for (const m of marks) {
+      const t = snap.tick - m.startTick;
+      if (t < 0 || t > m.life) continue;
+      const u = byId.get(m.heroId);
+      if (!u) continue;
+      const c = this.S(lerp(u.px, u.x, alpha), lerp(u.py, u.y, alpha));
+      const fade = Math.min(1, (m.life - t) / 30);
+      const r = 11 * q;
+      g.save();
+      g.globalAlpha = fade;
+      if (t < 70) {
+        for (let i = 0; i < 3; i++) {
+          const f = Math.max(0, Math.min(1, (t - i * 10) / 50));
+          if (f <= 0 || f >= 1) continue;
+          g.beginPath();
+          g.arc(c.x, c.y, r * (1.5 + f * 6), 0, TAU);
+          g.lineWidth = Math.max(2, 4 * q * (1 - f));
+          g.strokeStyle = `rgba(224,84,92,${1 - f})`;
+          g.stroke();
+        }
+      }
+      const label = `Cursed: ${m.title}`;
+      g.font = `${Math.max(11, Math.round(11 * q))}px ${DISPLAY_FONT}`;
+      const w = g.measureText(label).width + 22 * q * 0.6;
+      const h = 16 * q * 0.9;
+      const lx = c.x - w / 2;
+      const ly = c.y - r * 2.6 - h;
+      g.fillStyle = 'rgba(110,20,27,0.95)';
+      g.strokeStyle = m.own ? '#f0d58a' : '#e0545c';
+      g.lineWidth = Math.max(1.2, q * 0.9);
+      g.beginPath();
+      g.roundRect(lx, ly, w, h, 2);
+      g.fill();
+      g.stroke();
+      g.fillStyle = '#fbeee2';
+      g.textAlign = 'center';
+      g.textBaseline = 'middle';
+      g.fillText(label, c.x, ly + h / 2 + 1);
+      g.textBaseline = 'alphabetic';
+      g.restore();
+    }
+  }
+
+  private paintBiomeArt(
+    b: CanvasRenderingContext2D,
+    slot: { x: number; y: number; radius: number },
+    biomeId: string,
+    glow: string,
+  ): void {
+    const p = this.view.p;
+    const c = this.S(slot.x, slot.y);
+    const rx = slot.radius * this.view.sx;
+    const ry = slot.radius * this.view.sy;
+    b.save();
+    b.beginPath();
+    b.ellipse(c.x, c.y, rx * 0.98, ry * 0.98, 0, 0, TAU);
+    b.clip();
+    b.lineWidth = Math.max(0.8, 0.9 * p);
+    let seed = biomeId.length * 7919 + Math.round(slot.x * 3 + slot.y);
+    const rnd = (): number => {
+      seed = (seed * 16807) % 2147483647;
+      return seed / 2147483647;
+    };
+    if (biomeId === 'shrine') {
+      for (let i = 1; i <= 5; i++) {
+        b.strokeStyle = glow + (i % 2 ? '26' : '16');
+        b.beginPath();
+        b.ellipse(c.x, c.y, rx * (0.2 + i * 0.16), ry * (0.2 + i * 0.16), 0, 0, TAU);
+        b.stroke();
+      }
+      b.fillStyle = glow + '30';
+      for (let i = 0; i < 9; i++) {
+        const a = rnd() * TAU;
+        const r = 0.2 + rnd() * 0.65;
+        b.beginPath();
+        b.ellipse(
+          c.x + Math.cos(a) * rx * r,
+          c.y + Math.sin(a) * ry * r,
+          4 * p,
+          2.4 * p,
+          0.3,
+          0,
+          TAU,
+        );
+        b.fill();
+      }
+    } else if (biomeId === 'foundry') {
+      b.strokeStyle = glow + '30';
+      b.lineWidth = Math.max(1, 2.2 * p);
+      b.setLineDash([5 * p, 4 * p]);
+      for (const k of [0.45, 0.72]) {
+        b.beginPath();
+        b.ellipse(c.x, c.y, rx * k, ry * k, 0, 0, TAU);
+        b.stroke();
+      }
+      b.setLineDash([]);
+      b.fillStyle = glow + '66';
+      for (let i = 0; i < 26; i++) {
+        const a = rnd() * TAU;
+        const r = rnd() * 0.9;
+        const sz = (0.6 + rnd() * 1.4) * p;
+        b.fillRect(c.x + Math.cos(a) * rx * r, c.y + Math.sin(a) * ry * r, sz, sz);
+      }
+    } else {
+      b.strokeStyle = glow + '30';
+      b.lineWidth = Math.max(1, 1.4 * p);
+      for (const off of [-0.14, 0.14]) {
+        const a = this.S(slot.x - slot.radius, slot.y + off * slot.radius * 2);
+        const e = this.S(slot.x + slot.radius, slot.y + off * slot.radius * 2);
+        b.beginPath();
+        b.moveTo(a.x, a.y);
+        b.lineTo(e.x, e.y);
+        b.stroke();
+      }
+      b.strokeStyle = glow + '22';
+      for (let i = -6; i <= 6; i++) {
+        const a = this.S(slot.x + (i / 6) * slot.radius * 0.95, slot.y - slot.radius * 0.2);
+        const e = this.S(slot.x + (i / 6) * slot.radius * 0.95, slot.y + slot.radius * 0.2);
+        b.beginPath();
+        b.moveTo(a.x, a.y);
+        b.lineTo(e.x, e.y);
+        b.stroke();
+      }
+    }
+    b.restore();
+  }
+
+  shopPoints(): { id: string; x: number; y: number }[] {
+    const k = this.canvas.width / Math.max(1, this.canvas.clientWidth);
+    return this.content.map.shops.map((sh) => {
+      const c = this.S(sh.x, sh.y);
+      return { id: sh.id, x: Math.round(c.x / k), y: Math.round(c.y / k) };
+    });
+  }
+
+  pickShop(canvasX: number, canvasY: number, tolerance = 70): string | null {
+    const w = toWorld(this.view, canvasX, canvasY);
+    let best: { id: string; d: number } | null = null;
+    for (const sh of this.content.map.shops) {
+      const d = Math.hypot(sh.x - w.x, sh.y - w.y);
+      if (d <= tolerance && (!best || d < best.d)) best = { id: sh.id, d };
+    }
+    return best?.id ?? null;
+  }
+
+  private drawShops(g: CanvasRenderingContext2D, snap: Snapshot, q: number): void {
+    const player = snap.units.find((u) => u.id === snap.playerHeroId);
+    for (const sh of this.content.map.shops) {
+      const c = this.S(sh.x, sh.y);
+      const order = snap.suggest.indexOf(sh.id) + 1;
+      const near = !!player && Math.hypot(player.x - sh.x, player.y - sh.y) < sh.radius + 20;
+      g.save();
+      g.beginPath();
+      g.ellipse(c.x, c.y, sh.radius * this.view.sx, sh.radius * this.view.sy, 0, 0, TAU);
+      g.fillStyle = order > 0 ? 'rgba(240,213,138,0.12)' : 'rgba(240,213,138,0.05)';
+      g.fill();
+      g.setLineDash([4 * q, 4 * q]);
+      g.lineWidth = Math.max(1, 1.2 * q);
+      g.strokeStyle = order > 0 ? '#f0d58a' : 'rgba(240,213,138,0.4)';
+      g.stroke();
+      g.setLineDash([]);
+      g.restore();
+      if (order > 0 && player) {
+        const from = this.S(player.x, player.y);
+        g.save();
+        g.setLineDash([3 * q, 5 * q]);
+        g.lineWidth = Math.max(1, 1.4 * q);
+        g.strokeStyle = 'rgba(240,213,138,0.55)';
+        g.beginPath();
+        g.moveTo(from.x, from.y);
+        g.lineTo(c.x, c.y);
+        g.stroke();
+        g.restore();
+      }
+      drawShopStall(g, c.x, c.y, 8 * q, snap.tick, order, near);
+      g.save();
+      g.font = `${Math.max(10, Math.round(10 * q * 1.1))}px ${DISPLAY_FONT}`;
+      g.textAlign = 'center';
+      g.fillStyle = order > 0 ? '#f0d58a' : 'rgba(240,213,138,0.75)';
+      g.fillText(sh.name, c.x, c.y + 14 * q);
+      g.restore();
+    }
+  }
+
+  private drawMotes(g: CanvasRenderingContext2D, snap: Snapshot, q: number): void {
+    const m = this.size / 2;
+    for (let i = 0; i < 34; i++) {
+      const h = (i * 2654435761) >>> 0;
+      const a0 = ((h & 1023) / 1023) * TAU;
+      const r0 = 120 + (((h >>> 10) & 1023) / 1023) * 440;
+      const ph = ((h >>> 20) & 255) / 255;
+      const t = snap.tick / 20;
+      const a = a0 + Math.sin(t * 0.15 + ph * 6) * 0.08;
+      const r = r0 + Math.sin(t * 0.3 + ph * 9) * 14;
+      const c = this.S(m + Math.cos(a) * r, m + Math.sin(a) * r - Math.sin(t * 0.5 + ph * 5) * 8);
+      const al = 0.15 + 0.35 * (0.5 + 0.5 * Math.sin(t * 0.9 + ph * 12));
+      g.fillStyle = i % 3 === 0 ? `rgba(240,213,138,${al})` : `rgba(196,168,240,${al})`;
+      g.beginPath();
+      g.arc(c.x, c.y, (0.9 + (i % 4) * 0.35) * q * 0.5, 0, TAU);
+      g.fill();
+    }
+  }
+
   private paintBackdrop(snap: Snapshot): void {
     const key =
       snap.slots.map((s) => `${s.id}${s.open ? s.biomeId : '-'}`).join('|') +
@@ -468,6 +731,7 @@ export class Renderer {
         b.arc(0, 0, s.radius * 1.3, 0, TAU);
         b.fill();
         b.restore();
+        this.paintBiomeArt(b, s, s.biomeId, biome.palette.glow);
         b.strokeStyle = biome.palette.glow + '99';
         b.lineWidth = 1.5;
         b.setLineDash([]);
@@ -569,11 +833,106 @@ export class Renderer {
 
   private bar(x: number, y: number, w: number, frac: number, color: string): void {
     const g = this.g;
-    const h = Math.max(2, 3 * this.view.p);
-    g.fillStyle = 'rgba(0,0,0,0.7)';
-    g.fillRect(x - w / 2, y, w, h);
+    const h = Math.max(2.5, 3.4 * this.view.p);
+    const f = Math.max(0, Math.min(1, frac));
+    g.fillStyle = 'rgba(8,6,12,0.82)';
+    g.fillRect(x - w / 2 - 1, y - 1, w + 2, h + 2);
     g.fillStyle = color;
-    g.fillRect(x - w / 2, y, w * Math.max(0, Math.min(1, frac)), h);
+    g.fillRect(x - w / 2, y, w * f, h);
+    g.fillStyle = 'rgba(255,255,255,0.28)';
+    g.fillRect(x - w / 2, y, w * f, h * 0.4);
+  }
+
+  private drawEvents(g: CanvasRenderingContext2D, snap: Snapshot, q: number): void {
+    const v = this.view;
+    for (const e of snap.events) {
+      const c = this.S(e.x, e.y);
+      const col = EVENT_COLORS[e.type] ?? PALETTE.spirit;
+      const warn = e.phase === 'warning';
+      const pulse = 0.5 + 0.5 * Math.sin(snap.tick / 6);
+      const rx = e.radius * v.sx;
+      const ry = e.radius * v.sy;
+      g.save();
+      g.beginPath();
+      g.ellipse(c.x, c.y, rx, ry, 0, 0, TAU);
+      g.fillStyle = col + (warn ? '10' : '22');
+      g.fill();
+      g.lineWidth = Math.max(1.5, 1.6 * q);
+      g.strokeStyle =
+        col +
+        (warn
+          ? Math.round(80 + 120 * pulse)
+              .toString(16)
+              .padStart(2, '0')
+          : 'dd');
+      g.setLineDash(warn ? [5 * q, 5 * q] : []);
+      g.stroke();
+      g.setLineDash([]);
+      if (!warn && e.progress !== undefined) {
+        g.beginPath();
+        g.ellipse(
+          c.x,
+          c.y,
+          rx * 1.14,
+          ry * 1.14,
+          0,
+          -Math.PI / 2,
+          -Math.PI / 2 + TAU * Math.min(1, e.progress),
+        );
+        g.strokeStyle = e.team ? teamColor(e.team) : col;
+        g.lineWidth = Math.max(2, 2.4 * q);
+        g.stroke();
+      }
+      g.strokeStyle = col;
+      g.fillStyle = col;
+      g.lineWidth = Math.max(1.2, 1.4 * q);
+      const s = 7 * q;
+      g.beginPath();
+      if (e.type === 'procession') {
+        g.roundRect(c.x - s * 0.55, c.y - s * 0.8, s * 1.1, s * 1.6, s * 0.4);
+        g.moveTo(c.x, c.y - s * 1.2);
+        g.lineTo(c.x, c.y - s * 0.8);
+        g.stroke();
+      } else if (e.type === 'oni') {
+        g.moveTo(c.x - s, c.y + s * 0.8);
+        g.lineTo(c.x - s * 0.6, c.y - s);
+        g.lineTo(c.x - s * 0.15, c.y - s * 0.2);
+        g.lineTo(c.x + s * 0.15, c.y - s * 0.2);
+        g.lineTo(c.x + s * 0.6, c.y - s);
+        g.lineTo(c.x + s, c.y + s * 0.8);
+        g.closePath();
+        g.stroke();
+      } else if (e.type === 'well') {
+        g.ellipse(c.x, c.y, s, s * 0.7, 0, 0, TAU);
+        g.moveTo(c.x + s * 0.5, c.y);
+        g.ellipse(c.x, c.y, s * 0.5, s * 0.35, 0, 0, TAU);
+        g.stroke();
+      } else {
+        for (let i = -1; i <= 1; i++) {
+          g.moveTo(c.x + i * s * 0.9 + s * 0.35, c.y);
+          g.arc(c.x + i * s * 0.9, c.y, s * 0.35, 0, TAU);
+        }
+        g.stroke();
+      }
+      g.font = `${Math.max(10, Math.round(10 * q * 1.2))}px ${DISPLAY_FONT}`;
+      g.textAlign = 'center';
+      g.fillStyle = col;
+      g.fillText(
+        warn ? `${e.name} in ${Math.ceil(e.ticksLeft / 20)}s` : e.name,
+        c.x,
+        c.y + ry + 13 * q,
+      );
+      if (e.telegraph) {
+        const t = this.S(e.telegraph.x, e.telegraph.y);
+        g.beginPath();
+        g.ellipse(t.x, t.y, e.telegraph.radius * v.sx, e.telegraph.radius * v.sy, 0, 0, TAU);
+        g.fillStyle = `rgba(208,74,82,${0.12 + 0.18 * pulse})`;
+        g.fill();
+        g.strokeStyle = '#d04a52';
+        g.stroke();
+      }
+      g.restore();
+    }
   }
 
   drawEmpty(): void {
@@ -598,6 +957,9 @@ export class Renderer {
       this.S(lerp(u.px, u.x, opts.alpha), lerp(u.py, u.y, opts.alpha));
     const byId = new Map<number, SnapUnit>();
     for (const u of snap.units) byId.set(u.id, u);
+    this.drawMotes(g, snap, q);
+    this.drawShops(g, snap, q);
+    this.drawEvents(g, snap, q);
 
     g.lineWidth = Math.max(1, p);
     for (const u of snap.units) {
@@ -651,80 +1013,30 @@ export class Renderer {
       const col = teamColor(u.team);
       switch (u.kind) {
         case 'minion': {
-          g.fillStyle = u.team === 'neutral' ? PALETTE.neutral : col;
-          g.beginPath();
-          g.arc(x, y, (u.range > 40 ? 2.4 : 3.2) * q, 0, Math.PI * 2);
-          g.fill();
+          drawMinion(g, x, y, 4 * q, u.team === 'neutral' ? PALETTE.neutral : col, u.range > 40);
           if (u.hp < u.maxHp) this.bar(x, y - 7 * q, 9 * q, u.hp / u.maxHp, col);
           break;
         }
         case 'camp': {
-          g.fillStyle = PALETTE.camp;
-          g.beginPath();
-          g.arc(x, y, 5 * q, 0, Math.PI * 2);
-          g.fill();
-          g.strokeStyle = 'rgba(0,0,0,0.6)';
-          g.stroke();
-          if (u.hp < u.maxHp) this.bar(x, y - 9 * q, 12 * q, u.hp / u.maxHp, PALETTE.camp);
+          const elite = u.maxHp > 900;
+          drawCamp(g, x, y, (elite ? 7 : 5) * q, PALETTE.camp, elite, snap.tick);
+          if (u.hp < u.maxHp) this.bar(x, y - 10 * q, 12 * q, u.hp / u.maxHp, PALETTE.camp);
           break;
         }
         case 'tower': {
-          const s = 8 * q;
-          g.fillStyle = 'rgba(12,14,14,0.95)';
-          g.strokeStyle = col;
-          g.lineWidth = 2;
-          g.beginPath();
-          g.moveTo(x, y - s);
-          g.lineTo(x + s, y);
-          g.lineTo(x, y + s);
-          g.lineTo(x - s, y);
-          g.closePath();
-          g.fill();
-          g.stroke();
-          this.bar(x, y - s - 6 * q, 22 * q, u.hp / u.maxHp, col);
+          const s = 9 * q;
+          drawTower(g, x, y, s, col, u.flash);
+          this.bar(x, y - s * 1.7 - 4 * q, 22 * q, u.hp / u.maxHp, col);
           break;
         }
         case 'guardian': {
-          const s = 15 * q;
-          g.fillStyle = 'rgba(12,14,14,0.95)';
-          g.strokeStyle = col;
-          g.lineWidth = 2.5;
-          g.beginPath();
-          g.arc(x, y, s, 0, Math.PI * 2);
-          g.fill();
-          g.stroke();
-          g.beginPath();
-          g.ellipse(x, y, s * 0.7, s * 0.35, 0, 0, Math.PI * 2);
-          g.stroke();
-          g.fillStyle = col;
-          g.beginPath();
-          g.arc(x, y, s * 0.17, 0, Math.PI * 2);
-          g.fill();
-          this.bar(x, y - s - 8 * q, 40 * q, u.hp / u.maxHp, col);
+          const s = 14 * q;
+          drawGuardian(g, x, y, s, col, snap.tick, (u.maxHp > 0 ? u.hp / u.maxHp : 1) < 0.5);
+          this.bar(x, y - s * 1.6 - 4 * q, 40 * q, u.hp / u.maxHp, col);
           break;
         }
         case 'obelisk': {
-          const s = 9 * q;
-          g.shadowColor = PALETTE.spirit;
-          g.shadowBlur = 10 * q;
-          g.fillStyle = PALETTE.spirit;
-          g.strokeStyle = '#f2e8ffaa';
-          g.beginPath();
-          g.moveTo(x, y - s * 1.5);
-          g.lineTo(x + s * 0.7, y);
-          g.lineTo(x, y + s);
-          g.lineTo(x - s * 0.7, y);
-          g.closePath();
-          g.fill();
-          g.stroke();
-          g.shadowBlur = 0;
-          if (u.claim > 0) {
-            g.strokeStyle = '#fff';
-            g.lineWidth = 2;
-            g.beginPath();
-            g.arc(x, y, s * 1.6, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.min(1, u.claim));
-            g.stroke();
-          }
+          drawObelisk(g, x, y, 8 * q, PALETTE.spirit, u.claim, snap.tick);
           break;
         }
         case 'keeper': {
@@ -762,9 +1074,11 @@ export class Renderer {
             g.arc(x, y, r * 1.45, 0, Math.PI * 2);
             g.stroke();
           }
+          if (u.curse && u.alive) this.drawCurseAura(g, x, y, r, snap.tick, u.id);
+          drawHeroFrame(g, x, y, r * 1.12, u.team, col, u.alive);
           drawSigil(g, x, y, r, spec, col, u.alive);
           if (u.alive) {
-            this.bar(x, y - r - 7 * q, 26 * q, u.hp / u.maxHp, col);
+            this.bar(x, y - r - 9 * q, 26 * q, u.hp / u.maxHp, col);
             if (u.shield > 0)
               this.bar(x, y - r - 11 * q, 26 * q, Math.min(1, u.shield / u.maxHp), '#a9d0e0');
             if (u.curse) {
@@ -786,6 +1100,7 @@ export class Renderer {
         }
       }
     }
+    if (opts.curses?.length) this.drawCurseMarks(g, snap, opts.curses, byId, q, opts.alpha);
     if (snap.pressure.length) {
       g.fillStyle = 'rgba(110,20,30,0.12)';
       g.fillRect(0, 0, this.canvas.width, this.canvas.height);

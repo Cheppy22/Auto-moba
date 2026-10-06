@@ -27,7 +27,7 @@ test('draft, play a phase, read the report, start the next phase', async ({ page
 
   await expect(page.getByTestId('draft')).toBeVisible();
   await expect(page.getByTestId('begin')).toBeDisabled();
-  await page.getByTestId('hero-smelter').click();
+  await page.locator('.hero-row [data-testid^="hero-"]').first().click();
   await page.getByTestId('lane-top').click();
   await page.getByTestId('begin').click();
 
@@ -51,10 +51,21 @@ test('draft, play a phase, read the report, start the next phase', async ({ page
 
   await expect(page.getByTestId('phase')).toHaveText('Phase 1');
   await page.getByTestId('speed-4').click();
+  const farmBefore = await page.getByTestId('farm-toggle').getAttribute('aria-pressed');
   await page.getByTestId('farm-toggle').click();
-  await expect(page.getByTestId('farm-toggle')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByTestId('farm-toggle')).toHaveAttribute(
+    'aria-pressed',
+    farmBefore === 'true' ? 'false' : 'true',
+  );
   await page.waitForTimeout(1500);
   expect(await canvasHasInk(page)).toBe(true);
+  const shops = JSON.parse((await page.getByTestId('stage').getAttribute('data-shops')) ?? '[]');
+  expect(shops).toHaveLength(2);
+  const box = (await page.getByTestId('stage').boundingBox())!;
+  await page.mouse.click(box.x + shops[0].x, box.y + shops[0].y);
+  await expect(page.getByTestId('suggest-chip')).toBeVisible();
+  await page.getByRole('button', { name: 'Clear suggestions' }).click();
+  await expect(page.getByTestId('suggest-chip')).toHaveCount(0);
   await page.getByTestId('recall-base').click();
   await expect(page.getByTestId('shop')).toBeVisible({ timeout: 20_000 });
   const frozen = await page.getByTestId('clock').textContent();

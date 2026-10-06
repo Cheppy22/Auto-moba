@@ -56,12 +56,17 @@ export function nextPurchase(ctx: Ctx, u: Unit, ignoreAccess = false): Purchase 
     if (!item) continue;
     const q = quote(ctx, u, id, ignoreAccess);
     if (!('error' in q) && q.price <= h.gold) return { id, price: q.price };
+    let reachable = !('error' in q);
     for (const comp of item.from) {
       if (satisfied(ctx, u, comp)) continue;
       const cq = quote(ctx, u, comp, ignoreAccess);
-      if (!('error' in cq) && cq.price <= h.gold) return { id: comp, price: cq.price };
+      if ('error' in cq) continue;
+      reachable = true;
+      if (cq.price <= h.gold) return { id: comp, price: cq.price };
     }
-    return null;
+    // Save up for a target that can be bought; skip one the shop cannot offer right now
+    // (a tier 3 item that is neither unlocked nor in the keeper's stock) so gold is not hoarded.
+    if (reachable) return null;
   }
   let best: Purchase | null = null;
   for (const it of ctx.c.items) {

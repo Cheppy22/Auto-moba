@@ -2,7 +2,21 @@ export interface SigilSpec {
   hue: number;
   rings: number;
   spokes: number;
-  glyph: 'gear' | 'crane' | 'rail' | 'compass' | 'gate' | 'petal' | 'paw' | 'brush' | 'lantern';
+  glyph:
+    | 'gear'
+    | 'crane'
+    | 'rail'
+    | 'compass'
+    | 'gate'
+    | 'petal'
+    | 'paw'
+    | 'brush'
+    | 'lantern'
+    | 'blade'
+    | 'skull'
+    | 'anchor'
+    | 'orbit'
+    | 'shield';
 }
 
 function ring(g: CanvasRenderingContext2D, x: number, y: number, r: number): void {
@@ -119,6 +133,57 @@ function drawGlyph(
       g.ellipse(x, y + r * 0.05, r * 0.6, r * 0.75, 0, 0, Math.PI * 2);
       g.moveTo(x - r * 0.35, y + r);
       g.lineTo(x + r * 0.35, y + r);
+      break;
+    }
+    case 'blade': {
+      g.moveTo(x + r * 0.9, y - r * 0.9);
+      g.lineTo(x - r * 0.5, y + r * 0.5);
+      g.moveTo(x - r * 0.75, y + r * 0.2);
+      g.lineTo(x - r * 0.2, y + r * 0.75);
+      g.moveTo(x - r * 0.5, y + r * 0.5);
+      g.lineTo(x - r * 0.9, y + r * 0.9);
+      break;
+    }
+    case 'skull': {
+      g.arc(x, y - r * 0.15, r * 0.7, 0, Math.PI * 2);
+      g.moveTo(x - r * 0.35, y + r * 0.55);
+      g.lineTo(x - r * 0.35, y + r);
+      g.lineTo(x + r * 0.35, y + r);
+      g.lineTo(x + r * 0.35, y + r * 0.55);
+      g.moveTo(x - r * 0.15, y - r * 0.15);
+      g.arc(x - r * 0.3, y - r * 0.15, r * 0.15, 0, Math.PI * 2);
+      g.moveTo(x + r * 0.45, y - r * 0.15);
+      g.arc(x + r * 0.3, y - r * 0.15, r * 0.15, 0, Math.PI * 2);
+      break;
+    }
+    case 'anchor': {
+      g.moveTo(x, y - r);
+      g.lineTo(x, y + r);
+      g.moveTo(x - r * 0.45, y - r * 0.55);
+      g.lineTo(x + r * 0.45, y - r * 0.55);
+      g.moveTo(x - r * 0.9, y + r * 0.2);
+      g.quadraticCurveTo(x - r * 0.8, y + r, x, y + r);
+      g.quadraticCurveTo(x + r * 0.8, y + r, x + r * 0.9, y + r * 0.2);
+      break;
+    }
+    case 'orbit': {
+      g.moveTo(x + r * 0.3, y);
+      g.arc(x, y, r * 0.3, 0, Math.PI * 2);
+      g.moveTo(x + r, y);
+      g.ellipse(x, y, r, r * 0.4, -0.5, 0, Math.PI * 2);
+      g.moveTo(x + r * 0.7, y - r * 0.55);
+      g.arc(x + r * 0.55, y - r * 0.55, r * 0.15, 0, Math.PI * 2);
+      break;
+    }
+    case 'shield': {
+      g.moveTo(x - r * 0.8, y - r * 0.8);
+      g.lineTo(x + r * 0.8, y - r * 0.8);
+      g.lineTo(x + r * 0.8, y);
+      g.quadraticCurveTo(x + r * 0.7, y + r * 0.7, x, y + r);
+      g.quadraticCurveTo(x - r * 0.7, y + r * 0.7, x - r * 0.8, y);
+      g.closePath();
+      g.moveTo(x, y - r * 0.8);
+      g.lineTo(x, y + r);
       break;
     }
   }

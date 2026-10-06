@@ -170,3 +170,43 @@ Measured on the full tree (Mind/Body/Soul items with attunement, nine heroes, la
 - Kills per match 47.5; first tower at 1.7 min (median).
 - Team A won 45.2% of random-draft matches (standard error about 2 points). Mirror drafts were 48-49% in the lane-AI pass, so a residual bias of 1-3 points toward team B is likely. Not yet chased.
 - Cat is the lowest hero and Revenant the highest; both are inside the band.
+
+## Fourteen heroes, no repeats (roster pass 2)
+
+Five heroes added: ronin (top, sword duelist), catrina (mid, trapper), navigator (bot, team buffer), shieldmaiden (bot, tank/engage), cosmonaut (jungle, ranged skirmisher). Pool roles: top 3, mid 3, bot 5, jungle 3. Each match drafts 10 different heroes, so the player sees 5 choices. Measured on 600 matches, seeds 9000-9599, after two tuning rounds (round 1: 400 matches, seed 8000). The machine was shared and slow, so this is the last measurement, not a tuned final.
+
+| Hero         | Win rate | Hero         | Win rate |
+| ------------ | -------- | ------------ | -------- |
+| rickshaw     | 60.3%    | smelter      | 49.8%    |
+| revenant     | 57.7%    | cosmonaut    | 49.4%    |
+| miko         | 57.2%    | sweep        | 46.5%    |
+| cartographer | 56.7%    | navigator    | 44.2%    |
+| cat          | 55.9%    | shieldmaiden | 43.7%    |
+| catrina      | 54.2%    | oiran        | 38.1%    |
+| ronin        | 51.8%    | warden       | 36.1%    |
+
+Team A won 49.5%. Not inside the 44-56% target: rickshaw, revenant, miko, cartographer (high) and sweep, navigator, shieldmaiden, oiran, warden (low). Oiran and warden were not edited and were 54% and 51% in the 400-match run, so with 14 heroes and about 430 appearances each, round-to-round swings of 8+ points show that the noise (and teammate-composition effects) is larger than the stat changes made; 1,500+ matches are needed before further stat edits. Shieldmaiden (bot) and navigator are the new heroes most likely to be weak; shieldmaiden dies about 7 times a match.
+
+## Item catalog: 12 base items per category (300 matches, seeds 12000-12299)
+
+Mind, Body and Soul each went to 12 base items (5 tier 1, 4 tier 2, 3 tier 3; 36 total, up from 19). Every tier 1 item feeds a tier 2 and every tier 2 feeds a tier 3. Run before and after on the same working tree (the other in-flight hero and event changes included), so only the items and `src/sim/ai/shopping.ts` differ.
+
+| Run                                           | Median length | Team A | Heroes outside 44-56%                                     |
+| --------------------------------------------- | ------------- | ------ | --------------------------------------------------------- |
+| Before (19 items)                             | 15.1 min      | 52.3%  | smelter 44.2 (ok), cosmonaut 58.0                         |
+| After, new items, new shopping fallback       | 13.4 min      | 51.0%  | warden 41.3, shieldmaiden 42.5, oiran 44.9 (ok)           |
+| After, plus small Ward-Bell and Greaves buffs | 13.3 min      | 48.0%  | warden 35.8, shieldmaiden 37.0, smelter 39.8              |
+| Original shopping.ts with the new catalog     | 14.1 min      | 46.0%  | warden 32.3, shieldmaiden 41.6, ronin 58.3, rickshaw 60.7 |
+
+What moved: tier 3 items are only reachable through obelisk unlocks and the Keeper, both of which draw from the tier 3 pool. The pool grew from 3 to 9, so a hero whose build list ends in `furnace_bastion` or `soot_reaver` gets it much less often (furnace_bastion held 2461 times before, 289-563 after). The Body-heavy heroes (warden, shieldmaiden, smelter) lose the most. `shopping.ts` now skips a build-list target the shop cannot offer instead of hoarding gold for it, so those heroes buy the best tier 2 items instead of idling. Win rates between runs differ by more than the item effect at this sample size (about 3 points standard error per hero) and the other agents' changes landed between runs, so the tank dip is flagged, not tuned away.
+
+Suspicious or weak: `wishgranters_receipt` (70% when held, 210 holders), `furnished_pocket_dimension` and `cabinet_of_wishes` (62-64%) lead; they are the periodic Soul pulse items and may be a little strong. `leech_fang`, `rusted_cleaver` and `spirit_lens` win under 45% when held (cheap parts held at match end only by heroes that stalled). No new item is strictly better than a same-tier alternative; `ward_bell_cuirass` and `boiler_heart` are the most bought Body tier 2 items. The 6-item attunement bonus is not reachable with tier 1 items alone for the AI (build lists mix tiers), but a human can reach it with six tier 1 items for under 1,800 gold.
+
+## Final pass: 14 heroes, 36 items, jungle events and shops (800 matches, seeds 24000-24799)
+
+Hero stats were scaled in `content/heroes/*.json` after the earlier runs (smelter x1.2, warden x1.43 plus damage, shieldmaiden x1.27, navigator x1.04, catrina x0.84, cosmonaut x0.93, miko x0.97, rickshaw x0.88, sweep x0.94).
+
+- Win rates: smelter 43.5, ronin 44.7, navigator 45.4, oiran 47.5, revenant 49.0, warden 49.6, miko 49.7, cat 50.0, shieldmaiden 52.0, cosmonaut 52.3, rickshaw 52.4, cartographer 53.7, sweep 54.9, catrina 55.1.
+- Median match length 14.0 min (p10 9.5, p90 20.3), 42 kills and 7.3 towers per match.
+- Team A won 44.9% of random drafts (see BUILD_NOTES, known issue).
+- Item pool: tier-3 items are only available from obelisk unlocks and the Keeper, so heroes that finish on a tier-3 item (the tanks) buy it rarely; the tanks were scaled up to compensate.

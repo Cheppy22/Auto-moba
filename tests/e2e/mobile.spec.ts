@@ -34,7 +34,7 @@ for (const v of views) {
       await expect(page.getByTestId('draft')).toBeVisible();
       await shot(page, `${v.name}-draft`);
       expect(await overflow(page)).toBeLessThanOrEqual(0);
-      await page.getByTestId('hero-smelter').tap();
+      await page.locator('.hero-row [data-testid^="hero-"]').first().tap();
       await page.getByTestId('lane-top').tap();
       await page.getByTestId('begin').scrollIntoViewIfNeeded();
       await page.getByTestId('begin').tap();

@@ -80,6 +80,7 @@ function nearestEnemy(
   let bestScore = Infinity;
   for (const e of ctx.grid.query(u.x, u.y, radius)) {
     if (!e.alive || e.pendingKill || !isEnemy(u, e) || !isTargetable(ctx, e)) continue;
+    if (e.ev?.ghost && !u.hero) continue;
     const s = dist(u.x, u.y, e.x, e.y) + (prefer ? prefer(e) : 0);
     if (s < bestScore) {
       bestScore = s;
@@ -189,6 +190,50 @@ function minionBehavior(ctx: Ctx, u: Unit): void {
   followPath(ctx, u);
 }
 
+/** Procession bearers, parade demons and the oni. */
+function eventUnitBehavior(ctx: Ctx, u: Unit): void {
+  const ev = u.ev!;
+  if (ev.mode === 'march') {
+    minionBehavior(ctx, u);
+    return;
+  }
+  let t = validTarget(ctx, u);
+  if (ev.mode === 'passive') {
+    // Does not fight unless struck in the last few seconds.
+    if (ctx.s.tick - u.lastDamagedTick > 80) {
+      u.targetId = null;
+      t = null;
+    } else if (!t || (ctx.s.tick + u.id) % 6 === 0) {
+      t = nearestEnemy(ctx, u, u.stats.range + 40);
+      u.targetId = t ? t.id : null;
+    }
+    if (t && inAttackRange(u, t)) {
+      tryAttack(ctx, u, t);
+      return;
+    }
+    followPath(ctx, u);
+    return;
+  }
+  // boss: guards its spot like a camp
+  const away = dist(u.x, u.y, ev.homeX, ev.homeY);
+  const def = ctx.c.eventById.get(ctx.s.events.find((e) => e.id === ev.eventId)?.defId ?? '');
+  const leash = def?.leash ?? 260;
+  if (t && away > leash) {
+    u.targetId = null;
+    t = null;
+  }
+  if (!t && (ctx.s.tick + u.id) % 6 === 0) {
+    t = nearestEnemy(ctx, u, def?.aggro ?? 150);
+    u.targetId = t ? t.id : null;
+  }
+  if (t) {
+    if (inAttackRange(u, t)) tryAttack(ctx, u, t);
+    else stepToward(ctx, u, t.x, t.y);
+    return;
+  }
+  if (away > 6) stepToward(ctx, u, ev.homeX, ev.homeY, 1.4);
+}
+
 function campBehavior(ctx: Ctx, u: Unit): void {
   const c = u.camp!;
   let t = validTarget(ctx, u);
@@ -275,7 +320,8 @@ export function stepUnits(ctx: Ctx): void {
         heroBehavior(ctx, u);
         break;
       case 'minion':
-        minionBehavior(ctx, u);
+        if (u.ev) eventUnitBehavior(ctx, u);
+        else minionBehavior(ctx, u);
         break;
       case 'camp':
         campBehavior(ctx, u);

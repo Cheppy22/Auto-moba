@@ -77,6 +77,7 @@ export function readRawContent(): RawContentFiles {
     heroes: heroPool(),
     items: readDir('items'),
     upgrades: upgradePool(),
+    events: readDir('events'),
     biomes: readDir('biomes'),
     pressure: readJson(join(root, 'pressure.json')),
     badges: readJson(join(root, 'badges.json')),

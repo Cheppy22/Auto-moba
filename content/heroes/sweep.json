@@ -7,11 +7,11 @@
   "attackKind": "ranged",
   "playstyle": "A marksman that wins by standing back and shooting steadily. Keep it alive and behind the front line; the longer the fight lasts, the more damage it does.",
   "stats": {
-    "maxHp": 674,
+    "maxHp": 633.6,
     "hpRegen": 2,
     "armor": 16,
     "resist": 14,
-    "bladeDmg": 54,
+    "bladeDmg": 50.8,
     "atkSpeed": 1.1,
     "soulPower": 0,
     "moveSpeed": 45,

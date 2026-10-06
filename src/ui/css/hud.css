@@ -1,0 +1,412 @@
+/* The HUD stays in the empty corners around the round map. */
+.map-zone {
+  pointer-events: none;
+}
+.map-zone.full {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+.map-zone .overlay,
+.map-zone .toast,
+.hud-portrait .overlay {
+  pointer-events: auto;
+}
+.hud-portrait {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  pointer-events: none;
+}
+.hud-portrait .map-zone {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+.corner {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  max-width: 46%;
+}
+.corner > * {
+  pointer-events: auto;
+}
+.corner.tl {
+  top: calc(10px + env(safe-area-inset-top));
+  left: calc(10px + env(safe-area-inset-left));
+  align-items: flex-start;
+}
+.corner.tr {
+  top: calc(10px + env(safe-area-inset-top));
+  right: calc(10px + env(safe-area-inset-right));
+  align-items: flex-end;
+}
+.corner.bl {
+  bottom: calc(10px + env(safe-area-inset-bottom));
+  left: calc(10px + env(safe-area-inset-left));
+  align-items: flex-start;
+}
+.corner.br {
+  bottom: calc(10px + env(safe-area-inset-bottom));
+  right: calc(10px + env(safe-area-inset-right));
+  align-items: flex-end;
+}
+.hud-portrait .corner.bl,
+.hud-portrait .corner.br {
+  bottom: 6px;
+}
+
+/* clock: a paper talisman between two score seals */
+.clock {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-variant-numeric: tabular-nums;
+}
+.clock .ofuda {
+  flex-direction: column;
+  gap: 0;
+  padding: 3px 16px 4px;
+  line-height: 1.1;
+  font-size: var(--fs-sm);
+}
+.clock .ofuda b {
+  font-weight: 400;
+  font-size: var(--fs-xs);
+  letter-spacing: 0.1em;
+  color: #5a4a36;
+}
+.clock .ofuda span {
+  font-size: var(--fs-xl);
+  letter-spacing: 0.02em;
+}
+.pts {
+  display: grid;
+  place-items: center;
+  min-width: 30px;
+  height: 30px;
+  padding: 0 6px;
+  border-radius: 50%;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--fs-md);
+  border: 2px solid var(--c);
+  background: rgba(8, 6, 12, 0.85);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--c) 40%, transparent);
+}
+.pts.a {
+  --c: var(--a);
+  color: var(--a);
+}
+.pts.b {
+  --c: var(--b);
+  color: var(--b);
+}
+.hud-chips {
+  gap: 6px;
+  max-width: 260px;
+}
+.hud-chips .ofuda {
+  font-size: var(--fs-sm);
+}
+
+/* portrait ring: health as an arc around the sigil */
+.hpring {
+  --sz: 34px;
+  --f: 360deg;
+  --c: var(--a);
+  flex: none;
+  width: var(--sz);
+  height: var(--sz);
+  padding: 3px;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, var(--c) var(--f), rgba(255, 255, 255, 0.12) 0);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.7);
+}
+.hpring .in {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: radial-gradient(circle, #1b1626, #0a080e);
+}
+.hpring.me {
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.7),
+    0 0 0 3px rgba(240, 213, 138, 0.55);
+}
+.hpring.dead {
+  filter: grayscale(1);
+  opacity: 0.55;
+}
+.roster {
+  display: flex;
+  gap: 6px;
+  padding: 4px 6px;
+}
+.glass.speed-panel {
+  padding: 3px;
+}
+
+/* player card: portrait, four ability dials, gold */
+.player-card-wrap {
+  position: relative;
+}
+.player-card {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: 8px 14px 8px 8px;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+.player-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.player-gold {
+  margin-left: var(--sp-2);
+  font-family: var(--font-display);
+  font-size: var(--fs-lg);
+}
+.pips {
+  display: flex;
+  gap: 5px;
+}
+.pip {
+  --f: 360deg;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-size: var(--fs-sm);
+  color: var(--faint);
+  background:
+    radial-gradient(circle, #15111e 58%, transparent 60%),
+    conic-gradient(var(--dim) var(--f), #2a2434 0);
+}
+.pip.ready {
+  color: var(--brass-hi);
+  background:
+    radial-gradient(circle, #2a2010 58%, transparent 60%),
+    conic-gradient(var(--brass) 360deg, #2a2434 0);
+  box-shadow: var(--glow-brass);
+}
+.card-pop {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 8px);
+  width: 320px;
+  max-width: 86vw;
+  gap: 6px;
+  padding: var(--sp-3);
+  z-index: 3;
+}
+
+/* action row */
+.controls {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  padding: 4px;
+}
+.act {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 58px;
+  min-height: 48px;
+  padding: 4px 6px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--r-1);
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: var(--fs-xs);
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition:
+    background var(--t-fast),
+    border-color var(--t-fast),
+    color var(--t-fast);
+}
+.act:hover:not(:disabled) {
+  background: rgba(201, 162, 74, 0.12);
+  border-color: var(--brass-dim);
+}
+.act:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.act:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.act.far {
+  opacity: 0.6;
+}
+.act.on {
+  color: var(--brass-hi);
+  border-color: var(--brass);
+  background: rgba(201, 162, 74, 0.16);
+  box-shadow: var(--glow-brass);
+}
+.recalling {
+  position: absolute;
+  right: 6px;
+  top: -30px;
+}
+.hud-dock {
+  position: static;
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+  background: linear-gradient(to top, rgba(8, 6, 12, 0.96) 80%, rgba(8, 6, 12, 0));
+}
+.shop-overlay {
+  z-index: 4;
+}
+
+.pts,
+.player-gold,
+.gold {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+/* cursed item notice: unmistakable, stays until read */
+.curse-notices {
+  position: absolute;
+  top: calc(64px + env(safe-area-inset-top));
+  left: 50%;
+  translate: -50% 0;
+  width: min(440px, 92vw);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 3;
+  pointer-events: none;
+}
+.curse-notice {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 14px 8px 10px;
+  color: #fbeee2;
+  background:
+    linear-gradient(90deg, rgba(110, 20, 27, 0.96), rgba(40, 8, 16, 0.94) 85%), var(--grain);
+  border: 1px solid var(--seal-hi);
+  border-left-width: 4px;
+  border-radius: var(--r-1);
+  box-shadow: var(--glow-seal), var(--sh-2);
+  animation:
+    curse-in 0.45s var(--ease) both,
+    curse-out 0.6s var(--ease) calc(var(--life, 10s) - 0.6s) forwards;
+}
+.curse-notice.foe {
+  border-color: #8a63d2;
+  border-left-color: var(--b);
+  background:
+    linear-gradient(90deg, rgba(48, 20, 88, 0.96), rgba(22, 8, 40, 0.94) 85%), var(--grain);
+  box-shadow: var(--glow-spirit), var(--sh-2);
+}
+.curse-notice.own {
+  border-color: var(--brass-hi);
+  box-shadow:
+    0 0 24px rgba(240, 213, 138, 0.45),
+    var(--sh-2);
+}
+.curse-glyph {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  font-family: var(--font-seal);
+  font-weight: 700;
+  font-size: 22px;
+  color: #f6e4dc;
+  background: var(--seal);
+  border: 1px solid var(--seal-hi);
+  border-radius: 3px;
+  box-shadow: inset 0 0 0 2px var(--seal);
+}
+.curse-title {
+  font-family: var(--font-display);
+  font-size: var(--fs-lg);
+  letter-spacing: 0.04em;
+}
+.curse-detail {
+  font-size: var(--fs-sm);
+  line-height: 1.35;
+  color: #f0d6cf;
+}
+.curse-flash {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 40%, rgba(179, 38, 46, 0.55) 100%);
+  animation: flash 1.6s ease-out both;
+}
+@keyframes curse-in {
+  from {
+    opacity: 0;
+    transform: translateY(-14px) scale(0.96);
+  }
+}
+@keyframes curse-out {
+  to {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+@keyframes flash {
+  0% {
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.ofuda.suggest {
+  font-size: var(--fs-sm);
+  padding-right: 8px;
+}
+.suggest-x {
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--seal);
+  color: #fbeee2;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+.suggest-x:hover {
+  background: var(--seal-hi);
+}

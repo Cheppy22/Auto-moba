@@ -7,11 +7,11 @@
   "attackKind": "melee",
   "playstyle": "A big armored wall that soaks up damage and shields the team around it. Send it into the middle of the fight and let it protect everyone else.",
   "stats": {
-    "maxHp": 1222,
+    "maxHp": 1753.9,
     "hpRegen": 4,
     "armor": 42,
     "resist": 30,
-    "bladeDmg": 42,
+    "bladeDmg": 78.0,
     "atkSpeed": 0.75,
     "soulPower": 0,
     "moveSpeed": 44,

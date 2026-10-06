@@ -28,6 +28,11 @@ function run(ctx: Ctx, cmd: Command, startMatch: StartMatchFn): CommandResult {
     case 'pickHero': {
       if (kind !== 'draft' || !s.draft) return { ok: false, reason: 'not drafting' };
       if (!ctx.c.heroById.has(cmd.heroId)) return { ok: false, reason: 'unknown hero' };
+      if (
+        s.draft.unique &&
+        (s.draft.aiHeroes.A.includes(cmd.heroId) || s.draft.aiHeroes.B.includes(cmd.heroId))
+      )
+        return { ok: false, reason: 'that hero is already on a team this match' };
       s.draft.playerHero = cmd.heroId;
       return { ok: true };
     }
@@ -58,7 +63,27 @@ function run(ctx: Ctx, cmd: Command, startMatch: StartMatchFn): CommandResult {
       if (kind !== 'live') return { ok: false, reason: 'recall works during a phase' };
       if (!p.alive) return { ok: false, reason: 'you are dead' };
       if (p.hero.recall) return { ok: false, reason: 'already recalling' };
+      if (cmd.dest !== 'base') return { ok: false, reason: 'recall only goes home' };
       return startRecall(ctx, p, cmd.dest) ? { ok: true } : { ok: false, reason: 'cannot recall' };
+    }
+    case 'suggestShop': {
+      const p = playerHero(ctx);
+      if (!p || !p.hero) return { ok: false, reason: 'no player hero' };
+      if (kind !== 'live') return { ok: false, reason: 'suggestions work during a phase' };
+      if (!ctx.world.map.shops.some((s) => s.id === cmd.shopId))
+        return { ok: false, reason: 'unknown shop' };
+      const q = p.hero.suggest;
+      const i = q.indexOf(cmd.shopId);
+      if (i >= 0) q.splice(i, 1);
+      else if (q.length >= 3) return { ok: false, reason: 'your shop list is full' };
+      else q.push(cmd.shopId);
+      return { ok: true };
+    }
+    case 'clearSuggest': {
+      const p = playerHero(ctx);
+      if (!p || !p.hero) return { ok: false, reason: 'no player hero' };
+      p.hero.suggest = [];
+      return { ok: true };
     }
     case 'buy': {
       const p = playerHero(ctx);

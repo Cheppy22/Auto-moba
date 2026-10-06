@@ -29,46 +29,52 @@ export function HeroDetail({ hero, compact = false }: { hero: HeroDef; compact?:
           <div class="dim tiny">Usually plays {roleLabel(hero.preferredRole)}</div>
         </div>
       </div>
-      {hero.playstyle && <div data-testid="hero-playstyle">{hero.playstyle}</div>}
-      <div class="stat-bars">
-        {STAT_ROWS.map((r) => (
-          <div class="stat-row" key={r.key} title={r.hint}>
-            <span class="dim small">{r.label}</span>
-            <div class="bar">
-              <i
-                style={{
-                  width: `${Math.max(6, (hero.stats[r.key] / max(r.key)) * 100)}%`,
-                  background: 'var(--spirit)',
-                }}
-              />
-            </div>
-          </div>
-        ))}
-      </div>
-      <h3>Abilities</h3>
-      <div class="col" style={{ gap: '6px' }}>
-        {hero.abilities.map((a, i) => (
-          <div class="ability" key={a.id}>
-            <span class="pip ready">{i + 1}</span>
-            <div class="grow">
-              <div>
-                <b>{a.name}</b> <span class="dim tiny">every {a.cooldownSec}s</span>
+      <div class="detail-cols">
+        <div class="col">
+          {hero.playstyle && <div data-testid="hero-playstyle">{hero.playstyle}</div>}
+          <div class="stat-bars">
+            {STAT_ROWS.map((r) => (
+              <div class="stat-row" key={r.key} title={r.hint}>
+                <span class="dim small">{r.label}</span>
+                <div class="bar">
+                  <i
+                    style={{
+                      width: `${Math.max(6, (hero.stats[r.key] / max(r.key)) * 100)}%`,
+                      background: 'var(--spirit)',
+                    }}
+                  />
+                </div>
               </div>
-              <div class="dim small">{a.desc}</div>
-            </div>
+            ))}
           </div>
-        ))}
-        {passives.map((p, i) => (
-          <div class="ability" key={`p${i}`}>
-            <span class="pip">P</span>
-            <div class="grow">
-              <div>
-                <b>{p.name ?? 'Passive'}</b>
+        </div>
+        <div class="col">
+          <h3>Abilities</h3>
+          <div class="col" style={{ gap: '6px' }}>
+            {hero.abilities.map((a, i) => (
+              <div class="ability" key={a.id}>
+                <span class="pip ready">{i + 1}</span>
+                <div class="grow">
+                  <div>
+                    <b>{a.name}</b> <span class="dim tiny">every {a.cooldownSec}s</span>
+                  </div>
+                  <div class="dim small">{a.desc}</div>
+                </div>
               </div>
-              <div class="dim small">{p.desc ?? 'Always active.'}</div>
-            </div>
+            ))}
+            {passives.map((p, i) => (
+              <div class="ability" key={`p${i}`}>
+                <span class="pip">P</span>
+                <div class="grow">
+                  <div>
+                    <b>{p.name ?? 'Passive'}</b>
+                  </div>
+                  <div class="dim small">{p.desc ?? 'Always active.'}</div>
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
+        </div>
       </div>
     </div>
   );

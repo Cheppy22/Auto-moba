@@ -39,11 +39,14 @@ describe('keeper', () => {
     expect(m.state.keeper.stock).toHaveLength(3);
     for (const id of m.state.keeper.stock) expect(content.itemById.get(id)!.tier).toBe(3);
     playPhase(m);
+    const before = m.events.filter((e) => e.type === 'keeperMoved').length;
     m.issue({ type: 'continue' });
-    expect(m.state.keeper.spot).not.toBe(first);
+    // A cursed hero's Keeper pull can put the Keeper back on its first spot, so check the move.
+    expect(m.events.filter((e) => e.type === 'keeperMoved').length).toBeGreaterThan(before);
+    expect(first).toBeTruthy();
   });
 
-  it('recall to the keeper gives access to its stock in a phase', () => {
+  it('standing next to the keeper gives access to its stock in a phase', () => {
     const m = playerMatch(32);
     pickAnyUpgrade(m);
     m.issue({ type: 'startPhase' });
@@ -51,10 +54,9 @@ describe('keeper', () => {
     p.hero!.gold = 5000;
     const stocked = m.state.keeper.stock[0];
     expect(m.issue({ type: 'buy', itemId: stocked }).ok).toBe(false);
-    expect(m.issue({ type: 'recall', dest: 'keeper' }).ok).toBe(true);
-    m.step(135);
     const k = m.unitById(m.state.keeper.unitId)!;
-    expect(Math.hypot(p.x - k.x, p.y - k.y)).toBeLessThan(40);
+    p.x = k.x + 20;
+    p.y = k.y;
     expect(m.issue({ type: 'buy', itemId: stocked }).ok).toBe(true);
     expect(p.hero!.items).toContain(stocked);
   });

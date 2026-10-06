@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'preact/hooks';
 import { Renderer } from '../render';
-import { useSession } from './session';
+import { NOTICE_TICKS, useSession } from './session';
 
 export function Stage() {
   const s = useSession();
@@ -28,10 +28,46 @@ export function Stage() {
         r.drawEmpty();
         return;
       }
-      r.draw(m.snapshot(), { alpha, highlightId: s.ui.reportHero });
+      const pts = JSON.stringify(r.shopPoints());
+      if (canvas.dataset.shops !== pts) canvas.dataset.shops = pts;
+      r.draw(m.snapshot(), {
+        alpha,
+        highlightId: s.ui.reportHero,
+        curses: s.ui.notices.map((n) => ({
+          heroId: n.heroId,
+          startTick: n.startTick,
+          life: NOTICE_TICKS,
+          title: n.title,
+          own: n.own,
+        })),
+      });
     };
     const off = s.onFrame(draw);
-    return off;
+    const toCanvas = (e: MouseEvent): { x: number; y: number } => {
+      const rect = canvas.getBoundingClientRect();
+      const k = canvas.width / Math.max(1, rect.width);
+      return { x: (e.clientX - rect.left) * k, y: (e.clientY - rect.top) * k };
+    };
+    const onClick = (e: MouseEvent): void => {
+      const m = s.match;
+      if (!m || m.state.phase.kind !== 'live') return;
+      const p = toCanvas(e);
+      const id = r.pickShop(p.x, p.y, 80);
+      if (id) s.issue({ type: 'suggestShop', shopId: id });
+    };
+    const onMove = (e: MouseEvent): void => {
+      const m = s.match;
+      const p = toCanvas(e);
+      const hit = !!m && m.state.phase.kind === 'live' && !!r.pickShop(p.x, p.y);
+      canvas.style.cursor = hit ? 'pointer' : '';
+    };
+    canvas.addEventListener('click', onClick);
+    canvas.addEventListener('mousemove', onMove);
+    return () => {
+      off();
+      canvas.removeEventListener('click', onClick);
+      canvas.removeEventListener('mousemove', onMove);
+    };
   }, [s]);
   return (
     <div class="stage">

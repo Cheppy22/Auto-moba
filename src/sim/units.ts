@@ -96,6 +96,7 @@ export function makeHero(
     engageTick: 0,
     holdTicks: 0,
     lastRecallTick: -9999,
+    suggest: [],
   };
   u.hero = hero;
   ctx.s.teams[team].heroIds.push(u.id);

@@ -7,7 +7,8 @@ import type { Goal, GoalKind, PlayTeam, Unit } from '../types';
 import { other } from '../types';
 import { closestLane, enemyTowerTarget, lanePath, pointAtProgress, progressAt } from './lanes';
 import { matchupAt } from './power';
-import { nextPurchase } from './shopping';
+import { aiShop, nextPurchase } from './shopping';
+import { shopAt } from '../shop';
 
 interface Cand {
   goal: Goal;
@@ -232,6 +233,21 @@ export function strategicUpdate(ctx: Ctx, u: Unit): void {
   const cands: Cand[] = [];
   const cur = h.goal;
 
+  const here = shopAt(ctx, u);
+  if (here) {
+    const q = h.suggest.indexOf(here);
+    if (q >= 0) {
+      h.suggest.splice(q, 1);
+      if (h.isPlayer) ctx.emit('shopVisit', { id: u.id, shop: here });
+      else aiShop(ctx, u);
+      if (cur?.kind === 'visitShop') h.goal = null;
+    } else if (!h.isPlayer && cur?.kind === 'visitShop') {
+      aiShop(ctx, u);
+      h.lastRecallTick = ctx.s.tick;
+      h.goal = null;
+    }
+  }
+
   const healing = cur !== null && (cur.kind === 'retreat' || cur.kind === 'base');
   const needHeal = hp < pers.retreatHp || (healing && hp < 0.78) || h.engage === 'flee';
   if (needHeal) {
@@ -249,7 +265,10 @@ export function strategicUpdate(ctx: Ctx, u: Unit): void {
     if (!h.isPlayer && distBase > 400 && enemiesNear(ctx, u, u.x, u.y, 260) === 0) {
       const p = nextPurchase(ctx, u, true);
       const since = ctx.s.tick - (h.lastRecallTick ?? -9999);
-      if (p && h.gold >= 750 && since > 400) {
+      let shopClose = false;
+      for (const sh of ctx.world.map.shops)
+        if (dist(u.x, u.y, sh.x, sh.y) <= ai.ai.shopTripRadius) shopClose = true;
+      if (p && h.gold >= 750 && since > 400 && !shopClose) {
         h.lastRecallTick = ctx.s.tick;
         startRecall(ctx, u, 'base');
         return;
@@ -472,6 +491,48 @@ export function strategicUpdate(ctx: Ctx, u: Unit): void {
         Math.max(0.1, 1 - d / 2200) *
         (h.role === 'jungle' ? 1.3 : 1);
       cands.push(cand('takeObelisk', ob.x, ob.y, key, score, ob.id));
+    }
+
+    // Jungle events: a lane hero only goes when its lane is quiet (no defend candidate, no team
+    // siege) and the event is close; at most `aiMax` heroes per team per event (board claims).
+    const quiet = !bestDef && !(plan.siege && laneHero) && hp > 0.6;
+    if (quiet) {
+      for (const ev of ctx.s.events) {
+        const def = ctx.c.eventById.get(ev.defId)!;
+        if (ev.phase === 'warning' && (def.kind === 'procession' || def.kind === 'parade'))
+          continue;
+        const d = dist(u.x, u.y, ev.x, ev.y);
+        const reach = laneHero ? def.aiRadius : def.aiRadius * 1.6;
+        if (d > reach) continue;
+        const key = goalKey('contestEvent', ev.id);
+        const claims = ctx.s.board[team].claims[key] ?? 0;
+        if (claims > (cur?.key === key ? def.aiMax : def.aiMax - 1)) continue;
+        if (enemiesNear(ctx, u, ev.x, ev.y, 260) >= 5) continue;
+        const score =
+          def.aiWeight *
+          (post.contestEvent ?? 1) *
+          Math.max(0.2, 1.15 - (0.6 * d) / reach) *
+          (laneHero ? 1 : 1.3);
+        cands.push(cand('contestEvent', ev.x, ev.y, key, score, null));
+      }
+    }
+  }
+
+  if (!needHeal) {
+    const shopCand = (id: string, score: number): void => {
+      const sh = ctx.world.map.shops.find((x) => x.id === id);
+      if (sh) cands.push(cand('visitShop', sh.x, sh.y, goalKey('visitShop', id), score));
+    };
+    if (h.suggest.length > 0) {
+      shopCand(h.suggest[0], ai.ai.suggestScore);
+    } else if (!h.isPlayer && h.gold >= ai.ai.shopTripGold && nextPurchase(ctx, u, true)) {
+      let bestShop: { id: string; d: number } | null = null;
+      for (const sh of ctx.world.map.shops) {
+        const d = dist(u.x, u.y, sh.x, sh.y);
+        if (d <= ai.ai.shopTripRadius && (!bestShop || d < bestShop.d)) bestShop = { id: sh.id, d };
+      }
+      if (bestShop)
+        shopCand(bestShop.id, ai.ai.shopTripScore * (1.2 - bestShop.d / ai.ai.shopTripRadius));
     }
   }
 

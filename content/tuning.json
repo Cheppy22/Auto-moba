@@ -83,11 +83,13 @@
     "mind": [
       {
         "count": 2,
+        "title": "Drilled",
         "text": "+6% Blade damage",
         "mods": [{ "stat": "bladeDmg", "kind": "mul", "value": 1.06 }]
       },
       {
         "count": 4,
+        "title": "Adept",
         "text": "+12% Blade damage, +8% attack speed",
         "mods": [
           { "stat": "bladeDmg", "kind": "mul", "value": 1.12 },
@@ -96,6 +98,7 @@
       },
       {
         "count": 6,
+        "title": "Master",
         "text": "+20% Blade damage, +15% attack speed",
         "mods": [
           { "stat": "bladeDmg", "kind": "mul", "value": 1.2 },
@@ -106,11 +109,13 @@
     "body": [
       {
         "count": 2,
+        "title": "Hardened",
         "text": "+6% health",
         "mods": [{ "stat": "maxHp", "kind": "mul", "value": 1.06 }]
       },
       {
         "count": 4,
+        "title": "Steeled",
         "text": "+12% health, +8 armor",
         "mods": [
           { "stat": "maxHp", "kind": "mul", "value": 1.12 },
@@ -119,6 +124,7 @@
       },
       {
         "count": 6,
+        "title": "Unbroken",
         "text": "+20% health, +15 armor, +2 regeneration",
         "mods": [
           { "stat": "maxHp", "kind": "mul", "value": 1.2 },
@@ -130,11 +136,13 @@
     "soul": [
       {
         "count": 2,
+        "title": "Stirred",
         "text": "+6% Soul power",
         "mods": [{ "stat": "soulPower", "kind": "mul", "value": 1.06 }]
       },
       {
         "count": 4,
+        "title": "Awakened",
         "text": "+12% Soul power, +8% cooldown reduction",
         "mods": [
           { "stat": "soulPower", "kind": "mul", "value": 1.12 },
@@ -143,6 +151,7 @@
       },
       {
         "count": 6,
+        "title": "Ascendant",
         "text": "+20% Soul power, +15% cooldown reduction",
         "mods": [
           { "stat": "soulPower", "kind": "mul", "value": 1.2 },
@@ -156,11 +165,11 @@
     "sellRefund": 0.5,
     "baseRadius": 110,
     "keeperRadius": 120,
+    "jungleRadius": 60,
     "keeperStock": 3
   },
   "recall": {
-    "baseSec": 3,
-    "keeperSec": 6
+    "baseSec": 3
   },
   "movement": {
     "arriveDist": 12
@@ -191,6 +200,10 @@
     "laneHugRadius": 150,
     "joinFightRadius": 450,
     "defendOffLaneRadius": 600,
+    "suggestScore": 1.5,
+    "shopTripGold": 700,
+    "shopTripRadius": 380,
+    "shopTripScore": 0.9,
     "holdPatience": 400
   },
   "personalities": {
@@ -308,5 +321,12 @@
   "fight": {
     "clusterGapSec": 4,
     "clusterRadius": 220
+  },
+  "events": {
+    "firstSec": 40,
+    "gapSec": 80,
+    "jitterSec": 10,
+    "perPhase": [2],
+    "endMarginSec": 8
   }
 }

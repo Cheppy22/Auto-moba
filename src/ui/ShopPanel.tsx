@@ -1,7 +1,14 @@
 import { useState } from 'preact/hooks';
 import type { ShopEntry } from '../sim';
+import { ItemIcon } from './ItemIcon';
 import { keeperPlace, n0 } from './format';
 import { useSession } from './session';
+
+const BLURB: Record<string, string> = {
+  mind: 'Technique and skill with a weapon: melee and physical power, Blade damage and attack speed.',
+  body: 'The vessel: health, armor and regeneration.',
+  soul: 'The spirit: Soul power, resistance and cooldowns. Power with a price.',
+};
 
 const CATS = [
   { id: 'mind', label: 'Mind' },
@@ -47,19 +54,22 @@ function Tile(props: { e: ShopEntry; selected: boolean; onPick: () => void; coun
   const state = e.source === 'locked' ? 'locked' : e.canBuy ? 'ready' : 'poor';
   return (
     <button
-      class={`tile cat-${e.category} ${state} ${props.selected ? 'sel' : ''} ${
+      class={`tile t${e.tier} cat-${e.category} ${state} ${props.selected ? 'sel' : ''} ${
         e.consumed.length ? 'combo' : ''
       }`}
       data-testid={`item-${e.id}`}
       onClick={props.onPick}
       title={e.name}
     >
+      <span class="tile-tier" aria-label={`Tier ${e.tier}`}>
+        {'◆'.repeat(e.tier)}
+      </span>
       <span class="tile-icon">
-        <CatGlyph cat={e.category} />
+        <ItemIcon id={e.id} size={26} />
         {props.count > 0 && <i class="tile-count">{props.count}</i>}
       </span>
       <span class="tile-name">{e.name}</span>
-      <span class="tile-price">{n0(e.price)}g</span>
+      <span class="tile-price">{n0(e.price)}</span>
     </button>
   );
 }
@@ -72,6 +82,7 @@ function Attunement({ cat, owned }: { cat: Cat; owned: number }) {
   const next = tiers.find((t) => owned < t.count);
   return (
     <div class={`attune cat-${cat}`} data-testid="attunement">
+      <div class="small dim">{BLURB[cat]}</div>
       <div class="attune-track" aria-label={`${owned} of ${slots} ${cat} items owned`}>
         {Array.from({ length: slots }, (_, i) => (
           <span
@@ -83,7 +94,10 @@ function Attunement({ cat, owned }: { cat: Cat; owned: number }) {
       <div class="small">
         {active ? (
           <>
-            <b>Attuned ({active.count}):</b> {active.text}
+            <b>
+              {active.title} ({active.count}):
+            </b>{' '}
+            {active.text}
           </>
         ) : (
           <span class="dim">Own 2 {cat} items to attune.</span>
@@ -91,7 +105,7 @@ function Attunement({ cat, owned }: { cat: Cat; owned: number }) {
         {next && (
           <span class="dim">
             {' '}
-            · {next.count - owned} more for {next.text}
+            · {next.count - owned} more for {next.title}: {next.text}
           </span>
         )}
       </div>
@@ -138,7 +152,7 @@ export function ShopPanel() {
         <div class="col detail-body" data-testid="item-detail">
           <div class="row">
             <span class={`detail-icon cat-${def.category}`}>
-              <CatGlyph cat={def.category} size={22} />
+              <ItemIcon id={def.id} size={28} />
             </span>
             <div class="grow">
               <div class="detail-name">{def.name}</div>
@@ -270,11 +284,7 @@ export function ShopPanel() {
                 title={nameOf(id)}
                 onClick={() => pick({ kind: 'owned', id })}
               >
-                {nameOf(id)
-                  .split(' ')
-                  .map((w) => w[0])
-                  .join('')
-                  .slice(0, 2)}
+                <ItemIcon id={id} size={26} />
               </button>
             ) : (
               <span key={i} class="slot" />

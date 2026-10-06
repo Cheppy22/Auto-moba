@@ -1,9 +1,10 @@
 import { useState } from 'preact/hooks';
 import type { Unit } from '../sim';
+import { HpRing, Icon } from './Ornament';
 import { SigilIcon } from './SigilIcon';
 import { mmss, n0 } from './format';
 import { useLayout, type Layout } from './layout';
-import { useSession, type Speed } from './session';
+import { useSession, NOTICE_TICKS, type Speed } from './session';
 import { ShopPanel } from './ShopPanel';
 
 function Roster({ team }: { team: 'A' | 'B' }) {
@@ -21,19 +22,19 @@ function Roster({ team }: { team: 'A' | 'B' }) {
         const frac = u.alive ? u.hp / u.stats.maxHp : 0;
         return (
           <div
-            class={`roster-cell ${u.hero!.isPlayer ? 'me' : ''}`}
+            class="roster-cell"
             key={id}
             title={`${def.name} · ${u.hero!.kills} kills, ${u.hero!.deaths} deaths`}
           >
-            <SigilIcon spec={def.sigil} team={team} size={26} alive={u.alive} />
-            <div class="bar">
-              <i
-                style={{
-                  width: `${frac * 100}%`,
-                  background: team === 'A' ? 'var(--a)' : 'var(--b)',
-                }}
-              />
-            </div>
+            <HpRing
+              size={34}
+              frac={frac}
+              color={team === 'A' ? 'var(--a)' : 'var(--b)'}
+              alive={u.alive}
+              me={u.hero!.isPlayer}
+            >
+              <SigilIcon spec={def.sigil} team={team} size={26} alive={u.alive} />
+            </HpRing>
           </div>
         );
       })}
@@ -74,16 +75,21 @@ function PlayerCard({ u }: { u: Unit }) {
         </div>
       )}
       <button
-        class="panel player-card"
+        class="glass player-card"
         data-testid="player-card"
         aria-expanded={open}
         onClick={() => setOpen(!open)}
       >
-        <SigilIcon spec={def.sigil} team="A" size={34} alive={u.alive} />
+        <HpRing
+          size={58}
+          frac={u.alive ? u.hp / u.stats.maxHp : 0}
+          color="var(--a)"
+          alive={u.alive}
+          me
+        >
+          <SigilIcon spec={def.sigil} team="A" size={44} alive={u.alive} />
+        </HpRing>
         <div class="player-main">
-          <div class="bar" style={{ height: '8px' }}>
-            <i style={{ width: `${(u.hp / u.stats.maxHp) * 100}%`, background: 'var(--a)' }} />
-          </div>
           <div class="pips">
             {def.abilities.map((a, i) => {
               const total = Math.max(1, a.cooldownSec * 20);
@@ -100,13 +106,20 @@ function PlayerCard({ u }: { u: Unit }) {
                 </span>
               );
             })}
-            {dead && (
+          </div>
+          <div class="player-sub">
+            {dead ? (
               <span class="tiny dim">respawn {mmss((h.respawnAt ?? 0) - s.match!.state.tick)}</span>
+            ) : (
+              <span class="tiny dim">
+                {n0(u.hp)} / {n0(u.stats.maxHp)}
+              </span>
             )}
           </div>
         </div>
         <div class="gold player-gold" data-testid="gold">
-          {n0(h.gold)}g
+          <i class="coin" aria-hidden="true" />
+          {n0(h.gold)}
         </div>
       </button>
     </div>
@@ -138,44 +151,71 @@ function Controls({ u }: { u: Unit }) {
   const busy = !u.alive || !!u.hero!.recall;
   const farming = u.hero!.posture === 'farm';
   return (
-    <div class="panel controls">
+    <div class="glass controls">
       <button
-        class="btn"
+        class="act"
         disabled={busy}
         data-testid="recall-base"
-        title="Teleport home, then the shop opens"
+        title="Teleport home (3 s), then the shop opens"
         onClick={() => s.issue({ type: 'recall', dest: 'base' })}
       >
-        Base
+        <Icon name="base" />
+        <span>Base</span>
       </button>
       <button
-        class="btn"
-        disabled={busy}
-        data-testid="recall-keeper"
-        title="Teleport to the Keeper, then the shop opens"
-        onClick={() => s.issue({ type: 'recall', dest: 'keeper' })}
-      >
-        Keeper
-      </button>
-      <button
-        class={`btn ${nearShop ? '' : 'far'}`}
+        class={`act ${nearShop ? '' : 'far'}`}
         data-testid="shop-toggle"
         title={nearShop ? 'Open the shop' : 'No shop in reach: browse only'}
         onClick={() => s.setUi({ shopOpen: !s.ui.shopOpen })}
       >
-        Shop
+        <Icon name="shop" />
+        <span>Shop</span>
       </button>
       <button
-        class={`btn ${farming ? 'on' : ''}`}
+        class={`act ${farming ? 'on' : ''}`}
         data-testid="farm-toggle"
         aria-pressed={farming}
         title="Ask your hero to favor minions and camps (a suggestion, not an order)"
         onClick={() => s.issue({ type: 'setPosture', posture: farming ? 'default' : 'farm' })}
       >
-        Farm
+        <Icon name="farm" />
+        <span>Farm</span>
       </button>
-      {u.hero!.recall && <span class="chip gold recalling">recalling…</span>}
+      {u.hero!.recall && <span class="ofuda warn recalling">recalling…</span>}
     </div>
+  );
+}
+
+function CurseNotices() {
+  const s = useSession();
+  const tick = s.match!.state.tick;
+  const list = s.ui.notices.filter((n) => tick >= n.startTick).slice(-3);
+  if (list.length === 0) return null;
+  const own = list.find((n) => n.own);
+  return (
+    <>
+      {own && <div class="curse-flash" key={own.id} aria-hidden="true" />}
+      <div class="curse-notices" role="status" aria-live="polite" data-testid="curse-notices">
+        {list.map((n) => (
+          <div
+            class={`curse-notice ${n.team === 'A' ? 'ally' : 'foe'} ${n.own ? 'own' : ''}`}
+            key={n.id}
+            style={{ '--life': `${NOTICE_TICKS / 20}s` }}
+          >
+            <span class="curse-glyph" aria-hidden="true">
+              詛
+            </span>
+            <div>
+              <div class="curse-title">
+                Cursed: {n.title}
+                {n.own ? ' · you' : n.team === 'A' ? ' · ally' : ' · enemy'}
+              </div>
+              <div class="curse-detail">{n.detail}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </>
   );
 }
 
@@ -189,21 +229,51 @@ export function Hud() {
     (id) => s.content.pressure.find((x) => x.id === id)?.name ?? id,
   );
   const score = (
-    <div class="panel row hud-score">
-      <b data-testid="phase">Phase {m.state.phase.n}</b>
-      <span data-testid="clock">{mmss(snap.phaseTicksLeft)}</span>
-      <span class="teamA">{snap.points.A}</span>
-      <span class="dim">:</span>
-      <span class="teamB">{snap.points.B}</span>
+    <div class="clock" data-testid="score">
+      <b class="pts a" title="Your team's points">
+        {snap.points.A}
+      </b>
+      <div class="ofuda">
+        <b data-testid="phase">Phase {m.state.phase.n}</b>
+        <span data-testid="clock">{mmss(snap.phaseTicksLeft)}</span>
+      </div>
+      <b class="pts b" title="Enemy points">
+        {snap.points.B}
+      </b>
     </div>
   );
-  const chips = pressure.length > 0 && (
+  const announce = snap.events.map((e) => (
+    <span
+      class={`ofuda ${e.phase === 'warning' ? 'warn' : 'live'}`}
+      key={e.id}
+      data-testid="event-chip"
+    >
+      {e.name} · {e.phase === 'warning' ? `in ${Math.ceil(e.ticksLeft / 20)}s` : 'now'}
+    </span>
+  ));
+  const queued = snap.suggest
+    .map((id) => s.content.map.shops.find((x) => x.id === id)?.name ?? id)
+    .join(' → ');
+  const suggestChip = snap.suggest.length > 0 && (
+    <div class="ofuda suggest" data-testid="suggest-chip">
+      <span>Suggested: {queued}</span>
+      <button
+        class="suggest-x"
+        aria-label="Clear suggestions"
+        onClick={() => s.issue({ type: 'clearSuggest' })}
+      >
+        ×
+      </button>
+    </div>
+  );
+  const chips = (pressure.length > 0 || announce.length > 0) && (
     <div class="row wrap hud-chips">
       {pressure.map((n) => (
         <span class="chip bad" key={n}>
           {n}
         </span>
       ))}
+      {announce}
     </div>
   );
   const shop = s.ui.shopOpen && (
@@ -224,7 +294,7 @@ export function Hud() {
   );
   const toast = s.ui.toast && <div class="toast">{s.ui.toast}</div>;
   const speed = (
-    <div class="panel speed-panel">
+    <div class="glass speed-panel">
       <SpeedControls />
     </div>
   );
@@ -235,6 +305,7 @@ export function Hud() {
         <div class="map-zone">
           <div class="corner tl">
             {score}
+            {suggestChip}
             {chips}
           </div>
           <div class="corner tr">{speed}</div>
@@ -244,6 +315,7 @@ export function Hud() {
           <div class="corner br">
             <Roster team="B" />
           </div>
+          <CurseNotices />
         </div>
         {toast}
         <div class="hud-dock portrait">
@@ -259,12 +331,14 @@ export function Hud() {
       <div class="corner tl">
         {score}
         <Roster team="A" />
+        {suggestChip}
         {chips}
       </div>
       <div class="corner tr">
         {speed}
         <Roster team="B" />
       </div>
+      <CurseNotices />
       <div class="corner bl">{p && <PlayerCard u={p} />}</div>
       <div class="corner br">{p && <Controls u={p} />}</div>
       {toast}

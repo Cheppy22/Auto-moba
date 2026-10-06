@@ -1,0 +1,200 @@
+/* ---------- phone and compact layouts ---------- */
+html:not([data-layout='desktop']) {
+  font-size: 14px;
+}
+html:not([data-layout='desktop']) .overlay {
+  padding: 6px;
+  padding-left: max(6px, env(safe-area-inset-left));
+  padding-right: max(6px, env(safe-area-inset-right));
+  align-items: flex-start;
+}
+html:not([data-layout='desktop']) .panel {
+  padding: var(--sp-3);
+  box-shadow:
+    inset 0 0 0 2px #110e18,
+    inset 0 0 0 3px var(--rule),
+    0 6px 18px rgba(0, 0, 0, 0.6);
+}
+html:not([data-layout='desktop']) .hero-grid {
+  grid-template-columns: repeat(2, 1fr);
+}
+html:not([data-layout='desktop']) .tabs {
+  overflow-x: auto;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+html:not([data-layout='desktop']) .wordmark {
+  font-size: 44px;
+}
+html:not([data-layout='desktop']) .title-wrap .seal {
+  right: -6px;
+  top: -30px;
+}
+html:not([data-layout='desktop']) table.stats {
+  font-size: var(--fs-sm);
+}
+html:not([data-layout='desktop']) table.stats th,
+html:not([data-layout='desktop']) table.stats td {
+  padding: 4px;
+}
+html:not([data-layout='desktop']) .prep-scroll,
+html:not([data-layout='desktop']) .report-scroll {
+  max-height: calc(100dvh - 190px);
+}
+html[data-layout='landscape'] .prep-scroll,
+html[data-layout='landscape'] .report-scroll {
+  max-height: calc(100dvh - 120px);
+}
+html:not([data-layout='desktop']) .panel [style*='min-width'] {
+  min-width: 0 !important;
+}
+html[data-layout='portrait'] .row.wrap:has(> [style*='min-width']) {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: stretch !important;
+}
+
+/* draft */
+html[data-layout='portrait'] .draft {
+  grid-template-columns: 1fr;
+  grid-template-rows: none;
+  grid-template-areas: 'head' 'main' 'side' 'team' 'foot';
+  height: auto;
+  width: 100%;
+}
+html[data-layout='portrait'] .draft-team {
+  overflow: visible;
+}
+html[data-layout='portrait'] .draft-detail {
+  overflow: visible;
+}
+html[data-layout='portrait'] .hero-row {
+  grid-template-columns: repeat(3, 1fr);
+}
+html[data-layout='landscape'] .draft {
+  grid-template-columns: 170px minmax(0, 1fr) 190px;
+  height: 100%;
+  width: 100%;
+}
+html[data-layout='landscape'] .lane-map {
+  width: min(100%, 150px);
+}
+html[data-layout='landscape'] .hero-pick {
+  padding: 6px 4px;
+}
+
+/* codex */
+html:not([data-layout='desktop']) .codex-body {
+  grid-template-columns: 1fr;
+}
+html:not([data-layout='desktop']) .codex-list {
+  flex-direction: row;
+  max-height: none;
+  padding-bottom: 4px;
+}
+html:not([data-layout='desktop']) .codex-list .card {
+  flex: none;
+}
+html:not([data-layout='desktop']) .codex-detail {
+  max-height: calc(100dvh - 230px);
+}
+
+/* shop */
+html:not([data-layout='desktop']) .shop-body {
+  grid-template-columns: 1fr;
+}
+html:not([data-layout='desktop']) .shop-detail {
+  order: -1;
+  position: static;
+  min-height: 0;
+}
+html:not([data-layout='desktop']) .tiles {
+  grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+}
+
+/* hud */
+html[data-layout='portrait'] .hud-dock .player-card {
+  width: 100%;
+}
+html[data-layout='portrait'] .hud-dock .controls {
+  justify-content: space-between;
+}
+html[data-layout='portrait'] .hud-dock .act {
+  flex: 1;
+}
+html[data-layout='portrait'] .hud-dock .card-pop {
+  width: 100%;
+}
+html[data-layout='portrait'] .corner.bl .roster,
+html[data-layout='portrait'] .corner.br .roster {
+  flex-direction: column;
+  padding: 3px;
+  gap: 3px;
+}
+html[data-layout='portrait'] .clock .ofuda span {
+  font-size: var(--fs-lg);
+}
+html[data-layout='landscape'] .player-card {
+  padding: 4px 10px 4px 6px;
+  gap: var(--sp-2);
+}
+html[data-layout='landscape'] .act {
+  min-width: 50px;
+  min-height: 44px;
+  padding: 3px 4px;
+}
+html[data-layout='landscape'] .roster {
+  gap: 3px;
+  padding: 3px;
+}
+
+@media (pointer: coarse) {
+  .btn {
+    min-height: 44px;
+  }
+  .btn.small {
+    min-height: 36px;
+    padding: 6px 10px;
+  }
+  .act {
+    min-height: 46px;
+  }
+  .tabs .btn {
+    min-height: 40px;
+  }
+  .lane-pin {
+    min-height: 34px;
+    padding: 6px 10px;
+  }
+  input[type='range'] {
+    min-height: 32px;
+  }
+  .card.clickable {
+    min-height: 44px;
+  }
+}
+
+html[data-layout='landscape'] .hero-row {
+  grid-template-columns: repeat(5, 1fr);
+  gap: 4px;
+}
+html[data-layout='landscape'] .hero-pick canvas {
+  width: 40px !important;
+  height: 40px !important;
+}
+html[data-layout='landscape'] .hero-pick .dim {
+  display: none;
+}
+html[data-layout='landscape'] .lane-map {
+  width: min(100%, 176px);
+}
+html[data-layout='landscape'] .lane-pin {
+  padding: 2px 5px;
+  font-size: 10px;
+}
+html[data-layout='landscape'] .draft-detail {
+  min-height: 110px;
+}
+html[data-layout='landscape'] .draft-head .dim {
+  display: none;
+}

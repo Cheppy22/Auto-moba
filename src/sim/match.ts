@@ -9,6 +9,7 @@ import { Grid } from './core/grid';
 import { seedStreams, pick } from './core/rng';
 import { strategicUpdate } from './ai/strategic';
 import { updateFronts } from './ai/lanes';
+import { tickEvents } from './events';
 import { createKeeper } from './keeper';
 import { tickObelisks } from './obelisks';
 import { enterPrep, endLive } from './phase';
@@ -51,12 +52,20 @@ function initialState(
   seed: number,
   withPlayer: boolean | null,
   fixed?: { A: string[]; B: string[] },
+  reserved?: string,
 ): MatchState {
   const rng = seedStreams(seed);
   const aiHeroes: Record<PlayTeam, string[]> = { A: [], B: [] };
   const nA = withPlayer === null ? 5 : 4;
-  for (let i = 0; i < nA; i++) aiHeroes.A.push(pick(rng, 'draft', content.heroes).id);
-  for (let i = 0; i < 5; i++) aiHeroes.B.push(pick(rng, 'draft', content.heroes).id);
+  let pool = content.heroes.filter((h) => h.id !== reserved);
+  const take = (): string => {
+    if (pool.length === 0) pool = content.heroes.filter((h) => h.id !== reserved);
+    const h = pick(rng, 'draft', pool);
+    pool = pool.filter((x) => x.id !== h.id);
+    return h.id;
+  };
+  for (let i = 0; i < nA; i++) aiHeroes.A.push(take());
+  for (let i = 0; i < 5; i++) aiHeroes.B.push(take());
   if (fixed) {
     aiHeroes.A = fixed.A.slice(0, nA);
     aiHeroes.B = fixed.B.slice(0, 5);
@@ -109,6 +118,7 @@ function initialState(
       playerHero: null,
       playerRole: null,
       playerTeam: 'A',
+      unique: !fixed,
     },
     board: {
       A: { claims: {}, plan: { tick: -999, siege: false, lane: 'mid' } },
@@ -116,6 +126,9 @@ function initialState(
     },
     tideNextTick: 0,
     lastPassiveTick: 0,
+    events: [],
+    eventSchedule: [],
+    nextEventId: 1,
   };
 }
 
@@ -221,13 +234,14 @@ function stepTick(ctx: Ctx): void {
   spawnWaves(ctx);
   tickSpiritTide(ctx);
   tickObelisks(ctx);
+  tickEvents(ctx);
   tickCampRespawns(ctx);
   const order: PlayTeam[] = Math.floor(s.tick / 20) % 2 === 0 ? ['A', 'B'] : ['B', 'A'];
   for (const team of order) {
     for (const id of s.teams[team].heroIds) {
       const u = ctx.unit(id);
       if (!u || !u.alive) continue;
-      if ((s.tick + id * 3) % 20 === 0) strategicUpdate(ctx, u);
+      if ((s.tick + (u.hero ? u.hero.slot : id) * 3) % 20 === 0) strategicUpdate(ctx, u);
       if (
         u.hero &&
         !u.hero.isPlayer &&
@@ -258,7 +272,13 @@ export class Match {
     readonly config: MatchConfig,
   ) {
     const player = config.player;
-    const state = initialState(content, config.seed, player === null ? null : true, config.draft);
+    const state = initialState(
+      content,
+      config.seed,
+      player === null ? null : true,
+      config.draft,
+      player?.heroId,
+    );
     this.ctx = buildCtx(content, state);
   }
 
@@ -405,8 +425,37 @@ export class Match {
       points: { A: s.teams.A.points, B: s.teams.B.points },
       playerHeroId: s.playerHeroId,
       keeper,
+      suggest:
+        (s.playerHeroId !== null ? this.ctx.unit(s.playerHeroId)?.hero?.suggest : undefined) ?? [],
       phaseTicksLeft:
         s.phase.kind === 'live' ? Math.max(0, phaseTicks - (s.tick - s.phase.startTick)) : 0,
+      events: s.events.map((e) => {
+        const def = this.content.eventById.get(e.defId)!;
+        return {
+          id: `${e.defId}#${e.id}`,
+          kind: e.defId,
+          type: e.kind,
+          name: def.name,
+          slot: e.slot,
+          x: e.x,
+          y: e.y,
+          radius: e.radius,
+          phase: e.phase,
+          ticksLeft: Math.max(0, (e.phase === 'warning' ? e.warnEndTick : e.endTick) - s.tick),
+          progress: e.progress,
+          team: e.kind === 'parade' ? e.target : e.holder,
+          ...(e.tele
+            ? {
+                telegraph: {
+                  x: e.tele.x,
+                  y: e.tele.y,
+                  radius: def.telegraph?.radius ?? 0,
+                  ticksLeft: Math.max(0, e.tele.endTick - s.tick),
+                },
+              }
+            : {}),
+        };
+      }),
     };
   }
 

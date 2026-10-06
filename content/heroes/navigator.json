@@ -1,0 +1,144 @@
+{
+  "id": "navigator",
+  "name": "Joost van der Zee, the Drowned Pilot",
+  "title": "Navigator of the lost spice fleet",
+  "era": "Dutch East India",
+  "preferredRole": "bot",
+  "attackKind": "ranged",
+  "playstyle": "A support-carry that speeds up and strengthens the whole team. Stay close to allies, call Full Sail when a fight starts and let your friends hit harder.",
+  "stats": {
+    "maxHp": 936.0,
+    "hpRegen": 2,
+    "armor": 18,
+    "resist": 20,
+    "bladeDmg": 54.1,
+    "atkSpeed": 0.95,
+    "soulPower": 31.2,
+    "moveSpeed": 46,
+    "cdr": 0,
+    "range": 115
+  },
+  "abilities": [
+    {
+      "id": "musket_shot",
+      "name": "Musket Shot",
+      "cooldownSec": 5,
+      "range": 125,
+      "target": "enemy",
+      "effects": [
+        {
+          "type": "damage",
+          "dmgType": "blade",
+          "base": 30,
+          "bladeScale": 0.8,
+          "soulScale": 0
+        }
+      ],
+      "desc": "Fires a musket for 30 + 80% Blade damage."
+    },
+    {
+      "id": "fair_winds",
+      "name": "Fair Winds",
+      "cooldownSec": 16,
+      "radius": 140,
+      "target": "allyArea",
+      "effects": [
+        {
+          "type": "shield",
+          "base": 60,
+          "bladeScale": 0.6,
+          "soulScale": 0,
+          "durationSec": 4
+        }
+      ],
+      "condition": {
+        "allyHpBelow": 0.9
+      },
+      "desc": "Wraps nearby allies in a 60 + 60% Blade shield for 4s when one is hurt."
+    },
+    {
+      "id": "cast_anchor",
+      "name": "Cast Anchor",
+      "cooldownSec": 14,
+      "range": 70,
+      "target": "enemy",
+      "effects": [
+        {
+          "type": "dash",
+          "distance": 70,
+          "toward": "away"
+        },
+        {
+          "type": "statMod",
+          "stat": "moveSpeed",
+          "kind": "mul",
+          "value": 0.7,
+          "durationSec": 2
+        }
+      ],
+      "desc": "Slides 70 away from a close enemy and slows it 30% for 2s."
+    },
+    {
+      "id": "full_sail",
+      "name": "Full Sail",
+      "cooldownSec": 50,
+      "radius": 170,
+      "target": "allyArea",
+      "effects": [
+        {
+          "type": "statMod",
+          "stat": "atkSpeed",
+          "kind": "mul",
+          "value": 1.35,
+          "durationSec": 6
+        },
+        {
+          "type": "statMod",
+          "stat": "moveSpeed",
+          "kind": "mul",
+          "value": 1.2,
+          "durationSec": 6
+        }
+      ],
+      "condition": {
+        "minEnemyHeroes": 1
+      },
+      "desc": "Nearby allies gain 35% attack speed and 20% move speed for 6s when an enemy hero is near."
+    }
+  ],
+  "passives": [
+    {
+      "on": "periodic",
+      "everySec": 1,
+      "target": "self",
+      "effects": [
+        {
+          "type": "aura",
+          "radius": 130,
+          "target": "ally",
+          "stat": "bladeDmg",
+          "kind": "add",
+          "value": 8
+        }
+      ],
+      "desc": "Allies within 130 deal +8 Blade damage while the Pilot is near."
+    }
+  ],
+  "defaultPosture": "default",
+  "personality": "cautious",
+  "buildList": [
+    "rusted_cleaver",
+    "cogged_edge",
+    "wanderer_boots",
+    "candle_stub",
+    "iron_lung",
+    "spirit_lens"
+  ],
+  "sigil": {
+    "hue": 205,
+    "rings": 2,
+    "spokes": 8,
+    "glyph": "anchor"
+  },
+  "blurb": "He steered a fleet into a storm that never ended and still reads the stars."
+}

@@ -18,6 +18,7 @@ import { LANES } from './world/map';
 import type { PlayTeam, Unit } from './types';
 import { other } from './types';
 import { onCampUnitDeath } from './camps';
+import { endAllEvents, onEventUnitDeath } from './events';
 import { removeBoardClaim } from './ai/claims';
 
 export function spawnWaves(ctx: Ctx): void {
@@ -159,6 +160,10 @@ function killUnit(ctx: Ctx, u: Unit): void {
       break;
     }
     case 'minion': {
+      if (u.ev) {
+        onEventUnitDeath(ctx, u, killer);
+        break;
+      }
       if (killerHero) {
         giveGold(ctx, killerHero, u.bounty, 'lasthit');
         shareNearby(ctx, u, killerTeam, killerHero.id, ctx.t.gold.minionShare);
@@ -202,6 +207,7 @@ function killUnit(ctx: Ctx, u: Unit): void {
         y: u.y,
       });
       ctx.s.winner = winner;
+      endAllEvents(ctx);
       ctx.s.phase.kind = 'end';
       ctx.emit('matchEnd', { winner, phase: ctx.s.phase.n });
       break;

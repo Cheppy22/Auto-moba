@@ -43,6 +43,20 @@ export function nearKeeper(ctx: Ctx, u: Unit): boolean {
   return dist(u.x, u.y, k.x, k.y) <= ctx.t.shop.keeperRadius;
 }
 
+export function nearJungleShop(ctx: Ctx, u: Unit): boolean {
+  for (const sh of ctx.world.map.shops) {
+    if (dist(u.x, u.y, sh.x, sh.y) <= ctx.t.shop.jungleRadius) return true;
+  }
+  return false;
+}
+
+export function shopAt(ctx: Ctx, u: Unit): string | null {
+  for (const sh of ctx.world.map.shops) {
+    if (dist(u.x, u.y, sh.x, sh.y) <= ctx.t.shop.jungleRadius) return sh.id;
+  }
+  return null;
+}
+
 export interface Access {
   base: boolean;
   keeper: boolean;
@@ -51,7 +65,7 @@ export interface Access {
 export function shopAccess(ctx: Ctx, u: Unit): Access {
   if (ctx.s.phase.kind === 'prep') return { base: true, keeper: true };
   if (ctx.s.phase.kind !== 'live' || !u.alive) return { base: false, keeper: false };
-  return { base: nearBase(ctx, u), keeper: nearKeeper(ctx, u) };
+  return { base: nearBase(ctx, u) || nearJungleShop(ctx, u), keeper: nearKeeper(ctx, u) };
 }
 
 export interface Quote {

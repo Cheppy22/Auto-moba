@@ -1,0 +1,185 @@
+{
+  "events": [
+    {
+      "id": "fox_wedding",
+      "kind": "procession",
+      "name": "Fox Wedding",
+      "desc": "A kitsune wedding procession walks between two jungle clearings under lantern light. It ignores everyone until struck. Its bearers drop gold and points.",
+      "weight": 3,
+      "fromPhase": 1,
+      "warnSec": 10,
+      "durationSec": 80,
+      "siteMode": "any",
+      "radius": 70,
+      "scalePerPhase": 0.2,
+      "units": [
+        {
+          "id": "lantern_spirit",
+          "name": "Lantern Spirit",
+          "count": 4,
+          "hp": 300,
+          "damage": 16,
+          "damageType": "soul",
+          "resist": 5,
+          "range": 30,
+          "atkSpeed": 1,
+          "moveSpeed": 22,
+          "gold": 35,
+          "points": 0
+        },
+        {
+          "id": "kitsune_bride",
+          "name": "Kitsune Bride",
+          "count": 1,
+          "hp": 700,
+          "damage": 30,
+          "damageType": "soul",
+          "resist": 15,
+          "range": 60,
+          "atkSpeed": 0.8,
+          "moveSpeed": 22,
+          "gold": 120,
+          "points": 2
+        }
+      ],
+      "aiWeight": 0.75,
+      "aiRadius": 700,
+      "aiMax": 2
+    },
+    {
+      "id": "hundred_demons",
+      "kind": "parade",
+      "name": "Hundred-Demon Parade",
+      "desc": "Night Parade of a Hundred Demons: a column of neutral demons marches from the middle down a side lane toward one base, attacking all it meets, then dissolves. The team whose heroes fell more of them gets the reward.",
+      "weight": 3,
+      "fromPhase": 1,
+      "warnSec": 10,
+      "durationSec": 75,
+      "siteMode": "any",
+      "radius": 120,
+      "lanes": ["top", "bot"],
+      "scalePerPhase": 0.2,
+      "units": [
+        {
+          "id": "kasa_obake",
+          "name": "Umbrella Yokai",
+          "count": 4,
+          "hp": 320,
+          "damage": 26,
+          "damageType": "blade",
+          "armor": 6,
+          "range": 30,
+          "atkSpeed": 1,
+          "moveSpeed": 34,
+          "gold": 22
+        },
+        {
+          "id": "chochin_obake",
+          "name": "Lantern Yokai",
+          "count": 2,
+          "hp": 220,
+          "damage": 30,
+          "damageType": "soul",
+          "range": 90,
+          "atkSpeed": 0.9,
+          "moveSpeed": 34,
+          "gold": 28
+        },
+        {
+          "id": "nurikabe",
+          "name": "Nurikabe",
+          "count": 1,
+          "hp": 1000,
+          "damage": 40,
+          "damageType": "blade",
+          "armor": 22,
+          "resist": 10,
+          "range": 30,
+          "atkSpeed": 0.7,
+          "moveSpeed": 28,
+          "gold": 70,
+          "points": 1
+        }
+      ],
+      "minKills": 3,
+      "rewardPoints": 3,
+      "rewardGoldTeam": 100,
+      "aiWeight": 0.8,
+      "aiRadius": 700,
+      "aiMax": 2
+    },
+    {
+      "id": "wishing_well",
+      "kind": "well",
+      "name": "Wishing Well",
+      "desc": "A moss-covered well rises in the jungle. Hold it with no enemy hero near for several seconds and your team is blessed with more damage for a while.",
+      "weight": 3,
+      "fromPhase": 1,
+      "warnSec": 10,
+      "durationSec": 70,
+      "siteMode": "neutral",
+      "radius": 75,
+      "holdSec": 8,
+      "buffSec": 90,
+      "buffs": [
+        {
+          "stat": "bladeDmg",
+          "kind": "mul",
+          "value": 1.1
+        },
+        {
+          "stat": "soulPower",
+          "kind": "mul",
+          "value": 1.1
+        }
+      ],
+      "rewardPoints": 1,
+      "aiWeight": 1.1,
+      "aiRadius": 700,
+      "aiMax": 2
+    },
+    {
+      "id": "hungry_oni",
+      "kind": "oni",
+      "name": "Hungry Oni",
+      "desc": "An elite oni claws out of a rift in the jungle. It hits hard and slams the ground after a warning. Killing it pays big gold and points.",
+      "weight": 2,
+      "fromPhase": 1,
+      "warnSec": 10,
+      "durationSec": 100,
+      "siteMode": "neutral",
+      "radius": 90,
+      "scalePerPhase": 0.2,
+      "aggro": 170,
+      "leash": 260,
+      "units": [
+        {
+          "id": "hungry_oni",
+          "name": "Hungry Oni",
+          "count": 1,
+          "hp": 4200,
+          "damage": 70,
+          "damageType": "blade",
+          "armor": 30,
+          "resist": 20,
+          "range": 40,
+          "atkSpeed": 0.8,
+          "moveSpeed": 40
+        }
+      ],
+      "telegraph": {
+        "cooldownSec": 7,
+        "windupSec": 1.6,
+        "radius": 95,
+        "damage": 180,
+        "damageType": "blade"
+      },
+      "rewardGoldKiller": 150,
+      "rewardGoldTeam": 150,
+      "rewardPoints": 4,
+      "aiWeight": 1.15,
+      "aiRadius": 700,
+      "aiMax": 2
+    }
+  ]
+}

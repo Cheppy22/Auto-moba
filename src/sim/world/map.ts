@@ -26,6 +26,8 @@ export interface World {
   lanes: Record<LaneId, LaneGeo>;
   nodes: NavNode[];
   slotNode: Record<string, number>;
+  shopNode: Record<string, number>;
+  shopPos: Record<string, Pt>;
   baseNode: Record<PlayTeam, number>;
   towerPos: Record<PlayTeam, Record<LaneId, [Pt, Pt]>>;
   guardianPos: Record<PlayTeam, Pt>;
@@ -110,6 +112,7 @@ export function buildWorld(map: MapDef): World {
 
   const portTs: Record<LaneId, number[]> = { top: [], mid: [], bot: [] };
   for (const s of map.slots) for (const p of s.ports) portTs[p.lane].push(p.t);
+  for (const s of map.shops) for (const p of s.ports) portTs[p.lane].push(p.t);
 
   for (const id of LANES) {
     const lane = lanes[id];
@@ -132,6 +135,19 @@ export function buildWorld(map: MapDef): World {
     const n = addNode(s.x, s.y, s.id);
     slotNode[s.id] = n;
     for (const p of s.ports) {
+      const pt = lanePoint(lanes[p.lane], p.t);
+      link(n, addNode(pt.x, pt.y, null));
+    }
+  }
+
+  const shopNode: Record<string, number> = {};
+  const shopPos: Record<string, Pt> = {};
+  for (const sh of map.shops) {
+    nodes.push({ x: sh.x, y: sh.y, slot: null, edges: [] });
+    const n = nodes.length - 1;
+    shopNode[sh.id] = n;
+    shopPos[sh.id] = { x: sh.x, y: sh.y };
+    for (const p of sh.ports) {
       const pt = lanePoint(lanes[p.lane], p.t);
       link(n, addNode(pt.x, pt.y, null));
     }
@@ -166,7 +182,19 @@ export function buildWorld(map: MapDef): World {
     A: addNode(basePos.A.x, basePos.A.y, null),
     B: addNode(basePos.B.x, basePos.B.y, null),
   };
-  return { map, lanes, nodes, slotNode, baseNode, towerPos, guardianPos, basePos, slotPos };
+  return {
+    map,
+    lanes,
+    nodes,
+    slotNode,
+    shopNode,
+    shopPos,
+    baseNode,
+    towerPos,
+    guardianPos,
+    basePos,
+    slotPos,
+  };
 }
 
 const START_SLACK = 140;

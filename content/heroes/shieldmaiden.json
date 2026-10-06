@@ -1,0 +1,158 @@
+{
+  "id": "shieldmaiden",
+  "name": "Brynja, the Frostbound",
+  "title": "Draugr shieldmaiden of the long winter",
+  "era": "Viking Age",
+  "preferredRole": "bot",
+  "attackKind": "melee",
+  "playstyle": "A frontline engager that charges the enemy, shields her team and soaks hits. Start the fight by charging in; she heals herself once when nearly dead.",
+  "stats": {
+    "maxHp": 1676.4,
+    "hpRegen": 3,
+    "armor": 44,
+    "resist": 24,
+    "bladeDmg": 91.4,
+    "atkSpeed": 0.9,
+    "soulPower": 0,
+    "moveSpeed": 47,
+    "cdr": 0,
+    "range": 24
+  },
+  "abilities": [
+    {
+      "id": "shield_rush",
+      "name": "Shield Rush",
+      "cooldownSec": 10,
+      "range": 115,
+      "target": "enemy",
+      "effects": [
+        {
+          "type": "dash",
+          "distance": 90,
+          "toward": "target"
+        },
+        {
+          "type": "damage",
+          "dmgType": "blade",
+          "base": 35,
+          "bladeScale": 0.6,
+          "soulScale": 0
+        },
+        {
+          "type": "statMod",
+          "stat": "moveSpeed",
+          "kind": "mul",
+          "value": 0.5,
+          "durationSec": 1.5
+        }
+      ],
+      "desc": "Charges 90 to an enemy, hitting for 35 + 60% Blade damage and slowing it by 50% for 1.5s."
+    },
+    {
+      "id": "rime_wall",
+      "name": "Rime Wall",
+      "cooldownSec": 15,
+      "radius": 120,
+      "target": "allyArea",
+      "effects": [
+        {
+          "type": "shield",
+          "base": 90,
+          "bladeScale": 0.6,
+          "soulScale": 0,
+          "durationSec": 4
+        }
+      ],
+      "condition": {
+        "minEnemyHeroes": 1
+      },
+      "desc": "Raises a frost wall that shields nearby allies for 90 + 60% Blade damage for 4s when an enemy hero is near."
+    },
+    {
+      "id": "axe_sweep",
+      "name": "Axe Sweep",
+      "cooldownSec": 13,
+      "radius": 95,
+      "target": "enemyArea",
+      "effects": [
+        {
+          "type": "damage",
+          "dmgType": "blade",
+          "base": 45,
+          "bladeScale": 0.5,
+          "soulScale": 0
+        },
+        {
+          "type": "statMod",
+          "stat": "moveSpeed",
+          "kind": "mul",
+          "value": 0.75,
+          "durationSec": 2
+        }
+      ],
+      "condition": {
+        "minEnemies": 2
+      },
+      "desc": "Hits all enemies within 95 for 45 + 50% Blade damage and slows them by 25% for 2s. Needs 2 enemies."
+    },
+    {
+      "id": "long_march",
+      "name": "Long March",
+      "cooldownSec": 55,
+      "radius": 140,
+      "target": "self",
+      "effects": [
+        {
+          "type": "statMod",
+          "stat": "damageTakenMult",
+          "kind": "mul",
+          "value": 0.75,
+          "durationSec": 6
+        },
+        {
+          "type": "statMod",
+          "stat": "atkSpeed",
+          "kind": "mul",
+          "value": 1.2,
+          "durationSec": 6
+        }
+      ],
+      "condition": {
+        "minEnemyHeroes": 1
+      },
+      "desc": "Takes 25% less damage and attacks 20% faster for 6s when an enemy hero is near."
+    }
+  ],
+  "passives": [
+    {
+      "on": "lowHp",
+      "hpBelow": 0.3,
+      "cooldownSec": 90,
+      "target": "self",
+      "effects": [
+        {
+          "type": "heal",
+          "maxHpPct": 0.2
+        }
+      ],
+      "desc": "Below 30% health she restores 20% of her max health (once every 90s)."
+    }
+  ],
+  "defaultPosture": "push",
+  "personality": "steadfast",
+  "buildList": [
+    "iron_lung",
+    "riveted_plate",
+    "boiler_heart",
+    "furnace_bastion",
+    "wanderer_boots",
+    "rusted_cleaver"
+  ],
+  "sigil": {
+    "hue": 190,
+    "rings": 3,
+    "spokes": 7,
+    "glyph": "shield"
+  },
+  "blurb": "A shieldmaiden frozen mid-charge, walking again to finish the battle."
+}

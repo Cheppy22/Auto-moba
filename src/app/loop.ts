@@ -35,7 +35,10 @@ export class FrameClock {
     if (ev.length === 0 || ev[ev.length - 1].seq < this.seenSeq) this.seenSeq = -1;
     for (let i = ev.length - 1; i >= 0 && ev[i].seq > this.seenSeq; i--) {
       const e = ev[i];
-      if (e.type === 'recall' && e.payload.stage === 'done' && e.payload.id === pid) {
+      if (
+        (e.type === 'recall' && e.payload.stage === 'done' && e.payload.id === pid) ||
+        (e.type === 'shopVisit' && e.payload.id === pid)
+      ) {
         this.session.setUi({ shopOpen: true });
         break;
       }
@@ -62,6 +65,7 @@ export class FrameClock {
         s.notify();
       }
     } else this.acc = 0;
+    s.syncNotices();
     s.frame(m ? Math.min(1, this.acc) : 1);
     if (now - this.lastNotify > 120) {
       this.lastNotify = now;

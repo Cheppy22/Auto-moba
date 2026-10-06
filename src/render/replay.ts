@@ -93,11 +93,9 @@ export function drawReplay(
   g.setTransform(1, 0, 0, 1, 0, 0);
   g.fillStyle = PALETTE.bg;
   g.fillRect(0, 0, canvas.width, canvas.height);
+  const [gcx, gcy] = xy(500, 500);
   g.beginPath();
-  [xy(60, 60), xy(940, 60), xy(940, 940), xy(60, 940)].forEach(([x, y], i) =>
-    i === 0 ? g.moveTo(x, y) : g.lineTo(x, y),
-  );
-  g.closePath();
+  g.ellipse(gcx, gcy, 612 * v.sx, 612 * v.sy, 0, 0, Math.PI * 2);
   g.fillStyle = '#12111b';
   g.fill();
   g.strokeStyle = 'rgba(224,169,62,0.35)';
@@ -126,8 +124,11 @@ export function drawReplay(
     lane.forEach(([x, y], i) => (i === 0 ? g.moveTo(...xy(x, y)) : g.lineTo(...xy(x, y))));
     g.lineCap = 'round';
     g.lineJoin = 'round';
-    g.strokeStyle = 'rgba(38,40,38,0.95)';
-    g.lineWidth = 22 * p;
+    g.strokeStyle = 'rgba(120,100,150,0.3)';
+    g.lineWidth = 26 * p;
+    g.stroke();
+    g.strokeStyle = '#272233';
+    g.lineWidth = 21 * p;
     g.stroke();
   }
   for (const t of ['A', 'B'] as const) {

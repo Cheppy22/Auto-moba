@@ -153,7 +153,22 @@ export const HeroSchema = z.object({
     hue: z.number(),
     rings: z.number(),
     spokes: z.number(),
-    glyph: z.enum(['gear', 'crane', 'rail', 'compass', 'gate', 'petal', 'paw', 'brush', 'lantern']),
+    glyph: z.enum([
+      'gear',
+      'crane',
+      'rail',
+      'compass',
+      'gate',
+      'petal',
+      'paw',
+      'brush',
+      'lantern',
+      'blade',
+      'skull',
+      'anchor',
+      'orbit',
+      'shield',
+    ]),
   }),
   blurb: z.string().default(''),
 });
@@ -268,6 +283,16 @@ export const MapSchema = z.object({
   bases: z.object({ A: Pt, B: Pt }),
   guardianOffset: z.number(),
   towerFractions: z.object({ outer: z.number(), inner: z.number() }),
+  shops: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      x: z.number(),
+      y: z.number(),
+      radius: z.number(),
+      ports: z.array(z.object({ lane: LaneSchema, t: z.number() })),
+    }),
+  ),
   slots: z.array(
     z.object({
       id: z.string(),
@@ -296,6 +321,63 @@ export const PressureSchema = z.object({
     }),
   ),
 });
+
+export const EventUnitSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  count: z.number().int().min(1),
+  hp: z.number(),
+  damage: z.number(),
+  damageType: DamageTypeSchema.default('soul'),
+  armor: z.number().default(0),
+  resist: z.number().default(0),
+  range: z.number().default(30),
+  atkSpeed: z.number().default(1),
+  moveSpeed: z.number(),
+  gold: z.number().default(0),
+  points: z.number().default(0),
+});
+
+export const EventDefSchema = z.object({
+  id: z.string(),
+  kind: z.enum(['procession', 'parade', 'well', 'oni']),
+  name: z.string(),
+  desc: z.string().default(''),
+  weight: z.number(),
+  fromPhase: z.number().int().default(1),
+  toPhase: z.number().int().default(99),
+  warnSec: z.number(),
+  durationSec: z.number(),
+  /** neutral: only slots on the symmetry axis (equidistant from both bases); any: every open slot. */
+  siteMode: z.enum(['neutral', 'any']).default('any'),
+  radius: z.number(),
+  lanes: z.array(LaneSchema).default([]),
+  units: z.array(EventUnitSchema).default([]),
+  scalePerPhase: z.number().default(0),
+  aggro: z.number().default(150),
+  leash: z.number().default(260),
+  holdSec: z.number().default(0),
+  buffs: z.array(ModSchema).default([]),
+  buffSec: z.number().default(0),
+  rewardPoints: z.number().default(0),
+  rewardGoldTeam: z.number().default(0),
+  rewardGoldKiller: z.number().default(0),
+  minKills: z.number().int().default(1),
+  telegraph: z
+    .object({
+      cooldownSec: z.number(),
+      windupSec: z.number(),
+      radius: z.number(),
+      damage: z.number(),
+      damageType: DamageTypeSchema.default('true'),
+    })
+    .optional(),
+  aiWeight: z.number().default(0.8),
+  aiRadius: z.number().default(500),
+  aiMax: z.number().int().default(2),
+});
+
+export const EventFileSchema = z.object({ events: z.array(EventDefSchema) });
 
 export const BadgesSchema = z.object({
   badges: z.array(
@@ -383,16 +465,24 @@ export const TuningSchema = z.object({
   }),
   attunement: z.record(
     CategorySchema,
-    z.array(z.object({ count: z.number().int(), text: z.string(), mods: z.array(ModSchema) })),
+    z.array(
+      z.object({
+        count: z.number().int(),
+        title: z.string(),
+        text: z.string(),
+        mods: z.array(ModSchema),
+      }),
+    ),
   ),
   shop: z.object({
     slots: z.number().int(),
     sellRefund: z.number(),
     baseRadius: z.number(),
     keeperRadius: z.number(),
+    jungleRadius: z.number(),
     keeperStock: z.number().int(),
   }),
-  recall: z.object({ baseSec: z.number(), keeperSec: z.number() }),
+  recall: z.object({ baseSec: z.number() }),
   movement: z.object({ arriveDist: z.number() }),
   ai: z.object({
     aggroRadius: z.number(),
@@ -421,6 +511,10 @@ export const TuningSchema = z.object({
     joinFightRadius: z.number(),
     defendOffLaneRadius: z.number(),
     holdPatience: z.number(),
+    suggestScore: z.number(),
+    shopTripGold: z.number(),
+    shopTripRadius: z.number(),
+    shopTripScore: z.number(),
   }),
   personalities: z.record(
     z.string(),
@@ -456,6 +550,13 @@ export const TuningSchema = z.object({
   }),
   camps: z.object({ respawnSec: z.number(), leash: z.number(), aggro: z.number() }),
   fight: z.object({ clusterGapSec: z.number(), clusterRadius: z.number() }),
+  events: z.object({
+    firstSec: z.number(),
+    gapSec: z.number(),
+    jitterSec: z.number(),
+    perPhase: z.array(z.number().int()),
+    endMarginSec: z.number(),
+  }),
 });
 
 export const ContentSchema = z.object({
@@ -491,6 +592,8 @@ export type UpgradeDef = z.infer<typeof UpgradeSchema>;
 export type CampTypeDef = z.infer<typeof CampTypeSchema>;
 export type BiomeDef = z.infer<typeof BiomeSchema>;
 export type MapDef = z.infer<typeof MapSchema>;
+export type EventDef = z.infer<typeof EventDefSchema>;
+export type EventUnitDef = z.infer<typeof EventUnitSchema>;
 export type PressureDef = z.infer<typeof PressureSchema>['events'][number];
 export type BadgeDef = z.infer<typeof BadgesSchema>['badges'][number];
 export type Tuning = z.infer<typeof TuningSchema>;

@@ -4,6 +4,7 @@ import { openSlotsForPhase, rerollJungle } from './camps';
 import { TPS } from './combat';
 import type { Ctx } from './ctx';
 import { evaluateCurseOffers } from './curses';
+import { endAllEvents, scheduleEvents } from './events';
 import { relocateKeeper } from './keeper';
 import { scheduleObelisks } from './obelisks';
 import { applyPressure } from './pressure';
@@ -49,6 +50,7 @@ export function startLive(ctx: Ctx): CommandResult {
   s.phase = { kind: 'live', n: s.phase.n, startTick: s.tick };
   if (s.phase.n === 1) s.nextWaveTick = Math.round(ctx.t.waves.firstSec * TPS) + s.tick;
   scheduleObelisks(ctx);
+  scheduleEvents(ctx);
   for (const team of ['A', 'B'] as PlayTeam[]) {
     for (const id of s.teams[team].heroIds) {
       const u = ctx.unit(id);
@@ -73,6 +75,7 @@ export function endLive(ctx: Ctx): void {
     }
     if (u.hero) u.hero.recall = null;
   }
+  endAllEvents(ctx);
   ctx.emit('phaseEnd', { phase: s.phase.n, kind: 'live' });
   s.phase = { kind: 'report', n: s.phase.n, startTick: s.tick };
 }
