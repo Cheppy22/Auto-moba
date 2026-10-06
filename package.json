@@ -17,7 +17,8 @@
     "e2e": "playwright test",
     "sim": "tsx tools/run-match.ts",
     "balance": "tsx tools/balance.ts",
-    "balance:pairwise": "tsx tools/pairwise.ts"
+    "balance:pairwise": "tsx tools/pairwise.ts",
+    "diagnose": "tsx tools/diagnose.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
