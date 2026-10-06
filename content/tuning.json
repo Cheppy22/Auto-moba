@@ -12,7 +12,8 @@
     "ranged": 1,
     "extraMeleePerPhaseAfter": 1,
     "extraMeleeFromPhase": 2,
-    "scalePerPhase": 0.3
+    "scalePerPhase": 0.3,
+    "midLeadUnits": 150
   },
   "minions": {
     "melee": {
@@ -78,6 +79,78 @@
     "growthPerSec": 0.1,
     "maxSec": 60
   },
+  "attunement": {
+    "mind": [
+      {
+        "count": 2,
+        "text": "+6% Blade damage",
+        "mods": [{ "stat": "bladeDmg", "kind": "mul", "value": 1.06 }]
+      },
+      {
+        "count": 4,
+        "text": "+12% Blade damage, +8% attack speed",
+        "mods": [
+          { "stat": "bladeDmg", "kind": "mul", "value": 1.12 },
+          { "stat": "atkSpeed", "kind": "mul", "value": 1.08 }
+        ]
+      },
+      {
+        "count": 6,
+        "text": "+20% Blade damage, +15% attack speed",
+        "mods": [
+          { "stat": "bladeDmg", "kind": "mul", "value": 1.2 },
+          { "stat": "atkSpeed", "kind": "mul", "value": 1.15 }
+        ]
+      }
+    ],
+    "body": [
+      {
+        "count": 2,
+        "text": "+6% health",
+        "mods": [{ "stat": "maxHp", "kind": "mul", "value": 1.06 }]
+      },
+      {
+        "count": 4,
+        "text": "+12% health, +8 armor",
+        "mods": [
+          { "stat": "maxHp", "kind": "mul", "value": 1.12 },
+          { "stat": "armor", "kind": "add", "value": 8 }
+        ]
+      },
+      {
+        "count": 6,
+        "text": "+20% health, +15 armor, +2 regeneration",
+        "mods": [
+          { "stat": "maxHp", "kind": "mul", "value": 1.2 },
+          { "stat": "armor", "kind": "add", "value": 15 },
+          { "stat": "hpRegen", "kind": "add", "value": 2 }
+        ]
+      }
+    ],
+    "soul": [
+      {
+        "count": 2,
+        "text": "+6% Soul power",
+        "mods": [{ "stat": "soulPower", "kind": "mul", "value": 1.06 }]
+      },
+      {
+        "count": 4,
+        "text": "+12% Soul power, +8% cooldown reduction",
+        "mods": [
+          { "stat": "soulPower", "kind": "mul", "value": 1.12 },
+          { "stat": "cdr", "kind": "add", "value": 0.08 }
+        ]
+      },
+      {
+        "count": 6,
+        "text": "+20% Soul power, +15% cooldown reduction",
+        "mods": [
+          { "stat": "soulPower", "kind": "mul", "value": 1.2 },
+          { "stat": "cdr", "kind": "add", "value": 0.15 }
+        ]
+      }
+    ]
+  },
   "shop": {
     "slots": 6,
     "sellRefund": 0.5,
@@ -108,10 +181,10 @@
     "curseAcceptBase": 0.55,
     "siegeStartHp": 0.55,
     "siegeKeepHp": 0.4,
-    "siegeAfterTick": 1800,
+    "siegeAfterTick": 1500,
     "siegeGather": 2,
     "siegeScore": 2.4,
-    "siegeWaitTicks": 500,
+    "siegeWaitTicks": 300,
     "siegeAssignedBonus": 0.3,
     "siegeMidPenalty": 0.8,
     "siegeLaneStick": 0.6,

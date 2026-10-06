@@ -60,6 +60,21 @@ function equipment(ctx: Ctx, u: Unit): { mods: TaggedMod[]; trigs: TrigInst[] } 
       holy.triggers.forEach((def, idx) => trigs.push({ src: id, idx, def }));
     }
   }
+  const owned: Record<string, number> = {};
+  for (const id of h.items) {
+    const cat =
+      ctx.c.itemById.get(id)?.category ??
+      ctx.c.cursedById.get(id)?.category ??
+      ctx.c.holyById.get(id)?.category;
+    if (cat && !ctx.c.holyById.has(id)) owned[cat] = (owned[cat] ?? 0) + 1;
+  }
+  for (const [cat, n] of Object.entries(owned)) {
+    const tiers = ctx.t.attunement[cat as keyof typeof ctx.t.attunement];
+    let best: (typeof tiers)[number] | undefined;
+    for (const tier of tiers)
+      if (n >= tier.count && (!best || tier.count > best.count)) best = tier;
+    if (best) for (const m of best.mods) mods.push({ ...m, tags: [] });
+  }
   return { mods, trigs };
 }
 

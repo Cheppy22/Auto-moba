@@ -21,7 +21,7 @@ export const DamageTypeSchema = z.enum(['blade', 'soul', 'true']);
 export const RoleSchema = z.enum(['top', 'mid', 'bot', 'jungle']);
 export const LaneSchema = z.enum(['top', 'mid', 'bot']);
 export const PostureSchema = z.enum(['push', 'farm', 'defend', 'default']);
-export const CategorySchema = z.enum(['blade', 'flesh', 'soul']);
+export const CategorySchema = z.enum(['mind', 'body', 'soul']);
 
 export const StatsSchema = z.object({
   maxHp: z.number(),
@@ -335,6 +335,7 @@ export const TuningSchema = z.object({
     extraMeleePerPhaseAfter: z.number().int(),
     extraMeleeFromPhase: z.number().int(),
     scalePerPhase: z.number(),
+    midLeadUnits: z.number(),
   }),
   minions: z.object({
     melee: MinionSchema,
@@ -380,6 +381,10 @@ export const TuningSchema = z.object({
     growthPerSec: z.number(),
     maxSec: z.number(),
   }),
+  attunement: z.record(
+    CategorySchema,
+    z.array(z.object({ count: z.number().int(), text: z.string(), mods: z.array(ModSchema) })),
+  ),
   shop: z.object({
     slots: z.number().int(),
     sellRefund: z.number(),

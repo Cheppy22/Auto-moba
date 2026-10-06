@@ -73,10 +73,10 @@ export function nextPurchase(ctx: Ctx, u: Unit, ignoreAccess = false): Purchase 
   }
   if (best) return best;
   const def2 = ctx.c.heroById.get(h.defId)!;
-  const primary = def2.stats.soulPower > def2.stats.bladeDmg * 0.8 ? 'soul' : 'blade';
+  const primary = def2.stats.soulPower > def2.stats.bladeDmg * 0.8 ? 'soul' : 'mind';
   let fill: Purchase | null = null;
   for (const it of ctx.c.items) {
-    if (it.tier !== 2 || (it.category !== primary && it.category !== 'flesh')) continue;
+    if (it.tier !== 2 || (it.category !== primary && it.category !== 'body')) continue;
     if (satisfied(ctx, u, it.id)) continue;
     const q = quote(ctx, u, it.id, ignoreAccess);
     if (!('error' in q) && q.price <= h.gold && (!fill || q.price > fill.price))

@@ -426,7 +426,7 @@ export interface Snapshot {
 export interface ShopEntry {
   id: string;
   name: string;
-  category: 'blade' | 'flesh' | 'soul';
+  category: 'mind' | 'body' | 'soul';
   tier: number;
   cost: number;
   price: number;

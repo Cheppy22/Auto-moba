@@ -244,7 +244,7 @@ describe('holy auction', () => {
   });
 
   it('AI teams bid by themselves', () => {
-    const m = Match.create(content, { seed: 53, player: null });
+    const m = Match.create(content, { seed: 54, player: null });
     for (const t of ['A', 'B'] as const) m.state.teams[t].points = 10;
     m.issue({ type: 'startPhase' });
     m.step(4800);

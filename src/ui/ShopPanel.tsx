@@ -4,8 +4,8 @@ import { keeperPlace, n0 } from './format';
 import { useSession } from './session';
 
 const CATS = [
-  { id: 'blade', label: 'Blade' },
-  { id: 'flesh', label: 'Flesh' },
+  { id: 'mind', label: 'Mind' },
+  { id: 'body', label: 'Body' },
   { id: 'soul', label: 'Soul' },
 ] as const;
 type Cat = (typeof CATS)[number]['id'];
@@ -22,14 +22,14 @@ function CatGlyph({ cat, size = 18 }: { cat: string; size?: number }) {
     'stroke-linejoin': 'round' as const,
     'aria-hidden': true,
   };
-  if (cat === 'blade')
+  if (cat === 'mind')
     return (
       <svg {...common}>
-        <path d="M5 19L17 7l2-4-4 2L3 17z" />
-        <path d="M14 12l-2 2M7 20l-3 1 1-3" />
+        <path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" />
+        <circle cx="12" cy="12" r="3" />
       </svg>
     );
-  if (cat === 'flesh')
+  if (cat === 'body')
     return (
       <svg {...common}>
         <path d="M12 21C6 16 3 12.5 3 9a4.5 4.5 0 0 1 9-1 4.5 4.5 0 0 1 9 1c0 3.5-3 7-9 12z" />
@@ -64,6 +64,41 @@ function Tile(props: { e: ShopEntry; selected: boolean; onPick: () => void; coun
   );
 }
 
+function Attunement({ cat, owned }: { cat: Cat; owned: number }) {
+  const s = useSession();
+  const tiers = s.content.tuning.attunement[cat];
+  const slots = s.content.tuning.shop.slots;
+  const active = [...tiers].reverse().find((t) => owned >= t.count);
+  const next = tiers.find((t) => owned < t.count);
+  return (
+    <div class={`attune cat-${cat}`} data-testid="attunement">
+      <div class="attune-track" aria-label={`${owned} of ${slots} ${cat} items owned`}>
+        {Array.from({ length: slots }, (_, i) => (
+          <span
+            key={i}
+            class={`attune-pip ${i < owned ? 'on' : ''} ${tiers.some((t) => t.count === i + 1) ? 'mark' : ''}`}
+          />
+        ))}
+      </div>
+      <div class="small">
+        {active ? (
+          <>
+            <b>Attuned ({active.count}):</b> {active.text}
+          </>
+        ) : (
+          <span class="dim">Own 2 {cat} items to attune.</span>
+        )}
+        {next && (
+          <span class="dim">
+            {' '}
+            · {next.count - owned} more for {next.text}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function ShopPanel() {
   const s = useSession();
   const m = s.match!;
@@ -71,10 +106,15 @@ export function ShopPanel() {
   const p = m.unitById(m.state.playerHeroId!)!;
   const owned = p.hero!.items;
   const slots = s.content.tuning.shop.slots;
-  const [cat, setCat] = useState<Cat>('blade');
+  const [cat, setCat] = useState<Cat>('mind');
   const [sel, setSel] = useState<{ kind: 'shop' | 'owned'; id: string } | null>(null);
   const [confirming, setConfirming] = useState(false);
   const byId = new Map(entries.map((e) => [e.id, e]));
+  const ownedByCat: Record<string, number> = {};
+  for (const id of owned) {
+    const c = s.content.itemById.get(id)?.category ?? s.content.cursedById.get(id)?.category;
+    if (c) ownedByCat[c] = (ownedByCat[c] ?? 0) + 1;
+  }
   const nameOf = (id: string): string =>
     s.content.itemById.get(id)?.name ??
     s.content.cursedById.get(id)?.name ??
@@ -259,9 +299,11 @@ export function ShopPanel() {
                 }}
               >
                 <CatGlyph cat={c.id} size={16} /> {c.label}
+                <i class="cat-count">{ownedByCat[c.id] ?? 0}</i>
               </button>
             ))}
           </div>
+          <Attunement cat={cat} owned={ownedByCat[cat] ?? 0} />
           {[1, 2, 3].map((tier) => {
             const list = entries.filter((e) => e.category === cat && e.tier === tier);
             if (list.length === 0) return null;

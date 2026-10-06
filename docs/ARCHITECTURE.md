@@ -6,7 +6,7 @@ The prototype is one browser game in TypeScript. A deterministic simulation core
 
 ## Scope and principles
 
-**In scope (M1–M6):** 4 heroes, about 15 items, 4 cursed items, 2 holy items, 3 biomes, 4 pressure events, one neutral AI difficulty, a full match loop with reports, and a headless balance runner.
+**In scope (M1–M6):** 9 heroes (4 at first, 5 added later), about 15 items, 4 cursed items, 2 holy items, 3 biomes, 4 pressure events, one neutral AI difficulty, a full match loop with reports, and a headless balance runner.
 
 **Out of scope:** meta-progression, lane identity, The Core mode, lore, multiplayer, save/load between sessions, audio, a mobile-first layout, and multiple AI difficulties.
 

@@ -655,10 +655,10 @@ html:not([data-layout='desktop']) .panel {
   align-items: center;
   gap: 6px;
 }
-.cat-blade {
-  --cat: #d0584a;
+.cat-mind {
+  --cat: #6fb4d0;
 }
-.cat-flesh {
+.cat-body {
   --cat: #9cb874;
 }
 .cat-soul {
@@ -1007,4 +1007,43 @@ html:not([data-layout='desktop']) .codex-list .card {
 }
 html:not([data-layout='desktop']) .codex-detail {
   max-height: calc(100dvh - 230px);
+}
+
+.cat-count {
+  font-style: normal;
+  font-size: 11px;
+  min-width: 16px;
+  text-align: center;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--dim);
+}
+.cat-tabs .btn.on .cat-count {
+  background: var(--cat);
+  color: #14110a;
+}
+.attune {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  border-left: 2px solid var(--cat);
+  background: rgba(255, 255, 255, 0.03);
+}
+.attune-track {
+  display: flex;
+  gap: 4px;
+}
+.attune-pip {
+  width: 22px;
+  height: 6px;
+  border-radius: 1px;
+  background: #2a2634;
+}
+.attune-pip.on {
+  background: var(--cat);
+}
+.attune-pip.mark {
+  box-shadow: 0 2px 0 var(--dim);
 }

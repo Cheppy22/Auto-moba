@@ -24,7 +24,7 @@
     {
       "id": "halo_of_rust",
       "name": "Halo of Rust",
-      "category": "blade",
+      "category": "mind",
       "mods": [
         { "stat": "bladeDmg", "kind": "add", "value": 40 },
         { "stat": "armor", "kind": "add", "value": 35 },

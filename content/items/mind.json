@@ -3,7 +3,7 @@
     {
       "id": "rusted_cleaver",
       "name": "Rusted Cleaver",
-      "category": "blade",
+      "category": "mind",
       "tier": 1,
       "cost": 250,
       "mods": [{ "stat": "bladeDmg", "kind": "add", "value": 9 }],
@@ -12,7 +12,7 @@
     {
       "id": "piston_gauntlet",
       "name": "Piston Gauntlet",
-      "category": "blade",
+      "category": "mind",
       "tier": 1,
       "cost": 300,
       "mods": [{ "stat": "atkSpeed", "kind": "add", "value": 0.14 }],
@@ -21,7 +21,7 @@
     {
       "id": "leech_fang",
       "name": "Leech Fang",
-      "category": "blade",
+      "category": "mind",
       "tier": 1,
       "cost": 300,
       "mods": [{ "stat": "bladeDmg", "kind": "add", "value": 5 }],
@@ -33,7 +33,7 @@
     {
       "id": "cogged_edge",
       "name": "Cogged Edge",
-      "category": "blade",
+      "category": "mind",
       "tier": 2,
       "cost": 900,
       "from": ["rusted_cleaver", "piston_gauntlet"],
@@ -53,7 +53,7 @@
     {
       "id": "soot_reaver",
       "name": "Soot Reaver",
-      "category": "blade",
+      "category": "mind",
       "tier": 3,
       "cost": 1900,
       "from": ["cogged_edge"],

@@ -3,7 +3,7 @@
     {
       "id": "hungry_mask",
       "name": "The Hungry Mask",
-      "category": "blade",
+      "category": "mind",
       "boons": [
         {
           "stat": "bladeDmg",
@@ -64,7 +64,7 @@
     {
       "id": "borrowed_years",
       "name": "Borrowed Years",
-      "category": "flesh",
+      "category": "body",
       "boons": [
         {
           "stat": "atkSpeed",
@@ -181,7 +181,7 @@
     {
       "id": "pact_of_ash",
       "name": "Pact of Ash",
-      "category": "blade",
+      "category": "mind",
       "boons": [
         {
           "stat": "bladeDmg",

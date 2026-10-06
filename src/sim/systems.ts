@@ -31,11 +31,16 @@ export function spawnWaves(ctx: Ctx): void {
       ? w.extraMeleePerPhaseAfter * (phase - w.extraMeleeFromPhase + 1)
       : 0;
   const melee = w.melee + extra;
+  // The short mid lane would clash at the exact centre every wave; the team that "leads" alternates
+  // by wave (a deterministic stagger) so the clash point drifts to either side of the centre.
+  const waveNo = Math.round((ctx.s.nextWaveTick - w.firstSec * TPS) / (w.intervalSec * TPS));
+  const leader: PlayTeam = waveNo % 2 === 0 ? 'A' : 'B';
   for (const team of ['A', 'B'] as PlayTeam[]) {
     for (const lane of LANES) {
-      for (let i = 0; i < melee; i++) makeMinion(ctx, team, lane, 'melee', scale, i * 9);
+      const lead = lane === 'mid' && team === leader ? w.midLeadUnits : 0;
+      for (let i = 0; i < melee; i++) makeMinion(ctx, team, lane, 'melee', scale, i * 9 + lead);
       for (let i = 0; i < w.ranged; i++)
-        makeMinion(ctx, team, lane, 'ranged', scale, (melee + i) * 9);
+        makeMinion(ctx, team, lane, 'ranged', scale, (melee + i) * 9 + lead);
     }
   }
 }

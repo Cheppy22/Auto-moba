@@ -3,7 +3,7 @@
     {
       "id": "iron_lung",
       "name": "Iron Lung",
-      "category": "flesh",
+      "category": "body",
       "tier": 1,
       "cost": 250,
       "mods": [{ "stat": "maxHp", "kind": "add", "value": 130 }],
@@ -12,7 +12,7 @@
     {
       "id": "riveted_plate",
       "name": "Riveted Plate",
-      "category": "flesh",
+      "category": "body",
       "tier": 1,
       "cost": 250,
       "mods": [{ "stat": "armor", "kind": "add", "value": 12 }],
@@ -21,7 +21,7 @@
     {
       "id": "wanderer_boots",
       "name": "Wanderer's Boots",
-      "category": "flesh",
+      "category": "body",
       "tier": 1,
       "cost": 300,
       "mods": [{ "stat": "moveSpeed", "kind": "add", "value": 6 }],
@@ -30,7 +30,7 @@
     {
       "id": "boiler_heart",
       "name": "Boiler Heart",
-      "category": "flesh",
+      "category": "body",
       "tier": 2,
       "cost": 900,
       "from": ["iron_lung", "riveted_plate"],
@@ -44,7 +44,7 @@
     {
       "id": "furnace_bastion",
       "name": "Furnace Bastion",
-      "category": "flesh",
+      "category": "body",
       "tier": 3,
       "cost": 1900,
       "from": ["boiler_heart"],
