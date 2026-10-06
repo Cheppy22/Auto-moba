@@ -77,7 +77,7 @@ export function Report(props: { scope: 'phase' | 'match' }) {
             </button>
           )}
         </div>
-        <div class="scroll" style={{ maxHeight: 'calc(100vh - 150px)' }}>
+        <div class="scroll report-scroll">
           {hero === null ? (
             <TeamView report={report} skip={skip} />
           ) : (

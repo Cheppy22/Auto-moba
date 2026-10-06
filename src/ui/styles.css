@@ -29,6 +29,8 @@ body {
   height: 100%;
   background: var(--bg);
   color: var(--text);
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
 }
 #app {
   height: 100%;
@@ -41,7 +43,9 @@ button {
   position: relative;
   width: 100vw;
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
+  touch-action: manipulation;
 }
 .stage {
   position: absolute;
@@ -311,4 +315,173 @@ input[type='text'] {
   color: var(--text);
   border-radius: 6px;
   padding: 5px 8px;
+}
+
+.hud-chips {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  top: 46px;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  pointer-events: none;
+}
+.hud-dock {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+  background: linear-gradient(to top, rgba(6, 7, 11, 0.95) 80%, rgba(6, 7, 11, 0));
+}
+.hud-left,
+.hud-right {
+  position: absolute;
+  top: 44px;
+  bottom: 8px;
+  width: 36%;
+  max-width: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow: auto;
+  pointer-events: none;
+}
+.hud-left {
+  left: calc(8px + env(safe-area-inset-left));
+}
+.hud-right {
+  right: calc(8px + env(safe-area-inset-right));
+  justify-content: flex-end;
+}
+.hud-left > *,
+.hud-right > * {
+  pointer-events: auto;
+}
+.hud-top.compact {
+  top: calc(6px + env(safe-area-inset-top));
+  gap: 6px;
+  font-size: 13px;
+}
+.hud-top.center {
+  justify-content: center;
+}
+.hud-score {
+  padding: 4px 10px;
+  gap: 8px;
+}
+.seg {
+  display: flex;
+  gap: 4px;
+}
+.seg .btn {
+  flex: 1;
+}
+.roster-strip {
+  display: flex;
+  gap: 4px;
+}
+.roster-cell {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: var(--panel2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 3px;
+  font-size: 10px;
+}
+.roster-cell .bar {
+  width: 100%;
+  height: 5px;
+}
+.ctl-row {
+  gap: 6px;
+}
+.player-card {
+  min-width: 0;
+}
+.shop-scroll {
+  max-height: 70vh;
+  max-height: 70dvh;
+}
+.prep-scroll {
+  max-height: 60vh;
+}
+.report-scroll {
+  max-height: calc(100vh - 150px);
+}
+html:not([data-layout='desktop']) .overlay {
+  padding: 6px;
+  padding-left: max(6px, env(safe-area-inset-left));
+  padding-right: max(6px, env(safe-area-inset-right));
+  align-items: flex-start;
+}
+html:not([data-layout='desktop']) .panel {
+  padding: 10px;
+}
+html:not([data-layout='desktop']) .panel [style*='min-width'] {
+  min-width: 0 !important;
+}
+html:not([data-layout='desktop']) .hero-grid {
+  grid-template-columns: repeat(2, 1fr);
+}
+html:not([data-layout='desktop']) .tabs {
+  overflow-x: auto;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+html:not([data-layout='desktop']) .title-wrap h1 {
+  font-size: 32px;
+}
+html:not([data-layout='desktop']) table.stats {
+  font-size: 12px;
+}
+html:not([data-layout='desktop']) table.stats th,
+html:not([data-layout='desktop']) table.stats td {
+  padding: 4px;
+}
+html:not([data-layout='desktop']) .prep-scroll,
+html:not([data-layout='desktop']) .report-scroll {
+  max-height: calc(100dvh - 190px);
+}
+html[data-layout='landscape'] .prep-scroll,
+html[data-layout='landscape'] .report-scroll {
+  max-height: calc(100dvh - 120px);
+}
+html:not([data-layout='desktop']) .ticker {
+  position: static;
+  width: 100%;
+}
+@media (pointer: coarse) {
+  .btn {
+    min-height: 44px;
+  }
+  .btn.small {
+    min-height: 36px;
+    padding: 6px 10px;
+  }
+  input[type='range'] {
+    min-height: 32px;
+  }
+  .card.clickable {
+    min-height: 44px;
+  }
+}
+html[data-layout='portrait'] .draft-cols {
+  flex-direction: column;
+  align-items: stretch !important;
+  flex-wrap: nowrap;
+}
+html[data-layout='portrait'] .row.wrap:has(> [style*='min-width']) {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: stretch !important;
 }

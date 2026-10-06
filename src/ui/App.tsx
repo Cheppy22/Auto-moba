@@ -4,10 +4,13 @@ import { Prep } from './Prep';
 import { Report } from './Report';
 import { Stage } from './Stage';
 import { Title } from './Title';
+import { useLayout } from './layout';
 import { useSession } from './session';
 
 export function App() {
   const s = useSession();
+  const layout = useLayout();
+  document.documentElement.dataset.layout = layout;
   const m = s.match;
   if (!m) return <Title />;
   const kind = m.state.phase.kind;

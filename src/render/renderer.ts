@@ -53,9 +53,11 @@ export class Renderer {
   }
 
   private offset(): { ox: number; oy: number } {
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const portrait = this.canvas.height > this.canvas.width * 1.2;
     return {
       ox: (this.canvas.width - this.size * this.px) / 2,
-      oy: (this.canvas.height - this.size * this.px) / 2,
+      oy: portrait ? 52 * dpr : (this.canvas.height - this.size * this.px) / 2,
     };
   }
 
@@ -188,6 +190,9 @@ export class Renderer {
     this.resize();
     const g = this.g;
     const p = this.px;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const k = Math.max(1, 0.7 / (p / dpr));
+    const q = p * k;
     const { ox, oy } = this.offset();
     g.setTransform(1, 0, 0, 1, 0, 0);
     this.paintBackdrop(snap);
@@ -233,23 +238,23 @@ export class Renderer {
         case 'minion': {
           g.fillStyle = u.team === 'neutral' ? PALETTE.neutral : col;
           g.beginPath();
-          g.arc(x, y, (u.range > 40 ? 2.4 : 3.2) * p, 0, Math.PI * 2);
+          g.arc(x, y, (u.range > 40 ? 2.4 : 3.2) * q, 0, Math.PI * 2);
           g.fill();
-          if (u.hp < u.maxHp) this.bar(x, y - 7 * p, 9 * p, u.hp / u.maxHp, col);
+          if (u.hp < u.maxHp) this.bar(x, y - 7 * q, 9 * q, u.hp / u.maxHp, col);
           break;
         }
         case 'camp': {
           g.fillStyle = PALETTE.camp;
           g.beginPath();
-          g.arc(x, y, 5 * p, 0, Math.PI * 2);
+          g.arc(x, y, 5 * q, 0, Math.PI * 2);
           g.fill();
           g.strokeStyle = 'rgba(0,0,0,0.6)';
           g.stroke();
-          if (u.hp < u.maxHp) this.bar(x, y - 9 * p, 12 * p, u.hp / u.maxHp, PALETTE.camp);
+          if (u.hp < u.maxHp) this.bar(x, y - 9 * q, 12 * q, u.hp / u.maxHp, PALETTE.camp);
           break;
         }
         case 'tower': {
-          const s = 8 * p;
+          const s = 8 * q;
           g.fillStyle = 'rgba(10,12,18,0.95)';
           g.strokeStyle = col;
           g.lineWidth = 2;
@@ -261,11 +266,11 @@ export class Renderer {
           g.closePath();
           g.fill();
           g.stroke();
-          this.bar(x, y - s - 6 * p, 22 * p, u.hp / u.maxHp, col);
+          this.bar(x, y - s - 6 * q, 22 * q, u.hp / u.maxHp, col);
           break;
         }
         case 'guardian': {
-          const s = 15 * p;
+          const s = 15 * q;
           g.fillStyle = 'rgba(10,12,18,0.95)';
           g.strokeStyle = col;
           g.lineWidth = 2.5;
@@ -280,11 +285,11 @@ export class Renderer {
           g.beginPath();
           g.arc(x, y, s * 0.17, 0, Math.PI * 2);
           g.fill();
-          this.bar(x, y - s - 8 * p, 40 * p, u.hp / u.maxHp, col);
+          this.bar(x, y - s - 8 * q, 40 * q, u.hp / u.maxHp, col);
           break;
         }
         case 'obelisk': {
-          const s = 9 * p;
+          const s = 9 * q;
           g.fillStyle = '#c9a7ff';
           g.strokeStyle = '#ffffff88';
           g.beginPath();
@@ -305,7 +310,7 @@ export class Renderer {
           break;
         }
         case 'keeper': {
-          const s = 8 * p;
+          const s = 8 * q;
           const pulse = 1 + Math.sin(snap.tick / 8) * 0.12;
           g.strokeStyle = PALETTE.gold + '88';
           g.lineWidth = 1.5;
@@ -317,7 +322,7 @@ export class Renderer {
           g.arc(x, y, s * 0.8, 0, Math.PI * 2);
           g.fill();
           g.fillStyle = PALETTE.text;
-          g.font = `${Math.round(10 * p * 1.2)}px system-ui, sans-serif`;
+          g.font = `${Math.round(10 * q * 1.2)}px system-ui, sans-serif`;
           g.textAlign = 'center';
           g.fillText('Keeper', x, y + s * 2.8);
           break;
@@ -325,7 +330,7 @@ export class Renderer {
         case 'hero': {
           const spec = this.sigils.get(u.defId);
           if (!spec) break;
-          const r = 11 * p;
+          const r = 11 * q;
           if (u.recalling) {
             g.strokeStyle = PALETTE.gold;
             g.lineWidth = 2;
@@ -342,23 +347,23 @@ export class Renderer {
           }
           drawSigil(g, x, y, r, spec, col, u.alive);
           if (u.alive) {
-            this.bar(x, y - r - 7 * p, 26 * p, u.hp / u.maxHp, col);
+            this.bar(x, y - r - 7 * q, 26 * q, u.hp / u.maxHp, col);
             if (u.shield > 0)
-              this.bar(x, y - r - 11 * p, 26 * p, Math.min(1, u.shield / u.maxHp), '#cfe8ff');
+              this.bar(x, y - r - 11 * q, 26 * q, Math.min(1, u.shield / u.maxHp), '#cfe8ff');
             if (u.curse) {
               g.fillStyle = '#c64d6e';
-              g.fillRect(x + r * 0.6, y + r * 0.2, 4 * p, 4 * p);
+              g.fillRect(x + r * 0.6, y + r * 0.2, 4 * q, 4 * q);
             }
             if (u.holy) {
               g.fillStyle = '#ffe9a6';
-              g.fillRect(x + r * 0.6, y + r * 0.2 + 5 * p, 4 * p, 4 * p);
+              g.fillRect(x + r * 0.6, y + r * 0.2 + 5 * q, 4 * q, 4 * q);
             }
           }
           if (u.isPlayer) {
             g.fillStyle = '#ffffff';
-            g.font = `bold ${Math.round(9 * p * 1.2)}px system-ui, sans-serif`;
+            g.font = `bold ${Math.round(9 * q * 1.2)}px system-ui, sans-serif`;
             g.textAlign = 'center';
-            g.fillText('YOU', x, y + r + 12 * p);
+            g.fillText('YOU', x, y + r + 12 * q);
           }
           break;
         }

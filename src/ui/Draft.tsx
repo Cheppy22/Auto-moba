@@ -20,7 +20,7 @@ export function Draft() {
     <div class="overlay" data-testid="draft">
       <div class="panel col" style={{ width: 'min(1100px, 100%)' }}>
         <h2>Draft</h2>
-        <div class="row wrap" style={{ alignItems: 'flex-start' }}>
+        <div class="row wrap draft-cols" style={{ alignItems: 'flex-start' }}>
           <div class="col grow" style={{ minWidth: '220px' }}>
             <h3 class="teamA">Your team</h3>
             {d.aiHeroes.A.map((id, i) => {

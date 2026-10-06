@@ -252,7 +252,7 @@ export function Prep() {
             </button>
           ))}
         </div>
-        <div class="scroll" style={{ maxHeight: '60vh' }}>
+        <div class="scroll prep-scroll">
           {tab === 'upgrade' && <Upgrades />}
           {tab === 'shop' && <ShopPanel />}
           {tab === 'auction' && <Auction />}
