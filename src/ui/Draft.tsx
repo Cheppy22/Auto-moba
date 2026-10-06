@@ -1,11 +1,12 @@
+import { roleLabel } from './format';
 import type { Role } from '../sim';
 import { SigilIcon } from './SigilIcon';
 import { useSession } from './session';
 
 const ROLES: { id: Role; label: string; hint: string }[] = [
-  { id: 'top', label: 'Top lane', hint: 'One hero holds each side lane' },
+  { id: 'top', label: 'Left lane', hint: 'One hero holds each side lane' },
   { id: 'mid', label: 'Mid lane', hint: 'Short lane, fast fights' },
-  { id: 'bot', label: 'Bottom lane', hint: 'Two heroes share this lane' },
+  { id: 'bot', label: 'Right lane', hint: 'Two heroes share this lane' },
   { id: 'jungle', label: 'Jungle', hint: 'Clears camps, joins fights' },
 ];
 
@@ -31,7 +32,7 @@ export function Draft() {
                   <div>
                     <div>{h.name}</div>
                     <div class="dim tiny">
-                      {h.era} · usually {h.preferredRole}
+                      {h.era} · usually {roleLabel(h.preferredRole)}
                     </div>
                   </div>
                 </div>
@@ -42,7 +43,7 @@ export function Draft() {
               <div>
                 <div>{sel ? `You: ${sel.name}` : 'You: choose a hero'}</div>
                 <div class="dim tiny">
-                  {d.playerRole ? `Lane: ${d.playerRole}` : 'Choose a lane'}
+                  {d.playerRole ? `Lane: ${roleLabel(d.playerRole)}` : 'Choose a lane'}
                 </div>
               </div>
             </div>
@@ -106,7 +107,7 @@ export function Draft() {
                   <div>
                     <div>{h.name}</div>
                     <div class="dim tiny">
-                      {h.era} · usually {h.preferredRole}
+                      {h.era} · usually {roleLabel(h.preferredRole)}
                     </div>
                   </div>
                 </div>

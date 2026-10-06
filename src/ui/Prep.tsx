@@ -1,6 +1,6 @@
 import { useState } from 'preact/hooks';
 import { ShopPanel } from './ShopPanel';
-import { n0, keeperPlace } from './format';
+import { n0, keeperPlace, roleLabel } from './format';
 import { useSession } from './session';
 
 function Upgrades() {
@@ -80,7 +80,7 @@ function Auction() {
                 data-testid={`recipient-${id}`}
                 onClick={() => s.issue({ type: 'chooseHolyRecipient', heroId: id })}
               >
-                {s.content.heroById.get(u.defId)!.name.split(',')[0]} ({u.hero!.role})
+                {s.content.heroById.get(u.defId)!.name.split(',')[0]} ({roleLabel(u.hero!.role)})
               </button>
             );
           })}

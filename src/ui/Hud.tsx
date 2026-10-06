@@ -1,7 +1,7 @@
 import { useState } from 'preact/hooks';
 import type { GameEvent, Posture, Unit } from '../sim';
 import { SigilIcon } from './SigilIcon';
-import { mmss, n0 } from './format';
+import { mmss, n0, roleLabel } from './format';
 import { useLayout, type Layout } from './layout';
 import { useSession, type Session, type Speed } from './session';
 import { ShopPanel } from './ShopPanel';
@@ -107,7 +107,7 @@ function Roster({ team, dir }: { team: 'A' | 'B'; dir: 'row' | 'col' }) {
           <div
             class={`roster-cell ${u.hero!.isPlayer ? 'me' : ''}`}
             key={id}
-            title={`${def.name} (${u.hero!.role}) ${u.hero!.kills}/${u.hero!.deaths}`}
+            title={`${def.name} (${roleLabel(u.hero!.role)}) ${u.hero!.kills}/${u.hero!.deaths}`}
           >
             <SigilIcon
               spec={def.sigil}

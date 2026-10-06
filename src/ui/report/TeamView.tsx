@@ -1,6 +1,6 @@
 import type { HeroModel, Report } from '../../analysis';
 import { SigilIcon } from '../SigilIcon';
-import { n0, keeperPlace } from '../format';
+import { n0, keeperPlace, roleLabel } from '../format';
 import { useSession } from '../session';
 import { Num, heroName, itemName, teamClass } from './common';
 
@@ -20,7 +20,7 @@ function HeroCard(props: { h: HeroModel; report: Report; skip: boolean }) {
         <SigilIcon spec={def.sigil} team={h.team} size={34} />
         <div class="grow">
           <div class="small">
-            {heroName(s.content, h.def)} <span class="dim tiny">{h.role}</span>
+            {heroName(s.content, h.def)} <span class="dim tiny">{roleLabel(h.role)}</span>
           </div>
           <div class="tiny dim">
             K/D/A {h.kills}/{h.deaths}/{h.assists}

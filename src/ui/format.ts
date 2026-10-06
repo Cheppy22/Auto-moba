@@ -17,3 +17,14 @@ const KEEPER_PLACES: Record<string, string> = {
 export function keeperPlace(spot: string): string {
   return KEEPER_PLACES[spot] ?? spot.replace('k_', '');
 }
+
+const ROLE_LABELS: Record<string, string> = {
+  top: 'left lane',
+  mid: 'mid lane',
+  bot: 'right lane',
+  jungle: 'jungle',
+};
+
+export function roleLabel(role: string): string {
+  return ROLE_LABELS[role] ?? role;
+}

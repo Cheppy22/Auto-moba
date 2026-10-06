@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { mostTakenType, type Fight, type HeroModel, type Report } from '../../analysis';
 import { drawReplay, replayHit, teamColor, type ReplayData } from '../../render';
 import { SigilIcon } from '../SigilIcon';
-import { mmss, n0, pct } from '../format';
+import { mmss, n0, pct, roleLabel } from '../format';
 import { useSession } from '../session';
 import { BarRow, Sparkline, heroName, itemName } from './common';
 
@@ -262,7 +262,8 @@ export function HeroView(props: {
             {def.name}
           </h2>
           <div class="dim small">
-            {h.role} · K/D/A {h.kills}/{h.deaths}/{h.assists} · {n0(h.distance)} units traveled
+            {roleLabel(h.role)} · K/D/A {h.kills}/{h.deaths}/{h.assists} · {n0(h.distance)} units
+            traveled
           </div>
         </div>
         <button class="btn" onClick={() => s.setUi({ reportHero: null })} data-testid="back-team">
