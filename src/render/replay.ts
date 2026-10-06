@@ -87,7 +87,7 @@ export function drawReplay(
   g.setTransform(1, 0, 0, 1, 0, 0);
   g.fillStyle = PALETTE.bg;
   g.fillRect(0, 0, canvas.width, canvas.height);
-  g.fillStyle = '#10131c';
+  g.fillStyle = '#111719';
   g.fillRect(ox, oy, size, size);
 
   for (const s of content.map.slots) {
@@ -100,9 +100,9 @@ export function drawReplay(
       g.fill();
       g.strokeStyle = biome.palette.glow + '66';
     } else {
-      g.fillStyle = 'rgba(30,34,48,0.5)';
+      g.fillStyle = 'rgba(22,28,30,0.55)';
       g.fill();
-      g.strokeStyle = 'rgba(140,150,180,0.2)';
+      g.strokeStyle = 'rgba(170,150,110,0.2)';
     }
     g.lineWidth = 1;
     g.stroke();
@@ -112,7 +112,7 @@ export function drawReplay(
     lane.forEach(([x, y], i) => (i === 0 ? g.moveTo(X(x), Y(y)) : g.lineTo(X(x), Y(y))));
     g.lineCap = 'round';
     g.lineJoin = 'round';
-    g.strokeStyle = 'rgba(40,46,66,0.95)';
+    g.strokeStyle = 'rgba(38,40,38,0.95)';
     g.lineWidth = 22 * p;
     g.stroke();
   }
@@ -145,8 +145,8 @@ export function drawReplay(
   for (const f of data.fights) {
     const sel = f.id === data.selectedFight;
     const active = tick >= f.startTick && tick <= f.endTick;
-    g.strokeStyle = sel ? '#ffffff' : active ? '#ffd27a' : 'rgba(255,170,90,0.75)';
-    g.fillStyle = sel ? 'rgba(255,255,255,0.18)' : 'rgba(255,170,90,0.14)';
+    g.strokeStyle = sel ? '#ffffff' : active ? '#f0b44c' : 'rgba(224,169,62,0.7)';
+    g.fillStyle = sel ? 'rgba(255,255,255,0.18)' : 'rgba(224,169,62,0.12)';
     g.lineWidth = sel ? 3 : 1.5;
     g.beginPath();
     g.arc(X(f.x), Y(f.y), 20 * p + 2, 0, Math.PI * 2);
@@ -154,7 +154,7 @@ export function drawReplay(
     g.stroke();
   }
   for (const d of data.deaths) {
-    g.strokeStyle = '#ff6b81';
+    g.strokeStyle = '#d0584a';
     g.lineWidth = 2.5;
     const s = 6 * p + 2;
     g.beginPath();
@@ -174,7 +174,7 @@ export function drawReplay(
   for (const r of data.recalls) {
     const pt = pointAt(data.path, r.tick);
     if (!pt) continue;
-    g.strokeStyle = '#a8d8ff';
+    g.strokeStyle = '#a9d0e0';
     g.lineWidth = 1.5;
     g.beginPath();
     g.arc(X(pt.x), Y(pt.y), 7 * p + 3, 0, Math.PI * 2);

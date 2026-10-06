@@ -178,7 +178,7 @@ function Curse() {
         The Keeper found you. You are far behind, and the Keeper makes an offer. Take the gift, or
         refuse it. The exact price stays hidden until you accept, and it never leaves.
       </div>
-      <div class="card col" style={{ borderColor: '#7a2a3a' }}>
+      <div class="card col" style={{ borderColor: '#7a2a22' }}>
         <b>{item.name}</b>
         <div class="small">{item.desc}</div>
         <div class="row wrap">

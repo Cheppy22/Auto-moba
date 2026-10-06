@@ -80,14 +80,14 @@ export function drawSigil(
 ): void {
   g.save();
   g.globalAlpha = alive ? 1 : 0.35;
-  g.fillStyle = 'rgba(8,10,16,0.88)';
+  g.fillStyle = 'rgba(10,12,12,0.9)';
   g.beginPath();
   g.arc(x, y, r, 0, Math.PI * 2);
   g.fill();
   g.lineWidth = Math.max(1, r * 0.12);
   g.strokeStyle = tint;
   ring(g, x, y, r);
-  g.strokeStyle = `hsl(${spec.hue} 70% 62%)`;
+  g.strokeStyle = `hsl(${spec.hue} 48% 62%)`;
   for (let i = 1; i < spec.rings; i++) ring(g, x, y, r * (1 - i * 0.2));
   g.lineWidth = Math.max(0.6, r * 0.07);
   g.beginPath();

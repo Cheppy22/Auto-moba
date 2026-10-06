@@ -1,6 +1,6 @@
 import type { Content, Snapshot, SnapUnit } from '../sim';
 import { drawSigil, type SigilSpec } from './sigils';
-import { PALETTE, teamColor } from './theme';
+import { DISPLAY_FONT, PALETTE, teamColor } from './theme';
 
 export interface DrawOptions {
   alpha: number;
@@ -26,6 +26,9 @@ export class Renderer {
     const g = canvas.getContext('2d');
     if (!g) throw new Error('2d canvas unavailable');
     this.g = g;
+    void document.fonts?.ready.then(() => {
+      this.backdropKey = '';
+    });
     this.backdrop = document.createElement('canvas');
     this.size = content.map.size;
     this.lanes = [content.map.lanes.top, content.map.lanes.mid, content.map.lanes.bot] as [
@@ -80,11 +83,11 @@ export class Renderer {
       oy + 500 * p,
       720 * p,
     );
-    grad.addColorStop(0, '#171a26');
-    grad.addColorStop(1, '#0a0b10');
+    grad.addColorStop(0, '#182124');
+    grad.addColorStop(1, '#090c0d');
     b.fillStyle = grad;
     b.fillRect(ox, oy, this.size * p, this.size * p);
-    b.strokeStyle = 'rgba(120,130,160,0.06)';
+    b.strokeStyle = 'rgba(200,180,140,0.05)';
     b.lineWidth = 1;
     for (let i = 1; i < 10; i++) {
       b.beginPath();
@@ -115,24 +118,24 @@ export class Renderer {
         b.arc(cx, cy, r, 0, Math.PI * 2);
         b.stroke();
         b.fillStyle = biome.palette.glow + 'cc';
-        b.font = `${Math.round(11 * p * 1.3)}px system-ui, sans-serif`;
+        b.font = `${Math.round(11 * p * 1.3)}px ${DISPLAY_FONT}`;
         b.textAlign = 'center';
         b.fillText(biome.name, cx, cy - r - 6 * p);
       } else {
-        b.fillStyle = 'rgba(30,34,48,0.7)';
+        b.fillStyle = 'rgba(22,28,30,0.75)';
         b.beginPath();
         b.arc(cx, cy, r, 0, Math.PI * 2);
         b.fill();
-        b.strokeStyle = 'rgba(140,150,180,0.25)';
+        b.strokeStyle = 'rgba(170,150,110,0.25)';
         b.setLineDash([6 * p, 6 * p]);
         b.beginPath();
         b.arc(cx, cy, r, 0, Math.PI * 2);
         b.stroke();
         b.setLineDash([]);
-        b.fillStyle = 'rgba(160,170,200,0.35)';
-        b.font = `${Math.round(18 * p * 1.3)}px system-ui, sans-serif`;
+        b.fillStyle = 'rgba(190,175,145,0.32)';
+        b.font = `${Math.round(15 * p * 1.3)}px ${DISPLAY_FONT}`;
         b.textAlign = 'center';
-        b.fillText('fog', cx, cy + 5 * p);
+        b.fillText('uncharted', cx, cy + 5 * p);
       }
     }
     for (const lane of this.lanes) {
@@ -142,10 +145,10 @@ export class Renderer {
       );
       b.lineCap = 'round';
       b.lineJoin = 'round';
-      b.strokeStyle = 'rgba(40,46,66,0.9)';
+      b.strokeStyle = 'rgba(38,40,38,0.92)';
       b.lineWidth = 30 * p;
       b.stroke();
-      b.strokeStyle = 'rgba(90,100,135,0.35)';
+      b.strokeStyle = 'rgba(160,130,80,0.35)';
       b.lineWidth = 1.5;
       b.setLineDash([8 * p, 10 * p]);
       b.stroke();
@@ -213,7 +216,7 @@ export class Renderer {
       const b = pos(t);
       g.strokeStyle =
         u.kind === 'tower' || u.kind === 'guardian'
-          ? 'rgba(255,220,140,0.9)'
+          ? 'rgba(240,180,76,0.9)'
           : teamColor(u.team) + 'cc';
       g.beginPath();
       g.moveTo(a.x, a.y);
@@ -255,7 +258,7 @@ export class Renderer {
         }
         case 'tower': {
           const s = 8 * q;
-          g.fillStyle = 'rgba(10,12,18,0.95)';
+          g.fillStyle = 'rgba(12,14,14,0.95)';
           g.strokeStyle = col;
           g.lineWidth = 2;
           g.beginPath();
@@ -271,7 +274,7 @@ export class Renderer {
         }
         case 'guardian': {
           const s = 15 * q;
-          g.fillStyle = 'rgba(10,12,18,0.95)';
+          g.fillStyle = 'rgba(12,14,14,0.95)';
           g.strokeStyle = col;
           g.lineWidth = 2.5;
           g.beginPath();
@@ -290,8 +293,8 @@ export class Renderer {
         }
         case 'obelisk': {
           const s = 9 * q;
-          g.fillStyle = '#c9a7ff';
-          g.strokeStyle = '#ffffff88';
+          g.fillStyle = '#a9d0e0';
+          g.strokeStyle = '#e8f6ff99';
           g.beginPath();
           g.moveTo(x, y - s * 1.5);
           g.lineTo(x + s * 0.7, y);
@@ -322,7 +325,7 @@ export class Renderer {
           g.arc(x, y, s * 0.8, 0, Math.PI * 2);
           g.fill();
           g.fillStyle = PALETTE.text;
-          g.font = `${Math.round(10 * q * 1.2)}px system-ui, sans-serif`;
+          g.font = `${Math.round(10 * q * 1.2)}px ${DISPLAY_FONT}`;
           g.textAlign = 'center';
           g.fillText('Keeper', x, y + s * 2.8);
           break;
@@ -349,19 +352,19 @@ export class Renderer {
           if (u.alive) {
             this.bar(x, y - r - 7 * q, 26 * q, u.hp / u.maxHp, col);
             if (u.shield > 0)
-              this.bar(x, y - r - 11 * q, 26 * q, Math.min(1, u.shield / u.maxHp), '#cfe8ff');
+              this.bar(x, y - r - 11 * q, 26 * q, Math.min(1, u.shield / u.maxHp), '#a9d0e0');
             if (u.curse) {
-              g.fillStyle = '#c64d6e';
+              g.fillStyle = '#8a2a22';
               g.fillRect(x + r * 0.6, y + r * 0.2, 4 * q, 4 * q);
             }
             if (u.holy) {
-              g.fillStyle = '#ffe9a6';
+              g.fillStyle = '#f0d48a';
               g.fillRect(x + r * 0.6, y + r * 0.2 + 5 * q, 4 * q, 4 * q);
             }
           }
           if (u.isPlayer) {
             g.fillStyle = '#ffffff';
-            g.font = `bold ${Math.round(9 * q * 1.2)}px system-ui, sans-serif`;
+            g.font = `${Math.round(10 * q * 1.2)}px ${DISPLAY_FONT}`;
             g.textAlign = 'center';
             g.fillText('YOU', x, y + r + 12 * q);
           }
@@ -370,7 +373,7 @@ export class Renderer {
       }
     }
     if (snap.pressure.length) {
-      g.fillStyle = 'rgba(160,40,70,0.10)';
+      g.fillStyle = 'rgba(110,20,16,0.12)';
       g.fillRect(0, 0, this.canvas.width, this.canvas.height);
     }
   }

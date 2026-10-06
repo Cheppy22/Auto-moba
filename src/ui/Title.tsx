@@ -7,7 +7,10 @@ export function Title() {
   return (
     <div class="overlay" data-testid="title">
       <div class="panel title-wrap col">
+        <div class="ornament">◆</div>
         <h1>Auto-MOBA</h1>
+        <div class="subtitle">An auto-battler of the pocket dimension</div>
+        <div class="ornament">◆</div>
         <div class="dim">
           A pocket dimension where every wish has a price. Choose a hero and a lane, then watch your
           team fight and shape the match through your shop, your upgrades and your posture.

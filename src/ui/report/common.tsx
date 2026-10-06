@@ -82,7 +82,7 @@ export function Sparkline(props: {
       role="img"
       aria-label="Gold earned over time"
     >
-      <rect x="0" y="0" width={w} height={h} fill="#0c0e15" rx="4" />
+      <rect x="0" y="0" width={w} height={h} fill="#07090a" rx="4" />
       {d && <path d={d} fill="none" stroke={props.color} stroke-width="1.8" />}
       {props.marks.map((t, i) => (
         <line
@@ -91,7 +91,7 @@ export function Sparkline(props: {
           x2={x(t)}
           y1={4}
           y2={h - 4}
-          stroke="#e7c35a"
+          stroke="#e0a93e"
           stroke-width="1"
           stroke-dasharray="2 3"
         />

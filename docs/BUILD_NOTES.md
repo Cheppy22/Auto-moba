@@ -63,17 +63,17 @@ What I added beyond the plan, because without it matches stalled or were decided
 
 ## Known weaknesses and risks
 
-| Area       | Issue                                                                                                                                                                                 |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Balance    | Duplicates of one hero are allowed (4-hero pool, 5 slots). Five Hollow Cartographers beat every other five-stack (71-79%). The no-duplicates rule fixes this with 11 heroes.          |
-| Balance    | The holy item is very strong (holder's team wins 69-83%). That figure is confounded because the team that wins the auction is usually ahead; I did not run an A/B test.               |
-| Balance    | Hollow Cartographer is the strongest hero in random drafts (55.7%); smelter and revenant are lowest (47%). All are inside the band; the spread is not small.                          |
-| AI         | No kiting, no vision or wards, simple recall logic. Heroes wander across lanes to defend. Matches look plausible but not smart.                                                       |
-| Engagement | The in-phase decision space is still thin (posture and recall). The doc names this as the first question the prototype must answer (E2). I could not answer it unattended.            |
-| UI         | Phone layouts (portrait, landscape, touch targets) added on test-product. No keyboard shortcuts, no audio, colors not audited for accessibility. No download button for replay export (the API exists).                   |
-| UI         | No Keeper or lore text anywhere; the Keeper is a gold marker and a tab.                                                                                                               |
-| Tests      | No test that the enemy's sealed bid stays hidden in the report before resolution; the e2e covers one happy path; AI behavior is tested only through match outcomes, not unit by unit. |
-| Perf       | About 40,000 events per 12-minute match kept in memory; fine, but the UI re-renders the whole HUD at about 8 Hz while a phase runs.                                                   |
+| Area       | Issue                                                                                                                                                                                                   |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Balance    | Duplicates of one hero are allowed (4-hero pool, 5 slots). Five Hollow Cartographers beat every other five-stack (71-79%). The no-duplicates rule fixes this with 11 heroes.                            |
+| Balance    | The holy item is very strong (holder's team wins 69-83%). That figure is confounded because the team that wins the auction is usually ahead; I did not run an A/B test.                                 |
+| Balance    | Hollow Cartographer is the strongest hero in random drafts (55.7%); smelter and revenant are lowest (47%). All are inside the band; the spread is not small.                                            |
+| AI         | No kiting, no vision or wards, simple recall logic. Heroes wander across lanes to defend. Matches look plausible but not smart.                                                                         |
+| Engagement | The in-phase decision space is still thin (posture and recall). The doc names this as the first question the prototype must answer (E2). I could not answer it unattended.                              |
+| UI         | Phone layouts (portrait, landscape, touch targets) added on test-product. No keyboard shortcuts, no audio, colors not audited for accessibility. No download button for replay export (the API exists). |
+| UI         | No Keeper or lore text anywhere; the Keeper is a gold marker and a tab.                                                                                                                                 |
+| Tests      | No test that the enemy's sealed bid stays hidden in the report before resolution; the e2e covers one happy path; AI behavior is tested only through match outcomes, not unit by unit.                   |
+| Perf       | About 40,000 events per 12-minute match kept in memory; fine, but the UI re-renders the whole HUD at about 8 Hz while a phase runs.                                                                     |
 
 ## Where to look first
 

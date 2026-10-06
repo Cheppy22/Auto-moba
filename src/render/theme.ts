@@ -1,15 +1,17 @@
 export const PALETTE = {
-  bg: '#0a0b10',
-  panel: '#171923',
-  border: '#2a2f3d',
-  text: '#e8e6df',
-  dim: '#9aa0b4',
-  gold: '#e7c35a',
-  neutral: '#b9a6ff',
-  camp: '#d08a4a',
-  teamA: '#4fd1c5',
-  teamB: '#f2677b',
+  bg: '#0a0c0d',
+  panel: '#141a1c',
+  border: '#6b5532',
+  text: '#e6dcc6',
+  dim: '#9c9381',
+  gold: '#e0a93e',
+  neutral: '#a9d0e0',
+  camp: '#b0794a',
+  teamA: '#74b9b1',
+  teamB: '#d0584a',
 } as const;
+
+export const DISPLAY_FONT = "'IM Fell English SC', Georgia, serif";
 
 export function teamColor(team: string): string {
   return team === 'A' ? PALETTE.teamA : team === 'B' ? PALETTE.teamB : PALETTE.neutral;
