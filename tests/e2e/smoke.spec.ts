@@ -54,6 +54,13 @@ test('draft, play a phase, read the report, start the next phase', async ({ page
     s.notify();
   });
   await expect(page.getByTestId('report')).toBeVisible();
+  await expect(page.getByTestId('team-table')).toBeVisible();
+  await page.locator('[data-testid^="report-hero-"]').first().click();
+  await expect(page.getByTestId('hero-view')).toBeVisible();
+  await expect(page.getByTestId('replay')).toBeVisible();
+  await page.getByTestId('scrub').fill('1200');
+  await page.getByTestId('back-team').click();
+  await expect(page.getByTestId('team-table')).toBeVisible();
   await page.getByTestId('continue').click();
   await expect(page.getByTestId('prep')).toBeVisible();
   await expect(page.getByText('Before phase 2')).toBeVisible();
