@@ -144,6 +144,7 @@ function killUnit(ctx: Ctx, u: Unit): void {
         kind: 'hero',
         team: u.team,
         killer: killer ? killer.id : 0,
+        killerKind: killer ? killer.kind : 'none',
         assists,
         x: u.x,
         y: u.y,

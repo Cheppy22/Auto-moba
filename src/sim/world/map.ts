@@ -169,6 +169,26 @@ export function buildWorld(map: MapDef): World {
   return { map, lanes, nodes, slotNode, baseNode, towerPos, guardianPos, basePos, slotPos };
 }
 
+const START_SLACK = 140;
+
+function candidateNodes(
+  world: World,
+  x: number,
+  y: number,
+  open: ReadonlySet<string>,
+): { node: number; d: number }[] {
+  const out: { node: number; d: number }[] = [];
+  let best = Infinity;
+  for (let i = 0; i < world.nodes.length; i++) {
+    const n = world.nodes[i];
+    if (n.slot && !open.has(n.slot)) continue;
+    const d = dist(x, y, n.x, n.y);
+    out.push({ node: i, d });
+    if (d < best) best = d;
+  }
+  return out.filter((c) => c.d <= best + START_SLACK);
+}
+
 export function nearestNode(world: World, x: number, y: number, open: ReadonlySet<string>): number {
   let best = -1;
   let bestD = Infinity;
@@ -190,13 +210,12 @@ export function findPath(
   to: Pt,
   open: ReadonlySet<string>,
 ): [number, number][] {
-  const a = nearestNode(world, from.x, from.y, open);
-  const b = nearestNode(world, to.x, to.y, open);
   const n = world.nodes.length;
   const d = new Array<number>(n).fill(Infinity);
   const prev = new Array<number>(n).fill(-1);
   const done = new Array<boolean>(n).fill(false);
-  d[a] = 0;
+  for (const c of candidateNodes(world, from.x, from.y, open)) d[c.node] = c.d;
+  const ends = candidateNodes(world, to.x, to.y, open);
   for (let iter = 0; iter < n; iter++) {
     let u = -1;
     let best = Infinity;
@@ -206,7 +225,7 @@ export function findPath(
         u = i;
       }
     }
-    if (u < 0 || u === b) break;
+    if (u < 0) break;
     done[u] = true;
     for (const e of world.nodes[u].edges) {
       const node = world.nodes[e.to];
@@ -217,11 +236,18 @@ export function findPath(
       }
     }
   }
-  const path: [number, number][] = [[to.x, to.y]];
-  for (let cur = b; cur >= 0; cur = prev[cur]) {
-    path.push([world.nodes[cur].x, world.nodes[cur].y]);
-    if (cur === a) break;
+  let end = -1;
+  let endCost = Infinity;
+  for (const c of ends) {
+    const cost = d[c.node] + c.d;
+    if (cost < endCost) {
+      endCost = cost;
+      end = c.node;
+    }
   }
+  const path: [number, number][] = [[to.x, to.y]];
+  for (let cur = end; cur >= 0; cur = prev[cur])
+    path.push([world.nodes[cur].x, world.nodes[cur].y]);
   path.reverse();
   return path;
 }

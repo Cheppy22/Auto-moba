@@ -14,7 +14,7 @@ import { tickObelisks } from './obelisks';
 import { enterPrep, endLive } from './phase';
 import { tickSpiritTide } from './pressure';
 import { aiShop } from './ai/shopping';
-import { nearBase } from './shop';
+import { baseCatalog, nearBase, quote } from './shop';
 import { dirtyAll, recompute } from './stats';
 import {
   passiveGold,
@@ -39,6 +39,7 @@ import type {
   Recorder,
   Replay,
   ReplayOp,
+  ShopEntry,
   SnapUnit,
   Snapshot,
   Unit,
@@ -374,6 +375,8 @@ export class Match {
         claim: u.obelisk ? Math.max(u.obelisk.claim.A, u.obelisk.claim.B) / need : 0,
         curse,
         holy,
+        target: u.targetId,
+        flash: u.atkCd >= Math.max(1, Math.round(TPS / Math.max(0.2, u.stats.atkSpeed))) - 2,
       });
     }
     const phaseTicks = Math.round(this.ctx.t.phaseSeconds * TPS);
@@ -393,6 +396,48 @@ export class Match {
       phaseTicksLeft:
         s.phase.kind === 'live' ? Math.max(0, phaseTicks - (s.tick - s.phase.startTick)) : 0,
     };
+  }
+
+  shopList(): ShopEntry[] {
+    const s = this.ctx.s;
+    const p = s.playerHeroId !== null ? this.ctx.unit(s.playerHeroId) : undefined;
+    if (!p || !p.hero || p.team === 'neutral') return [];
+    const base = new Set(baseCatalog(this.ctx, p.team));
+    const out: ShopEntry[] = [];
+    for (const it of this.content.items) {
+      const inBase = base.has(it.id);
+      const inKeeper = s.keeper.stock.includes(it.id);
+      const owned = p.hero.items.slice();
+      const consumed: string[] = [];
+      let discount = 0;
+      for (const comp of it.from) {
+        const i = owned.indexOf(comp);
+        if (i >= 0) {
+          owned.splice(i, 1);
+          consumed.push(comp);
+          discount += this.content.itemById.get(comp)?.cost ?? 0;
+        }
+      }
+      const q = quote(this.ctx, p, it.id);
+      const canBuy = !('error' in q) && p.hero.gold >= q.price;
+      let reason = '';
+      if ('error' in q) reason = q.error;
+      else if (!canBuy) reason = 'not enough gold';
+      out.push({
+        id: it.id,
+        name: it.name,
+        category: it.category,
+        tier: it.tier,
+        cost: it.cost,
+        price: Math.max(0, it.cost - discount),
+        consumed,
+        source: inBase ? 'base' : inKeeper ? 'keeper' : 'locked',
+        canBuy,
+        reason,
+        desc: it.desc,
+      });
+    }
+    return out;
   }
 
   unitById(id: number): Unit | undefined {

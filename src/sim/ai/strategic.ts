@@ -76,7 +76,13 @@ export function setGoal(ctx: Ctx, u: Unit, g: Goal): void {
     board.claims[g.key] = (board.claims[g.key] ?? 0) + 1;
     h.goalSetTick = ctx.s.tick;
   }
+  const keep =
+    old !== null &&
+    old.key === g.key &&
+    u.pathI < u.path.length &&
+    dist(old.x, old.y, g.x, g.y) < 40;
   h.goal = g;
+  if (keep) return;
   u.path = findPath(ctx.world, { x: u.x, y: u.y }, { x: g.x, y: g.y }, openSlots(ctx));
   u.pathI = 0;
 }

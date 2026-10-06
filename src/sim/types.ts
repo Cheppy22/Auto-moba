@@ -272,6 +272,7 @@ export interface EventPayloads {
     kind: UnitKind;
     team: TeamId;
     killer: number;
+    killerKind: UnitKind | 'none';
     assists: number[];
     x: number;
     y: number;
@@ -396,6 +397,8 @@ export interface SnapUnit {
   claim: number;
   curse: boolean;
   holy: boolean;
+  target: number | null;
+  flash: boolean;
 }
 
 export interface Snapshot {
@@ -416,4 +419,18 @@ export interface Snapshot {
   playerHeroId: number | null;
   keeper: { x: number; y: number; spot: string } | null;
   phaseTicksLeft: number;
+}
+
+export interface ShopEntry {
+  id: string;
+  name: string;
+  category: 'blade' | 'flesh' | 'soul';
+  tier: number;
+  cost: number;
+  price: number;
+  consumed: string[];
+  source: 'base' | 'keeper' | 'locked';
+  canBuy: boolean;
+  reason: string;
+  desc: string;
 }
