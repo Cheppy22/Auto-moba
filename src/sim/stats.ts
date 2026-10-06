@@ -106,12 +106,11 @@ export function recompute(ctx: Ctx, u: Unit): void {
   u.dirty = false;
 }
 
-export function addMod(ctx: Ctx, u: Unit, mod: Modifier): void {
+export function addMod(_ctx: Ctx, u: Unit, mod: Modifier): void {
   const i = u.mods.findIndex((m) => m.id === mod.id);
   if (i >= 0) u.mods[i] = mod;
   else u.mods.push(mod);
   u.dirty = true;
-  void ctx;
 }
 
 export function dirtyAll(ctx: Ctx): void {

@@ -3,7 +3,6 @@ import { cpus } from 'node:os';
 import { spawn } from 'node:child_process';
 import { createInterface } from 'node:readline';
 import { fileURLToPath } from 'node:url';
-import { loadNodeContent } from './content-node';
 import { report } from './report';
 import type { MatchSummary } from './simulate';
 
@@ -16,7 +15,6 @@ const flag = (name: string): boolean => process.argv.includes(`--${name}`);
 const total = arg('matches', 1000);
 const startSeed = arg('seed', 1);
 const workers = Math.max(1, Math.min(arg('workers', cpus().length), total));
-const content = loadNodeContent();
 
 async function main(): Promise<void> {
   const seeds = Array.from({ length: total }, (_, i) => startSeed + i);
@@ -57,7 +55,6 @@ async function main(): Promise<void> {
   process.stderr.write(
     `\n${total} matches in ${((Date.now() - t0) / 1000).toFixed(0)} s on ${workers} workers\n`,
   );
-  void content;
 }
 
 void main();

@@ -101,17 +101,11 @@ export function validateRefs(c: Content): string[] {
   for (const n of c.map.obeliskNodes) {
     if (n.slot && !slotIds.has(n.slot)) errs.push(`obelisk node ${n.id}: unknown slot ${n.slot}`);
   }
-  for (const r of c.tuning.obelisk.rewards) {
-    if (r.kind === 'unlock' && !c.itemById.has(String(r.value))) {
-      // unlock rewards pick from tier-3 items at runtime; value unused
-    }
-  }
   const pressureIds = new Set(c.pressure.map((p) => p.id));
   if (pressureIds.size !== c.pressure.length) errs.push('pressure ids not unique');
-  for (const k of Object.keys(c.tuning.personalities)) {
-    for (const h of c.heroes)
-      if (!c.tuning.personalities[h.personality]) errs.push(`personality ${h.personality} missing`);
-    void k;
+  for (const h of c.heroes) {
+    if (!c.tuning.personalities[h.personality])
+      errs.push(`hero ${h.id}: personality ${h.personality} missing`);
   }
   for (const p of ['push', 'farm', 'defend', 'default']) {
     if (!c.tuning.posture[p]) errs.push(`posture table ${p} missing`);

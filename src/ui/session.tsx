@@ -69,7 +69,14 @@ export class Session {
   issue(cmd: Command): CommandResult {
     if (!this.match) return { ok: false, reason: 'no match' };
     const r = this.match.issue(cmd);
-    this.ui = { ...this.ui, toast: r.ok ? null : (r.reason ?? 'rejected') };
+    this.ui = {
+      ...this.ui,
+      toast: r.ok ? null : (r.reason ?? 'rejected'),
+      prepTab:
+        r.ok && (cmd.type === 'continue' || cmd.type === 'startMatch')
+          ? 'upgrade'
+          : this.ui.prepTab,
+    };
     this.notify();
     return r;
   }

@@ -1,5 +1,5 @@
 import { aiPrep, offerUpgrades } from './ai/prep';
-import { initAuction, resolveAuction } from './auction';
+import { resolveAuction } from './auction';
 import { openSlotsForPhase, rerollJungle } from './camps';
 import { TPS } from './combat';
 import type { Ctx } from './ctx';
@@ -9,8 +9,6 @@ import { scheduleObelisks } from './obelisks';
 import { applyPressure } from './pressure';
 import { dirtyAll } from './stats';
 import type { CommandResult, PlayTeam } from './types';
-
-void initAuction;
 
 export function enterPrep(ctx: Ctx, n: number): void {
   const s = ctx.s;

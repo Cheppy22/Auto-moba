@@ -1,5 +1,5 @@
 import { TPS } from './combat';
-import { pick, rand, weightedPick } from './core/rng';
+import { pick, weightedPick } from './core/rng';
 import type { Ctx } from './ctx';
 import type { CampTypeDef, BiomeDef, Stats } from './content/schema';
 import { giveGold } from './shop';
@@ -180,8 +180,4 @@ export function onCampUnitDeath(ctx: Ctx, u: Unit, killer: Unit | null): void {
     gold: type.gold,
     points: type.points,
   });
-}
-
-export function randomChance(ctx: Ctx, p: number): boolean {
-  return rand(ctx.s.rng, 'mapgen') < p;
 }

@@ -15,7 +15,6 @@ import { enterPrep, endLive } from './phase';
 import { tickSpiritTide } from './pressure';
 import { aiShop } from './ai/shopping';
 import { baseCatalog, nearBase, quote } from './shop';
-import { dirtyAll, recompute } from './stats';
 import {
   passiveGold,
   processDeaths,
@@ -457,6 +456,3 @@ export class Match {
     return this.ctx.unit(id);
   }
 }
-
-void dirtyAll;
-void recompute;

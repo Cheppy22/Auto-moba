@@ -12,7 +12,7 @@ function openSet(ctx: Ctx): Set<string> {
   return out;
 }
 
-export function stepToward(ctx: Ctx, u: Unit, tx: number, ty: number, speedMul = 1): number {
+export function stepToward(_ctx: Ctx, u: Unit, tx: number, ty: number, speedMul = 1): number {
   const dx = tx - u.x;
   const dy = ty - u.y;
   const d = Math.sqrt(dx * dx + dy * dy);
@@ -20,7 +20,6 @@ export function stepToward(ctx: Ctx, u: Unit, tx: number, ty: number, speedMul =
   const step = Math.min(d, (u.stats.moveSpeed * speedMul) / TPS);
   u.x += (dx / d) * step;
   u.y += (dy / d) * step;
-  void ctx;
   return step;
 }
 

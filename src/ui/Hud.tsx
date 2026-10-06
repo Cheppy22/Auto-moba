@@ -47,7 +47,7 @@ function describe(s: Session, e: GameEvent): { text: string; cls: string } | nul
     }
     case 'structureDown':
       return {
-        text: `${e.payload.kind === 'guardian' ? 'A guardian' : 'A tower'} fell (${e.payload.team})`,
+        text: `A ${e.payload.kind} of team ${e.payload.team} fell`,
         cls: 'gold',
       };
     case 'obeliskClaimed':

@@ -1,6 +1,5 @@
 import { TPS } from './combat';
-import { dist } from './core/math';
-import { pick, weightedPick, rand } from './core/rng';
+import { pick, weightedPick } from './core/rng';
 import type { Ctx } from './ctx';
 import { giveGold } from './shop';
 import { newUnit } from './units';
@@ -127,6 +126,4 @@ export function tickObelisks(ctx: Ctx): void {
       }
     }
   }
-  void dist;
-  void rand;
 }
