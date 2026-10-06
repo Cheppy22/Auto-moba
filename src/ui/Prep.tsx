@@ -1,6 +1,6 @@
 import { useState } from 'preact/hooks';
 import { ShopPanel } from './ShopPanel';
-import { n0 } from './format';
+import { n0, keeperPlace } from './format';
 import { useSession } from './session';
 
 function Upgrades() {
@@ -223,7 +223,7 @@ export function Prep() {
     ...(hasCurse ? [{ id: 'curse', label: "Keeper's offer", pending: cursePending }] : []),
   ] as { id: 'upgrade' | 'shop' | 'auction' | 'curse'; label: string; pending: boolean }[];
   const tab = tabs.some((t) => t.id === s.ui.prepTab) ? s.ui.prepTab : 'upgrade';
-  const keeperSpot = st.keeper.spot.replace('k_', '');
+  const keeperSpot = keeperPlace(st.keeper.spot);
   const stock = st.keeper.stock.map((x) => s.content.itemById.get(x)?.name ?? x);
   return (
     <div class="overlay" data-testid="prep">

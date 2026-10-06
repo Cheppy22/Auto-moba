@@ -1,6 +1,6 @@
 import type { HeroModel, Report } from '../../analysis';
 import { SigilIcon } from '../SigilIcon';
-import { n0 } from '../format';
+import { n0, keeperPlace } from '../format';
 import { useSession } from '../session';
 import { Num, heroName, itemName, teamClass } from './common';
 
@@ -131,7 +131,7 @@ export function TeamView(props: { report: Report; skip: boolean }) {
             ))}
             {r.special.keeper.map((x, i) => (
               <div class="tiny dim" key={`k${i}`}>
-                Keeper at {x.spot.replace('k_', '')}:{' '}
+                Keeper at {keeperPlace(x.spot)}:{' '}
                 {x.stock.map((id) => itemName(s.content, id)).join(', ')}
               </div>
             ))}

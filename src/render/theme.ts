@@ -1,14 +1,16 @@
 export const PALETTE = {
-  bg: '#0a0c0d',
-  panel: '#141a1c',
+  bg: '#08080c',
+  panel: '#141320',
   border: '#6b5532',
-  text: '#e6dcc6',
-  dim: '#9c9381',
+  text: '#ece2cc',
+  dim: '#9d93a8',
   gold: '#e0a93e',
-  neutral: '#a9d0e0',
+  neutral: '#b9a0e6',
+  spirit: '#c4a8f0',
+  seal: '#b3262e',
   camp: '#b0794a',
-  teamA: '#74b9b1',
-  teamB: '#d0584a',
+  teamA: '#6fbfa8',
+  teamB: '#d04a52',
 } as const;
 
 export const DISPLAY_FONT = "'IM Fell English SC', Georgia, serif";

@@ -1,6 +1,7 @@
 import type { Content, Snapshot, SnapUnit } from '../sim';
 import { drawSigil, type SigilSpec } from './sigils';
 import { DISPLAY_FONT, PALETTE, teamColor } from './theme';
+import { makeView, toScreen, type Insets, type View } from './view';
 
 export interface DrawOptions {
   alpha: number;
@@ -8,13 +9,46 @@ export interface DrawOptions {
 }
 
 const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
+const TAU = Math.PI * 2;
+
+export function drawButterfly(
+  g: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  s: number,
+  flap: number,
+  color: string,
+): void {
+  const open = 0.55 + 0.45 * Math.abs(flap);
+  g.save();
+  g.translate(x, y);
+  g.fillStyle = color;
+  g.strokeStyle = '#120a06';
+  g.lineWidth = Math.max(0.6, s * 0.06);
+  for (const side of [-1, 1]) {
+    g.beginPath();
+    g.ellipse(side * s * 0.45 * open, -s * 0.22, s * 0.5 * open, s * 0.38, side * -0.5, 0, TAU);
+    g.fill();
+    g.stroke();
+    g.beginPath();
+    g.ellipse(side * s * 0.32 * open, s * 0.3, s * 0.3 * open, s * 0.26, side * 0.6, 0, TAU);
+    g.fill();
+    g.stroke();
+  }
+  g.fillStyle = '#120a06';
+  g.fillRect(-s * 0.05, -s * 0.45, s * 0.1, s * 0.9);
+  g.restore();
+}
 
 export class Renderer {
   private g: CanvasRenderingContext2D;
   private backdrop: HTMLCanvasElement;
   private backdropKey = '';
-  private px = 1;
+  private view: View = { cx: 0, cy: 0, sx: 1, sy: 1, p: 1, mid: 500 };
   private size = 1000;
+  private halfSpan = 640;
+  private insets: Insets = { top: 8, right: 8, bottom: 8, left: 8 };
+  private maxStretch = 1.3;
   private sigils = new Map<string, SigilSpec>();
   private lanes: [number, number][][];
   private bases: { A: [number, number]; B: [number, number] };
@@ -39,6 +73,25 @@ export class Renderer {
     for (const h of content.heroes) this.sigils.set(h.id, h.sigil);
   }
 
+  setFrame(insets: Insets, maxStretch: number): void {
+    const i = this.insets;
+    if (
+      i.top === insets.top &&
+      i.right === insets.right &&
+      i.bottom === insets.bottom &&
+      i.left === insets.left &&
+      this.maxStretch === maxStretch
+    )
+      return;
+    this.insets = { ...insets };
+    this.maxStretch = maxStretch;
+    this.backdropKey = '';
+  }
+
+  getView(): View {
+    return this.view;
+  }
+
   resize(): void {
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     const cssW = this.canvas.clientWidth || 800;
@@ -52,129 +105,230 @@ export class Renderer {
       this.backdrop.height = h;
       this.backdropKey = '';
     }
-    this.px = Math.min(w, h) / this.size;
+    this.view = makeView(w, h, this.size, this.halfSpan, this.insets, this.maxStretch, dpr);
   }
 
-  private offset(): { ox: number; oy: number } {
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
-    const portrait = this.canvas.height > this.canvas.width * 1.2;
-    return {
-      ox: (this.canvas.width - this.size * this.px) / 2,
-      oy: portrait ? 52 * dpr : (this.canvas.height - this.size * this.px) / 2,
+  private S(x: number, y: number): { x: number; y: number } {
+    return toScreen(this.view, x, y);
+  }
+
+  private ellipse(g: CanvasRenderingContext2D, x: number, y: number, r: number): void {
+    const c = this.S(x, y);
+    g.beginPath();
+    g.ellipse(c.x, c.y, r * this.view.sx, r * this.view.sy, 0, 0, TAU);
+  }
+
+  private paintVoid(b: CanvasRenderingContext2D): void {
+    const W = this.backdrop.width;
+    const H = this.backdrop.height;
+    b.fillStyle = PALETTE.bg;
+    b.fillRect(0, 0, W, H);
+    const c = this.S(this.size / 2, this.size / 2);
+    const haze = b.createRadialGradient(c.x, c.y, 0, c.x, c.y, Math.max(W, H) * 0.7);
+    haze.addColorStop(0, '#1a1426');
+    haze.addColorStop(0.55, '#0d0d14');
+    haze.addColorStop(1, '#050508');
+    b.fillStyle = haze;
+    b.fillRect(0, 0, W, H);
+    let seed = 1337;
+    const rnd = (): number => {
+      seed = (seed * 16807) % 2147483647;
+      return seed / 2147483647;
     };
+    const stars = Math.round((W * H) / 9000);
+    for (let i = 0; i < stars; i++) {
+      const a = rnd() * 0.5 + 0.08;
+      b.fillStyle = rnd() < 0.2 ? `rgba(200,170,255,${a})` : `rgba(235,225,200,${a})`;
+      const r = rnd() < 0.08 ? 1.6 : 0.8;
+      b.fillRect(rnd() * W, rnd() * H, r, r);
+    }
+  }
+
+  private paintSeal(b: CanvasRenderingContext2D): void {
+    const v = this.view;
+    const m = this.size / 2;
+    const ring = (r: number, alpha: number, dash: number[] = []): void => {
+      this.ellipse(b, m, m, r);
+      b.strokeStyle = `rgba(185,160,230,${alpha})`;
+      b.setLineDash(dash);
+      b.stroke();
+    };
+    b.lineWidth = 1;
+    ring(470, 0.1);
+    ring(455, 0.07, [2, 6]);
+    ring(300, 0.08);
+    ring(150, 0.1);
+    const star = (rot: number): void => {
+      b.beginPath();
+      for (let i = 0; i <= 3; i++) {
+        const a = rot + (i / 3) * TAU;
+        const c = this.S(m + Math.cos(a) * 300, m + Math.sin(a) * 300);
+        if (i === 0) b.moveTo(c.x, c.y);
+        else b.lineTo(c.x, c.y);
+      }
+      b.strokeStyle = 'rgba(185,160,230,0.07)';
+      b.setLineDash([]);
+      b.stroke();
+    };
+    star(Math.PI / 4);
+    star(Math.PI / 4 + Math.PI);
+    b.fillStyle = 'rgba(185,160,230,0.16)';
+    for (let i = 0; i < 24; i++) {
+      const a = (i / 24) * TAU;
+      const c = this.S(m + Math.cos(a) * 470, m + Math.sin(a) * 470);
+      const r = (i % 6 === 0 ? 3 : 1.5) * v.p * 1.4;
+      b.beginPath();
+      b.arc(c.x, c.y, r, 0, TAU);
+      b.fill();
+    }
+    const lo = 55;
+    const hi = this.size - 55;
+    for (const [inset, alpha] of [
+      [0, 0.5],
+      [14, 0.22],
+    ] as const) {
+      b.beginPath();
+      const pts = [
+        this.S(lo - inset, lo - inset),
+        this.S(hi + inset, lo - inset),
+        this.S(hi + inset, hi + inset),
+        this.S(lo - inset, hi + inset),
+      ];
+      pts.forEach((c, i) => (i === 0 ? b.moveTo(c.x, c.y) : b.lineTo(c.x, c.y)));
+      b.closePath();
+      b.strokeStyle = `rgba(224,169,62,${alpha})`;
+      b.lineWidth = inset === 0 ? 1.5 : 1;
+      b.stroke();
+    }
   }
 
   private paintBackdrop(snap: Snapshot): void {
     const key =
-      snap.slots.map((s) => `${s.id}${s.open ? s.biomeId : '-'}`).join('|') + this.canvas.width;
+      snap.slots.map((s) => `${s.id}${s.open ? s.biomeId : '-'}`).join('|') +
+      `${this.canvas.width}x${this.canvas.height}:${this.view.cx},${this.view.cy},${this.view.sx},${this.view.sy}`;
     if (key === this.backdropKey) return;
     this.backdropKey = key;
     const b = this.backdrop.getContext('2d')!;
-    const { ox, oy } = this.offset();
-    const p = this.px;
+    const p = this.view.p;
     b.setTransform(1, 0, 0, 1, 0, 0);
-    b.fillStyle = PALETTE.bg;
-    b.fillRect(0, 0, this.backdrop.width, this.backdrop.height);
-    const grad = b.createRadialGradient(
-      ox + 500 * p,
-      oy + 500 * p,
-      40 * p,
-      ox + 500 * p,
-      oy + 500 * p,
-      720 * p,
-    );
-    grad.addColorStop(0, '#182124');
-    grad.addColorStop(1, '#090c0d');
-    b.fillStyle = grad;
-    b.fillRect(ox, oy, this.size * p, this.size * p);
-    b.strokeStyle = 'rgba(200,180,140,0.05)';
-    b.lineWidth = 1;
-    for (let i = 1; i < 10; i++) {
-      b.beginPath();
-      b.moveTo(ox + i * 100 * p, oy);
-      b.lineTo(ox + i * 100 * p, oy + this.size * p);
-      b.moveTo(ox, oy + i * 100 * p);
-      b.lineTo(ox + this.size * p, oy + i * 100 * p);
-      b.stroke();
-    }
+    this.paintVoid(b);
+    this.paintSeal(b);
     for (const s of snap.slots) {
-      const cx = ox + s.x * p;
-      const cy = oy + s.y * p;
-      const r = s.radius * p;
+      const c = this.S(s.x, s.y);
+      const rx = s.radius * this.view.sx;
+      const ry = s.radius * this.view.sy;
       if (s.open && s.biomeId) {
         const biome = this.content.biomeById.get(s.biomeId)!;
-        const gr = b.createRadialGradient(cx, cy, r * 0.1, cx, cy, r * 1.25);
+        b.save();
+        b.translate(c.x, c.y);
+        b.scale(rx / s.radius, ry / s.radius);
+        const gr = b.createRadialGradient(0, 0, s.radius * 0.1, 0, 0, s.radius * 1.3);
         gr.addColorStop(0, biome.palette.accent + 'aa');
         gr.addColorStop(0.6, biome.palette.ground + 'cc');
         gr.addColorStop(1, 'rgba(0,0,0,0)');
         b.fillStyle = gr;
         b.beginPath();
-        b.arc(cx, cy, r * 1.25, 0, Math.PI * 2);
+        b.arc(0, 0, s.radius * 1.3, 0, TAU);
         b.fill();
-        b.strokeStyle = biome.palette.glow + '88';
+        b.restore();
+        b.strokeStyle = biome.palette.glow + '99';
         b.lineWidth = 1.5;
         b.setLineDash([]);
-        b.beginPath();
-        b.arc(cx, cy, r, 0, Math.PI * 2);
+        this.ellipse(b, s.x, s.y, s.radius);
         b.stroke();
-        b.fillStyle = biome.palette.glow + 'cc';
-        b.font = `${Math.round(11 * p * 1.3)}px ${DISPLAY_FONT}`;
+        b.strokeStyle = biome.palette.glow + '44';
+        this.ellipse(b, s.x, s.y, s.radius * 1.12);
+        b.stroke();
+        b.fillStyle = biome.palette.glow + '99';
+        for (let i = 0; i < 12; i++) {
+          const a = (i / 12) * TAU;
+          b.beginPath();
+          b.arc(
+            c.x + Math.cos(a) * rx * 1.06,
+            c.y + Math.sin(a) * ry * 1.06,
+            Math.max(1, 1.6 * p),
+            0,
+            TAU,
+          );
+          b.fill();
+        }
+        b.fillStyle = biome.palette.glow + 'dd';
+        b.font = `${Math.max(10, Math.round(11 * p * 1.3))}px ${DISPLAY_FONT}`;
         b.textAlign = 'center';
-        b.fillText(biome.name, cx, cy - r - 6 * p);
+        b.fillText(biome.name, c.x, c.y - ry * 1.12 - 6 * p);
       } else {
-        b.fillStyle = 'rgba(22,28,30,0.75)';
-        b.beginPath();
-        b.arc(cx, cy, r, 0, Math.PI * 2);
+        b.fillStyle = 'rgba(16,14,24,0.7)';
+        this.ellipse(b, s.x, s.y, s.radius);
         b.fill();
-        b.strokeStyle = 'rgba(170,150,110,0.25)';
-        b.setLineDash([6 * p, 6 * p]);
-        b.beginPath();
-        b.arc(cx, cy, r, 0, Math.PI * 2);
+        b.strokeStyle = 'rgba(185,160,230,0.22)';
+        b.setLineDash([4 * p, 7 * p]);
         b.stroke();
         b.setLineDash([]);
-        b.fillStyle = 'rgba(190,175,145,0.32)';
-        b.font = `${Math.round(15 * p * 1.3)}px ${DISPLAY_FONT}`;
+        b.fillStyle = 'rgba(200,185,225,0.3)';
+        b.font = `${Math.max(9, Math.round(13 * p * 1.3))}px ${DISPLAY_FONT}`;
         b.textAlign = 'center';
-        b.fillText('uncharted', cx, cy + 5 * p);
+        b.fillText('uncharted', c.x, c.y + 4 * p);
       }
     }
     for (const lane of this.lanes) {
-      b.beginPath();
-      lane.forEach(([x, y], i) =>
-        i === 0 ? b.moveTo(ox + x * p, oy + y * p) : b.lineTo(ox + x * p, oy + y * p),
-      );
+      const trace = (): void => {
+        b.beginPath();
+        lane.forEach(([x, y], i) => {
+          const c = this.S(x, y);
+          if (i === 0) b.moveTo(c.x, c.y);
+          else b.lineTo(c.x, c.y);
+        });
+      };
       b.lineCap = 'round';
       b.lineJoin = 'round';
-      b.strokeStyle = 'rgba(38,40,38,0.92)';
-      b.lineWidth = 30 * p;
+      trace();
+      b.strokeStyle = 'rgba(70,58,40,0.35)';
+      b.lineWidth = 34 * p;
       b.stroke();
-      b.strokeStyle = 'rgba(160,130,80,0.35)';
-      b.lineWidth = 1.5;
-      b.setLineDash([8 * p, 10 * p]);
+      trace();
+      b.strokeStyle = 'rgba(20,18,20,0.95)';
+      b.lineWidth = 28 * p;
+      b.stroke();
+      trace();
+      b.strokeStyle = 'rgba(224,169,62,0.3)';
+      b.lineWidth = 1.2;
+      b.setLineDash([6 * p, 10 * p]);
       b.stroke();
       b.setLineDash([]);
     }
     for (const t of ['A', 'B'] as const) {
       const [x, y] = this.bases[t];
-      const gr = b.createRadialGradient(ox + x * p, oy + y * p, 4, ox + x * p, oy + y * p, 90 * p);
+      const c = this.S(x, y);
+      const R = 90 * p;
+      const gr = b.createRadialGradient(c.x, c.y, 4, c.x, c.y, R);
       gr.addColorStop(0, teamColor(t) + '55');
       gr.addColorStop(1, 'rgba(0,0,0,0)');
       b.fillStyle = gr;
       b.beginPath();
-      b.arc(ox + x * p, oy + y * p, 90 * p, 0, Math.PI * 2);
+      b.arc(c.x, c.y, R, 0, TAU);
       b.fill();
       b.strokeStyle = teamColor(t) + '99';
-      b.lineWidth = 2;
+      b.lineWidth = 1.5;
       b.beginPath();
-      b.arc(ox + x * p, oy + y * p, 60 * p, 0, Math.PI * 2);
+      b.arc(c.x, c.y, 60 * p, 0, TAU);
+      b.stroke();
+      b.strokeStyle = teamColor(t) + '55';
+      b.beginPath();
+      for (let i = 0; i <= 6; i++) {
+        const a = -Math.PI / 2 + (i * 2 * TAU) / 6;
+        const px = c.x + Math.cos(a) * 52 * p;
+        const py = c.y + Math.sin(a) * 52 * p;
+        if (i === 0) b.moveTo(px, py);
+        else b.lineTo(px, py);
+      }
       b.stroke();
     }
   }
 
   private bar(x: number, y: number, w: number, frac: number, color: string): void {
     const g = this.g;
-    const h = Math.max(2, 3 * this.px);
-    g.fillStyle = 'rgba(0,0,0,0.65)';
+    const h = Math.max(2, 3 * this.view.p);
+    g.fillStyle = 'rgba(0,0,0,0.7)';
     g.fillRect(x - w / 2, y, w, h);
     g.fillStyle = color;
     g.fillRect(x - w / 2, y, w * Math.max(0, Math.min(1, frac)), h);
@@ -184,26 +338,22 @@ export class Renderer {
     this.resize();
     const g = this.g;
     g.setTransform(1, 0, 0, 1, 0, 0);
-    g.fillStyle = PALETTE.bg;
-    g.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    this.paintVoid(g);
     this.backdropKey = '';
   }
 
   draw(snap: Snapshot, opts: DrawOptions): void {
     this.resize();
     const g = this.g;
-    const p = this.px;
+    const p = this.view.p;
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     const k = Math.max(1, 0.7 / (p / dpr));
     const q = p * k;
-    const { ox, oy } = this.offset();
     g.setTransform(1, 0, 0, 1, 0, 0);
     this.paintBackdrop(snap);
     g.drawImage(this.backdrop, 0, 0);
-    const pos = (u: SnapUnit): { x: number; y: number } => ({
-      x: ox + lerp(u.px, u.x, opts.alpha) * p,
-      y: oy + lerp(u.py, u.y, opts.alpha) * p,
-    });
+    const pos = (u: SnapUnit): { x: number; y: number } =>
+      this.S(lerp(u.px, u.x, opts.alpha), lerp(u.py, u.y, opts.alpha));
     const byId = new Map<number, SnapUnit>();
     for (const u of snap.units) byId.set(u.id, u);
 
@@ -223,6 +373,26 @@ export class Renderer {
       g.lineTo(b.x, b.y);
       g.stroke();
     }
+
+    g.lineWidth = 1;
+    for (const s of snap.slots) {
+      if (!s.open || !s.biomeId) continue;
+      const biome = this.content.biomeById.get(s.biomeId);
+      if (!biome) continue;
+      const c = this.S(s.x, s.y);
+      g.save();
+      g.translate(c.x, c.y);
+      g.scale(this.view.sx, this.view.sy);
+      g.rotate((snap.tick / 400) * (s.x > s.y ? 1 : -1));
+      g.strokeStyle = biome.palette.glow + '55';
+      g.lineWidth = 1 / p;
+      g.setLineDash([10, 14]);
+      g.beginPath();
+      g.arc(0, 0, s.radius * 0.82, 0, TAU);
+      g.stroke();
+      g.restore();
+    }
+    g.setLineDash([]);
 
     const order: Record<string, number> = {
       minion: 1,
@@ -293,8 +463,10 @@ export class Renderer {
         }
         case 'obelisk': {
           const s = 9 * q;
-          g.fillStyle = '#a9d0e0';
-          g.strokeStyle = '#e8f6ff99';
+          g.shadowColor = PALETTE.spirit;
+          g.shadowBlur = 10 * q;
+          g.fillStyle = PALETTE.spirit;
+          g.strokeStyle = '#f2e8ffaa';
           g.beginPath();
           g.moveTo(x, y - s * 1.5);
           g.lineTo(x + s * 0.7, y);
@@ -303,6 +475,7 @@ export class Renderer {
           g.closePath();
           g.fill();
           g.stroke();
+          g.shadowBlur = 0;
           if (u.claim > 0) {
             g.strokeStyle = '#fff';
             g.lineWidth = 2;
@@ -315,19 +488,18 @@ export class Renderer {
         case 'keeper': {
           const s = 8 * q;
           const pulse = 1 + Math.sin(snap.tick / 8) * 0.12;
-          g.strokeStyle = PALETTE.gold + '88';
+          g.strokeStyle = PALETTE.gold + '66';
           g.lineWidth = 1.5;
+          g.setLineDash([3 * q, 4 * q]);
           g.beginPath();
-          g.arc(x, y, s * 2.2 * pulse, 0, Math.PI * 2);
+          g.arc(x, y, s * 2.4 * pulse, 0, Math.PI * 2);
           g.stroke();
-          g.fillStyle = PALETTE.gold;
-          g.beginPath();
-          g.arc(x, y, s * 0.8, 0, Math.PI * 2);
-          g.fill();
+          g.setLineDash([]);
+          drawButterfly(g, x, y - s * 0.2, s * 1.3, Math.sin(snap.tick / 5), PALETTE.gold);
           g.fillStyle = PALETTE.text;
           g.font = `${Math.round(10 * q * 1.2)}px ${DISPLAY_FONT}`;
           g.textAlign = 'center';
-          g.fillText('Keeper', x, y + s * 2.8);
+          g.fillText('Keeper', x, y + s * 2.9);
           break;
         }
         case 'hero': {
@@ -373,7 +545,7 @@ export class Renderer {
       }
     }
     if (snap.pressure.length) {
-      g.fillStyle = 'rgba(110,20,16,0.12)';
+      g.fillStyle = 'rgba(110,20,30,0.12)';
       g.fillRect(0, 0, this.canvas.width, this.canvas.height);
     }
   }

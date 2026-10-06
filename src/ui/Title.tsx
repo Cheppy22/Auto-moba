@@ -1,4 +1,5 @@
 import { useState } from 'preact/hooks';
+import { Divider, Seal } from './Ornament';
 import { useSession } from './session';
 
 export function Title() {
@@ -7,10 +8,11 @@ export function Title() {
   return (
     <div class="overlay" data-testid="title">
       <div class="panel title-wrap col">
-        <div class="ornament">◆</div>
+        <Seal />
+        <Divider />
         <h1>Auto-MOBA</h1>
-        <div class="subtitle">An auto-battler of the pocket dimension</div>
-        <div class="ornament">◆</div>
+        <div class="subtitle">Every wish is paid for. Every world bleeds into the next.</div>
+        <Divider />
         <div class="dim">
           A pocket dimension where every wish has a price. Choose a hero and a lane, then watch your
           team fight and shape the match through your shop, your upgrades and your posture.

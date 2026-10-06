@@ -1,4 +1,4 @@
-import { n0 } from './format';
+import { n0, keeperPlace } from './format';
 import { useSession } from './session';
 
 const CATS = [
@@ -20,7 +20,7 @@ export function ShopPanel() {
         <span class="dim small">
           Slots {owned.length}/{s.content.tuning.shop.slots}
         </span>
-        <span class="dim small">Keeper at {m.state.keeper.spot.replace('k_', '')}</span>
+        <span class="dim small">Keeper at {keeperPlace(m.state.keeper.spot)}</span>
       </div>
       <div class="row wrap" style={{ gap: '4px' }}>
         {owned.map((id) => {

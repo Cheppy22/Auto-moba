@@ -1,5 +1,12 @@
 import type { Content } from '../sim';
 import { PALETTE, teamColor } from './theme';
+import { makeView, toScreen, toWorld, type View } from './view';
+
+const NO_INSETS = { top: 4, right: 4, bottom: 4, left: 4 };
+
+function replayView(w: number, h: number, mapSize: number, dpr: number): View {
+  return makeView(w, h, mapSize, 600, NO_INSETS, 1, dpr);
+}
 
 export interface ReplayPoint {
   tick: number;
@@ -46,11 +53,10 @@ export function replayHit(
   clientY: number,
 ): number | null {
   const rect = canvas.getBoundingClientRect();
-  const size = Math.min(rect.width, rect.height);
-  const ox = (rect.width - size) / 2;
-  const oy = (rect.height - size) / 2;
-  const wx = ((clientX - rect.left - ox) / size) * content.map.size;
-  const wy = ((clientY - rect.top - oy) / size) * content.map.size;
+  const v = replayView(rect.width, rect.height, content.map.size, 1);
+  const w = toWorld(v, clientX - rect.left, clientY - rect.top);
+  const wx = w.x;
+  const wy = w.y;
   let best: number | null = null;
   let bestD = 40;
   for (const f of data.fights) {
@@ -78,38 +84,46 @@ export function drawReplay(
   }
   const g = canvas.getContext('2d');
   if (!g) return;
-  const size = Math.min(canvas.width, canvas.height);
-  const ox = (canvas.width - size) / 2;
-  const oy = (canvas.height - size) / 2;
-  const p = size / content.map.size;
-  const X = (x: number): number => ox + x * p;
-  const Y = (y: number): number => oy + y * p;
+  const v = replayView(canvas.width, canvas.height, content.map.size, dpr);
+  const p = v.p;
+  const xy = (x: number, y: number): [number, number] => {
+    const c = toScreen(v, x, y);
+    return [c.x, c.y];
+  };
   g.setTransform(1, 0, 0, 1, 0, 0);
   g.fillStyle = PALETTE.bg;
   g.fillRect(0, 0, canvas.width, canvas.height);
-  g.fillStyle = '#111719';
-  g.fillRect(ox, oy, size, size);
+  g.beginPath();
+  [xy(60, 60), xy(940, 60), xy(940, 940), xy(60, 940)].forEach(([x, y], i) =>
+    i === 0 ? g.moveTo(x, y) : g.lineTo(x, y),
+  );
+  g.closePath();
+  g.fillStyle = '#12111b';
+  g.fill();
+  g.strokeStyle = 'rgba(224,169,62,0.35)';
+  g.lineWidth = 1;
+  g.stroke();
 
   for (const s of content.map.slots) {
     const state = data.slots.find((x) => x.id === s.id);
     const biome = state?.biomeId ? content.biomeById.get(state.biomeId) : undefined;
     g.beginPath();
-    g.arc(X(s.x), Y(s.y), s.radius * p, 0, Math.PI * 2);
+    g.ellipse(...xy(s.x, s.y), s.radius * v.sx, s.radius * v.sy, 0, 0, Math.PI * 2);
     if (biome) {
       g.fillStyle = biome.palette.ground + 'cc';
       g.fill();
       g.strokeStyle = biome.palette.glow + '66';
     } else {
-      g.fillStyle = 'rgba(22,28,30,0.55)';
+      g.fillStyle = 'rgba(16,14,24,0.6)';
       g.fill();
-      g.strokeStyle = 'rgba(170,150,110,0.2)';
+      g.strokeStyle = 'rgba(185,160,230,0.22)';
     }
     g.lineWidth = 1;
     g.stroke();
   }
   for (const lane of [content.map.lanes.top, content.map.lanes.mid, content.map.lanes.bot]) {
     g.beginPath();
-    lane.forEach(([x, y], i) => (i === 0 ? g.moveTo(X(x), Y(y)) : g.lineTo(X(x), Y(y))));
+    lane.forEach(([x, y], i) => (i === 0 ? g.moveTo(...xy(x, y)) : g.lineTo(...xy(x, y))));
     g.lineCap = 'round';
     g.lineJoin = 'round';
     g.strokeStyle = 'rgba(38,40,38,0.95)';
@@ -121,7 +135,7 @@ export function drawReplay(
     g.strokeStyle = teamColor(t) + '88';
     g.lineWidth = 2;
     g.beginPath();
-    g.arc(X(bx), Y(by), 40 * p, 0, Math.PI * 2);
+    g.arc(...xy(bx, by), 40 * p, 0, Math.PI * 2);
     g.stroke();
   }
 
@@ -131,14 +145,14 @@ export function drawReplay(
     g.strokeStyle = col + '33';
     g.lineWidth = 2;
     g.beginPath();
-    data.path.forEach((q, i) => (i === 0 ? g.moveTo(X(q.x), Y(q.y)) : g.lineTo(X(q.x), Y(q.y))));
+    data.path.forEach((q, i) => (i === 0 ? g.moveTo(...xy(q.x, q.y)) : g.lineTo(...xy(q.x, q.y))));
     g.stroke();
   }
   if (upto.length > 1) {
     g.strokeStyle = col;
     g.lineWidth = 3;
     g.beginPath();
-    upto.forEach((q, i) => (i === 0 ? g.moveTo(X(q.x), Y(q.y)) : g.lineTo(X(q.x), Y(q.y))));
+    upto.forEach((q, i) => (i === 0 ? g.moveTo(...xy(q.x, q.y)) : g.lineTo(...xy(q.x, q.y))));
     g.stroke();
   }
 
@@ -149,19 +163,20 @@ export function drawReplay(
     g.fillStyle = sel ? 'rgba(255,255,255,0.18)' : 'rgba(224,169,62,0.12)';
     g.lineWidth = sel ? 3 : 1.5;
     g.beginPath();
-    g.arc(X(f.x), Y(f.y), 20 * p + 2, 0, Math.PI * 2);
+    g.arc(...xy(f.x, f.y), 20 * p + 2, 0, Math.PI * 2);
     g.fill();
     g.stroke();
   }
   for (const d of data.deaths) {
-    g.strokeStyle = '#d0584a';
+    g.strokeStyle = '#d04a52';
     g.lineWidth = 2.5;
     const s = 6 * p + 2;
     g.beginPath();
-    g.moveTo(X(d.x) - s, Y(d.y) - s);
-    g.lineTo(X(d.x) + s, Y(d.y) + s);
-    g.moveTo(X(d.x) + s, Y(d.y) - s);
-    g.lineTo(X(d.x) - s, Y(d.y) + s);
+    const [dx, dy] = xy(d.x, d.y);
+    g.moveTo(dx - s, dy - s);
+    g.lineTo(dx + s, dy + s);
+    g.moveTo(dx + s, dy - s);
+    g.lineTo(dx - s, dy + s);
     g.stroke();
   }
   for (const b of data.purchases) {
@@ -169,26 +184,27 @@ export function drawReplay(
     if (!pt) continue;
     g.fillStyle = PALETTE.gold;
     const s = 4 * p + 2;
-    g.fillRect(X(pt.x) - s, Y(pt.y) - s, s * 2, s * 2);
+    const [bx, by] = xy(pt.x, pt.y);
+    g.fillRect(bx - s, by - s, s * 2, s * 2);
   }
   for (const r of data.recalls) {
     const pt = pointAt(data.path, r.tick);
     if (!pt) continue;
-    g.strokeStyle = '#a9d0e0';
+    g.strokeStyle = '#c4a8f0';
     g.lineWidth = 1.5;
     g.beginPath();
-    g.arc(X(pt.x), Y(pt.y), 7 * p + 3, 0, Math.PI * 2);
+    g.arc(...xy(pt.x, pt.y), 7 * p + 3, 0, Math.PI * 2);
     g.stroke();
   }
   const now = pointAt(data.path, tick);
   if (now) {
     g.fillStyle = '#ffffff';
     g.beginPath();
-    g.arc(X(now.x), Y(now.y), 6 * p + 2, 0, Math.PI * 2);
+    g.arc(...xy(now.x, now.y), 6 * p + 2, 0, Math.PI * 2);
     g.fill();
     g.fillStyle = col;
     g.beginPath();
-    g.arc(X(now.x), Y(now.y), 4 * p + 1, 0, Math.PI * 2);
+    g.arc(...xy(now.x, now.y), 4 * p + 1, 0, Math.PI * 2);
     g.fill();
   }
 }

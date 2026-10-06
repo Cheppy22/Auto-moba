@@ -91,53 +91,30 @@ function Ticker({ lines = 6 }: { lines?: number }) {
   );
 }
 
-function Roster({ layout }: { layout: Layout }) {
+function Roster({ team, dir }: { team: 'A' | 'B'; dir: 'row' | 'col' }) {
   const s = useSession();
   const m = s.match!;
-  if (layout !== 'desktop') {
-    const strip = (team: 'A' | 'B') => (
-      <div class="roster-strip">
-        {m.state.teams[team].heroIds.map((id) => {
-          const u = m.unitById(id)!;
-          const def = s.content.heroById.get(u.defId)!;
-          return (
-            <div class="roster-cell" key={id} title={def.name}>
-              <SigilIcon spec={def.sigil} team={team} size={24} alive={u.alive} />
-              <div class="bar">
-                <i
-                  style={{
-                    width: `${(u.alive ? u.hp / u.stats.maxHp : 0) * 100}%`,
-                    background: team === 'A' ? 'var(--a)' : 'var(--b)',
-                  }}
-                />
-              </div>
-              <div class="tiny dim">
-                {u.hero!.kills}/{u.hero!.deaths}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    );
-    return (
-      <div class="col" style={{ gap: '3px' }} data-testid="roster">
-        {strip('A')}
-        {strip('B')}
-      </div>
-    );
-  }
-  const rows = (team: 'A' | 'B') =>
-    m.state.teams[team].heroIds.map((id) => {
-      const u = m.unitById(id)!;
-      const def = s.content.heroById.get(u.defId)!;
-      return (
-        <div class="row" key={id} style={{ gap: '6px' }}>
-          <SigilIcon spec={def.sigil} team={team} size={22} alive={u.alive} />
-          <div class="grow">
-            <div class="tiny" style={{ opacity: u.alive ? 1 : 0.5 }}>
-              {def.name.split(',')[0]} <span class="dim">{u.hero!.role}</span>
-              {u.hero!.isPlayer ? ' (you)' : ''}
-            </div>
+  return (
+    <div
+      class={`roster ${dir} panel`}
+      data-testid={team === 'A' ? 'roster' : 'roster-enemy'}
+      aria-label={team === 'A' ? 'Your team' : 'Enemy team'}
+    >
+      {m.state.teams[team].heroIds.map((id) => {
+        const u = m.unitById(id)!;
+        const def = s.content.heroById.get(u.defId)!;
+        return (
+          <div
+            class={`roster-cell ${u.hero!.isPlayer ? 'me' : ''}`}
+            key={id}
+            title={`${def.name} (${u.hero!.role}) ${u.hero!.kills}/${u.hero!.deaths}`}
+          >
+            <SigilIcon
+              spec={def.sigil}
+              team={team}
+              size={dir === 'col' ? 20 : 26}
+              alive={u.alive}
+            />
             <div class="bar">
               <i
                 style={{
@@ -146,20 +123,14 @@ function Roster({ layout }: { layout: Layout }) {
                 }}
               />
             </div>
+            {dir === 'row' && (
+              <div class="tiny dim">
+                {u.hero!.kills}/{u.hero!.deaths}
+              </div>
+            )}
           </div>
-          <div class="tiny dim">
-            {u.hero!.kills}/{u.hero!.deaths}
-          </div>
-        </div>
-      );
-    });
-  return (
-    <div class="hud-side col" style={{ gap: '4px' }}>
-      <div class="panel col" style={{ padding: '8px', gap: '4px' }}>
-        {rows('A')}
-        <div style={{ height: '1px', background: 'var(--border)' }} />
-        {rows('B')}
-      </div>
+        );
+      })}
     </div>
   );
 }
@@ -373,63 +344,55 @@ export function Hud() {
   );
   const toast = s.ui.toast && <div class="toast">{s.ui.toast}</div>;
 
+  const speed = (
+    <div class="panel speed-panel">
+      <SpeedControls />
+    </div>
+  );
+  const status = (
+    <>
+      {score}
+      {chips.length > 0 && <div class="row wrap hud-chips">{chips}</div>}
+    </>
+  );
+
   if (layout === 'portrait') {
     return (
-      <>
-        <div class="hud-top compact">
-          {score}
-          <div class="grow" />
-          <SpeedControls />
+      <div class="hud-portrait">
+        <div class="map-zone">
+          <div class="corner tl">{status}</div>
+          <div class="corner tr">{speed}</div>
+          <div class="corner bl">
+            <Roster team="A" dir="col" />
+          </div>
+          <div class="corner br">
+            <Roster team="B" dir="col" />
+          </div>
         </div>
-        {pressure.length > 0 && <div class="hud-chips">{chips}</div>}
         {toast}
         <div class="hud-dock portrait">
-          <Roster layout={layout} />
           {p && <PlayerCard u={p} layout={layout} />}
           {p && <Controls u={p} layout={layout} />}
         </div>
         {shop}
-      </>
-    );
-  }
-  if (layout === 'landscape') {
-    return (
-      <>
-        <div class="hud-top compact center">
-          {score}
-          {chips}
-        </div>
-        {toast}
-        <div class="hud-left">
-          <Roster layout={layout} />
-          {p && <PlayerCard u={p} layout={layout} />}
-        </div>
-        <div class="hud-right">
-          <SpeedControls />
-          {p && <Controls u={p} layout={layout} />}
-        </div>
-        {shop}
-      </>
+      </div>
     );
   }
   return (
-    <>
-      <div class="hud-top">
-        {score}
-        {chips}
-        <div class="grow" />
-        <div class="panel" style={{ padding: '4px' }}>
-          <SpeedControls />
-        </div>
+    <div class={`map-zone full ${layout}`}>
+      <div class="corner tl">
+        {status}
+        <Roster team="A" dir="row" />
+        {layout === 'desktop' && <Ticker lines={4} />}
       </div>
-      <Roster layout={layout} />
-      <Ticker />
+      <div class="corner tr">
+        {speed}
+        <Roster team="B" dir="row" />
+      </div>
+      <div class="corner bl">{p && <PlayerCard u={p} layout={layout} />}</div>
+      <div class="corner br">{p && <Controls u={p} layout={layout} />}</div>
       {toast}
-      <div class="hud-bottom">
-        {p && <PlayerCard u={p} layout={layout} />}
-        {p && <Controls u={p} layout={layout} />}
-      </div>
       {shop}
-    </>
+    </div>
   );
 }
