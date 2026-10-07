@@ -3,7 +3,7 @@ import { Match } from '../src/sim';
 import { quote } from '../src/sim/shop';
 import { content } from './helpers';
 
-function live(seed: number, heroId = 'smelter'): Match {
+function live(seed: number, heroId = 'queen'): Match {
   const m = Match.create(content, { seed, player: { heroId, role: 'top' } });
   const id = m.state.playerHeroId!;
   const offer = m.state.upgradeOffers[id];
@@ -67,7 +67,7 @@ describe('player shopping and recall', () => {
   });
 
   it('prep no longer sells keeper stock', () => {
-    const m = Match.create(content, { seed: 9, player: { heroId: 'smelter', role: 'top' } });
+    const m = Match.create(content, { seed: 9, player: { heroId: 'queen', role: 'top' } });
     const p = m.unitById(m.state.playerHeroId!)!;
     p.hero!.gold = 9000;
     for (const id of m.state.keeper.stock) expect('error' in quote(m.ctx, p, id)).toBe(true);

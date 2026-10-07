@@ -8,14 +8,17 @@ import {
   ConeGeometry,
   CylinderGeometry,
   DoubleSide,
+  ExtrudeGeometry,
   Float32BufferAttribute,
   Group,
   InstancedMesh,
   LatheGeometry,
+  type Material,
   Matrix4,
   Mesh,
   MeshBasicMaterial,
   MeshToonMaterial,
+  type Object3D,
   PlaneGeometry,
   Quaternion,
   Shape,
@@ -27,6 +30,7 @@ import {
   Vector3,
 } from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { cheshireFade } from '../icons';
 import { drawSigil, type SigilSpec } from '../sigils';
 import { PALETTE, teamColor } from '../theme';
 import {
@@ -479,45 +483,46 @@ export class HeroModel {
 /* Minions (instanced)                                                        */
 /* -------------------------------------------------------------------------- */
 
-function dollGeometry(team: string): BufferGeometry {
-  const cloth = new Color(team).multiplyScalar(0.85);
-  const accent = new Color(team).offsetHSL(0, 0, 0.12);
-  return mergeGeometries([
+/** A chess pawn: turned base, collar and ball head. Ranged pawns hold up a playing card. */
+function pawnGeometry(team: string, ranged: boolean): BufferGeometry {
+  const cloth = new Color(team).multiplyScalar(0.9);
+  const trim = new Color(team).offsetHSL(0, 0, 0.14);
+  const parts = [
     bit(
       lathe(
         [
           [0.01, 0],
-          [3.8, 0],
-          [3.5, 2],
-          [2.8, 6],
-          [2.2, 8.2],
-          [0.01, 8.5],
+          [4.9, 0],
+          [4.9, 1.5],
+          [3.7, 2.5],
+          [2.4, 5],
+          [2.1, 8],
+          [3.3, 8.7],
+          [3.3, 9.6],
+          [1.5, 10.2],
+          [0.01, 10.2],
         ],
-        10,
+        12,
       ),
       cloth,
     ),
-    bit(new SphereGeometry(2.5, 10, 8), SKIN, 0, 10.4),
-    bit(new ConeGeometry(3.9, 2.5, 10), accent, 0, 12.8),
-    bit(new BoxGeometry(1.1, 1.8, 0.3), PALETTE.seal, 0, 10.7, 2.4),
-    bit(new BoxGeometry(0.7, 0.7, 5.5), STONE_DARK, 3.7, 5.2, 2.2),
-  ])!;
-}
-
-function lanternGeometry(team: string): BufferGeometry {
-  const paper = new Color(team).lerp(WHITE, 0.25);
-  const rib = (r: number, y: number): BufferGeometry =>
-    bit(new TorusGeometry(r, 0.3, 5, 14).rotateX(Math.PI / 2), INK, 0, y);
-  return mergeGeometries([
-    bit(new SphereGeometry(3.8, 12, 9).scale(1, 1.28, 1), paper, 0, 7.4),
-    rib(3.8, 7.4),
-    rib(3.3, 10.2),
-    rib(3.3, 4.6),
-    bit(new CylinderGeometry(2.2, 2.6, 1.4, 10), LACQUER, 0, 12),
-    bit(new CylinderGeometry(2.4, 2, 1.2, 10), LACQUER, 0, 2.6),
-    bit(new ConeGeometry(0.9, 3.4, 6).rotateX(Math.PI), BRASS, 0, 0.9),
-    bit(new TorusGeometry(1.5, 0.25, 4, 10), BRASS, 0, 13.6),
-  ])!;
+    bit(new SphereGeometry(3.2, 12, 9), cloth, 0, 12.9),
+    bit(new TorusGeometry(3.4, 0.55, 5, 14).rotateX(Math.PI / 2), trim, 0, 9.2),
+    bit(new TorusGeometry(4.6, 0.55, 5, 14).rotateX(Math.PI / 2), trim, 0, 1.9),
+  ];
+  if (ranged) {
+    parts.push(
+      bit(new BoxGeometry(4.6, 0.45, 6.4).rotateX(-0.55), PAPER, 6.2, 10.4, 2.4),
+      bit(
+        new BoxGeometry(1.6, 0.5, 1.6).rotateY(Math.PI / 4).rotateX(-0.55),
+        PALETTE.seal,
+        6.2,
+        10.7,
+        2.5,
+      ),
+    );
+  }
+  return mergeGeometries(parts)!;
 }
 
 interface MinionVariant {
@@ -533,7 +538,7 @@ const _qt = new Quaternion();
 const _p = new Vector3();
 const _s = new Vector3();
 
-/** Lane minions and event spirits: paper dolls (melee) and paper lanterns (ranged), instanced. */
+/** Lane minions and event spirits: chess pawns (ranged ones carry a card), instanced. */
 export class MinionKit {
   readonly group = new Group();
   private variants = new Map<string, MinionVariant>();
@@ -549,13 +554,13 @@ export class MinionKit {
     ];
     for (const [id, color, cap] of teams) {
       for (const ranged of [false, true]) {
-        const geo = kit.own(ranged ? lanternGeometry(color) : dollGeometry(color));
+        const geo = kit.own(pawnGeometry(color, ranged));
         const mat = kit.own(
           new MeshToonMaterial({
             vertexColors: true,
             gradientMap: kit.gradient,
             emissive: ranged ? color : '#000000',
-            emissiveIntensity: ranged ? 0.55 : 0,
+            emissiveIntensity: ranged ? 0.18 : 0,
           }),
         );
         const mesh = new InstancedMesh(geo, mat, cap);
@@ -721,20 +726,25 @@ export class TowerModel {
   }
 }
 
-/** A floating shrine spirit: lacquered hall with a glowing face, orbiting stone slabs. */
-export class GuardianModel {
+/** A floating chess King: turned body in team colour, brass crown and cross, orbiting board squares. */
+export class KingModel {
   readonly root = new Group();
   private readonly hover = new Group();
   private readonly orbit = new Group();
-  private readonly eyes: MeshBasicMaterial;
+  private readonly gems: MeshBasicMaterial;
+  private readonly cloth: MeshToonMaterial;
   private readonly team: Color;
   private readonly tail: Mesh;
-  private readonly slabs: Mesh[] = [];
+  private readonly halo: Mesh;
+  private readonly aura: Sprite;
+  private readonly tiles: Mesh[] = [];
 
   constructor(kit: Kit, team: string) {
     this.team = new Color(team);
     const lit = new Color(team).lerp(WHITE, 0.2);
+    const body = new Color(team).multiplyScalar(0.78);
     const h = this.hover;
+    this.cloth = kit.uniqueVertexToon();
     this.root.add(kit.blob(34, 0.5));
     this.tail = put(
       h,
@@ -757,101 +767,128 @@ export class GuardianModel {
     );
     h.add(
       kit.solid(
-        `guardian:${team}`,
+        `king:${team}`,
         () => {
           const bits: Bit[] = [
-            { geo: new CylinderGeometry(16, 13, 4, 8), color: STONE_DARK, at: [0, 28, 0] },
-            { geo: new BoxGeometry(34, 2.4, 30), color: STONE, at: [0, 31, 0] },
-            { geo: new BoxGeometry(24, 15, 21), color: '#4a2629', at: [0, 40, 0] },
-            { geo: pyramid(10, 29, 9), color: '#231a2c', at: [0, 53.4, 0] },
-            { geo: pyramid(1.5, 14, 8.5), color: '#231a2c', at: [0, 63.4, 0] },
             {
-              geo: new SphereGeometry(2.6, 10, 8),
-              color: BRASS,
-              at: [0, 70.8, 0],
-              scale: [1, 1.5, 1],
+              geo: lathe(
+                [
+                  [0.01, 20],
+                  [15.5, 20],
+                  [15.5, 23],
+                  [12.6, 24.6],
+                  [9.4, 28],
+                  [7.4, 38],
+                  [6, 50],
+                  [5.8, 56],
+                  [6.2, 57.5],
+                ],
+                18,
+              ),
+              color: body,
             },
-            { geo: new BoxGeometry(9, 0.9, 0.5), color: INK, at: [0, 37.6, 10.7] },
             {
-              geo: new TorusGeometry(13.5, 0.9, 6, 24),
-              color: PAPER,
-              at: [0, 46.5, 0],
+              geo: lathe(
+                [
+                  [0.01, 56.6],
+                  [10.8, 56.6],
+                  [10.8, 58.4],
+                  [6.4, 59.6],
+                  [0.01, 60],
+                ],
+                18,
+              ),
+              color: BRASS,
+            },
+            {
+              geo: new SphereGeometry(7.6, 18, 12, 0, TAU, 0, Math.PI * 0.6),
+              color: body,
+              at: [0, 60, 0],
+              scale: [1, 1.1, 1],
+            },
+            {
+              geo: new TorusGeometry(8.6, 1.1, 6, 20),
+              color: BRASS,
+              at: [0, 55, 0],
               rot: [Math.PI / 2, 0, 0],
-              scale: [1, 1, 0.9],
             },
-          ];
-          for (const x of [-12.8, 12.8])
-            for (const z of [-11.2, 11.2])
-              bits.push({
-                geo: new CylinderGeometry(1.5, 1.5, 17, 8),
-                color: BRASS,
-                at: [x, 40, z],
-              });
-          for (const s of [-1, 1])
-            bits.push({
-              geo: new BoxGeometry(1.1, 10, 1.1),
+            {
+              geo: new TorusGeometry(10.2, 1.2, 6, 20),
               color: BRASS,
-              at: [s * 3.2, 69, 0],
-              rot: [0, 0, -s * 0.5],
-            });
-          return bits;
-        },
-        1.6,
-      ),
-    );
-    h.add(
-      kit.glowSolid(`guardian-trim:${team}`, () => [
-        { geo: pyramid(24, 31.5, 1.6), color: lit, at: [0, 48.4, 0] },
-        { geo: pyramid(9, 15.5, 1.2), color: lit, at: [0, 58.6, 0] },
-      ]),
-    );
-    h.add(
-      kit.glowSolid(
-        'guardian-shide',
-        () => {
-          const bits: Bit[] = [];
-          for (let i = 0; i < 6; i++) {
-            const a = (i / 6) * TAU;
+              at: [0, 21.4, 0],
+              rot: [Math.PI / 2, 0, 0],
+            },
+            { geo: new CylinderGeometry(1.4, 1.4, 10, 6), color: BRASS, at: [0, 74, 0] },
+            { geo: new BoxGeometry(8, 2.4, 2.4), color: BRASS, at: [0, 76.2, 0] },
+            { geo: new SphereGeometry(1.6, 8, 6), color: BRASS, at: [0, 79.2, 0] },
+          ];
+          for (let i = 0; i < 5; i++) {
+            const a = (i / 5) * TAU;
             bits.push({
-              geo: new PlaneGeometry(2.2, 5),
-              color: PAPER,
-              at: [Math.cos(a) * 14, 43.6, Math.sin(a) * 12.5],
-              rot: [0, -a, 0],
+              geo: new ConeGeometry(2.1, 7, 5),
+              color: BRASS,
+              at: [Math.cos(a) * 8.4, 63.6, Math.sin(a) * 8.4],
             });
           }
           return bits;
         },
-        DoubleSide,
+        1.6,
+        this.cloth,
       ),
     );
-    this.eyes = kit.own(new MeshBasicMaterial({ color: lit, vertexColors: true, fog: false }));
+    this.gems = kit.own(new MeshBasicMaterial({ color: lit, vertexColors: true, fog: false }));
     h.add(
       new Mesh(
-        kit.geo('g-eyes', () =>
-          kit.merge(
-            [-1, 1].map((s) => ({
-              geo: new BoxGeometry(6, 1.7, 0.6),
+        kit.geo('king-gems', () =>
+          kit.merge([
+            { geo: new SphereGeometry(1.9, 8, 6), color: WHITE, at: [0, 58, 8.8] },
+            { geo: new SphereGeometry(1.4, 8, 6), color: WHITE, at: [-6.4, 58, 6.2] },
+            { geo: new SphereGeometry(1.4, 8, 6), color: WHITE, at: [6.4, 58, 6.2] },
+            {
+              geo: new TorusGeometry(7.2, 0.5, 5, 24),
               color: WHITE,
-              at: [s * 5.6, 42.4, 10.8] as [number, number, number],
-              rot: [0, 0, s * 0.38] as [number, number, number],
-            })),
-          ),
+              at: [0, 29, 0],
+              rot: [Math.PI / 2, 0, 0],
+            },
+            {
+              geo: new TorusGeometry(6.6, 0.45, 5, 24),
+              color: WHITE,
+              at: [0, 46, 0],
+              rot: [Math.PI / 2, 0, 0],
+            },
+          ]),
         ),
-        this.eyes,
+        this.gems,
       ),
     );
-    this.orbit.position.y = 42;
+    this.halo = put(
+      h,
+      new Mesh(
+        kit.geo('king-halo', () => new TorusGeometry(24, 0.9, 6, 40).rotateX(Math.PI / 2)),
+        kit.basic(BRASS),
+      ),
+      0,
+      33,
+      0,
+    );
+    this.orbit.position.y = 40;
     h.add(this.orbit);
-    for (let i = 0; i < 3; i++) {
-      const slab = kit.solid(
-        'g-slab',
-        () => [{ geo: new BoxGeometry(5, 11, 2), color: STONE_DARK }],
+    for (let i = 0; i < 4; i++) {
+      const tile = kit.solid(
+        i % 2 ? 'g-tile-a' : 'g-tile-b',
+        () => [
+          {
+            geo: new BoxGeometry(7, 1.4, 7),
+            color: i % 2 ? PAPER : LACQUER,
+          },
+        ],
         1.2,
       );
-      this.slabs.push(slab);
-      this.orbit.add(slab);
+      this.tiles.push(tile);
+      this.orbit.add(tile);
     }
-    put(h, kit.glowSprite(team, 70, 0.35), 0, 40, 0);
+    this.aura = put(h, kit.glowSprite(team, 70, 0.35), 0, 44, 0);
+    this.aura.material = kit.own(this.aura.material.clone());
     this.root.add(h);
   }
 
@@ -859,16 +896,21 @@ export class GuardianModel {
     this.hover.position.y = 6 + Math.sin(time * 1.3) * 2.2;
     this.hover.rotation.y = Math.sin(time * 0.3) * 0.08;
     const rage = hpFrac < 0.5;
-    this.orbit.rotation.y = time * (rage ? 1.1 : 0.55);
-    this.slabs.forEach((s, i) => {
-      const a = (i / this.slabs.length) * TAU;
-      s.position.set(Math.cos(a) * 25, Math.sin(time * 1.6 + i * 2) * 3, Math.sin(a) * 25);
-      s.rotation.y = -a + Math.PI / 2;
+    const pulse = 0.5 + 0.5 * Math.sin(time * 6);
+    this.orbit.rotation.y = time * (rage ? 1.3 : 0.55);
+    this.halo.rotation.y = -time * (rage ? 1.4 : 0.4);
+    this.tiles.forEach((t, i) => {
+      const a = (i / this.tiles.length) * TAU;
+      t.position.set(Math.cos(a) * 25, Math.sin(time * 1.6 + i * 2) * 3, Math.sin(a) * 25);
+      t.rotation.y = -a + Math.PI / 2;
     });
-    this.eyes.color
+    this.gems.color
       .copy(rage ? RAGE : this.team)
       .lerp(WHITE, 0.35 + flash * 0.6)
       .multiplyScalar(0.8 + 0.2 * Math.sin(time * 5));
+    if (rage) this.cloth.emissive.copy(RAGE).multiplyScalar(0.12 + 0.2 * pulse + flash * 0.3);
+    else this.cloth.emissive.setScalar(flash * 0.35);
+    this.aura.material.color.copy(rage ? RAGE : this.team);
     this.tail.scale.set(1 + Math.sin(time * 2) * 0.06, 1 + Math.sin(time * 3.1) * 0.1, 1);
   }
 }
@@ -1030,81 +1072,427 @@ export class ObeliskModel {
   }
 }
 
-function wingShape(upper: boolean): Shape {
-  const s = new Shape();
-  if (upper) {
-    s.moveTo(0, 0);
-    s.bezierCurveTo(4, 7, 14, 10, 15, 3);
-    s.bezierCurveTo(16, -3, 8, -4, 0, 0);
-  } else {
-    s.moveTo(0, -1);
-    s.bezierCurveTo(5, -2, 10, -4, 9, -9);
-    s.bezierCurveTo(7, -13, 1, -9, 0, -1);
-  }
-  return s;
+/** Gives every mesh in `root` its own transparent material so the whole thing can fade. */
+function fadable(kit: Kit, root: Object3D): { mat: Material; base: number }[] {
+  const out: { mat: Material; base: number }[] = [];
+  root.traverse((o) => {
+    if (o instanceof Mesh) {
+      const old = o.material as Material;
+      const next = kit.own(
+        typeof old.userData.ink === 'number' ? kit.ink(old.userData.ink, true) : old.clone(),
+      );
+      next.transparent = true;
+      o.material = next;
+      out.push({ mat: next, base: next.opacity });
+    } else if (o instanceof Sprite) {
+      const next = kit.own(o.material.clone());
+      o.material = next;
+      out.push({ mat: next, base: next.opacity });
+    }
+  });
+  return out;
 }
 
-/** The Keeper: a gold butterfly hovering over a pulsing ring. */
+/** The Cheshire Keeper: a floating brass grin and two violet eyes (a Tenniel tabby, never stripes). */
 export class KeeperModel {
   readonly root = new Group();
-  private readonly wings: Group[] = [];
-  private readonly flier = new Group();
+  private readonly face = new Group();
+  private readonly grin = new Group();
+  private readonly eyes = new Group();
+  private readonly grinMats: { mat: Material; base: number }[];
+  private readonly eyeMats: { mat: Material; base: number }[];
   private readonly ring: Mesh;
+  private readonly seed: number;
 
   constructor(kit: Kit) {
-    const wing = (color: string, emissive: string, intensity: number): MeshToonMaterial =>
-      kit.own(
-        new MeshToonMaterial({
-          color,
-          gradientMap: kit.gradient,
-          emissive,
-          emissiveIntensity: intensity,
-          side: DoubleSide,
-        }),
-      );
-    const gold = wing(PALETTE.gold, '#a8741c', 0.65);
-    const vein = wing('#f6dc8a', '#c99428', 0.7);
-    const up = kit.geo('k-wing-up', () =>
-      new ShapeGeometry(wingShape(true), 12).rotateX(-Math.PI / 2),
+    this.seed = 3.7;
+    const crescent = (): ExtrudeGeometry => {
+      const sh = new Shape();
+      sh.moveTo(-12, 0);
+      sh.quadraticCurveTo(0, -19, 12, 0);
+      sh.quadraticCurveTo(0, -6.5, -12, 0);
+      const g = new ExtrudeGeometry(sh, {
+        depth: 2.2,
+        bevelEnabled: true,
+        bevelThickness: 0.8,
+        bevelSize: 0.7,
+        bevelSegments: 1,
+        curveSegments: 14,
+      });
+      return g.translate(0, 4.2, -1.1);
+    };
+    const gold = kit.toon(PALETTE.gold, '#a8741c', 0.5);
+    put(this.grin, kit.part('cheshire-grin', crescent, gold, 0.9));
+    const teeth = kit.solid(
+      'cheshire-teeth',
+      () => {
+        const bits: Bit[] = [];
+        for (let i = -3; i <= 3; i++) {
+          const t = 0.5 + i * 0.1;
+          const x = (1 - t) * (1 - t) * -12 + t * t * 12;
+          const yo = 2 * t * (1 - t) * -19;
+          const yi = 2 * t * (1 - t) * -6.5;
+          bits.push({
+            geo: new BoxGeometry(1.5, Math.max(1.2, (yi - yo) * 0.62), 0.7),
+            color: PAPER,
+            at: [x, 4.2 + (yo + yi) / 2 + 0.4, 1.4],
+          });
+        }
+        return bits;
+      },
+      0.5,
     );
-    const low = kit.geo('k-wing-low', () =>
-      new ShapeGeometry(wingShape(false), 12).rotateX(-Math.PI / 2),
-    );
+    this.grin.add(teeth);
+    this.grin.position.set(0, -2, 0);
+
+    const violet = kit.toon(PALETTE.neutral, PALETTE.neutral, 0.7);
     for (const side of [-1, 1]) {
-      const w = new Group();
-      put(w, new Mesh(up, gold)).position.y = 0.01;
-      put(w, new Mesh(low, vein)).position.y = -0.01;
-      w.scale.x = side;
-      this.wings.push(w);
-      this.flier.add(w);
+      const eye = new Group();
+      put(
+        eye,
+        kit.part(
+          'cheshire-eye',
+          () => new SphereGeometry(1, 14, 10).scale(5.4, 2.7, 1.5),
+          violet,
+          0.7,
+        ),
+      );
+      put(
+        eye,
+        kit.part(
+          'cheshire-pupil',
+          () => new SphereGeometry(1, 8, 6).scale(0.9, 2.3, 0.5),
+          kit.toon(PALETTE.gold, PALETTE.gold, 0.9),
+          0.4,
+        ),
+        0,
+        0,
+        1.3,
+      );
+      eye.position.set(side * 9, 11.5, 0);
+      eye.rotation.z = side * -0.3;
+      this.eyes.add(eye);
     }
-    put(
-      this.flier,
-      kit.part(
-        'k-body',
-        () => new SphereGeometry(1, 8, 6).scale(0.9, 0.9, 4.2),
-        kit.toon('#5a3a14'),
-        0.5,
-      ),
-    );
-    put(this.flier, kit.glowSprite('#ffd88a', 34, 0.55));
-    this.flier.scale.setScalar(1.7);
-    this.flier.position.y = 24;
-    this.root.add(this.flier);
+    const glow = put(this.face, kit.glowSprite(PALETTE.neutral, 52, 0.3), 0, 4, -2);
+    this.face.add(this.grin, this.eyes);
+    this.face.position.y = 28;
+    this.face.scale.setScalar(1.15);
+    this.root.add(this.face);
+    this.grinMats = fadable(kit, this.grin);
+    this.eyeMats = fadable(kit, this.eyes);
+    this.grinMats.push(...fadable(kit, glow));
     this.ring = kit.decalRing(PALETTE.gold, 18, true, 0.7);
     this.ring.position.y = 0.9;
     this.root.add(kit.blob(12, 0.4), this.ring);
   }
 
-  animate(time: number): void {
-    const flap = Math.sin(time * 9) * 0.75 + 0.35;
-    this.wings[0].rotation.z = -flap;
-    this.wings[1].rotation.z = flap;
-    this.flier.position.y = 24 + Math.sin(time * 1.7) * 3.2;
-    this.flier.rotation.y = Math.sin(time * 0.7) * 0.9;
-    this.flier.rotation.x = Math.sin(time * 1.1) * 0.12;
+  animate(time: number, camQuat: Quaternion): void {
+    const { grin, eyes } = cheshireFade(time * 20 + this.seed * 20);
+    this.face.position.y = 28 + Math.sin(time * 1.3) * 2.6;
+    this.face.quaternion.copy(camQuat);
+    this.face.rotateZ(Math.sin(time * 0.7) * 0.12);
+    this.grin.rotation.z = Math.sin(time * 0.9) * 0.05;
+    this.eyes.position.y = Math.sin(time * 1.6) * 0.5;
+    for (const [list, a] of [
+      [this.grinMats, grin],
+      [this.eyeMats, eyes],
+    ] as const) {
+      for (const m of list) m.mat.opacity = m.base * a;
+    }
+    this.grin.visible = grin > 0.02;
+    this.eyes.visible = eyes > 0.02;
     this.ring.rotation.y = time * 0.5;
     const pulse = (1 + Math.sin(time * 2) * 0.05) * 36;
     this.ring.scale.set(pulse, 1, pulse);
+    (this.ring.material as MeshBasicMaterial).opacity = 0.25 + 0.5 * grin;
+  }
+}
+
+/** A tapered limb between two points, as a merge-ready geometry. */
+function limb(a: Vector3, b: Vector3, r0: number, r1: number, seg = 7): BufferGeometry {
+  const dir = b.clone().sub(a);
+  const len = dir.length();
+  const q = new Quaternion().setFromUnitVectors(Y_AXIS, dir.normalize());
+  return new CylinderGeometry(r1, r0, len, seg)
+    .applyQuaternion(q)
+    .translate((a.x + b.x) / 2, (a.y + b.y) / 2, (a.z + b.z) / 2);
+}
+
+function batWing(): Shape {
+  const s = new Shape();
+  s.moveTo(0, 0);
+  s.lineTo(16, 2);
+  s.lineTo(36, 0);
+  s.quadraticCurveTo(33, 7, 31, 16);
+  s.quadraticCurveTo(26, 10, 23, 20);
+  s.quadraticCurveTo(17, 12, 12, 21);
+  s.quadraticCurveTo(7, 12, 0, 13);
+  s.closePath();
+  return s;
+}
+
+/**
+ * The Jabberwock, after Tenniel: a long serpentine neck, bat wings, a spined back, buck teeth in
+ * jaws that bite, claws that catch and eyes of flame. Faces +z like every other figure.
+ */
+export class JabberwockModel {
+  readonly root = new Group();
+  private readonly body = new Group();
+  private readonly head = new Group();
+  private readonly jaw = new Group();
+  private readonly wings: Group[] = [];
+  private readonly eyes: MeshBasicMaterial;
+  private readonly seed: number;
+
+  constructor(kit: Kit, defId: string) {
+    this.seed = hash(defId) % 628;
+    const v = (x: number, y: number, z: number): Vector3 => new Vector3(x, y, z);
+    const scale = new Color('#46604c');
+    const belly = new Color('#cdbf92');
+    const dark = new Color('#2f4236');
+    this.root.add(kit.blob(30, 0.6));
+    this.body.add(
+      kit.solid(
+        'jabber-body',
+        () => {
+          const bits: Bit[] = [
+            {
+              geo: new SphereGeometry(1, 16, 12),
+              color: scale,
+              at: [0, 18, 0],
+              scale: [10, 9, 15],
+            },
+            {
+              geo: new SphereGeometry(1, 12, 9),
+              color: belly,
+              at: [0, 14.2, 2],
+              scale: [7, 6, 11.5],
+            },
+          ];
+          for (const x of [-1, 1]) {
+            bits.push(
+              { geo: new SphereGeometry(6, 10, 8), color: scale, at: [x * 8, 13, -7] },
+              { geo: limb(v(x * 8, 12, -7), v(x * 8.6, 1.6, -4), 3.2, 2, 7), color: dark },
+              { geo: new BoxGeometry(4, 1.4, 7), color: dark, at: [x * 8.6, 0.7, -1] },
+              { geo: limb(v(x * 6, 16, 10), v(x * 8.5, 9, 18), 2.4, 1.5, 6), color: dark },
+            );
+            for (const c of [-1, 0, 1])
+              bits.push(
+                {
+                  geo: new ConeGeometry(0.8, 4.6, 5),
+                  color: PAPER,
+                  at: [x * 8.6 + c * 1.5, 0.9, 4],
+                  rot: [Math.PI / 2, 0, 0],
+                },
+                {
+                  geo: new ConeGeometry(0.7, 4, 5),
+                  color: PAPER,
+                  at: [x * 8.5 + c * 1.3, 8.4, 21],
+                  rot: [Math.PI / 2 + 0.5, 0, 0],
+                },
+              );
+          }
+          const tail = [v(0, 15, -14), v(0, 12, -27), v(0, 11, -40), v(0, 14, -52), v(0, 19, -60)];
+          const neck = [v(0, 21, 9), v(0, 29, 14), v(0, 40, 15), v(0, 50, 20), v(0, 56, 27)];
+          const rad = [7, 5.6, 4.4, 3.4, 2.6];
+          const trad = [6.4, 4.6, 3.2, 2, 0.8];
+          for (let i = 0; i < 4; i++) {
+            bits.push(
+              { geo: limb(tail[i], tail[i + 1], trad[i], trad[i + 1], 8), color: scale },
+              { geo: limb(neck[i], neck[i + 1], rad[i], rad[i + 1], 8), color: scale },
+              {
+                geo: new SphereGeometry(trad[i + 1], 8, 6),
+                color: scale,
+                at: tail[i + 1].toArray(),
+              },
+              {
+                geo: new SphereGeometry(rad[i + 1], 8, 6),
+                color: scale,
+                at: neck[i + 1].toArray(),
+              },
+            );
+            bits.push({
+              geo: limb(neck[i], neck[i + 1], rad[i] * 0.7, rad[i + 1] * 0.7, 6),
+              color: belly,
+              at: [0, 0, 2.2],
+            });
+          }
+          for (let i = 0; i < 9; i++) {
+            const t = i / 8;
+            bits.push({
+              geo: new ConeGeometry(1.8 - t * 0.7, 5.5 - t * 1.8, 5),
+              color: dark,
+              at: [0, 26.6 - t * 3 - Math.abs(t - 0.2) * 6, 10 - t * 19],
+              rot: [-0.5 - t * 0.6, 0, 0],
+            });
+          }
+          for (let i = 0; i < 4; i++)
+            bits.push({
+              geo: new ConeGeometry(1.4 - i * 0.25, 4 - i * 0.6, 5),
+              color: dark,
+              at: [0, tail[i].y + trad[i] + 1, tail[i].z - 2],
+              rot: [-1.1, 0, 0],
+            });
+          return bits;
+        },
+        1.1,
+      ),
+    );
+    for (const side of [-1, 1]) {
+      const w = new Group();
+      const membrane = new Mesh(
+        kit.geo('jabber-wing', () => new ShapeGeometry(batWing(), 12).rotateX(-Math.PI / 2)),
+        kit.own(
+          new MeshToonMaterial({
+            color: '#3b2c4a',
+            gradientMap: kit.gradient,
+            emissive: '#2a1030',
+            emissiveIntensity: 0.4,
+            side: DoubleSide,
+          }),
+        ),
+      );
+      w.add(membrane);
+      w.add(
+        kit.solid(
+          'jabber-wing-bones',
+          () => [
+            { geo: limb(v(0, 0, 0), v(16, 0.4, -2), 1.5, 1.1, 5), color: dark },
+            { geo: limb(v(16, 0.4, -2), v(36, 0, 0), 1.1, 0.5, 5), color: dark },
+            { geo: limb(v(16, 0.4, -2), v(31, 0, -16), 0.7, 0.4, 4), color: BRASS },
+            { geo: limb(v(16, 0.4, -2), v(23, 0, -20), 0.7, 0.4, 4), color: BRASS },
+            { geo: limb(v(16, 0.4, -2), v(12, 0, -21), 0.7, 0.4, 4), color: BRASS },
+            {
+              geo: new ConeGeometry(0.9, 3.4, 5),
+              color: PAPER,
+              at: [36.4, 0, 1.5],
+              rot: [Math.PI / 2, 0, -Math.PI / 2],
+            },
+          ],
+          0.4,
+        ),
+      );
+      w.position.set(side * 7, 27, 4);
+      w.scale.x = side;
+      this.wings.push(w);
+      this.body.add(w);
+    }
+    this.root.add(this.body);
+
+    put(
+      this.head,
+      kit.solid(
+        'jabber-head',
+        () => {
+          const bits: Bit[] = [
+            {
+              geo: new SphereGeometry(1, 14, 10),
+              color: scale,
+              at: [0, 0, 0],
+              scale: [4.2, 3.6, 5.4],
+            },
+            {
+              geo: new SphereGeometry(1, 12, 8),
+              color: scale,
+              at: [0, -0.4, 6.4],
+              scale: [2.8, 2.2, 5.4],
+            },
+            {
+              geo: new SphereGeometry(1, 8, 6),
+              color: belly,
+              at: [0, -1.2, 7],
+              scale: [2, 1.2, 4.4],
+            },
+          ];
+          for (const x of [-1, 1]) {
+            bits.push(
+              {
+                geo: new ConeGeometry(1, 7, 5),
+                color: dark,
+                at: [x * 2.6, 3.6, -3.4],
+                rot: [-1.2, 0, -x * 0.35],
+              },
+              {
+                geo: new ConeGeometry(0.7, 2.4, 5),
+                color: PAPER,
+                at: [x * 0.9, -2.7, 11],
+                rot: [Math.PI, 0, 0],
+              },
+            );
+            for (const z of [8.4, 10])
+              bits.push({
+                geo: new ConeGeometry(0.5, 1.7, 4),
+                color: PAPER,
+                at: [x * 1.8, -2, z],
+                rot: [Math.PI, 0, 0],
+              });
+          }
+          return bits;
+        },
+        0.9,
+      ),
+    );
+    put(
+      this.jaw,
+      kit.solid(
+        'jabber-jaw',
+        () => {
+          const bits: Bit[] = [
+            {
+              geo: new SphereGeometry(1, 10, 7),
+              color: belly,
+              at: [0, 0, 5.6],
+              scale: [2.3, 1, 5.8],
+            },
+          ];
+          for (const x of [-1, 1])
+            bits.push({
+              geo: new ConeGeometry(0.5, 1.8, 4),
+              color: PAPER,
+              at: [x * 1.6, 1.2, 8.2],
+            });
+          return bits;
+        },
+        0.8,
+      ),
+    );
+    this.jaw.position.set(0, -2.2, 1);
+    this.head.add(this.jaw);
+    this.eyes = kit.own(
+      new MeshBasicMaterial({ color: '#ff8a2a', vertexColors: true, fog: false }),
+    );
+    this.head.add(
+      new Mesh(
+        kit.geo('jabber-eyes', () =>
+          kit.merge(
+            [-1, 1].map((x) => ({
+              geo: new SphereGeometry(1.2, 8, 6),
+              color: WHITE,
+              at: [x * 3.1, 1.2, 3.2] as [number, number, number],
+              scale: [0.8, 1, 1.2] as [number, number, number],
+            })),
+          ),
+        ),
+        this.eyes,
+      ),
+    );
+    put(this.head, kit.glowSprite('#ff7a2a', 14, 0.6), 0, 1.2, 4);
+    this.head.position.set(0, 56, 27);
+    this.head.rotation.x = 0.35;
+    this.root.add(this.head);
+  }
+
+  animate(time: number, lunge: number): void {
+    const t = time + this.seed;
+    this.body.position.y = Math.sin(t * 1.6) * 0.7 + lunge * 1.5;
+    this.body.scale.y = 1 + Math.sin(t * 1.6) * 0.015;
+    const flap = Math.sin(t * 2.4) * 0.32 + 0.45 + lunge * 0.4;
+    for (const [i, w] of this.wings.entries()) w.rotation.z = (i === 0 ? -1 : 1) * flap;
+    this.head.position.y = 56 + Math.sin(t * 1.1) * 1.6 - lunge * 4;
+    this.head.position.z = 27 + Math.sin(t * 0.8) * 1.4 + lunge * 8;
+    this.head.rotation.x = 0.35 + lunge * 0.45 + Math.sin(t * 1.3) * 0.05;
+    this.head.rotation.y = Math.sin(t * 0.6) * 0.16;
+    this.jaw.rotation.x = 0.16 + lunge * 0.6 + Math.max(0, Math.sin(t * 2.1)) * 0.12;
+    this.eyes.color.set('#ff8a2a').multiplyScalar(0.85 + 0.15 * Math.sin(t * 7));
   }
 }

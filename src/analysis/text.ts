@@ -14,6 +14,16 @@ export function teamLabel(team: string, viewer: PlayTeam = 'A'): string {
   return team === viewer ? 'your team' : 'the enemy';
 }
 
+/** The two courts of the Looking-Glass board: Team A is White, Team B is Red. */
+export function courtName(team: string): string {
+  return team === 'A' ? 'White Court' : team === 'B' ? 'Red Court' : team;
+}
+
+/** The guardian's display name: each Court has a King. */
+export function kingName(team: string): string {
+  return team === 'A' ? 'White King' : team === 'B' ? 'Red King' : 'King';
+}
+
 const cap = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
 
 export function teamLabelCap(team: string, viewer: PlayTeam = 'A'): string {
@@ -80,7 +90,7 @@ export function structureText(
     const rank = s.index === 0 ? 'outer' : s.index === 1 ? 'inner' : `#${s.index + 1}`;
     return `${side} ${rank} tower (${laneName(s.lane)} lane) fell`;
   }
-  if (s.kind === 'guardian') return `${side} guardian fell`;
+  if (s.kind === 'guardian') return `${side} ${kingName(s.team)} fell`;
   return `${side} ${s.kind} fell`;
 }
 

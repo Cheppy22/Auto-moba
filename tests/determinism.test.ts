@@ -26,7 +26,7 @@ describe('determinism', () => {
   });
 
   it('player commands are part of the replay', () => {
-    const m = Match.create(content, { seed: 3, player: { heroId: 'smelter', role: 'top' } });
+    const m = Match.create(content, { seed: 3, player: { heroId: 'queen', role: 'top' } });
     m.issue({ type: 'setPosture', posture: 'farm' });
     const offer = m.state.upgradeOffers[m.state.playerHeroId!];
     m.issue({ type: 'pickUpgrade', upgradeId: offer[0] });

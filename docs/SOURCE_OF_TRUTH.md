@@ -4,7 +4,7 @@
 
 - What changed and when: [CHANGELOG.md](CHANGELOG.md). Never put history in this file.
 - How the code is organized: [ARCHITECTURE.md](ARCHITECTURE.md).
-- Dated specs and reports this file links to: [ITEMS.md](ITEMS.md), [PLAYTEST.md](PLAYTEST.md), [BALANCE_REPORT.md](BALANCE_REPORT.md), [BROADCAST.md](BROADCAST.md).
+- Dated specs and reports this file links to: [ITEMS.md](ITEMS.md), [PLAYTEST.md](PLAYTEST.md), [BALANCE_REPORT.md](BALANCE_REPORT.md), [BROADCAST.md](BROADCAST.md), [WONDERLAND.md](WONDERLAND.md).
 - Old design docs, kept for history only: [archive/](archive/).
 
 ## Update rules (every session must follow these)
@@ -33,16 +33,17 @@
 ## Identity
 
 - **Pitch:** a single-player auto-battler MOBA. You pick one hero and a lane on a 5v5 team of AI, then shape the match through items, upgrades, shop suggestions and timing.
-- **Setting:** a pocket dimension pulling from many places and times (xxxHolic). Spirits and esoteric entities everywhere; every wish has a price. Why the teams fight is deliberately undecided.
+- **Setting:** a pocket dimension pulling from many places and times (xxxHolic). Spirits and esoteric entities everywhere; every wish has a price. Wonderland is the newest realm it pulls from, with Lewis Carroll's two Alice books and Tenniel's illustrations as the only sources (spec: [WONDERLAND.md](WONDERLAND.md)).
+- **Why the teams fight:** the pocket dimension is a Looking-Glass chessboard in the back room of a wish-shop. Everyone who fell down the rabbit hole made a wish, and the price is to serve as a piece in the game between the White Queen and the Red Queen. Team A (yours) is the **White Court** and Team B is the **Red Court**; interface text keeps "your team" and "the enemy" where those read better.
 - **References:** Guildrun (build depth, role-bending builds); Deadlock (shop, item categories, boss guardian, minimap feel).
-- **Look:** Dishonored-inspired with xxxHolic: ink and lacquer surfaces, brass and washi accents, seal red, spirit violet, ofuda paper tags, glass HUD panels, Japanese seal glyphs (対価詛). Art is drawn by code: sigils and shapes, no image files. Quality bar: "AAA grade", polished, easy to follow, information shown unintrusively.
+- **Look:** Dishonored-inspired with xxxHolic: ink and lacquer surfaces, brass and washi accents, seal red, spirit violet, ofuda paper tags, glass HUD panels, Japanese seal glyphs (対価詛). Wonderland adds card suits, clock faces, keyholes and a low-contrast checkerboard floor under the bases (never in item category colors). Art is drawn by code: sigils and shapes, no image files. Quality bar: "AAA grade", polished, easy to follow, information shown unintrusively.
 
 ## The game
 
 ### Format and win condition
 
 - You control 1 hero on a 5v5 team; the other 9 are AI. Both teams are AI-driven; you influence yours.
-- **Win:** destroy the enemy guardian, a bound spirit in each base. Guardians have rage stages and, from phase 7, leave their bases.
+- **Win:** destroy the enemy **King** (White King, Red King; internally still the guardian), a bound spirit in each base. That is **Checkmate**, shown on the end screen as "Checkmate: the White Court wins" (or the Red Court). Kings have rage stages and, from phase 7, leave their bases. Minions are drawn as pawns and towers stay stone lanterns.
 
 ### Draft and lanes
 
@@ -55,15 +56,15 @@
 ### Map
 
 - Round playfield, base at the bottom and enemy base at the top; the HUD sits in the dead corners. The side lanes curve; mid is a straight diagonal.
-- **Jungle areas** connect to lanes through gates. The 3-lane skeleton is fixed; jungle zones open in mirrored pairs over phases 1–3 (shown as "Uncharted" until then) with randomized biomes. Mirrored pairing is a fairness requirement (guarded by `tests/symmetry.test.ts`).
+- **Jungle areas** connect to lanes through gates. The 3-lane skeleton is fixed; jungle zones open in mirrored pairs over phases 1–3 (shown as "Uncharted" until then) with randomized biomes (five: Midnight Station, Hollow Foundry, Drowned Shrine, Tea Party Glade and Croquet Rose Garden). Mirrored pairing is a fairness requirement (guarded by `tests/symmetry.test.ts`).
 - **Two jungle shops** sit diagonally: Western Stall (bottom-left of the screen) and Eastern Stall (top-right), mirrored for fairness. Standing at one lets a hero buy the base catalog and tier 3.
-- **Keeper:** a roaming NPC (a gold marker on the map) that stocks a few tier-3 items during a phase and moves each phase. It is reached on foot. The Keeper teleport no longer exists.
+- **Cheshire Keeper:** a roaming NPC (a crescent grin on the map, labelled "Cheshire", that fades in and out as it moves) that stocks a few tier-3 items during a phase and moves each phase. It is reached on foot. The Keeper teleport no longer exists.
 - **Recall** goes only to base (3 s), is interrupted by damage, and auto-opens the shop for the player's own recalls.
 
 ### Phases and pace
 
 - Phases last about 4 minutes (240 s) of play; there is no phase cap. The median match is about 12–16 minutes.
-- **Pressure events** stack from phase 4: Thinning Veil (phase 4, healing reduced map-wide), Spirit Tide (5, jungle camps push into lanes), Keeper Calls In Debts (6, cursed items double in power and flaw), Restless Guardians (7+, guardians leave their bases and fight; this ends the game).
+- **Pressure events** stack from phase 4: Thinning Veil (phase 4, healing reduced map-wide), Spirit Tide (5, jungle camps push into lanes), The Cheshire Keeper Calls In Debts (6, cursed items double in power and flaw), The Kings Wake (7+, both Kings leave their bases and fight in the lanes; this ends the game).
 - **Between phases:** phase report, then pick 1 of 3 ability upgrades, then shop (tiers 1–2 only), then any curse offer. Heroes keep their position and health and shop remotely.
 - **Speed:** pause, 1×, 2×, 4×, 8×. The match is paused while the shop is open.
 - **Respawn:** starts short, grows during a phase, carries over between phases.
@@ -85,8 +86,10 @@ Timed events pull heroes out of lanes. They are announced 10 s ahead, run, then 
 | Hundred-Demon Parade | 7 neutral demons march down a side lane toward one base, attacking everyone.                        | Team with more hero kills (at least 3): 3 points and 100 gold per hero. |
 | Wishing Well         | Hold it with no enemy hero near for 8 s.                                                            | Team buff (+10% Blade and Soul power, 90 s) and 1 point.                |
 | Hungry Oni           | Elite neutral with a telegraphed ground slam every 7 s; leaves after 100 s.                         | 150 gold to the killing team, 150 more to the killer, 4 points.         |
+| Unbirthday Tea Party | Like the Wishing Well: hold the tea table with no enemy hero near for 8 s.                          | Team buff (+12% attack speed, +6% move speed, 90 s) and 1 point.        |
+| The Jabberwock       | Hungry Oni family from phase 3: ×1.25 health and slam damage.                                       | 200 gold to the killing team, 200 more to the killer, 5 points.         |
 
-- Single-site events (Well, Oni) use slots equidistant from both bases; procession routes and parade lanes are random, so fair in expectation.
+- Single-site events (Well, Tea Party, Oni, Jabberwock) use slots equidistant from both bases; procession routes and parade lanes are random, so fair in expectation.
 - The player can answer an event with a **Send/Ignore** prompt (8 s). Send makes the hero favor that event. The prompt does not pause the match.
 
 ### Obelisks
@@ -117,7 +120,7 @@ Minor random objectives that give team points plus a small buff, gold, or a **25
 
 ### Cursed and holy items
 
-- **Cursed items:** offered to the furthest-behind hero on the losing team (below 75% of average net worth), at most one per phase, from phase 2. The flaw type is visible and the exact flaw is hidden until accepted. Curses are permanent, can be refused, and AI heroes take them too. Every flaw text starts "The price:".
+- **Cursed items** (six, including **Drink Me**: +20% move speed and +15% attack speed for −15% max health; and **Eat Me**: +25% max health and +10 armor for −15% move speed): offered to the furthest-behind hero on the losing team (below 75% of average net worth), at most one per phase, from phase 2. The flaw type is visible and the exact flaw is hidden until accepted. Curses are permanent, can be refused, and AI heroes take them too. Every flaw text starts "The price:".
 - **When a hero takes one,** a clear map notification, a screen pulse for your own hero, and a pulsing aura for the rest of the match make it obvious.
 - **Holy item:** one per match, intended to be won in a sealed auction. **The auction is switched off** (`auction.enabled: false`); the code and tests remain, so holy items are not currently awarded.
 - A hero may hold holy and cursed items at once (the "Fallen Saint").
@@ -165,7 +168,7 @@ Each hero re-plans about once per second and scores goals (farm lane, push tower
 
 ## Known weaknesses and open questions
 
-- **Balance:** a few heroes (Oiran, Revenant, Smelter, Ronin) die 8 or more times per match, mostly durability balance. Matches got longer after the tower change (median about 16 minutes); the owner accepted this pending playtest feedback.
+- **Balance:** a few heroes (Oiran, the White Rabbit, the Queen of Hearts, Ronin) die 8 or more times per match, mostly durability balance. Matches got longer after the tower change (median about 16 minutes); the owner accepted this pending playtest feedback.
 - **Relics:** it hasn't been verified that every Relic rule fires in real simulated matches; each is unit-tested individually.
 - **Hands-off player:** your team's win rate with a player who never touches the shop was 36–50% over 28 matches (14% before auto-buy). Re-check.
 - **Interface gaps:**
@@ -180,26 +183,27 @@ Each hero re-plans about once per second and scores goals (farm lane, push tower
 
 ## Shelved on purpose
 
-Meta-progression between matches; era-themed lane identity; "The Core" alternate mode (circle map, fog phases, final arena fight); lore for why the teams fight; multiple AI difficulty levels (one neutral level for now).
+Meta-progression between matches; era-themed lane identity; "The Core" alternate mode (circle map, fog phases, final arena fight); multiple AI difficulty levels (one neutral level for now).
 
 ## Reversed decisions (don't bring these back)
 
-| Old decision                                       | Replaced by                                                                 |
-| -------------------------------------------------- | --------------------------------------------------------------------------- |
-| Square map with right-angle lanes                  | Rounded map with curved side lanes                                          |
-| Teleport to the Keeper                             | Removed; the Keeper is reached on foot                                      |
-| Two jungle shops both on the Left side             | Diagonal pair (bottom-left and top-right)                                   |
-| Tier 3 sold between phases and by obelisk unlock   | Tier 3 only at jungle shops (and the Keeper's stock); obelisk gives 25% off |
-| Sealed team auction for the holy item              | Switched off with a flag                                                    |
-| Posture picker (Push/Farm/Defend)                  | Dispositions; only a Farm toggle remains, hidden for farmers                |
-| "Usually X lane" hero preference                   | Farmer/Attacker/Defender dispositions                                       |
-| AI drafts 9 heroes first, you choose from the rest | You pick first from all 14                                                  |
-| Duplicate heroes allowed                           | One of each hero per match                                                  |
-| Category names Blade/Flesh/Soul                    | Mind/Body/Soul                                                              |
-| Player's hero never buys or recalls on its own     | Auto-buy and heal recall for the player (toggleable)                        |
-| Towers: 3000 health, heroes at full damage         | 3600 health, ×0.5 hero damage, 9% per second cap                            |
-| Reports as separate team, hero and totals views    | One scoreboard screen with a collapsed Details section                      |
-| Canvas 2D only, no drawing library                 | 2D map plus a lazy-loaded three.js Broadcast view                           |
+| Old decision                                       | Replaced by                                                                                                 |
+| -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Square map with right-angle lanes                  | Rounded map with curved side lanes                                                                          |
+| Teleport to the Keeper                             | Removed; the Keeper is reached on foot                                                                      |
+| Two jungle shops both on the Left side             | Diagonal pair (bottom-left and top-right)                                                                   |
+| Tier 3 sold between phases and by obelisk unlock   | Tier 3 only at jungle shops (and the Keeper's stock); obelisk gives 25% off                                 |
+| Sealed team auction for the holy item              | Switched off with a flag                                                                                    |
+| Posture picker (Push/Farm/Defend)                  | Dispositions; only a Farm toggle remains, hidden for farmers                                                |
+| "Usually X lane" hero preference                   | Farmer/Attacker/Defender dispositions                                                                       |
+| AI drafts 9 heroes first, you choose from the rest | You pick first from all 14                                                                                  |
+| Duplicate heroes allowed                           | One of each hero per match                                                                                  |
+| Category names Blade/Flesh/Soul                    | Mind/Body/Soul                                                                                              |
+| Player's hero never buys or recalls on its own     | Auto-buy and heal recall for the player (toggleable)                                                        |
+| Towers: 3000 health, heroes at full damage         | 3600 health, ×0.5 hero damage, 9% per second cap                                                            |
+| Reports as separate team, hero and totals views    | One scoreboard screen with a collapsed Details section                                                      |
+| Canvas 2D only, no drawing library                 | 2D map plus a lazy-loaded three.js Broadcast view                                                           |
+| Why the teams fight is deliberately undecided      | White Queen vs. Red Queen chess game on a Looking-Glass board (White Court and Red Court, Kings, Checkmate) |
 
 ## Where to look first (for code work)
 

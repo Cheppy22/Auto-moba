@@ -52,7 +52,7 @@ describe('world', () => {
 });
 
 describe('damage and shop', () => {
-  const m = Match.create(content, { seed: 9, player: { heroId: 'smelter', role: 'top' } });
+  const m = Match.create(content, { seed: 9, player: { heroId: 'queen', role: 'top' } });
   const hero = m.unitById(m.state.playerHeroId!)!;
 
   it('armor reduces blade damage, resist reduces soul, true ignores both', () => {
@@ -88,7 +88,7 @@ describe('damage and shop', () => {
   });
 
   it('upgrades scale ability numbers', () => {
-    hero.hero!.upgrades = ['smelter_u1'];
+    hero.hero!.upgrades = ['queen_u1'];
     expect(abilityMods(m.ctx, hero, 0).powerMul).toBeCloseTo(1.3);
     expect(abilityMods(m.ctx, hero, 1).powerMul).toBe(1);
   });

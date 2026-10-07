@@ -1,10 +1,10 @@
 {
-  "id": "rickshaw",
-  "name": "Hatsu, the Rickshaw Ghost",
-  "title": "Last fare of the Ginza night",
-  "era": "Meiji",
+  "id": "hatter",
+  "name": "The Hatter",
+  "title": "Host of the Six O'Clock Table",
+  "era": "Looking-Glass",
   "attackKind": "ranged",
-  "playstyle": "A caster that fills the ground with slowing ghost-fire. Fight where enemies must stand in the fire and use the slows to let your team catch them.",
+  "playstyle": "A caster that sets the ground with slowing steam and scalding tea. Fight where enemies must stand at the table and use the slows to let your team catch them.",
   "stats": {
     "maxHp": 540.14,
     "hpRegen": 2,
@@ -20,7 +20,7 @@
   "abilities": [
     {
       "id": "fare_flame",
-      "name": "Fare Flame",
+      "name": "Scalding Pour",
       "cooldownSec": 6,
       "range": 115,
       "target": "enemy",
@@ -32,11 +32,11 @@
           "soulScale": 0.65
         }
       ],
-      "desc": "Throws a lantern flame for 38 + 65% Soul damage."
+      "desc": "Hurls a splash of scalding tea for 38 + 65% Soul damage."
     },
     {
       "id": "ghost_lantern_field",
-      "name": "Ghost-Lantern Field",
+      "name": "Endless Table",
       "cooldownSec": 14,
       "range": 120,
       "radius": 85,
@@ -60,11 +60,11 @@
       "condition": {
         "minEnemies": 2
       },
-      "desc": "Plants a field of lanterns: enemies in 85 take 30 + 35% Soul damage per second for 5s and move 25% slower. Needs 2 enemies."
+      "desc": "Lays out an endless table: enemies in 85 take 30 + 35% Soul damage per second for 5s and move 25% slower. Needs 2 enemies."
     },
     {
       "id": "wheel_of_fog",
-      "name": "Wheel of Fog",
+      "name": "Move Down!",
       "cooldownSec": 18,
       "radius": 100,
       "target": "enemyArea",
@@ -86,11 +86,11 @@
       "condition": {
         "minEnemies": 2
       },
-      "desc": "A ring of fog around her: enemies within 100 take 30 + 40% Soul damage and are slowed 40% for 2.5s."
+      "desc": "A ring of steam around him: enemies within 100 take 30 + 40% Soul damage and are slowed 40% for 2.5s."
     },
     {
       "id": "final_fare",
-      "name": "Final Fare",
+      "name": "Six O'Clock Forever",
       "cooldownSec": 50,
       "range": 130,
       "radius": 105,
@@ -120,7 +120,7 @@
       "condition": {
         "minEnemyHeroes": 1
       },
-      "desc": "Drops the whole ghost-fire on a group: 110 + 90% Soul damage, then 40 + 40% Soul per second for 4s, and a 40% slow for 3s."
+      "desc": "Stops the clock over a group: 110 + 90% Soul damage, then 40 + 40% Soul per second for 4s, and a 40% slow for 3s."
     }
   ],
   "passives": [],
@@ -134,12 +134,12 @@
     "iron_lung"
   ],
   "sigil": {
-    "hue": 300,
+    "hue": 150,
     "rings": 3,
     "spokes": 8,
-    "glyph": "lantern"
+    "glyph": "teacup"
   },
-  "blurb": "A puller who still waits for one last passenger.",
+  "blurb": "He quarrelled with Time, so it is always six o'clock and always tea time.",
   "autoSoulScale": 0.25,
   "disposition": "farmer"
 }

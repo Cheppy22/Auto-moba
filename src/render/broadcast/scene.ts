@@ -18,9 +18,10 @@ import { BarBatch, EventRing, StreakPool } from './fx';
 import { hash, Kit, STONE, STONE_DARK } from './kit';
 import {
   CampModel,
-  GuardianModel,
+  KingModel,
   HERO_SCALE,
   HeroModel,
+  JabberwockModel,
   KeeperModel,
   MINION_SCALE,
   MinionKit,
@@ -64,8 +65,9 @@ class UnitView {
   readonly objects: Object3D[] = [];
   hero?: HeroModel;
   tower?: TowerModel;
-  guardian?: GuardianModel;
+  king?: KingModel;
   camp?: CampModel;
+  jabber?: JabberwockModel;
   obelisk?: ObeliskModel;
   keeper?: KeeperModel;
 
@@ -279,15 +281,18 @@ export class BroadcastView {
         v.objects.push(v.tower.root);
         break;
       case 'guardian':
-        v.guardian = new GuardianModel(kit, color);
-        v.objects.push(v.guardian.root);
+        v.king = new KingModel(kit, color);
+        v.objects.push(v.king.root);
         break;
       case 'camp':
         v.camp = new CampModel(kit, u.defId, u.maxHp > 900);
         v.objects.push(v.camp.root);
         break;
       case 'minion':
-        if (u.team === 'neutral' && u.maxHp >= 2000) {
+        if (u.team === 'neutral' && u.defId === 'jabberwock') {
+          v.jabber = new JabberwockModel(kit, u.defId);
+          v.objects.push(v.jabber.root);
+        } else if (u.team === 'neutral' && u.maxHp >= 2000) {
           v.camp = new CampModel(kit, u.defId, true, ONI_RED, 2.5);
           v.objects.push(v.camp.root);
         }
@@ -397,6 +402,13 @@ export class BroadcastView {
         break;
       }
       case 'minion': {
+        if (v.jabber) {
+          v.jabber.root.position.set(x, 0, z);
+          v.jabber.root.rotation.y = v.yaw;
+          v.jabber.animate(time, lunge);
+          this.bars.add(x, 90, z, 46 * k, 4.6 * k, frac, ONI_RED);
+          break;
+        }
         if (v.camp) {
           v.camp.root.position.set(x, 0, z);
           v.camp.root.rotation.y = v.yaw;
@@ -429,7 +441,7 @@ export class BroadcastView {
         break;
       }
       case 'guardian': {
-        const g = v.guardian;
+        const g = v.king;
         if (!g) return;
         g.root.position.set(x, 0, z);
         g.root.rotation.y = v.yaw;
@@ -453,7 +465,7 @@ export class BroadcastView {
         break;
       case 'keeper':
         v.keeper?.root.position.set(x, 0, z);
-        v.keeper?.animate(time);
+        v.keeper?.animate(time, this.rig.camera.quaternion);
         break;
     }
   }

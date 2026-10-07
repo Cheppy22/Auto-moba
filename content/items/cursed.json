@@ -243,6 +243,72 @@
         }
       ],
       "desc": "Ask for a great deal, and ash is the change."
+    },
+    {
+      "id": "drink_me",
+      "name": "Drink Me",
+      "category": "mind",
+      "boons": [
+        {
+          "stat": "moveSpeed",
+          "kind": "mul",
+          "value": 1.2
+        },
+        {
+          "stat": "atkSpeed",
+          "kind": "mul",
+          "value": 1.15
+        }
+      ],
+      "boonText": "{m|+20% move speed}, {m|+15% attack speed}",
+      "flawType": "Shrinking",
+      "flaws": [
+        {
+          "id": "shrunk",
+          "text": "{r|The price}: {p|Max health −15%}",
+          "mods": [
+            {
+              "stat": "maxHp",
+              "kind": "mul",
+              "value": 0.85
+            }
+          ]
+        }
+      ],
+      "desc": "A little bottle, and a little less of you."
+    },
+    {
+      "id": "eat_me",
+      "name": "Eat Me",
+      "category": "body",
+      "boons": [
+        {
+          "stat": "maxHp",
+          "kind": "mul",
+          "value": 1.25
+        },
+        {
+          "stat": "armor",
+          "kind": "add",
+          "value": 10
+        }
+      ],
+      "boonText": "{b|+25% max health}, {b|+10 armor}",
+      "flawType": "Growing",
+      "flaws": [
+        {
+          "id": "outgrown",
+          "text": "{r|The price}: {p|Move speed −15%}",
+          "mods": [
+            {
+              "stat": "moveSpeed",
+              "kind": "mul",
+              "value": 0.85
+            }
+          ]
+        }
+      ],
+      "desc": "A small cake, and a great deal more of you."
     }
   ]
 }

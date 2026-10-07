@@ -85,8 +85,8 @@ function Curse() {
   return (
     <div class="col">
       <div class="dim small">
-        The Keeper found you. You are far behind, and the Keeper makes an offer. Take the gift, or
-        refuse it. The exact price stays hidden until you accept, and it never leaves.
+        The Cheshire Keeper found you. You are far behind, and the Keeper makes an offer. Take the
+        gift, or refuse it. The exact price stays hidden until you accept, and it never leaves.
       </div>
       <div class="card col" style={{ borderColor: '#7a2a22' }}>
         <b>{item.name}</b>
@@ -132,7 +132,7 @@ export function Prep() {
   const tabs = [
     { id: 'upgrade', label: 'Upgrade', pending: upgradePending },
     { id: 'shop', label: `Shop · ${n0(hero.gold)}g`, pending: false },
-    ...(hasCurse ? [{ id: 'curse', label: "Keeper's offer", pending: cursePending }] : []),
+    ...(hasCurse ? [{ id: 'curse', label: "Cheshire Keeper's offer", pending: cursePending }] : []),
   ] as { id: 'upgrade' | 'shop' | 'curse'; label: string; pending: boolean }[];
   const tab = tabs.some((t) => t.id === s.ui.prepTab) ? s.ui.prepTab : 'upgrade';
   const keeperSpot = keeperPlace(st.keeper.spot);
@@ -153,7 +153,7 @@ export function Prep() {
               {s.content.pressure.find((x) => x.id === p)?.name}
             </span>
           ))}
-          <span class="chip">Keeper roams near {keeperSpot} next phase</span>
+          <span class="chip">Cheshire Keeper roams near {keeperSpot} next phase</span>
         </div>
         <div class="tabs">
           {tabs.map((t) => (

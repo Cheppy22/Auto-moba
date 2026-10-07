@@ -584,7 +584,66 @@ export class Arena {
         const sz = 1.5 + rnd() * 3.5;
         g.fillRect(cx + Math.cos(a) * R * k * r, cx + Math.sin(a) * R * k * r, sz, sz);
       }
-    } else {
+    } else if (biomeId === 'teaparty') {
+      // a clock face on the ground, stopped at six, with tea rings and crumbs
+      g.strokeStyle = pal.glow + '40';
+      g.lineWidth = 3;
+      g.beginPath();
+      g.arc(cx, cx, R * k * 0.8, 0, TAU);
+      g.stroke();
+      for (let i = 0; i < 12; i++) {
+        const a = (i / 12) * TAU;
+        const f = i % 3 === 0 ? 0.68 : 0.74;
+        g.beginPath();
+        g.moveTo(cx + Math.cos(a) * R * k * f, cx + Math.sin(a) * R * k * f);
+        g.lineTo(cx + Math.cos(a) * R * k * 0.8, cx + Math.sin(a) * R * k * 0.8);
+        g.stroke();
+      }
+      g.lineWidth = 4;
+      g.strokeStyle = pal.glow + '55';
+      g.beginPath();
+      g.moveTo(cx, cx - R * k * 0.5);
+      g.lineTo(cx, cx);
+      g.lineTo(cx, cx + R * k * 0.34);
+      g.stroke();
+      g.lineWidth = 2;
+      for (let i = 0; i < 9; i++) {
+        const a = rnd() * TAU;
+        const r = 0.2 + rnd() * 0.65;
+        g.strokeStyle = pal.glow + '30';
+        g.beginPath();
+        g.arc(cx + Math.cos(a) * R * k * r, cx + Math.sin(a) * R * k * r, 7 + rnd() * 5, 0, TAU);
+        g.stroke();
+      }
+    } else if (biomeId === 'roses') {
+      // fallen petals, painted red, on a faint diamond lattice
+      g.strokeStyle = pal.glow + '24';
+      g.lineWidth = 2;
+      for (let i = -4; i <= 4; i++) {
+        g.beginPath();
+        g.moveTo(cx + i * R * k * 0.3 - R * k, cx - R * k);
+        g.lineTo(cx + i * R * k * 0.3 + R * k, cx + R * k);
+        g.moveTo(cx + i * R * k * 0.3 + R * k, cx - R * k);
+        g.lineTo(cx + i * R * k * 0.3 - R * k, cx + R * k);
+        g.stroke();
+      }
+      for (let i = 0; i < 46; i++) {
+        const a = rnd() * TAU;
+        const r = rnd() * 0.92;
+        g.fillStyle = i % 5 === 0 ? pal.glow + '66' : pal.accent + '88';
+        g.beginPath();
+        g.ellipse(
+          cx + Math.cos(a) * R * k * r,
+          cx + Math.sin(a) * R * k * r,
+          6 + rnd() * 3,
+          3.4,
+          rnd() * 3,
+          0,
+          TAU,
+        );
+        g.fill();
+      }
+    } else if (biomeId === 'station') {
       g.strokeStyle = pal.glow + '48';
       g.lineWidth = 3;
       for (const off of [-0.14, 0.14]) {
@@ -599,6 +658,21 @@ export class Arena {
         g.moveTo(cx + (i / 6) * R * k * 0.95, cx - R * k * 0.2);
         g.lineTo(cx + (i / 6) * R * k * 0.95, cx + R * k * 0.2);
         g.stroke();
+      }
+    } else {
+      // unknown biome id: soft rings and specks in its own glow colour
+      g.strokeStyle = pal.glow + '30';
+      g.lineWidth = 2;
+      for (const f of [0.35, 0.65]) {
+        g.beginPath();
+        g.arc(cx, cx, R * k * f, 0, TAU);
+        g.stroke();
+      }
+      g.fillStyle = pal.glow + '50';
+      for (let i = 0; i < 24; i++) {
+        const a = rnd() * TAU;
+        const r = 0.15 + rnd() * 0.75;
+        g.fillRect(cx + Math.cos(a) * R * k * r, cx + Math.sin(a) * R * k * r, 3, 3);
       }
     }
     g.restore();
@@ -681,6 +755,59 @@ export class Arena {
         scale: [s, s * 0.8, s],
       });
       glow.push({ geo: new SphereGeometry(1.1, 8, 6), color: WHITE, at: [0, s * 0.95, 0] });
+    } else if (kind === 'teacup') {
+      const china = seed % 2 > 1 ? BRASS : PAPER;
+      solid.push(
+        { geo: new CylinderGeometry(4.6, 4.2, 0.9, 12), color: china, at: [0, 0.45, 0] },
+        {
+          geo: new LatheGeometry(
+            [
+              [0.01, 0.9],
+              [2.4, 0.9],
+              [3.5, 3.4],
+              [4, 6.6],
+              [3.4, 6.7],
+              [0.01, 5.4],
+            ].map(([r, y]) => new Vector2(r, y)),
+            12,
+          ),
+          color: china,
+        },
+        {
+          geo: new TorusGeometry(1.6, 0.5, 5, 10),
+          color: china,
+          at: [4.3, 4.2, 0],
+        },
+      );
+      glow.push({
+        geo: new SphereGeometry(3, 10, 6),
+        color: WHITE,
+        at: [0, 5.8, 0],
+        scale: [1, 0.12, 1],
+      });
+    } else if (kind === 'rose') {
+      solid.push({
+        geo: new SphereGeometry(1, 8, 6),
+        color: '#22402c',
+        at: [0, 3.4, 0],
+        scale: [6.6, 4.4, 6.2],
+      });
+      for (let i = 0; i < 6; i++) {
+        const a = seed * 5 + i * 1.9;
+        solid.push({
+          geo: new SphereGeometry(1.35, 7, 5),
+          color: i % 4 === 3 ? '#f1e6d6' : '#c0404e',
+          at: [Math.cos(a) * 4.6, 4.6 + (i % 3) * 1.3, Math.sin(a) * 4.2],
+        });
+      }
+    } else if (kind === 'hoop') {
+      solid.push(
+        {
+          geo: new TorusGeometry(5.2, 0.6, 6, 14, Math.PI),
+          color: PAPER,
+        },
+        { geo: new SphereGeometry(1.7, 8, 6), color: '#c0404e', at: [7.5, 1.7, 5] },
+      );
     } else {
       solid.push(
         { geo: new BoxGeometry(9, 1.2, 2.2), color: '#3a2f48', at: [0, 0.6, 0] },
@@ -689,6 +816,120 @@ export class Arena {
       glow.push({ geo: new SphereGeometry(1.2, 8, 6), color: WHITE, at: [0, 4, 0] });
     }
     return { solid: this.placed(solid, x, z, yaw), glow: this.placed(glow, x, z, yaw) };
+  }
+
+  /** Slot-local angle pointing as far as possible from every gate. */
+  private quietAngle(gaps: number[]): number {
+    let best = 0;
+    let bestD = -1;
+    for (let i = 0; i < 36; i++) {
+      const a = (i / 36) * TAU;
+      let d = Infinity;
+      for (const g of gaps) d = Math.min(d, Math.abs(Math.atan2(Math.sin(a - g), Math.cos(a - g))));
+      if (d > bestD) {
+        bestD = d;
+        best = a;
+      }
+    }
+    return best;
+  }
+
+  /** The long tea table (local +x runs along it), mismatched chairs, a teapot and a stopped clock. */
+  private teaTableBits(R: number): { solid: Bit[]; glow: Bit[] } {
+    const L = Math.min(R * 0.95, 82);
+    const solid: Bit[] = [
+      { geo: new BoxGeometry(L, 1.4, 9), color: '#4a3626', at: [0, 9, 0] },
+      { geo: new BoxGeometry(L + 1.6, 0.6, 10.4), color: '#e9dfc9', at: [0, 9.9, 0] },
+    ];
+    for (const x of [-1, 1])
+      for (const z of [-1, 1])
+        solid.push({
+          geo: new CylinderGeometry(0.9, 0.9, 9, 6),
+          color: LACQUER,
+          at: [x * (L / 2 - 3), 4.5, z * 3.4],
+        });
+    const glow: Bit[] = [];
+    const cols = [BRASS, PAPER, '#b9a0e6', '#c0404e'];
+    for (let i = -4; i <= 4; i++) {
+      if (i === 0) continue;
+      const x = (i / 4.6) * (L / 2);
+      const z = i % 2 ? 2.6 : -2.6;
+      solid.push(
+        { geo: new CylinderGeometry(1.9, 1.7, 0.3, 8), color: cols[(i + 4) % 4], at: [x, 10.4, z] },
+        { geo: new CylinderGeometry(1.3, 0.9, 1.6, 8), color: cols[(i + 4) % 4], at: [x, 11.3, z] },
+      );
+      glow.push({
+        geo: new SphereGeometry(0.9, 6, 4),
+        color: WHITE,
+        at: [x, 12.2, z],
+        scale: [1, 0.2, 1],
+      });
+    }
+    solid.push(
+      {
+        geo: new SphereGeometry(2.8, 10, 8),
+        color: '#e9dfc9',
+        at: [0, 13.2, 0],
+        scale: [1, 0.85, 1],
+      },
+      { geo: new ConeGeometry(0.7, 3.2, 5), color: '#e9dfc9', at: [3.1, 14, 0], rot: [0, 0, -1.2] },
+      { geo: new SphereGeometry(0.6, 6, 4), color: BRASS, at: [0, 16, 0] },
+    );
+    for (const x of [-0.28, 0.26])
+      for (const z of [-1, 1])
+        solid.push(
+          {
+            geo: new BoxGeometry(5, 1, 5),
+            color: x < 0 ? '#5a4430' : '#3a2f48',
+            at: [x * L, 4.6, z * 8.6],
+          },
+          {
+            geo: new BoxGeometry(5, 7, 0.8),
+            color: x < 0 ? '#5a4430' : '#3a2f48',
+            at: [x * L, 8.6, z * 10.8],
+          },
+        );
+    const cx = L / 2 + 10;
+    solid.push(
+      { geo: new CylinderGeometry(1.1, 1.5, 13, 6), color: LACQUER, at: [cx, 6.5, 0] },
+      {
+        geo: new CylinderGeometry(7.4, 7.4, 1.6, 24).rotateX(Math.PI / 2),
+        color: PAPER,
+        at: [cx, 20, 0],
+      },
+      { geo: new TorusGeometry(7.4, 0.9, 6, 24), color: BRASS, at: [cx, 20, 0.2] },
+      { geo: new BoxGeometry(0.7, 5.4, 0.5), color: '#0b0a0f', at: [cx, 22.7, 1.1] },
+      { geo: new BoxGeometry(0.9, 3.8, 0.5), color: '#0b0a0f', at: [cx, 18.1, 1.1] },
+      { geo: new SphereGeometry(0.9, 6, 4), color: BRASS, at: [cx, 20, 1.2] },
+    );
+    for (let i = 0; i < 12; i++) {
+      const a = (i / 12) * TAU;
+      solid.push({
+        geo: new BoxGeometry(0.5, i % 3 ? 0.9 : 1.6, 0.4),
+        color: '#0b0a0f',
+        at: [cx + Math.sin(a) * 6, 20 + Math.cos(a) * 6, 1.1],
+        rot: [0, 0, -a],
+      });
+    }
+    return { solid, glow };
+  }
+
+  /** Croquet hoops in a row with a ball, for the rose garden. */
+  private hoopBits(R: number): { solid: Bit[]; glow: Bit[] } {
+    const solid: Bit[] = [];
+    for (let i = -2; i <= 2; i++)
+      solid.push({
+        geo: new TorusGeometry(5.6, 0.65, 6, 14, Math.PI),
+        color: i % 2 ? PAPER : BRASS,
+        at: [i * R * 0.16, 0, (i % 2) * 4],
+        rot: [0, i * 0.2, 0],
+      });
+    solid.push(
+      { geo: new SphereGeometry(2, 8, 6), color: '#c0404e', at: [R * 0.05, 2, 9] },
+      { geo: new CylinderGeometry(0.7, 0.9, 11, 6), color: PAPER, at: [-R * 0.38, 5.5, 2] },
+      { geo: new SphereGeometry(1.2, 6, 4), color: '#c0404e', at: [-R * 0.38, 11.4, 2] },
+    );
+    return { solid, glow: [] };
   }
 
   private buildSlot(slot: Snapshot['slots'][number]): SlotView {
@@ -787,7 +1028,35 @@ export class Arena {
       }
       glow.push({ geo: new SphereGeometry(1.2, 8, 6), color: lamp, at: [w.x, 13, w.z] });
     }
-    const kind = biome.id === 'shrine' ? 'lantern' : biome.id === 'foundry' ? 'slag' : 'tie';
+    const kinds: Record<string, string> = {
+      shrine: 'lantern',
+      foundry: 'slag',
+      station: 'tie',
+      teaparty: 'teacup',
+      roses: 'rose',
+    };
+    const kind = kinds[biome.id] ?? 'lantern';
+    if (biome.id === 'teaparty' || biome.id === 'roses') {
+      const a = this.quietAngle(geo.ports.map((p) => p.ang));
+      const set = biome.id === 'teaparty' ? this.teaTableBits(R) : this.hoopBits(R);
+      const dist = R * (biome.id === 'teaparty' ? 0.6 : 0.38);
+      const yaw = Math.atan2(-Math.cos(a), -Math.sin(a));
+      solid.push(
+        ...this.placed(
+          set.solid,
+          center.x + Math.cos(a) * dist,
+          center.z + Math.sin(a) * dist,
+          yaw,
+        ),
+      );
+      for (const g of this.placed(
+        set.glow,
+        center.x + Math.cos(a) * dist,
+        center.z + Math.sin(a) * dist,
+        yaw,
+      ))
+        glow.push({ ...g, color: pal.glow });
+    }
     for (let i = 0; i < 6; i++) {
       const a = rand01(hash(slot.id) * 3 + i) * TAU;
       if (inGap(a) || inGap(a + 0.15) || inGap(a - 0.15)) continue;
@@ -841,6 +1110,20 @@ export class Arena {
 
   /* ------------------------------ bases & shops ------------------------------ */
 
+  /** Ink and lacquer checkerboard for the base platforms: low contrast so lanes still read. */
+  private boardMaterial(): MeshBasicMaterial {
+    const tex = this.kit.texture('base-board', 256, 256, (g) => {
+      const n = 8;
+      const t = 256 / n;
+      for (let i = 0; i < n; i++)
+        for (let j = 0; j < n; j++) {
+          g.fillStyle = (i + j) % 2 ? '#3b2a34' : '#15111c';
+          g.fillRect(i * t, j * t, t, t);
+        }
+    });
+    return this.own(new MeshBasicMaterial({ map: tex }));
+  }
+
   private buildBases(): void {
     const kit = this.kit;
     for (const team of ['A', 'B'] as const) {
@@ -882,6 +1165,13 @@ export class Arena {
           }),
         ),
       );
+      const board = new Mesh(
+        kit.geo('base-board', () => new CircleGeometry(35, 48).rotateX(-Math.PI / 2)),
+        this.boardMaterial(),
+      );
+      board.position.y = 6.5;
+      board.renderOrder = 5;
+      g.add(board);
       const inlay = kit.decalRing(col, 44, false, 0.8);
       inlay.position.y = 6.6;
       const inlay2 = kit.decalRing(col, 31, true, 0.55);

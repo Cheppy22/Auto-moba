@@ -6,7 +6,7 @@ import { recompute } from '../src/sim/stats';
 import { content } from './helpers';
 
 function playerMatch(seed: number): Match {
-  return Match.create(content, { seed, player: { heroId: 'smelter', role: 'top' } });
+  return Match.create(content, { seed, player: { heroId: 'queen', role: 'top' } });
 }
 
 function pickAnyUpgrade(m: Match): void {
@@ -351,7 +351,7 @@ describe('area abilities', () => {
     const m = Match.create(content, {
       seed: 71,
       player: null,
-      draft: { A: Array(5).fill('cartographer'), B: Array(5).fill('smelter') },
+      draft: { A: Array(5).fill('caterpillar'), B: Array(5).fill('queen') },
     });
     m.issue({ type: 'startPhase' });
     m.step(1);

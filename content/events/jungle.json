@@ -180,6 +180,79 @@
       "aiWeight": 1.15,
       "aiRadius": 700,
       "aiMax": 2
+    },
+    {
+      "id": "unbirthday_tea",
+      "kind": "well",
+      "name": "Unbirthday Tea Party",
+      "desc": "A tea table appears in the jungle. Hold it with no enemy hero near for several seconds and your team gets an unbirthday present: quicker hands and feet for a while.",
+      "weight": 2,
+      "fromPhase": 1,
+      "warnSec": 10,
+      "durationSec": 70,
+      "siteMode": "neutral",
+      "radius": 75,
+      "holdSec": 8,
+      "buffSec": 90,
+      "buffs": [
+        {
+          "stat": "atkSpeed",
+          "kind": "mul",
+          "value": 1.12
+        },
+        {
+          "stat": "moveSpeed",
+          "kind": "mul",
+          "value": 1.06
+        }
+      ],
+      "rewardPoints": 1,
+      "aiWeight": 1.1,
+      "aiRadius": 700,
+      "aiMax": 2
+    },
+    {
+      "id": "jabberwock",
+      "kind": "oni",
+      "name": "The Jabberwock",
+      "desc": "\"Beware the Jabberwock, my son!\" An elite with jaws that bite and claws that catch rises in the jungle. It slams the ground after a warning. Killing it pays big gold and points.",
+      "weight": 1,
+      "fromPhase": 3,
+      "warnSec": 10,
+      "durationSec": 100,
+      "siteMode": "neutral",
+      "radius": 90,
+      "scalePerPhase": 0.2,
+      "aggro": 170,
+      "leash": 260,
+      "units": [
+        {
+          "id": "jabberwock",
+          "name": "The Jabberwock",
+          "count": 1,
+          "hp": 5250,
+          "damage": 70,
+          "damageType": "blade",
+          "armor": 30,
+          "resist": 20,
+          "range": 40,
+          "atkSpeed": 0.8,
+          "moveSpeed": 40
+        }
+      ],
+      "telegraph": {
+        "cooldownSec": 7,
+        "windupSec": 1.6,
+        "radius": 95,
+        "damage": 225,
+        "damageType": "blade"
+      },
+      "rewardGoldKiller": 200,
+      "rewardGoldTeam": 200,
+      "rewardPoints": 5,
+      "aiWeight": 1.15,
+      "aiRadius": 700,
+      "aiMax": 2
     }
   ]
 }

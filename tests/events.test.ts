@@ -6,11 +6,13 @@ import { content, logHash, runAi } from './helpers';
 const evEvents = (m: Match): GameEvent[] => m.events.filter((e) => e.type.startsWith('event'));
 
 describe('jungle events', () => {
-  it('content defines the four events', () => {
+  it('content defines the six events', () => {
     expect(content.events.map((e) => e.kind).sort()).toEqual([
+      'oni',
       'oni',
       'parade',
       'procession',
+      'well',
       'well',
     ]);
   });

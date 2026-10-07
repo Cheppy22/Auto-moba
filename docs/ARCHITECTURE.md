@@ -6,7 +6,7 @@ The prototype is one browser game in TypeScript. A deterministic simulation core
 
 ## Scope and principles
 
-**In scope (M1–M6):** 9 heroes (4 at first, 5 added later), about 15 items, 4 cursed items, 2 holy items, 3 biomes, 4 pressure events, one neutral AI difficulty, a full match loop with reports, and a headless balance runner.
+**In scope (M1–M6):** 9 heroes (4 at first, 5 added later), about 15 items, 6 cursed items, 2 holy items, 5 biomes, 4 pressure events, one neutral AI difficulty, a full match loop with reports, and a headless balance runner.
 
 **Out of scope:** meta-progression, lane identity, The Core mode, lore, multiplayer, save/load between sessions, audio, a mobile-first layout, and multiple AI difficulties.
 
@@ -158,7 +158,7 @@ Each system owns one slice of `MatchState`, runs at a fixed point in the tick or
   - Thinning Veil: global heal multiplier.
   - Spirit Tide: neutral waves from camps walk the lanes, reusing the wave system with team `neutral`.
   - Keeper Calls In Debts: the `curse` tag multiplier goes to 2.
-  - Restless Guardians: guardian AI switches from stationary to roaming.
+  - The Kings Wake (id `restless_guardians`, rule `roamingGuardians`): guardian (King) AI switches from stationary to roaming.
 
 ### Keeper, curses, auction, obelisks
 
@@ -254,7 +254,7 @@ Every task merges only when `npm run check` passes: typecheck, lint (including l
 - Browser: 60 fps at 4x speed on a mid-range laptop.
 - Event log: under 50 MB for a 6-phase match.
 
-**Safety guard.** Tests and tools stop any match reaching phase 10 and flag it as a bug (Restless Guardians failed to end it). A test guard, not a game rule.
+**Safety guard.** Tests and tools stop any match reaching phase 10 and flag it as a bug (The Kings Wake failed to end it). A test guard, not a game rule.
 
 **Working rules for agents**
 

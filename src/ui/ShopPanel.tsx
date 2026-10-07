@@ -197,7 +197,7 @@ export function ShopPanel() {
               <div class="detail-name">{def.name}</div>
               <div class="dim tiny">
                 {def.category} · tier {def.tier}
-                {selEntry.source === 'keeper' ? ' · Keeper stock' : ''}
+                {selEntry.source === 'keeper' ? ' · Cheshire Keeper stock' : ''}
                 {selEntry.source === 'jungle' ? ' · Jungle stalls only' : ''}
                 {selEntry.id === recommended ? ' · Recommended' : ''}
               </div>
@@ -340,7 +340,7 @@ export function ShopPanel() {
           })}
         </div>
         <span class="dim small grow" style={{ textAlign: 'right' }}>
-          Keeper: {keeperPlace(m.state.keeper.spot)}
+          Cheshire Keeper: {keeperPlace(m.state.keeper.spot)}
         </span>
       </div>
       <div class="shop-body">

@@ -1,10 +1,10 @@
 {
-  "id": "cartographer",
-  "name": "The Hollow Cartographer",
-  "title": "Mapper of places that moved",
-  "era": "Unknown",
+  "id": "caterpillar",
+  "name": "The Caterpillar",
+  "title": "Sage of the Mushroom",
+  "era": "Looking-Glass",
   "attackKind": "ranged",
-  "playstyle": "A long-range mage with large area damage and slowing ink. Stay at the back, and drop the big map collapse on grouped enemy heroes.",
+  "playstyle": "A long-range mage with large area damage and slowing smoke. Stay at the back, and drop the big shrink on grouped enemy heroes.",
   "stats": {
     "maxHp": 631.6,
     "hpRegen": 2,
@@ -20,7 +20,7 @@
   "abilities": [
     {
       "id": "meridian_line",
-      "name": "Meridian Line",
+      "name": "Who Are You?",
       "cooldownSec": 6,
       "range": 125,
       "target": "enemy",
@@ -32,11 +32,11 @@
           "soulScale": 0.9
         }
       ],
-      "desc": "Hits one enemy for 54 + 90% Soul damage."
+      "desc": "Hits one enemy with a question for 54 + 90% Soul damage."
     },
     {
       "id": "fold_the_map",
-      "name": "Fold the Map",
+      "name": "Chrysalis",
       "cooldownSec": 14,
       "range": 70,
       "target": "enemy",
@@ -53,11 +53,11 @@
           "durationSec": 3
         }
       ],
-      "desc": "Jumps 60 away from a close enemy and shields itself for 70 + 40% Soul power for 3s."
+      "desc": "Jumps 60 away from a close enemy and wraps itself in a chrysalis that shields for 70 + 40% Soul power for 3s."
     },
     {
       "id": "hollow_ink",
-      "name": "Hollow Ink",
+      "name": "Hookah Haze",
       "cooldownSec": 16,
       "range": 120,
       "radius": 75,
@@ -81,11 +81,11 @@
       "condition": {
         "minEnemies": 2
       },
-      "desc": "Ink on an area deals 32 + 35% Soul damage per second for 4s and slows by 25%. Needs 2 enemies."
+      "desc": "A cloud of smoke on an area deals 32 + 35% Soul damage per second for 4s and slows by 25%. Needs 2 enemies."
     },
     {
       "id": "atlas_collapse",
-      "name": "Atlas Collapse",
+      "name": "One Side Smaller",
       "cooldownSec": 55,
       "range": 135,
       "radius": 110,
@@ -108,7 +108,7 @@
       "condition": {
         "minEnemyHeroes": 1
       },
-      "desc": "Collapses an area for 170 + 130% Soul damage and slows by 40% for 3s. Needs an enemy hero."
+      "desc": "Shrinks an area for 170 + 130% Soul damage and slows by 40% for 3s. Needs an enemy hero."
     }
   ],
   "passives": [],
@@ -122,12 +122,12 @@
     "iron_lung"
   ],
   "sigil": {
-    "hue": 210,
+    "hue": 235,
     "rings": 3,
     "spokes": 12,
-    "glyph": "compass"
+    "glyph": "mushroom"
   },
-  "blurb": "Draws maps of rooms that no longer exist.",
+  "blurb": "A large blue caterpillar on a mushroom, smoking a hookah and asking who you are.",
   "autoSoulScale": 0.2,
   "disposition": "farmer"
 }

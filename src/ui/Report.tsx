@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'preact/hooks';
 import { buildReport, inputFromMatch, type Scope } from '../analysis';
+import { courtName } from '../analysis/text';
 import { HeroView } from './report/HeroView';
 import { EventLog, Scoreboard, Takeaways } from './report/TeamView';
 import { useLayout } from './layout';
@@ -40,12 +41,13 @@ export function Report(props: { scope: 'phase' | 'match' }) {
     <div class="overlay" data-testid="report" style={{ alignItems: 'flex-start' }}>
       <div class="panel col" style={{ width: 'min(1280px,100%)' }}>
         <div class="row wrap">
-          <h2 class="grow" style={{ margin: 0 }}>
-            {title}
-          </h2>
+          <h2 style={{ margin: 0 }}>{title}</h2>
+          <span class="dim small grow" data-testid="courts">
+            {courtName('A')} (you) vs {courtName('B')}
+          </span>
           {st.winner && (
             <span class="chip gold" data-testid="winner">
-              Team {st.winner} destroyed the enemy guardian
+              Checkmate: the {courtName(st.winner)} wins
             </span>
           )}
         </div>

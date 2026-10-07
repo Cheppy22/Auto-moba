@@ -11,9 +11,9 @@ describe('content', () => {
   it('ships the prototype scope', () => {
     expect(content.heroes).toHaveLength(14);
     expect(content.items.length).toBeGreaterThanOrEqual(15);
-    expect(content.cursed).toHaveLength(4);
+    expect(content.cursed).toHaveLength(6);
     expect(content.holy).toHaveLength(2);
-    expect(content.biomes).toHaveLength(3);
+    expect(content.biomes).toHaveLength(5);
     expect(content.pressure.map((p) => p.id)).toEqual([
       'thinning_veil',
       'spirit_tide',

@@ -31,9 +31,9 @@ describe('balance tooling', () => {
   });
 
   it('forces a hero draft for pairwise runs', () => {
-    const draft = { A: Array(5).fill('smelter'), B: Array(5).fill('miko') };
+    const draft = { A: Array(5).fill('queen'), B: Array(5).fill('miko') };
     const r = simulateMatch(content, 5, 10, draft);
-    expect(r.heroes.filter((h) => h.team === 'A').every((h) => h.def === 'smelter')).toBe(true);
+    expect(r.heroes.filter((h) => h.team === 'A').every((h) => h.def === 'queen')).toBe(true);
     expect(r.heroes.filter((h) => h.team === 'B').every((h) => h.def === 'miko')).toBe(true);
   });
 });

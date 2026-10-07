@@ -77,7 +77,7 @@ describe('sealed auction in reports', () => {
     content.tuning.auction.enabled = false;
   });
   it('hides the other side bids until the auction resolves', () => {
-    const live = Match.create(content, { seed: 81, player: { heroId: 'smelter', role: 'top' } });
+    const live = Match.create(content, { seed: 81, player: { heroId: 'queen', role: 'top' } });
     const id = live.state.playerHeroId!;
     live.unitById(id)!.hero!.gold = 800;
     live.issue({ type: 'bid', points: 0, gold: 300 });

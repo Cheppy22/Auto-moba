@@ -15,11 +15,11 @@ describe('one hero per match', () => {
 
   it('keeps the player hero out of the AI picks', () => {
     for (let seed = 1; seed <= 40; seed++) {
-      const m = Match.create(content, { seed, player: { heroId: 'smelter', role: 'top' } });
+      const m = Match.create(content, { seed, player: { heroId: 'queen', role: 'top' } });
       const ids = [...m.state.teams.A.heroIds, ...m.state.teams.B.heroIds].map(
         (id) => m.unitById(id)!.defId,
       );
-      expect(ids.filter((x) => x === 'smelter')).toHaveLength(1);
+      expect(ids.filter((x) => x === 'queen')).toHaveLength(1);
       expect(new Set(ids).size).toBe(ids.length);
     }
   });
@@ -38,7 +38,7 @@ describe('one hero per match', () => {
     const m = Match.create(content, {
       seed: 1,
       player: null,
-      draft: { A: Array(5).fill('smelter'), B: Array(5).fill('smelter') },
+      draft: { A: Array(5).fill('queen'), B: Array(5).fill('queen') },
     });
     expect(m.state.draft).toBeNull();
     expect(m.state.teams.A.heroIds).toHaveLength(5);

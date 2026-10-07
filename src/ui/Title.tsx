@@ -36,8 +36,9 @@ export function Title() {
           <h1 class="wordmark">Auto-MOBA</h1>
           <div class="subtitle">Every wish is paid for. Every world bleeds into the next.</div>
           <p class="title-copy">
-            Pick a hero and a lane, then watch your team fight across the pocket dimension. You
-            shape the match through your shop, your upgrades and your timing.
+            Pick a hero and a lane, then watch the White Court (your team) fight the Red Court
+            across a Looking-Glass chessboard in the back room of a wish-shop. Take the enemy King
+            for checkmate. You shape the match through your shop, your upgrades and your timing.
           </p>
           <div class="title-actions">
             <button class="btn primary" data-testid="start" onClick={start}>

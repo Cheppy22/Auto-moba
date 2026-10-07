@@ -5,7 +5,8 @@ import {
   drawShopStall,
   drawCamp,
   drawHeroFrame,
-  drawGuardian,
+  drawCheshire,
+  drawKing,
   drawMinion,
   drawObelisk,
   drawTower,
@@ -35,35 +36,6 @@ const EVENT_COLORS: Record<string, string> = {
   well: '#6fb4d0',
   oni: '#d04a52',
 };
-
-export function drawButterfly(
-  g: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  s: number,
-  flap: number,
-  color: string,
-): void {
-  const open = 0.55 + 0.45 * Math.abs(flap);
-  g.save();
-  g.translate(x, y);
-  g.fillStyle = color;
-  g.strokeStyle = '#120a06';
-  g.lineWidth = Math.max(0.6, s * 0.06);
-  for (const side of [-1, 1]) {
-    g.beginPath();
-    g.ellipse(side * s * 0.45 * open, -s * 0.22, s * 0.5 * open, s * 0.38, side * -0.5, 0, TAU);
-    g.fill();
-    g.stroke();
-    g.beginPath();
-    g.ellipse(side * s * 0.32 * open, s * 0.3, s * 0.3 * open, s * 0.26, side * 0.6, 0, TAU);
-    g.fill();
-    g.stroke();
-  }
-  g.fillStyle = '#120a06';
-  g.fillRect(-s * 0.05, -s * 0.45, s * 0.1, s * 0.9);
-  g.restore();
-}
 
 interface MapLabel {
   text: string;
@@ -566,9 +538,31 @@ export class Renderer {
     }
   }
 
+  /** A low-contrast ink and lacquer checkerboard floor under a base. */
+  private paintBoard(
+    b: CanvasRenderingContext2D,
+    cx: number,
+    cy: number,
+    r: number,
+    t: number,
+  ): void {
+    b.save();
+    b.beginPath();
+    b.arc(cx, cy, r, 0, TAU);
+    b.clip();
+    const n = Math.ceil(r / t);
+    for (let i = -n; i < n; i++) {
+      for (let j = -n; j < n; j++) {
+        b.fillStyle = (i + j) % 2 === 0 ? 'rgba(8,6,12,0.5)' : 'rgba(58,36,44,0.34)';
+        b.fillRect(cx + i * t, cy + j * t, t + 0.5, t + 0.5);
+      }
+    }
+    b.restore();
+  }
+
   private paintBiomeArt(
     b: CanvasRenderingContext2D,
-    slot: { x: number; y: number; radius: number },
+    slot: { id?: string; x: number; y: number; radius: number },
     biomeId: string,
     glow: string,
   ): void {
@@ -626,7 +620,11 @@ export class Renderer {
         const sz = (0.6 + rnd() * 1.4) * p;
         b.fillRect(c.x + Math.cos(a) * rx * r, c.y + Math.sin(a) * ry * r, sz, sz);
       }
-    } else {
+    } else if (biomeId === 'teaparty') {
+      this.paintTeaParty(b, slot, glow, rnd);
+    } else if (biomeId === 'roses') {
+      this.paintRoses(b, slot, glow, rnd);
+    } else if (biomeId === 'station') {
       b.strokeStyle = glow + '30';
       b.lineWidth = Math.max(1, 1.4 * p);
       for (const off of [-0.14, 0.14]) {
@@ -646,8 +644,157 @@ export class Renderer {
         b.lineTo(e.x, e.y);
         b.stroke();
       }
+    } else {
+      // unknown biome id: soft rings and specks in its own glow colour
+      b.strokeStyle = glow + '26';
+      b.lineWidth = Math.max(1, 1.2 * p);
+      for (const k of [0.35, 0.65]) {
+        b.beginPath();
+        b.ellipse(c.x, c.y, rx * k, ry * k, 0, 0, TAU);
+        b.stroke();
+      }
+      b.fillStyle = glow + '40';
+      for (let i = 0; i < 14; i++) {
+        const a = rnd() * TAU;
+        const r = 0.15 + rnd() * 0.75;
+        b.fillRect(c.x + Math.cos(a) * rx * r, c.y + Math.sin(a) * ry * r, 1.6 * p, 1.6 * p);
+      }
     }
     b.restore();
+  }
+
+  /** Slot-local angle (radians) pointing as far as possible from every gate. */
+  private quietAngle(slotId: string | undefined): number {
+    const geo = slotId ? this.gateGeometry(slotId) : null;
+    if (!geo) return Math.PI / 2;
+    let best = 0;
+    let bestD = -1;
+    for (let i = 0; i < 36; i++) {
+      const a = (i / 36) * TAU;
+      let d = Infinity;
+      for (const q of geo.ports)
+        d = Math.min(d, Math.abs(Math.atan2(Math.sin(a - q.ang), Math.cos(a - q.ang))));
+      if (d > bestD) {
+        bestD = d;
+        best = a;
+      }
+    }
+    return best;
+  }
+
+  private paintTeaParty(
+    b: CanvasRenderingContext2D,
+    slot: { id?: string; x: number; y: number; radius: number },
+    glow: string,
+    rnd: () => number,
+  ): void {
+    const p = this.view.p;
+    const c = this.S(slot.x, slot.y);
+    const rx = slot.radius * this.view.sx;
+    const ry = slot.radius * this.view.sy;
+    // a clock face on the ground, stopped at six
+    b.strokeStyle = glow + '30';
+    b.lineWidth = Math.max(1, 1.4 * p);
+    b.beginPath();
+    b.ellipse(c.x, c.y, rx * 0.8, ry * 0.8, 0, 0, TAU);
+    b.stroke();
+    for (let i = 0; i < 12; i++) {
+      const a = (i / 12) * TAU;
+      const k = i % 3 === 0 ? 0.68 : 0.74;
+      b.beginPath();
+      b.moveTo(c.x + Math.cos(a) * rx * k, c.y + Math.sin(a) * ry * k);
+      b.lineTo(c.x + Math.cos(a) * rx * 0.8, c.y + Math.sin(a) * ry * 0.8);
+      b.stroke();
+    }
+    b.strokeStyle = glow + '3c';
+    b.beginPath();
+    b.moveTo(c.x, c.y - ry * 0.5);
+    b.lineTo(c.x, c.y);
+    b.lineTo(c.x, c.y + ry * 0.34);
+    b.stroke();
+    // the long table, with cups
+    const a = this.quietAngle(slot.id);
+    const tx = -Math.sin(a);
+    const ty = Math.cos(a);
+    const half = slot.radius * 0.5;
+    const e1 = this.S(
+      slot.x + Math.cos(a) * slot.radius * 0.6 + tx * half,
+      slot.y + Math.sin(a) * slot.radius * 0.6 + ty * half,
+    );
+    const e2 = this.S(
+      slot.x + Math.cos(a) * slot.radius * 0.6 - tx * half,
+      slot.y + Math.sin(a) * slot.radius * 0.6 - ty * half,
+    );
+    b.lineCap = 'round';
+    b.strokeStyle = 'rgba(8,6,12,0.7)';
+    b.lineWidth = 9 * p;
+    b.beginPath();
+    b.moveTo(e1.x, e1.y);
+    b.lineTo(e2.x, e2.y);
+    b.stroke();
+    b.strokeStyle = glow + '55';
+    b.lineWidth = 6 * p;
+    b.stroke();
+    b.fillStyle = 'rgba(8,6,12,0.75)';
+    for (let i = -3; i <= 3; i++) {
+      const f = (i / 3.4) * half + (rnd() - 0.5) * 2;
+      const q = this.S(
+        slot.x + Math.cos(a) * slot.radius * 0.6 + tx * f,
+        slot.y + Math.sin(a) * slot.radius * 0.6 + ty * f,
+      );
+      b.beginPath();
+      b.arc(q.x, q.y, 1.9 * p, 0, TAU);
+      b.fill();
+      b.strokeStyle = glow;
+      b.lineWidth = Math.max(0.8, 0.8 * p);
+      b.stroke();
+    }
+    b.lineCap = 'butt';
+  }
+
+  private paintRoses(
+    b: CanvasRenderingContext2D,
+    slot: { id?: string; x: number; y: number; radius: number },
+    glow: string,
+    rnd: () => number,
+  ): void {
+    const p = this.view.p;
+    const c = this.S(slot.x, slot.y);
+    const rx = slot.radius * this.view.sx;
+    const ry = slot.radius * this.view.sy;
+    // rose bushes: a dark mass with a few painted-red blooms
+    for (let i = 0; i < 7; i++) {
+      const a = (i / 7) * TAU + rnd() * 0.4;
+      const r = 0.55 + rnd() * 0.3;
+      const bx = c.x + Math.cos(a) * rx * r;
+      const by = c.y + Math.sin(a) * ry * r;
+      b.fillStyle = 'rgba(14,26,18,0.7)';
+      b.beginPath();
+      b.ellipse(bx, by, 8 * p, 5.5 * p, 0, 0, TAU);
+      b.fill();
+      for (let k = 0; k < 4; k++) {
+        b.fillStyle = k % 2 ? glow + 'aa' : '#c0404ecc';
+        b.beginPath();
+        b.arc(bx + (rnd() - 0.5) * 11 * p, by + (rnd() - 0.5) * 6 * p, 1.7 * p, 0, TAU);
+        b.fill();
+      }
+    }
+    // croquet hoops
+    b.lineCap = 'round';
+    b.lineWidth = Math.max(1, 1.5 * p);
+    b.strokeStyle = glow + '88';
+    const a0 = this.quietAngle(slot.id);
+    for (let i = 0; i < 3; i++) {
+      const a = a0 + (i - 1) * 0.42;
+      const q = this.S(
+        slot.x + Math.cos(a) * slot.radius * 0.36,
+        slot.y + Math.sin(a) * slot.radius * 0.36,
+      );
+      b.beginPath();
+      b.arc(q.x, q.y - 1 * p, 3.6 * p, Math.PI, TAU);
+      b.stroke();
+    }
+    b.lineCap = 'butt';
   }
 
   shopPoints(): { id: string; x: number; y: number }[] {
@@ -832,6 +979,7 @@ export class Renderer {
       b.beginPath();
       b.arc(c.x, c.y, R, 0, TAU);
       b.fill();
+      this.paintBoard(b, c.x, c.y, 58 * p, 9.7 * p);
       b.strokeStyle = teamColor(t) + '99';
       b.lineWidth = 1.5;
       b.beginPath();
@@ -1183,9 +1331,9 @@ export class Renderer {
         }
         case 'guardian': {
           const s = 14 * q;
-          drawGuardian(g, x, y, s, col, snap.tick, (u.maxHp > 0 ? u.hp / u.maxHp : 1) < 0.5);
+          drawKing(g, x, y, s, col, snap.tick, (u.maxHp > 0 ? u.hp / u.maxHp : 1) < 0.5);
           this.obstacles.push({ x, y, r: s * 1.2 });
-          this.bar(x, y - s * 1.6 - 4 * q, 40 * q, u.hp / u.maxHp, col);
+          this.bar(x, y - s * 1.95 - 4 * q, 40 * q, u.hp / u.maxHp, col);
           break;
         }
         case 'obelisk': {
@@ -1195,17 +1343,9 @@ export class Renderer {
         }
         case 'keeper': {
           const s = 8 * q;
-          const pulse = 1 + Math.sin(snap.tick / 8) * 0.12;
-          g.strokeStyle = PALETTE.gold + '66';
-          g.lineWidth = 1.5;
-          g.setLineDash([3 * q, 4 * q]);
-          g.beginPath();
-          g.arc(x, y, s * 2.4 * pulse, 0, Math.PI * 2);
-          g.stroke();
-          g.setLineDash([]);
-          drawButterfly(g, x, y - s * 0.2, s * 1.3, Math.sin(snap.tick / 5), PALETTE.gold);
+          drawCheshire(g, x, y - s * 0.2, s * 1.2, snap.tick);
           this.labels.push({
-            text: 'Keeper',
+            text: 'Cheshire',
             x,
             y: y + s * 2.9,
             px: Math.max(10, Math.round(10 * q * 1.2)),

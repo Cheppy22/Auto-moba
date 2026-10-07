@@ -1,4 +1,5 @@
 import { useEffect } from 'preact/hooks';
+import { courtName } from '../analysis/text';
 import type { Role } from '../sim';
 import { HeroDetail } from './HeroCodex';
 import { SigilIcon } from './SigilIcon';
@@ -97,7 +98,9 @@ export function Draft() {
           <span class="dim small">Each hero can only be in one team per match.</span>
         </header>
         <aside class="draft-team">
-          <h3 class="teamA">Your team</h3>
+          <h3 class="teamA">
+            {courtName('A')} <span class="dim tiny">your team</span>
+          </h3>
           {d.aiHeroes.A.length === 0 && pending}
           {d.aiHeroes.A.map((id, i) => slot(id, 'A', i))}
           <div class={`slotcard you ${sel ? 'filled' : ''}`}>
@@ -138,7 +141,9 @@ export function Draft() {
         </main>
         <aside class="draft-side">
           <LaneMap value={d.playerRole} onPick={(role) => s.issue({ type: 'pickLane', role })} />
-          <h3 class="teamB">Enemy team</h3>
+          <h3 class="teamB">
+            {courtName('B')} <span class="dim tiny">enemy team</span>
+          </h3>
           <div class="enemy-list">
             {d.aiHeroes.B.length === 0 && pending}
             {d.aiHeroes.B.map((id, i) => slot(id, 'B', i))}

@@ -283,14 +283,14 @@ describe('Director', () => {
     const d = new Director(content);
     expect(d.update(snap(1000, [g]), []).kind).toBe('wide');
     const siege = d.update(snap(1010, [g]), [guardianHit(1010, 50)]);
-    expect(siege).toMatchObject({ kind: 'guardian', caption: 'Guardian under siege' });
+    expect(siege).toMatchObject({ kind: 'guardian', caption: 'King under siege' });
     expect(d.update(snap(1100, [g]), []).kind).toBe('guardian');
     expect(d.update(snap(1140, [g]), []).kind).toBe('wide');
 
     const roamer = { ...g, x: 700, y: 300 };
     const late = { phase: { kind: 'live', n: 7, startTick: 0 } } as const;
     const march = new Director(content).update(snap(5000, [roamer], late), []);
-    expect(march).toMatchObject({ kind: 'guardian', caption: 'Guardian on the march' });
+    expect(march).toMatchObject({ kind: 'guardian', caption: 'The King marches' });
     const home = new Director(content).update(snap(5000, [g], late), []);
     expect(home.kind).toBe('wide');
   });

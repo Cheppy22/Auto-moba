@@ -83,7 +83,7 @@ These are small and generic. Everything else uses the triggers and effects that 
 | Trigger `everyNth`                      | `hit` fires on every Nth hit                                                                                                                  | Gauntlet, Soot Reaver                           |
 | Trigger `maxStacks`                     | Cap on simultaneous statMods from this trigger, refreshed on reapply                                                                          | Cogged Edge, Candle Stub                        |
 | Custom `outOfCombat` (param = seconds)  | Runs the trigger's effects each second once out of combat that long                                                                           | Iron Lung, Wanderer's Boots                     |
-| Custom `execute` (param = hp fraction)  | A hit on a hero below the fraction deals true damage equal to its remaining health                                                            | The Single Cut                                  |
+| Custom `execute` (param = hp fraction)  | A hit on a hero below the fraction deals true damage equal to its remaining health                                                            | Vorpal Blade                                    |
 | Custom `lastStand`                      | Once per life, lethal damage leaves 1 health and applies the trigger's effects. Resets on respawn. Generalise `reviveOnce` if that is simpler | Pocket Vault Shell                              |
 | Custom `cooldownTick` (param = seconds) | Reduces all the owner's ability cooldowns by `param` seconds                                                                                  | Bottled Hour, Hundred-Hand Ledger, Eternal Wick |
 
@@ -107,7 +107,7 @@ These are small and generic. Everything else uses the triggers and effects that 
 | Bloodletter Hook        | 2   | Fang + Cleaver     | +18 Blade                         | **Open Veins**: hits on heroes bleed 12 Blade/s for 3s, and you heal 8% of hit damage | Attrition                |
 | Windstep Geta           | 2   | Gauntlet + Kata    | +0.2 attack speed, +14 move speed | **Slip**: falling below 50% health dashes you 80 away from your attacker (12s)        | Escape artist            |
 | **Soot Reaver**         | 3   | Cogged Edge        | +45 Blade, +0.3 attack speed      | **Cinder Wake**: every 3rd hit cleaves all enemies within 120 for 60% Blade           | Wave and teamfight carry |
-| **The Single Cut**      | 3   | Duelist's Form     | +50 Blade                         | **One Stroke**: hits on heroes below 15% health execute them (true damage)            | The finisher             |
+| **Vorpal Blade**        | 3   | Duelist's Form     | +50 Blade                         | **Snicker-Snack**: hits on heroes below 15% health execute them (true damage)         | The finisher             |
 | **Hundred-Hand Ledger** | 3   | Hook + Geta        | +30 Blade, +0.35 attack speed     | **Settled Accounts**: kills cut all your cooldowns by 8s and heal 15% max health      | Reset machine            |
 
 → descriptions:
@@ -122,7 +122,7 @@ These are small and generic. Everything else uses the triggers and effects that 
 - Bloodletter Hook: `{m|+18 Blade}. {r|Open Veins}: hits on heroes {m|bleed 12 Blade/s} for 3s and {b|heal} you for 8% of the hit.`
 - Windstep Geta: `{m|+0.2 attack speed}, {m|+14 move speed}. {r|Slip}: dropping below {b|50% health} dashes you away from your attacker. {r|12s cooldown}.`
 - Soot Reaver: `{m|+45 Blade}, {m|+0.3 attack speed}. {r|Cinder Wake}: every 3rd hit {m|cleaves} all enemies nearby for {m|60% Blade}.`
-- The Single Cut: `{m|+50 Blade}. {r|One Stroke}: hits on heroes below {b|15% health} {t|execute} them.`
+- Vorpal Blade: `{m|+50 Blade}. {r|Snicker-Snack}: hits on heroes below {b|15% health} {t|execute} them.`
 - Hundred-Hand Ledger: `{m|+30 Blade}, {m|+0.35 attack speed}. {r|Settled Accounts}: kills cut {s|all cooldowns by 8s} and {b|heal 15% max health}.`
 
 ### Body: the vessel (moss and verdigris)
@@ -197,6 +197,9 @@ Apply the same markup to `content/items/cursed.json` and `holy.json`:
 
 - **Cursed items:** boons use their stat colors, and flaws use `{p|…}`. Prefix each flaw with the rule word `{r|The price}:`.
 - **Holy items:** use the stat colors, and draw their tiles with the gold Relic rim.
+- **Vorpal Blade flavor:** "One, two! One, two! And through and through." Items have no flavor field, so the line lives here and the rule is named after the poem's "snicker-snack".
+- **Drink Me** (Mind, flaw type Shrinking): `{m|+20% move speed}, {m|+15% attack speed}`; price `{r|The price}: {p|Max health −15%}`.
+- **Eat Me** (Body, flaw type Growing): `{b|+25% max health}, {b|+10 armor}`; price `{r|The price}: {p|Move speed −15%}`.
 
 ---
 

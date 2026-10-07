@@ -1,8 +1,8 @@
 {
-  "id": "revenant",
-  "name": "Last Train",
-  "title": "Revenant of the midnight station",
-  "era": "1970s",
+  "id": "rabbit",
+  "name": "The White Rabbit",
+  "title": "Herald Who Is Always Late",
+  "era": "Looking-Glass",
   "attackKind": "melee",
   "playstyle": "A fast melee skirmisher that dashes into heroes and heals on kills. Hunt weakened enemies and roam the jungle between fights.",
   "stats": {
@@ -20,7 +20,7 @@
   "abilities": [
     {
       "id": "rail_dash",
-      "name": "Rail Dash",
+      "name": "I'm Late!",
       "cooldownSec": 8,
       "range": 95,
       "target": "enemy",
@@ -37,11 +37,11 @@
           "bladeScale": 0.6
         }
       ],
-      "desc": "Dashes 70 to an enemy and cuts for 35 + 60% Blade damage."
+      "desc": "Dashes 70 to an enemy, late as ever, and cuts for 35 + 60% Blade damage."
     },
     {
       "id": "third_rail",
-      "name": "Third Rail",
+      "name": "Pocket-Watch Strike",
       "cooldownSec": 12,
       "range": 40,
       "target": "enemy",
@@ -53,11 +53,11 @@
           "bladeScale": 0.9
         }
       ],
-      "desc": "Strikes one enemy for 70 + 90% Blade damage."
+      "desc": "Strikes one enemy with the watch for 70 + 90% Blade damage."
     },
     {
       "id": "last_whistle",
-      "name": "Last Whistle",
+      "name": "No Time to Say Hello",
       "cooldownSec": 15,
       "radius": 100,
       "target": "self",
@@ -84,7 +84,7 @@
     },
     {
       "id": "express_service",
-      "name": "Express Service",
+      "name": "The Appointed Hour",
       "cooldownSec": 45,
       "range": 110,
       "target": "enemy",
@@ -104,7 +104,7 @@
       "condition": {
         "heroTargetOnly": true
       },
-      "desc": "Dashes onto an enemy hero and hits for 160 + 150% Blade damage."
+      "desc": "Dashes onto an enemy hero, right on time, and hits for 160 + 150% Blade damage."
     }
   ],
   "passives": [
@@ -130,11 +130,11 @@
     "riveted_plate"
   ],
   "sigil": {
-    "hue": 275,
+    "hue": 65,
     "rings": 2,
     "spokes": 4,
-    "glyph": "rail"
+    "glyph": "watch"
   },
-  "blurb": "A commuter who never left the platform.",
+  "blurb": "A herald in a waistcoat, late for the same appointment for a hundred and fifty years.",
   "disposition": "attacker"
 }

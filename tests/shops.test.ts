@@ -4,7 +4,7 @@ import { quote } from '../src/sim/shop';
 import { content } from './helpers';
 
 function live(seed: number): Match {
-  const m = Match.create(content, { seed, player: { heroId: 'smelter', role: 'top' } });
+  const m = Match.create(content, { seed, player: { heroId: 'queen', role: 'top' } });
   const id = m.state.playerHeroId!;
   const offer = m.state.upgradeOffers[id];
   if (offer) m.issue({ type: 'pickUpgrade', upgradeId: offer[0] });
@@ -42,7 +42,7 @@ describe('jungle shops', () => {
     const base = m.ctx.world.basePos[p.team as 'A' | 'B'];
     p.x = base.x;
     p.y = base.y;
-    const id = 'single_cut';
+    const id = 'vorpal_blade';
     const item = content.itemById.get(id) ?? content.items.find((i) => i.tier === 3)!;
     if (!m.state.keeper.stock.includes(item.id)) {
       const atBase = quote(m.ctx, p, item.id);

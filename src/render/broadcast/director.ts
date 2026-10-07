@@ -279,13 +279,13 @@ export class Director {
         `guardian:${g.id}`,
         'guardian',
         [g, ...foes],
-        siege ? 'Guardian under siege' : 'Guardian on the march',
+        siege ? 'King under siege' : 'The King marches',
         ids([g, ...foes]),
       );
     }
 
     for (const f of this.falls) {
-      const title = f.kind === 'guardian' ? 'Guardian falls' : 'Tower falls';
+      const title = f.kind === 'guardian' ? 'Checkmate' : 'Tower falls';
       const subjects = f.killer === null ? [] : [f.killer];
       out.push({
         key: `structure:${f.seq}`,

@@ -16,7 +16,11 @@ export interface SigilSpec {
     | 'skull'
     | 'anchor'
     | 'orbit'
-    | 'shield';
+    | 'shield'
+    | 'watch'
+    | 'teacup'
+    | 'heart'
+    | 'mushroom';
 }
 
 function ring(g: CanvasRenderingContext2D, x: number, y: number, r: number): void {
@@ -184,6 +188,86 @@ function drawGlyph(
       g.closePath();
       g.moveTo(x, y - r * 0.8);
       g.lineTo(x, y + r);
+      break;
+    }
+    case 'watch': {
+      // Pocket watch: case, crown and bow, a twelve-tick face and two hands.
+      const cy = y + r * 0.2;
+      g.moveTo(x + r * 0.72, cy);
+      g.arc(x, cy, r * 0.72, 0, Math.PI * 2);
+      g.moveTo(x - r * 0.16, y - r * 0.52);
+      g.lineTo(x - r * 0.16, y - r * 0.68);
+      g.lineTo(x + r * 0.16, y - r * 0.68);
+      g.lineTo(x + r * 0.16, y - r * 0.52);
+      g.moveTo(x + r * 0.26, y - r * 0.88);
+      g.arc(x, y - r * 0.88, r * 0.26, 0, Math.PI * 2);
+      for (let i = 0; i < 12; i += 3) {
+        const a = (i / 12) * Math.PI * 2;
+        g.moveTo(x + Math.cos(a) * r * 0.5, cy + Math.sin(a) * r * 0.5);
+        g.lineTo(x + Math.cos(a) * r * 0.62, cy + Math.sin(a) * r * 0.62);
+      }
+      g.moveTo(x, cy - r * 0.42);
+      g.lineTo(x, cy);
+      g.lineTo(x + r * 0.3, cy + r * 0.18);
+      break;
+    }
+    case 'teacup': {
+      // Cup, handle, saucer and a curl of steam.
+      g.moveTo(x - r * 0.62, y - r * 0.1);
+      g.lineTo(x + r * 0.62, y - r * 0.1);
+      g.quadraticCurveTo(x + r * 0.6, y + r * 0.62, x, y + r * 0.62);
+      g.quadraticCurveTo(x - r * 0.6, y + r * 0.62, x - r * 0.62, y - r * 0.1);
+      g.moveTo(x + r * 0.62, y + r * 0.02);
+      g.bezierCurveTo(
+        x + r * 1.1,
+        y - r * 0.05,
+        x + r * 1.1,
+        y + r * 0.48,
+        x + r * 0.5,
+        y + r * 0.44,
+      );
+      g.moveTo(x - r * 0.9, y + r * 0.85);
+      g.lineTo(x + r * 0.9, y + r * 0.85);
+      g.moveTo(x - r * 0.2, y - r * 0.32);
+      g.bezierCurveTo(
+        x - r * 0.45,
+        y - r * 0.55,
+        x + r * 0.05,
+        y - r * 0.7,
+        x - r * 0.15,
+        y - r * 0.95,
+      );
+      g.moveTo(x + r * 0.28, y - r * 0.32);
+      g.bezierCurveTo(
+        x + r * 0.05,
+        y - r * 0.55,
+        x + r * 0.5,
+        y - r * 0.7,
+        x + r * 0.32,
+        y - r * 0.95,
+      );
+      break;
+    }
+    case 'heart': {
+      g.moveTo(x, y + r * 0.9);
+      g.bezierCurveTo(x - r * 1.35, y - r * 0.05, x - r * 0.75, y - r * 0.95, x, y - r * 0.38);
+      g.bezierCurveTo(x + r * 0.75, y - r * 0.95, x + r * 1.35, y - r * 0.05, x, y + r * 0.9);
+      g.closePath();
+      break;
+    }
+    case 'mushroom': {
+      // Toadstool: domed cap with spots, a gill line and a swelling stem.
+      g.moveTo(x - r, y);
+      g.bezierCurveTo(x - r, y - r * 1.15, x + r, y - r * 1.15, x + r, y);
+      g.closePath();
+      g.moveTo(x - r * 0.38, y);
+      g.bezierCurveTo(x - r * 0.28, y + r * 0.5, x - r * 0.5, y + r * 0.8, x - r * 0.55, y + r);
+      g.lineTo(x + r * 0.55, y + r);
+      g.bezierCurveTo(x + r * 0.5, y + r * 0.8, x + r * 0.28, y + r * 0.5, x + r * 0.38, y);
+      g.moveTo(x - r * 0.3 + r * 0.14, y - r * 0.5);
+      g.arc(x - r * 0.3, y - r * 0.5, r * 0.14, 0, Math.PI * 2);
+      g.moveTo(x + r * 0.34 + r * 0.1, y - r * 0.34);
+      g.arc(x + r * 0.34, y - r * 0.34, r * 0.1, 0, Math.PI * 2);
       break;
     }
   }

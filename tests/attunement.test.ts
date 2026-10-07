@@ -4,7 +4,7 @@ import { recompute } from '../src/sim/stats';
 import { content } from './helpers';
 
 function setup(items: string[]) {
-  const m = Match.create(content, { seed: 7, player: { heroId: 'smelter', role: 'top' } });
+  const m = Match.create(content, { seed: 7, player: { heroId: 'queen', role: 'top' } });
   const p = m.unitById(m.state.playerHeroId!)!;
   recompute(m.ctx, p);
   const base = { ...p.stats };

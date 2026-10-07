@@ -340,8 +340,8 @@
       "desc": "{m|+45 Blade}, {m|+0.3 attack speed}. {r|Cinder Wake}: every 3rd hit {m|cleaves} all enemies nearby for {m|60% Blade}."
     },
     {
-      "id": "single_cut",
-      "name": "The Single Cut",
+      "id": "vorpal_blade",
+      "name": "Vorpal Blade",
       "category": "mind",
       "tier": 3,
       "cost": 1850,
@@ -361,7 +361,7 @@
           "param": 0.15
         }
       ],
-      "desc": "{m|+50 Blade}. {r|One Stroke}: hits on heroes below {b|15% health} {t|execute} them."
+      "desc": "{m|+50 Blade}. {r|Snicker-Snack}: hits on heroes below {b|15% health} {t|execute} them."
     },
     {
       "id": "hundred_hand_ledger",

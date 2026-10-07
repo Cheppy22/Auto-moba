@@ -6,7 +6,7 @@ import type { Unit } from '../src/sim';
 import { content } from './helpers';
 
 function live(seed = 11): { m: Match; p: Unit; foe: Unit } {
-  const m = Match.create(content, { seed, player: { heroId: 'smelter', role: 'top' } });
+  const m = Match.create(content, { seed, player: { heroId: 'queen', role: 'top' } });
   const id = m.state.playerHeroId!;
   const offer = m.state.upgradeOffers[id];
   if (offer) m.issue({ type: 'pickUpgrade', upgradeId: offer[0] });
@@ -54,9 +54,9 @@ describe('item triggers', () => {
     expect(foe.hp).toBe(hp2);
   });
 
-  it('execute finishes a hero under the threshold only (The Single Cut)', () => {
+  it('execute finishes a hero under the threshold only (Vorpal Blade)', () => {
     const { m, p, foe } = live();
-    equip(m, p, ['single_cut']);
+    equip(m, p, ['vorpal_blade']);
     foe.hp = foe.stats.maxHp * 0.3;
     fireTriggers(m.ctx, p, 'hit', { victim: foe, damage: 10 });
     expect(foe.pendingKill).toBeNull();
