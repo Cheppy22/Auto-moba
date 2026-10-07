@@ -433,7 +433,7 @@
   width: 26px;
   height: 26px;
   margin-left: var(--sp-2);
-  color: var(--brass-hi);
+  color: var(--cat, var(--brass-hi));
   border: 1px dashed var(--brass);
   border-radius: 50%;
 }
@@ -445,6 +445,15 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+.pop-line.item {
+  white-space: normal;
+}
+.pop-icon {
+  display: inline-block;
+  margin-right: 4px;
+  color: var(--cat);
+  vertical-align: -3px;
 }
 .toast.info {
   background: linear-gradient(180deg, #2a2338, #1b1626);

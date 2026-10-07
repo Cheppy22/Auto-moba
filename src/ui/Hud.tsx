@@ -4,6 +4,8 @@ import { HpRing, Icon } from './Ornament';
 import { ItemIcon } from './ItemIcon';
 import { SigilIcon } from './SigilIcon';
 import { mmss, n0 } from './format';
+import { itemCategory } from './itemInfo';
+import { RichText, plainText } from './richtext';
 import { useLayout, type Layout } from './layout';
 import { useEscape, useSession, NOTICE_TICKS, type Speed } from './session';
 import { ShopPanel } from './ShopPanel';
@@ -78,10 +80,20 @@ function PlayerCard({ u }: { u: Unit }) {
           {h.items.length === 0 && <div class="dim small">No items yet.</div>}
           {h.items.map((id, i) => {
             const it = itemDef(id);
+            const desc = it && 'desc' in it ? (it as { desc: string }).desc : '';
             return (
-              <div class="small pop-line" key={`${id}:${i}`} title={it?.name}>
+              <div
+                class={`small pop-line item cat-${itemCategory(s.content, id)}`}
+                key={`${id}:${i}`}
+                title={`${it?.name ?? id}: ${plainText(desc)}`}
+              >
+                <span class="pop-icon">
+                  <ItemIcon id={id} size={14} />
+                </span>
                 <b>{it?.name ?? id}</b>{' '}
-                <span class="dim">{it && 'desc' in it ? (it as { desc: string }).desc : ''}</span>
+                <span class="dim">
+                  <RichText text={desc} />
+                </span>
               </div>
             );
           })}
@@ -137,7 +149,11 @@ function PlayerCard({ u }: { u: Unit }) {
           <i class="coin" aria-hidden="true" />
           {n0(h.gold)}
           {next && (
-            <span class="next-item" data-testid="next-item" title={`Next: ${itemDef(next)?.name}`}>
+            <span
+              class={`next-item cat-${itemCategory(s.content, next)}`}
+              data-testid="next-item"
+              title={`Next: ${itemDef(next)?.name}`}
+            >
               <ItemIcon id={next} size={20} />
             </span>
           )}

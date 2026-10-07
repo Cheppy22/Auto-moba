@@ -627,7 +627,7 @@ table.scoreboard th.sb-items {
   width: 22px;
   height: 22px;
   margin-right: 2px;
-  color: var(--brass-hi);
+  color: var(--cat, var(--brass-hi));
   border: 1px solid var(--brass-dim);
   border-radius: var(--r-1);
   background: #0b0910;

@@ -23,6 +23,20 @@
   --gold: var(--brass-hi);
   --accent: var(--spirit);
 
+  --mind-1: #7d97b8;
+  --mind: #8fb8ec;
+  --mind-3: #b8d6ff;
+  --body-1: #93a77a;
+  --body: #a9c97c;
+  --body-3: #cde6a2;
+  --soul-1: #a596c0;
+  --soul: #c3a2f4;
+  --soul-3: #ddc8ff;
+  --kw-true: #f6f0e2;
+  --kw-gold: #f0d58a;
+  --kw-price: #ec6a70;
+  --kw-rule: #c9a24a;
+
   --text: #ece2cc;
   --dim: #a39aae;
   --faint: #6f6779;

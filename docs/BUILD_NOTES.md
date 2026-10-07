@@ -144,3 +144,9 @@ Meta-progression, lane identity, "The Core" mode, lore, multiple AI difficulties
 - Sim: player hero uses auto-buy (`HeroState.autoBuy`, command `setAutoBuy`), heal and shop recalls (`RecallState.auto`; the shop auto-opens only on player-started recalls), shopping while dead (base catalog), no keeper stock in prep, `suggestEvent` command, comeback bounty (`gold.comebackBounty`, also fixed the kill-streak bounty reading a zeroed streak), deferred draft (`draft.deferred`, `pickDeferred`): the player picks from all 14 heroes first, then the AI fills both teams.
 - Hands-off player team win rate went from 14% to 36–50% (28 matches, noisy).
 - Balance after this pass (800 matches, seeds 29000+): hero win rates 44–59%, Team A 50.1%, median 15.8 min. Not fully converged: smelter and rickshaw run high, warden and cosmonaut low.
+
+## Item sheet v2
+
+- All 36 items rewritten to `docs/ITEMS.md`: at most two stat mods plus one named rule; tier 3 items are Relics. Descriptions use the color markup (`{m|}` mind, `{b|}` body, `{s|}` soul, `{t|}` true, `{g|}` gold, `{p|}` price, `{r|}` rule word), rendered by `src/ui/richtext.tsx`. Cursed and holy texts use it too.
+- Engine: trigger options `vs`, `ofType`, `everyNth`, `hpBelow` on any trigger, statMod `maxStacks`, target `nearestEnemyHero`, and customs that can run effects afterwards (custom returns true).
+- Balance after the rewrite (800 matches): hero win rates 44.5-54.8%, Team A 52.4%, median 16.0 min.

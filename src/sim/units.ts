@@ -109,6 +109,7 @@ export function makeHero(
     lastDeathTick: -9999,
     autoBuy: true,
     suggestEvent: null,
+    lastStandUsed: false,
   };
   u.hero = hero;
   ctx.s.teams[team].heroIds.push(u.id);

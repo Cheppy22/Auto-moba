@@ -107,6 +107,7 @@ export interface HeroState {
   lastDeathTick: number;
   autoBuy: boolean;
   suggestEvent: number | null;
+  lastStandUsed: boolean;
 }
 
 export interface CampState {

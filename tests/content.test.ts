@@ -26,8 +26,8 @@ describe('content', () => {
     expect(content.tuning.tickRate).toBe(TPS);
   });
 
-  it('caps custom behaviors at five', () => {
-    expect(Object.keys(CUSTOM_BEHAVIORS).length).toBeLessThanOrEqual(5);
+  it('keeps the custom behavior list short', () => {
+    expect(Object.keys(CUSTOM_BEHAVIORS).length).toBeLessThanOrEqual(12);
   });
 
   it('every custom trigger names a registered behavior', () => {

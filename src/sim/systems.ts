@@ -264,6 +264,7 @@ export function respawnHeroes(ctx: Ctx): void {
       u.dirty = true;
       u.hp = u.stats.maxHp;
       u.hero.respawnAt = null;
+      u.hero.lastStandUsed = false;
       u.hero.engage = 'fight';
       u.shields = [];
       u.dots = [];

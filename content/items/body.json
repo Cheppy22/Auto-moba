@@ -10,10 +10,25 @@
         {
           "stat": "maxHp",
           "kind": "add",
-          "value": 130
+          "value": 150
         }
       ],
-      "desc": "+130 health"
+      "triggers": [
+        {
+          "on": "periodic",
+          "target": "self",
+          "everySec": 1,
+          "custom": "outOfCombat",
+          "param": 4,
+          "effects": [
+            {
+              "type": "heal",
+              "maxHpPct": 0.02
+            }
+          ]
+        }
+      ],
+      "desc": "{b|+150 health}. {r|Deep Breath}: after 4s out of combat, {b|regen 2% max health} per second."
     },
     {
       "id": "riveted_plate",
@@ -25,10 +40,16 @@
         {
           "stat": "armor",
           "kind": "add",
-          "value": 12
+          "value": 14
+        },
+        {
+          "stat": "damageTakenMult",
+          "kind": "mul",
+          "value": 0.95
         }
       ],
-      "desc": "+12 armor"
+      "triggers": [],
+      "desc": "{b|+14 armor}. {r|Plating}: {b|−5% damage taken}."
     },
     {
       "id": "wanderer_boots",
@@ -40,10 +61,95 @@
         {
           "stat": "moveSpeed",
           "kind": "add",
-          "value": 6
+          "value": 12
         }
       ],
-      "desc": "+6 move speed"
+      "triggers": [
+        {
+          "on": "periodic",
+          "target": "self",
+          "everySec": 1,
+          "custom": "outOfCombat",
+          "param": 3,
+          "effects": [
+            {
+              "type": "statMod",
+              "stat": "moveSpeed",
+              "kind": "add",
+              "value": 20,
+              "durationSec": 1.5
+            }
+          ]
+        }
+      ],
+      "desc": "{m|+12 move speed}. {r|Roadworn}: after 3s out of combat, {m|+20 move speed}."
+    },
+    {
+      "id": "stitched_poultice",
+      "name": "Stitched Poultice",
+      "category": "body",
+      "tier": 1,
+      "cost": 250,
+      "mods": [
+        {
+          "stat": "maxHp",
+          "kind": "add",
+          "value": 60
+        },
+        {
+          "stat": "hpRegen",
+          "kind": "add",
+          "value": 3
+        }
+      ],
+      "triggers": [
+        {
+          "on": "lowHp",
+          "target": "self",
+          "hpBelow": 0.4,
+          "cooldownSec": 20,
+          "effects": [
+            {
+              "type": "statMod",
+              "stat": "hpRegen",
+              "kind": "add",
+              "value": 12,
+              "durationSec": 5
+            }
+          ]
+        }
+      ],
+      "desc": "{b|+60 health}, {b|+3 regen}. {r|Stitches}: below {b|40% health}, {b|+12 regen} for 5s. {r|20s cooldown}."
+    },
+    {
+      "id": "tin_ward",
+      "name": "Tin Ward",
+      "category": "body",
+      "tier": 1,
+      "cost": 300,
+      "mods": [
+        {
+          "stat": "maxHp",
+          "kind": "add",
+          "value": 80
+        }
+      ],
+      "triggers": [
+        {
+          "on": "damaged",
+          "target": "self",
+          "vs": "hero",
+          "cooldownSec": 12,
+          "effects": [
+            {
+              "type": "shield",
+              "base": 60,
+              "durationSec": 3
+            }
+          ]
+        }
+      ],
+      "desc": "{b|+80 health}. {r|Clang}: when a hero hits you, gain a {b|60 shield} for 3s. {r|12s cooldown}."
     },
     {
       "id": "boiler_heart",
@@ -56,114 +162,50 @@
         {
           "stat": "maxHp",
           "kind": "add",
-          "value": 320
+          "value": 350
         },
         {
           "stat": "armor",
           "kind": "add",
           "value": 16
-        },
-        {
-          "stat": "hpRegen",
-          "kind": "add",
-          "value": 4
-        }
-      ],
-      "desc": "+320 health, +16 armor, +4 regen"
-    },
-    {
-      "id": "furnace_bastion",
-      "name": "Furnace Bastion",
-      "category": "body",
-      "tier": 3,
-      "cost": 1900,
-      "from": ["boiler_heart"],
-      "mods": [
-        {
-          "stat": "maxHp",
-          "kind": "add",
-          "value": 600
-        },
-        {
-          "stat": "armor",
-          "kind": "add",
-          "value": 26
-        },
-        {
-          "stat": "resist",
-          "kind": "add",
-          "value": 14
         }
       ],
       "triggers": [
         {
-          "on": "damaged",
-          "target": "attacker",
-          "cooldownSec": 1.5,
+          "on": "periodic",
+          "target": "enemyArea",
+          "radius": 200,
+          "everySec": 8,
+          "custom": "inCombat",
+          "param": 4,
           "effects": [
             {
               "type": "damage",
-              "dmgType": "blade",
-              "base": 25
+              "dmgType": "soul",
+              "base": 40
             }
           ]
-        }
-      ],
-      "desc": "+600 health, +26 armor, +14 resist; attackers take 25 Blade damage"
-    },
-    {
-      "category": "body",
-      "id": "stitched_poultice",
-      "name": "Stitched Poultice",
-      "tier": 1,
-      "cost": 250,
-      "mods": [
-        {
-          "stat": "hpRegen",
-          "kind": "add",
-          "value": 3.5
         },
         {
-          "stat": "maxHp",
-          "kind": "add",
-          "value": 60
-        }
-      ],
-      "desc": "+3.5 regen, +60 health"
-    },
-    {
-      "category": "body",
-      "id": "tin_ward",
-      "name": "Tin Ward",
-      "tier": 1,
-      "cost": 300,
-      "mods": [
-        {
-          "stat": "maxHp",
-          "kind": "add",
-          "value": 70
-        }
-      ],
-      "triggers": [
-        {
-          "on": "damaged",
+          "on": "periodic",
           "target": "self",
-          "cooldownSec": 12,
+          "everySec": 8,
+          "custom": "inCombat",
+          "param": 4,
           "effects": [
             {
-              "type": "shield",
-              "base": 50,
-              "durationSec": 3
+              "type": "heal",
+              "maxHpPct": 0.03
             }
           ]
         }
       ],
-      "desc": "+70 health; when damaged, gain a 50 shield for 3s (12s cooldown)"
+      "desc": "{b|+350 health}, {b|+16 armor}. {r|Pressure Valve}: every 8s in combat, deal {s|40 Soul damage} around you and {b|heal 3% max health}."
     },
     {
-      "category": "body",
       "id": "ward_bell_cuirass",
       "name": "Ward-Bell Cuirass",
+      "category": "body",
       "tier": 2,
       "cost": 900,
       "from": ["tin_ward", "riveted_plate"],
@@ -176,34 +218,31 @@
         {
           "stat": "resist",
           "kind": "add",
-          "value": 10
-        },
-        {
-          "stat": "maxHp",
-          "kind": "add",
-          "value": 160
+          "value": 12
         }
       ],
       "triggers": [
         {
           "on": "damaged",
-          "target": "self",
-          "cooldownSec": 8,
+          "target": "allyArea",
+          "radius": 150,
+          "vs": "hero",
+          "cooldownSec": 14,
           "effects": [
             {
               "type": "shield",
-              "base": 90,
-              "durationSec": 3
+              "base": 70,
+              "durationSec": 4
             }
           ]
         }
       ],
-      "desc": "+28 armor, +10 resist, +160 health; when damaged, gain a 90 shield for 3s (8s cooldown)"
+      "desc": "{b|+28 armor}, {s|+12 resist}. {r|Toll}: when a hero hits you, you and nearby allies gain a {b|70 shield}. {r|14s cooldown}."
     },
     {
-      "category": "body",
       "id": "menders_ledger",
       "name": "Mender's Ledger",
+      "category": "body",
       "tier": 2,
       "cost": 880,
       "from": ["iron_lung", "stitched_poultice"],
@@ -222,9 +261,9 @@
       "triggers": [
         {
           "on": "lowHp",
-          "hpBelow": 0.4,
           "target": "self",
-          "cooldownSec": 45,
+          "hpBelow": 0.4,
+          "cooldownSec": 40,
           "effects": [
             {
               "type": "heal",
@@ -233,12 +272,12 @@
           ]
         }
       ],
-      "desc": "+260 health, +5 regen; below 40% health, heal 20% of maximum health (45s cooldown)"
+      "desc": "{b|+260 health}, {b|+5 regen}. {r|Second Wind}: below {b|40% health}, {b|heal 20% max health}. {r|40s cooldown}."
     },
     {
-      "category": "body",
       "id": "runaways_greaves",
       "name": "Runaway's Greaves",
+      "category": "body",
       "tier": 2,
       "cost": 860,
       "from": ["wanderer_boots", "tin_ward"],
@@ -249,21 +288,16 @@
           "value": 130
         },
         {
-          "stat": "armor",
-          "kind": "add",
-          "value": 14
-        },
-        {
           "stat": "moveSpeed",
           "kind": "add",
-          "value": 14
+          "value": 16
         }
       ],
       "triggers": [
         {
           "on": "damaged",
           "target": "self",
-          "cooldownSec": 10,
+          "cooldownSec": 6,
           "effects": [
             {
               "type": "statMod",
@@ -275,12 +309,62 @@
           ]
         }
       ],
-      "desc": "+130 health, +14 armor, +14 move speed; when damaged, +30 move speed for 2s (10s cooldown)"
+      "desc": "{b|+130 health}, {m|+16 move speed}. {r|Flight}: when damaged, {m|+30 move speed} for 2s. {r|6s cooldown}."
     },
     {
+      "id": "furnace_bastion",
+      "name": "Furnace Bastion",
       "category": "body",
+      "tier": 3,
+      "cost": 1900,
+      "from": ["boiler_heart"],
+      "mods": [
+        {
+          "stat": "maxHp",
+          "kind": "add",
+          "value": 600
+        },
+        {
+          "stat": "armor",
+          "kind": "add",
+          "value": 24
+        }
+      ],
+      "triggers": [
+        {
+          "on": "damaged",
+          "target": "attacker",
+          "cooldownSec": 1.5,
+          "effects": [
+            {
+              "type": "damage",
+              "dmgType": "blade",
+              "base": 45
+            }
+          ]
+        },
+        {
+          "on": "periodic",
+          "target": "self",
+          "everySec": 1,
+          "effects": [
+            {
+              "type": "aura",
+              "radius": 200,
+              "target": "ally",
+              "stat": "armor",
+              "kind": "add",
+              "value": 10
+            }
+          ]
+        }
+      ],
+      "desc": "{b|+600 health}, {b|+24 armor}. {r|Forge Skin}: attackers take {m|45 Blade damage}; nearby allies gain {b|+10 armor}."
+    },
+    {
       "id": "pocket_vault_shell",
       "name": "Pocket Vault Shell",
+      "category": "body",
       "tier": 3,
       "cost": 1850,
       "from": ["ward_bell_cuirass"],
@@ -293,34 +377,29 @@
         {
           "stat": "armor",
           "kind": "add",
-          "value": 34
-        },
-        {
-          "stat": "resist",
-          "kind": "add",
-          "value": 20
+          "value": 30
         }
       ],
       "triggers": [
         {
-          "on": "damaged",
+          "on": "lowHp",
           "target": "self",
-          "cooldownSec": 6,
+          "custom": "lastStand",
           "effects": [
             {
               "type": "shield",
-              "base": 150,
-              "durationSec": 3
+              "base": 300,
+              "durationSec": 2
             }
           ]
         }
       ],
-      "desc": "+500 health, +34 armor, +20 resist; when damaged, gain a 150 shield for 3s (6s cooldown)"
+      "desc": "{b|+500 health}, {b|+30 armor}. {r|The Vault}: {r|once per life}, lethal damage leaves you at {b|1 health} inside a {b|300 shield}."
     },
     {
-      "category": "body",
       "id": "undying_larder",
       "name": "Undying Larder",
+      "category": "body",
       "tier": 3,
       "cost": 2100,
       "from": ["menders_ledger", "runaways_greaves"],
@@ -334,16 +413,6 @@
           "stat": "hpRegen",
           "kind": "add",
           "value": 8
-        },
-        {
-          "stat": "moveSpeed",
-          "kind": "add",
-          "value": 18
-        },
-        {
-          "stat": "armor",
-          "kind": "add",
-          "value": 14
         }
       ],
       "triggers": [
@@ -353,29 +422,27 @@
           "effects": [
             {
               "type": "heal",
-              "maxHpPct": 0.08
+              "maxHpPct": 0.15
             }
           ]
         },
         {
           "on": "lowHp",
-          "hpBelow": 0.3,
           "target": "self",
-          "cooldownSec": 60,
+          "hpBelow": 0.3,
+          "cooldownSec": 30,
           "effects": [
             {
-              "type": "heal",
-              "maxHpPct": 0.25
-            },
-            {
-              "type": "shield",
-              "base": 150,
-              "durationSec": 4
+              "type": "statMod",
+              "stat": "hpRegen",
+              "kind": "mul",
+              "value": 4,
+              "durationSec": 5
             }
           ]
         }
       ],
-      "desc": "+520 health, +8 regen, +14 armor, +18 move speed; kills heal 8% health; below 30% health, heal 25% and gain a 150 shield for 4s (60s cooldown)"
+      "desc": "{b|+520 health}, {b|+8 regen}. {r|Larder}: kills {b|heal 15% max health}; below {b|30% health}, {b|regen ×4} for 5s."
     }
   ]
 }

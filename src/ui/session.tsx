@@ -1,6 +1,7 @@
 import { createContext } from 'preact';
 import { useContext, useEffect, useRef, useState } from 'preact/hooks';
 import { Match, type Command, type CommandResult, type Content, type MatchConfig } from '../sim';
+import { plainText } from './richtext';
 
 export type Speed = 0 | 1 | 2 | 4 | 8;
 
@@ -127,7 +128,7 @@ export class Session {
             heroId: u.id,
             team: u.team,
             title: item?.name ?? c.item,
-            detail: `${hero?.name.split(',')[0] ?? 'A hero'} took a cursed bargain. ${item?.boonText ?? ''}${flaw ? ` Price: ${flaw.text}.` : ''}`,
+            detail: `${hero?.name.split(',')[0] ?? 'A hero'} took a cursed bargain. ${plainText(item?.boonText ?? '')}${flaw ? ` Price: ${plainText(flaw.text).replace(/^The price: /, '')}.` : ''}`,
             startTick: tick + i * 12,
             own: u.hero?.isPlayer ?? false,
           },

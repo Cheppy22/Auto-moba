@@ -2,6 +2,7 @@ import { Fragment } from 'preact';
 import { useState } from 'preact/hooks';
 import type { HeroModel, Report } from '../../analysis';
 import { ItemIcon } from '../ItemIcon';
+import { itemCategory } from '../itemInfo';
 import { SigilIcon } from '../SigilIcon';
 import { eventLines } from '../../analysis/text';
 import { mmss, n0, roleLabel } from '../format';
@@ -134,7 +135,11 @@ export function Scoreboard(props: { report: Report; items: Record<number, string
           const activate = (): void =>
             narrow ? setExpanded(expanded === h.id ? null : h.id) : open(h.id);
           const icons = (props.items[h.id] ?? []).map((id, i) => (
-            <span key={`${id}:${i}`} class="sb-item" title={itemName(s.content, id)}>
+            <span
+              key={`${id}:${i}`}
+              class={`sb-item cat-${itemCategory(s.content, id)}`}
+              title={itemName(s.content, id)}
+            >
               <ItemIcon id={id} size={18} />
             </span>
           ));

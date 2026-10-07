@@ -68,6 +68,7 @@ export const EffectSchema = z.discriminatedUnion('type', [
     value: z.number(),
     durationSec: z.number(),
     tags: z.array(z.string()).default([]),
+    maxStacks: z.number().int().optional(),
   }),
   z.object({
     type: z.literal('dot'),
@@ -125,8 +126,13 @@ export const TriggerSchema = z.object({
   hpBelow: z.number().optional(),
   cooldownSec: z.number().default(0),
   chance: z.number().default(1),
-  target: z.enum(['self', 'victim', 'attacker', 'enemyArea', 'allyArea']).default('self'),
+  target: z
+    .enum(['self', 'victim', 'attacker', 'enemyArea', 'allyArea', 'nearestEnemyHero'])
+    .default('self'),
   radius: z.number().default(0),
+  vs: z.enum(['hero', 'other']).optional(),
+  ofType: DamageTypeSchema.optional(),
+  everyNth: z.number().int().optional(),
   effects: z.array(EffectSchema).default([]),
   custom: z.string().optional(),
   param: z.number().optional(),

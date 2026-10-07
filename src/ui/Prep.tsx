@@ -1,6 +1,7 @@
 import { useState } from 'preact/hooks';
 import { ShopPanel } from './ShopPanel';
 import { keeperPlace, n0 } from './format';
+import { RichText } from './richtext';
 import { useSession } from './session';
 import { upgradeChanges } from './upgrades';
 
@@ -89,9 +90,13 @@ function Curse() {
       </div>
       <div class="card col" style={{ borderColor: '#7a2a22' }}>
         <b>{item.name}</b>
-        <div class="small">{item.desc}</div>
+        <div class="small">
+          <RichText text={item.desc} />
+        </div>
         <div class="row wrap">
-          <span class="chip good">Boon: {item.boonText}</span>
+          <span class="chip good">
+            Boon: <RichText text={item.boonText} />
+          </span>
           <span class="chip bad">Price: a flaw of type {item.flawType}</span>
         </div>
         <div class="row">

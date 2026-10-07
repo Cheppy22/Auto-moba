@@ -10,10 +10,24 @@
         {
           "stat": "bladeDmg",
           "kind": "add",
-          "value": 9
+          "value": 10
         }
       ],
-      "desc": "+9 Blade damage"
+      "triggers": [
+        {
+          "on": "hit",
+          "target": "victim",
+          "vs": "other",
+          "effects": [
+            {
+              "type": "damage",
+              "dmgType": "blade",
+              "bladeScale": 0.2
+            }
+          ]
+        }
+      ],
+      "desc": "{m|+10 Blade}. {r|Chop}: hits on minions and camps deal {m|+20% Blade}."
     },
     {
       "id": "piston_gauntlet",
@@ -25,10 +39,24 @@
         {
           "stat": "atkSpeed",
           "kind": "add",
-          "value": 0.14
+          "value": 0.15
         }
       ],
-      "desc": "+0.14 attacks per second"
+      "triggers": [
+        {
+          "on": "hit",
+          "target": "victim",
+          "everyNth": 4,
+          "effects": [
+            {
+              "type": "damage",
+              "dmgType": "blade",
+              "bladeScale": 1.0
+            }
+          ]
+        }
+      ],
+      "desc": "{m|+0.15 attack speed}. {r|Wind-up}: every 4th hit strikes twice."
     },
     {
       "id": "leech_fang",
@@ -40,7 +68,7 @@
         {
           "stat": "bladeDmg",
           "kind": "add",
-          "value": 5
+          "value": 6
         }
       ],
       "triggers": [
@@ -50,12 +78,76 @@
           "effects": [
             {
               "type": "heal",
-              "fractionOfDamage": 0.08
+              "fractionOfDamage": 0.1
             }
           ]
         }
       ],
-      "desc": "+5 Blade damage; heal for 8% of damage dealt"
+      "desc": "{m|+6 Blade}. {r|Feed}: {b|heal} for 10% of {m|Blade damage} dealt."
+    },
+    {
+      "id": "whetstone_drill",
+      "name": "Whetstone Drill",
+      "category": "mind",
+      "tier": 1,
+      "cost": 300,
+      "mods": [
+        {
+          "stat": "bladeDmg",
+          "kind": "add",
+          "value": 8
+        }
+      ],
+      "triggers": [
+        {
+          "on": "hit",
+          "target": "victim",
+          "vs": "hero",
+          "effects": [
+            {
+              "type": "damage",
+              "dmgType": "true",
+              "base": 8
+            }
+          ]
+        }
+      ],
+      "desc": "{m|+8 Blade}. {r|Honed}: hits on heroes deal {t|8 true damage}."
+    },
+    {
+      "id": "kata_scroll",
+      "name": "Kata Scroll",
+      "category": "mind",
+      "tier": 1,
+      "cost": 250,
+      "mods": [
+        {
+          "stat": "atkSpeed",
+          "kind": "add",
+          "value": 0.1
+        },
+        {
+          "stat": "moveSpeed",
+          "kind": "add",
+          "value": 8
+        }
+      ],
+      "triggers": [
+        {
+          "on": "kill",
+          "target": "self",
+          "effects": [
+            {
+              "type": "statMod",
+              "stat": "moveSpeed",
+              "kind": "add",
+              "value": 25,
+              "durationSec": 3
+            }
+          ]
+        }
+      ],
+      "desc": "{m|+0.1 attack speed}, {m|+8 move speed}. {r|Footwork}: after a kill, {m|+25 move speed} for 3s."
     },
     {
       "id": "cogged_edge",
@@ -73,99 +165,27 @@
         {
           "stat": "atkSpeed",
           "kind": "add",
-          "value": 0.22
+          "value": 0.2
         }
       ],
       "triggers": [
         {
           "on": "hit",
-          "target": "victim",
+          "target": "self",
+          "vs": "hero",
           "effects": [
             {
-              "type": "damage",
-              "dmgType": "blade",
-              "base": 12
+              "type": "statMod",
+              "stat": "atkSpeed",
+              "kind": "mul",
+              "value": 1.04,
+              "durationSec": 3,
+              "maxStacks": 5
             }
           ]
         }
       ],
-      "desc": "+24 Blade, +0.22 attack speed; hits deal 12 bonus Blade damage"
-    },
-    {
-      "id": "soot_reaver",
-      "name": "Soot Reaver",
-      "category": "mind",
-      "tier": 3,
-      "cost": 1900,
-      "from": ["cogged_edge"],
-      "mods": [
-        {
-          "stat": "bladeDmg",
-          "kind": "add",
-          "value": 48
-        },
-        {
-          "stat": "atkSpeed",
-          "kind": "add",
-          "value": 0.3
-        }
-      ],
-      "triggers": [
-        {
-          "on": "hit",
-          "target": "victim",
-          "chance": 0.5,
-          "effects": [
-            {
-              "type": "dot",
-              "dmgType": "blade",
-              "base": 18,
-              "durationSec": 3
-            }
-          ]
-        }
-      ],
-      "desc": "+48 Blade, +0.3 attack speed; hits sometimes cause bleeding"
-    },
-    {
-      "id": "whetstone_drill",
-      "name": "Whetstone Drill",
-      "category": "mind",
-      "tier": 1,
-      "cost": 300,
-      "mods": [
-        {
-          "stat": "bladeDmg",
-          "kind": "add",
-          "value": 8
-        },
-        {
-          "stat": "atkSpeed",
-          "kind": "add",
-          "value": 0.06
-        }
-      ],
-      "desc": "+8 Blade damage, +0.06 attacks per second. Drilled edge work."
-    },
-    {
-      "id": "kata_scroll",
-      "name": "Kata Scroll",
-      "category": "mind",
-      "tier": 1,
-      "cost": 250,
-      "mods": [
-        {
-          "stat": "atkSpeed",
-          "kind": "add",
-          "value": 0.1
-        },
-        {
-          "stat": "moveSpeed",
-          "kind": "add",
-          "value": 6
-        }
-      ],
-      "desc": "+0.1 attacks per second, +6 move speed. Footwork you stop having to think about."
+      "desc": "{m|+24 Blade}, {m|+0.2 attack speed}. {r|Ratchet}: each hit on a hero grants {m|+4% attack speed} for 3s, up to 5 times."
     },
     {
       "id": "duelists_form",
@@ -178,74 +198,37 @@
         {
           "stat": "bladeDmg",
           "kind": "add",
-          "value": 22
-        },
-        {
-          "stat": "atkSpeed",
-          "kind": "add",
-          "value": 0.18
+          "value": 20
         },
         {
           "stat": "moveSpeed",
           "kind": "add",
-          "value": 8
+          "value": 10
         }
       ],
       "triggers": [
         {
-          "on": "hit",
-          "target": "victim",
-          "chance": 0.35,
+          "on": "damaged",
+          "target": "self",
+          "vs": "hero",
+          "cooldownSec": 6,
           "effects": [
             {
-              "type": "damage",
-              "dmgType": "blade",
-              "base": 26
+              "type": "statMod",
+              "stat": "bladeDmg",
+              "kind": "add",
+              "value": 40,
+              "durationSec": 2
             }
           ]
         }
       ],
-      "desc": "+22 Blade, +0.18 attack speed, +8 move speed; hits sometimes riposte for 26 bonus Blade damage"
+      "desc": "{m|+20 Blade}, {m|+10 move speed}. {r|Riposte}: when a hero hits you, {m|+40 Blade} for 2s. {r|6s cooldown}."
     },
     {
-      "id": "single_cut",
-      "name": "The Single Cut",
-      "category": "mind",
-      "tier": 3,
-      "cost": 1850,
-      "from": ["duelists_form"],
-      "mods": [
-        {
-          "stat": "bladeDmg",
-          "kind": "add",
-          "value": 46
-        },
-        {
-          "stat": "atkSpeed",
-          "kind": "add",
-          "value": 0.26
-        }
-      ],
-      "triggers": [
-        {
-          "on": "hit",
-          "target": "victim",
-          "chance": 0.25,
-          "effects": [
-            {
-              "type": "damage",
-              "dmgType": "blade",
-              "base": 70
-            }
-          ]
-        }
-      ],
-      "desc": "+46 Blade, +0.26 attack speed; a quarter of hits land a clean cut for 70 bonus Blade damage"
-    },
-    {
-      "category": "mind",
       "id": "bloodletter_hook",
       "name": "Bloodletter Hook",
+      "category": "mind",
       "tier": 2,
       "cost": 880,
       "from": ["leech_fang", "rusted_cleaver"],
@@ -253,24 +236,19 @@
         {
           "stat": "bladeDmg",
           "kind": "add",
-          "value": 20
-        },
-        {
-          "stat": "atkSpeed",
-          "kind": "add",
-          "value": 0.08
+          "value": 18
         }
       ],
       "triggers": [
         {
           "on": "hit",
           "target": "victim",
-          "chance": 0.5,
+          "vs": "hero",
           "effects": [
             {
               "type": "dot",
               "dmgType": "blade",
-              "base": 14,
+              "base": 12,
               "durationSec": 3
             }
           ]
@@ -278,29 +256,25 @@
         {
           "on": "hit",
           "target": "self",
+          "vs": "hero",
           "effects": [
             {
               "type": "heal",
-              "fractionOfDamage": 0.09
+              "fractionOfDamage": 0.08
             }
           ]
         }
       ],
-      "desc": "+20 Blade, +0.08 attack speed; half of hits cause 14 Blade bleed per second for 3s; heal for 9% of damage dealt"
+      "desc": "{m|+18 Blade}. {r|Open Veins}: hits on heroes {m|bleed 12 Blade/s} for 3s and {b|heal} you for 8% of the hit."
     },
     {
-      "category": "mind",
       "id": "windstep_geta",
       "name": "Windstep Geta",
+      "category": "mind",
       "tier": 2,
       "cost": 860,
       "from": ["piston_gauntlet", "kata_scroll"],
       "mods": [
-        {
-          "stat": "bladeDmg",
-          "kind": "add",
-          "value": 8
-        },
         {
           "stat": "atkSpeed",
           "kind": "add",
@@ -314,26 +288,85 @@
       ],
       "triggers": [
         {
-          "on": "hit",
-          "target": "self",
-          "cooldownSec": 5,
+          "on": "damaged",
+          "target": "attacker",
+          "hpBelow": 0.5,
+          "cooldownSec": 12,
           "effects": [
             {
-              "type": "statMod",
-              "stat": "atkSpeed",
-              "kind": "add",
-              "value": 0.3,
-              "durationSec": 2.5
+              "type": "dash",
+              "distance": 80,
+              "toward": "away"
             }
           ]
         }
       ],
-      "desc": "+8 Blade, +0.2 attack speed, +14 move speed; a hit every 5s starts a flurry of +0.3 attack speed for 2.5s"
+      "desc": "{m|+0.2 attack speed}, {m|+14 move speed}. {r|Slip}: dropping below {b|50% health} dashes you away from your attacker. {r|12s cooldown}."
     },
     {
+      "id": "soot_reaver",
+      "name": "Soot Reaver",
       "category": "mind",
+      "tier": 3,
+      "cost": 1900,
+      "from": ["cogged_edge"],
+      "mods": [
+        {
+          "stat": "bladeDmg",
+          "kind": "add",
+          "value": 45
+        },
+        {
+          "stat": "atkSpeed",
+          "kind": "add",
+          "value": 0.3
+        }
+      ],
+      "triggers": [
+        {
+          "on": "hit",
+          "target": "enemyArea",
+          "radius": 120,
+          "everyNth": 3,
+          "effects": [
+            {
+              "type": "damage",
+              "dmgType": "blade",
+              "bladeScale": 0.6
+            }
+          ]
+        }
+      ],
+      "desc": "{m|+45 Blade}, {m|+0.3 attack speed}. {r|Cinder Wake}: every 3rd hit {m|cleaves} all enemies nearby for {m|60% Blade}."
+    },
+    {
+      "id": "single_cut",
+      "name": "The Single Cut",
+      "category": "mind",
+      "tier": 3,
+      "cost": 1850,
+      "from": ["duelists_form"],
+      "mods": [
+        {
+          "stat": "bladeDmg",
+          "kind": "add",
+          "value": 50
+        }
+      ],
+      "triggers": [
+        {
+          "on": "hit",
+          "target": "victim",
+          "custom": "execute",
+          "param": 0.15
+        }
+      ],
+      "desc": "{m|+50 Blade}. {r|One Stroke}: hits on heroes below {b|15% health} {t|execute} them."
+    },
+    {
       "id": "hundred_hand_ledger",
       "name": "Hundred-Hand Ledger",
+      "category": "mind",
       "tier": 3,
       "cost": 2100,
       "from": ["bloodletter_hook", "windstep_geta"],
@@ -341,45 +374,29 @@
         {
           "stat": "bladeDmg",
           "kind": "add",
-          "value": 34
+          "value": 30
         },
         {
           "stat": "atkSpeed",
           "kind": "add",
-          "value": 0.34
-        },
-        {
-          "stat": "moveSpeed",
-          "kind": "add",
-          "value": 12
+          "value": 0.35
         }
       ],
       "triggers": [
         {
-          "on": "hit",
+          "on": "kill",
           "target": "self",
+          "custom": "cooldownTick",
+          "param": 8,
           "effects": [
             {
               "type": "heal",
-              "fractionOfDamage": 0.07
-            }
-          ]
-        },
-        {
-          "on": "kill",
-          "target": "self",
-          "effects": [
-            {
-              "type": "statMod",
-              "stat": "atkSpeed",
-              "kind": "add",
-              "value": 0.3,
-              "durationSec": 4
+              "maxHpPct": 0.15
             }
           ]
         }
       ],
-      "desc": "+34 Blade, +0.34 attack speed, +12 move speed; heal for 7% of damage dealt; kills grant +0.3 attack speed for 4s"
+      "desc": "{m|+30 Blade}, {m|+0.35 attack speed}. {r|Settled Accounts}: kills cut {s|all cooldowns by 8s} and {b|heal 15% max health}."
     }
   ]
 }

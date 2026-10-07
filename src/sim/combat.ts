@@ -116,7 +116,11 @@ export function dealDamage(
   recordDamage(ctx, src, tgt, applied + absorbed, dtype, origin, lethal);
   if (lethal) tgt.pendingKill = { killerId: src ? src.id : 0 };
   if (tgt.hero && !lethal)
-    fireTriggers(ctx, tgt, 'damaged', { attacker: src ?? undefined, damage: applied });
+    fireTriggers(ctx, tgt, 'damaged', {
+      attacker: src ?? undefined,
+      damage: applied,
+      dtype,
+    });
   return applied + absorbed;
 }
 
@@ -190,17 +194,28 @@ export function applyEffect(ctx: Ctx, e: EffectDef, ec: EffectCtx): void {
         expiresTick: ctx.s.tick + Math.round(e.durationSec * TPS),
       });
       break;
-    case 'statMod':
+    case 'statMod': {
+      const id = `${ec.origin}:${e.stat}`;
+      let value = e.value;
+      if (e.maxStacks) {
+        const prev = target.mods.find((m) => m.id === id);
+        if (prev) {
+          const base = e.kind === 'mul' ? 1 : 0;
+          const step = e.value - base;
+          value = base + Math.min(prev.value - base + step, step * e.maxStacks);
+        }
+      }
       addMod(ctx, target, {
-        id: `${ec.origin}:${e.stat}`,
+        id,
         stat: e.stat,
         kind: e.kind,
-        value: e.value,
+        value,
         source: ec.origin,
         tags: e.tags,
         expiresTick: ctx.s.tick + Math.round(e.durationSec * TPS),
       });
       break;
+    }
     case 'dot': {
       const dps = amountOf(e, caster, ec.powerMul);
       const existing = target.dots.find((d) => d.sourceId === caster.id && d.origin === ec.origin);
@@ -386,6 +401,7 @@ export interface TriggerEvent {
   victim?: Unit;
   attacker?: Unit;
   damage?: number;
+  dtype?: DamageType;
 }
 
 function resolveTrigTargets(ctx: Ctx, u: Unit, def: TriggerDef, ev: TriggerEvent): Unit[] {
@@ -398,6 +414,19 @@ function resolveTrigTargets(ctx: Ctx, u: Unit, def: TriggerDef, ev: TriggerEvent
       return ev.attacker ? [ev.attacker] : [];
     case 'enemyArea':
       return enemiesNear(ctx, u, def.radius);
+    case 'nearestEnemyHero': {
+      let best: Unit | null = null;
+      let bestD = Infinity;
+      for (const e of enemiesNear(ctx, u, def.radius || 400)) {
+        if (e.kind !== 'hero') continue;
+        const d = dist(u.x, u.y, e.x, e.y);
+        if (d < bestD) {
+          bestD = d;
+          best = e;
+        }
+      }
+      return best ? [best] : [];
+    }
     case 'allyArea': {
       const out: Unit[] = [];
       for (const a of ctx.grid.query(u.x, u.y, def.radius)) {
@@ -422,10 +451,21 @@ export function runTrigger(
   if (def.on !== 'periodic' && def.cooldownSec > 0) {
     if ((h.trigCd[key] ?? 0) > ctx.s.tick) return;
   }
+  if (def.vs) {
+    const other = def.on === 'damaged' ? ev.attacker : ev.victim;
+    if (!other || (def.vs === 'hero') !== (other.kind === 'hero')) return;
+  }
+  if (def.ofType && ev.dtype !== def.ofType) return;
+  if (def.on !== 'lowHp' && def.hpBelow !== undefined && hpPct(u) >= def.hpBelow) return;
+  if (def.everyNth) {
+    const nKey = `${key}:n`;
+    const n = (h.trigCd[nKey] ?? 0) + 1;
+    h.trigCd[nKey] = n >= def.everyNth ? 0 : n;
+    if (n < def.everyNth) return;
+  }
   if (def.chance < 1 && rand(ctx.s.rng, 'combat') > def.chance) return;
-  if (def.custom) {
-    runCustom(ctx, u, def);
-  } else {
+  const proceed = def.custom ? runCustom(ctx, u, def, ev) : true;
+  if (proceed) {
     const targets = resolveTrigTargets(ctx, u, def, ev);
     for (const t of targets) {
       if (!t.alive) continue;
@@ -471,29 +511,68 @@ export function tickPeriodicTriggers(ctx: Ctx, u: Unit): void {
   }
 }
 
-type Custom = (ctx: Ctx, u: Unit, def: TriggerDef) => void;
+/** Returns true when the trigger's own effects should run afterwards. */
+type Custom = (ctx: Ctx, u: Unit, def: TriggerDef, ev: TriggerEvent) => boolean | void;
+
+function quietFor(ctx: Ctx, u: Unit, sec: number): boolean {
+  const ticks = sec * TPS;
+  return (
+    ctx.s.tick - u.lastDamagedTick > ticks && ctx.s.tick - (u.hero?.lastDealtTick ?? 0) > ticks
+  );
+}
 
 export const CUSTOM_BEHAVIORS: Record<string, Custom> = {
   outOfCombatDrain: (ctx, u, def) => {
-    const quiet =
-      ctx.s.tick - u.lastDamagedTick > 80 && ctx.s.tick - (u.hero?.lastDealtTick ?? 0) > 80;
-    if (!quiet) return;
+    if (!quietFor(ctx, u, 4)) return;
     const loss = u.stats.maxHp * (def.param ?? 0.03);
     u.hp = Math.max(1, u.hp - loss);
   },
   reviveOnce: () => {
     // handled by tryRevive() when the holder would die
   },
+  lastStand: () => {
+    // handled by tryRevive() when the holder would die
+  },
+  outOfCombat: (ctx, u, def) => quietFor(ctx, u, def.param ?? 3),
+  inCombat: (ctx, u, def) => !quietFor(ctx, u, def.param ?? 4),
+  execute: (ctx, u, def, ev) => {
+    const v = ev.victim;
+    if (!v || v.kind !== 'hero' || !v.alive || hpPct(v) >= (def.param ?? 0.15)) return;
+    const shield = v.shields.reduce((a, s) => a + s.amount, 0);
+    dealDamage(ctx, u, v, v.hp + shield, 'true', 'item:execute');
+  },
+  cooldownTick: (ctx, u, def) => {
+    const h = u.hero;
+    if (h) h.cd = h.cd.map((c) => Math.max(0, c - (def.param ?? 1) * TPS));
+    return true;
+  },
+  payHp: (_ctx, u, def) => {
+    u.hp = Math.max(1, u.hp - (def.param ?? 10));
+  },
+  payPct: (_ctx, u, def) => {
+    u.hp = Math.max(1, u.hp - u.stats.maxHp * (def.param ?? 0.02));
+  },
 };
 
-function runCustom(ctx: Ctx, u: Unit, def: TriggerDef): void {
+function runCustom(ctx: Ctx, u: Unit, def: TriggerDef, ev: TriggerEvent): boolean {
   const fn = def.custom ? CUSTOM_BEHAVIORS[def.custom] : undefined;
-  if (fn) fn(ctx, u, def);
+  return fn ? fn(ctx, u, def, ev) === true : false;
 }
 
 export function tryRevive(ctx: Ctx, u: Unit): boolean {
   const h = u.hero;
-  if (!h || h.revived) return false;
+  if (!h) return false;
+  const stand = triggersOf(u).find((x) => x.def.custom === 'lastStand');
+  if (stand && !h.lastStandUsed) {
+    h.lastStandUsed = true;
+    u.pendingKill = null;
+    u.hp = 1;
+    for (const eff of stand.def.effects)
+      applyEffect(ctx, eff, { caster: u, target: u, powerMul: 1, origin: `item:${stand.src}` });
+    ctx.emit('heal', { src: u.id, tgt: u.id, amount: 1, origin: 'lastStand' });
+    return true;
+  }
+  if (h.revived) return false;
   const t = triggersOf(u).find((x) => x.def.custom === 'reviveOnce');
   if (!t) return false;
   h.revived = true;

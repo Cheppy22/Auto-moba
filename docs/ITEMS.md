@@ -4,7 +4,7 @@ The goal is to give each of the 36 items its own character. Every item gets **at
 
 Item ids, build trees and costs stay the same, so hero build lists and the balance tools keep working. Some names change and every description is rewritten in the color markup defined below.
 
-Status: **draft, not built**. Once approved, Sonnet implements it in this order: schema → content → `RichText` UI → balance.
+Status: **built**. Small deviations from the draft: Ratchet stacks on hits on any hero (not the same hero), Second Wind heals instantly, and "nearest enemy hero" items use the new `nearestEnemyHero` trigger target within 400. Custom behaviors added: `outOfCombat`, `inCombat`, `execute`, `lastStand`, `cooldownTick`, `payHp`, `payPct`.
 
 ---
 

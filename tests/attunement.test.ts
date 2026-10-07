@@ -17,24 +17,24 @@ describe('attunement', () => {
   it('has no bonus below two items of a category', () => {
     const { base, now } = setup(['iron_lung']);
     expect(now.armor).toBe(base.armor);
-    expect(now.maxHp).toBe(base.maxHp + 130);
+    expect(now.maxHp).toBe(base.maxHp + 150);
   });
 
   it('adds the 2-item bonus on top of the items themselves', () => {
     const { base, now } = setup(['iron_lung', 'riveted_plate']);
-    const hp = (base.maxHp + 130) * 1.06;
+    const hp = (base.maxHp + 150) * 1.06;
     expect(now.maxHp).toBeCloseTo(hp, 5);
   });
 
   it('uses only the highest tier reached, not a sum of tiers', () => {
     const four = setup(['iron_lung', 'riveted_plate', 'wanderer_boots', 'boiler_heart']);
-    const flat = (base: number): number => base + 130 + 320;
+    const flat = (base: number): number => base + 150 + 350;
     expect(four.now.maxHp).toBeCloseTo(flat(four.base.maxHp) * 1.12, 5);
   });
 
   it('does not mix categories into one count', () => {
     const { base, now } = setup(['iron_lung', 'rusted_cleaver']);
-    expect(now.maxHp).toBe(base.maxHp + 130);
-    expect(now.bladeDmg).toBe(base.bladeDmg + 9);
+    expect(now.maxHp).toBe(base.maxHp + 150);
+    expect(now.bladeDmg).toBe(base.bladeDmg + 10);
   });
 });

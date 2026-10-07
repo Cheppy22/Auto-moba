@@ -2,6 +2,8 @@ import { useState } from 'preact/hooks';
 import type { ShopEntry } from '../sim';
 import { ItemIcon } from './ItemIcon';
 import { keeperPlace, n0 } from './format';
+import { itemCategory } from './itemInfo';
+import { RichText, plainText, ruleName, splitRule } from './richtext';
 import { useSession } from './session';
 
 const BLURB: Record<string, string> = {
@@ -49,6 +51,24 @@ function CatGlyph({ cat, size = 18 }: { cat: string; size?: number }) {
   );
 }
 
+function ItemDesc({ desc }: { desc: string }) {
+  const { stats, rule } = splitRule(desc);
+  return (
+    <div data-testid="item-desc" title={plainText(desc)}>
+      {stats && (
+        <div>
+          <RichText text={stats} />
+        </div>
+      )}
+      {rule && (
+        <div class="detail-rule">
+          <RichText text={rule} />
+        </div>
+      )}
+    </div>
+  );
+}
+
 const JUNGLE_ONLY = 'sold at the jungle stalls';
 
 function Tile(props: {
@@ -79,6 +99,7 @@ function Tile(props: {
       </span>
       {props.recommended && <span class="tile-rec">Next</span>}
       <span class="tile-name">{e.name}</span>
+      {e.tier === 3 && ruleName(e.desc) && <span class="tile-rule">{ruleName(e.desc)}</span>}
       <span class="tile-price">{n0(e.price)}</span>
     </button>
   );
@@ -168,8 +189,8 @@ export function ShopPanel() {
       const saved = selEntry.cost - selEntry.price;
       return (
         <div class="col detail-body" data-testid="item-detail">
-          <div class="row">
-            <span class={`detail-icon cat-${def.category}`}>
+          <div class={`row detail-head cat-${def.category}`}>
+            <span class="detail-icon">
               <ItemIcon id={def.id} size={28} />
             </span>
             <div class="grow">
@@ -182,7 +203,7 @@ export function ShopPanel() {
               </div>
             </div>
           </div>
-          <div>{def.desc}</div>
+          <ItemDesc desc={def.desc} />
           {builtFrom.length > 0 && (
             <div class="tiny">
               <span class="dim">Built from </span>
@@ -249,8 +270,13 @@ export function ShopPanel() {
       const refund = def ? Math.round(def.cost * s.content.tuning.shop.sellRefund) : 0;
       return (
         <div class="col detail-body" data-testid="item-detail">
-          <div class="detail-name">{nameOf(selOwned)}</div>
-          <div>{def?.desc ?? (cursed ? cursed.boonText : holy ? holy.desc : '')}</div>
+          <div class={`row detail-head cat-${itemCategory(s.content, selOwned)}`}>
+            <span class="detail-icon">
+              <ItemIcon id={selOwned} size={28} />
+            </span>
+            <div class="detail-name grow">{nameOf(selOwned)}</div>
+          </div>
+          <ItemDesc desc={def?.desc ?? (cursed ? cursed.boonText : holy ? holy.desc : '')} />
           {def ? (
             !confirming ? (
               <button class="btn" data-testid="sell" onClick={() => setConfirming(true)}>
@@ -302,7 +328,7 @@ export function ShopPanel() {
             return id ? (
               <button
                 key={i}
-                class={`slot filled ${selOwned === id ? 'sel' : ''}`}
+                class={`slot filled cat-${itemCategory(s.content, id)} ${selOwned === id ? 'sel' : ''}`}
                 title={nameOf(id)}
                 onClick={() => pick({ kind: 'owned', id })}
               >
