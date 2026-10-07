@@ -1,5 +1,7 @@
 # Auto-MOBA decision log
 
+> **Archived.** Merged into [SOURCE_OF_TRUTH.md](../SOURCE_OF_TRUTH.md).
+
 This is a memory document for a new session. It records **what was decided and why** across the project. It does not cover code architecture; for that, see `docs/DESIGN.md` and `docs/BUILD_NOTES.md`. Newer decisions override older ones; superseded calls are marked ~~struck~~.
 
 ## How the owner works

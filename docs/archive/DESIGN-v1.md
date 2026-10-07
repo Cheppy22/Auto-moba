@@ -1,7 +1,7 @@
 # Auto-MOBA — Design Baseline v1
 
 Locked game decisions as of 2026-10-06. If a task conflicts with this file, this file wins until Cheppy changes it.
-Architecture: [ARCHITECTURE.md](ARCHITECTURE.md).
+Architecture: [ARCHITECTURE.md](../ARCHITECTURE.md). **Archived: superseded by [SOURCE_OF_TRUTH.md](../SOURCE_OF_TRUTH.md).**
 
 ## Pitch
 

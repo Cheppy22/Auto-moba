@@ -1,11 +1,12 @@
 # Auto-MOBA
 
-A single-player autobattler MOBA set in an xxxHolic-style pocket dimension. You pick one hero and a lane on a 5v5 team of AI, then shape the match through what you buy, the upgrades you pick, a posture suggestion (Push / Farm / Defend) and when to recall. Heroes fight on their own.
+A single-player autobattler MOBA set in an xxxHolic-style pocket dimension. You pick one hero and a lane on a 5v5 team of AI, then shape the match through what you buy, the upgrades you pick, shop and event suggestions and when to recall. Heroes fight on their own.
 
-- Design decisions: [docs/DESIGN.md](docs/DESIGN.md)
+- **Source of truth** (how the game works now): [docs/SOURCE_OF_TRUTH.md](docs/SOURCE_OF_TRUTH.md)
+- **Changelog** (what changed and when): [docs/CHANGELOG.md](docs/CHANGELOG.md)
 - Architecture and milestone tasks: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
-- What was built, deviations and review pointers: [docs/BUILD_NOTES.md](docs/BUILD_NOTES.md)
-- Balance results: [docs/BALANCE_REPORT.md](docs/BALANCE_REPORT.md)
+- Dated specs and reports: [items](docs/ITEMS.md), [playtest](docs/PLAYTEST.md), [balance](docs/BALANCE_REPORT.md)
+- Old design docs, for history: [docs/archive/](docs/archive/)
 
 ## Quick start
 

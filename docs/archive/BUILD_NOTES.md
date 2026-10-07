@@ -1,6 +1,8 @@
 # Build notes (handoff for review)
 
-All six milestones of [ARCHITECTURE.md](ARCHITECTURE.md) are built on branch `claude/architecture-docs` in one unattended session. This file is for the reviewer: what exists, where it deviates from the plan, what is weak, and where to look first. Numbers below were measured, not estimated.
+> **Archived.** The living game description is [SOURCE_OF_TRUTH.md](../SOURCE_OF_TRUTH.md) and history is in [CHANGELOG.md](../CHANGELOG.md). Kept for the original deviation and risk lists.
+
+All six milestones of [ARCHITECTURE.md](../ARCHITECTURE.md) are built on branch `claude/architecture-docs` in one unattended session. This file is for the reviewer: what exists, where it deviates from the plan, what is weak, and where to look first. Numbers below were measured, not estimated.
 
 ## Status
 

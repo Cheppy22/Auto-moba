@@ -1,6 +1,6 @@
 # Auto-MOBA — Architecture v1
 
-As of 2026-10-06. Game decisions live in [DESIGN.md](DESIGN.md); this file covers frameworks, systems, boundaries and milestone tasks. How each task is coded is decided per task by the planner agent.
+As of 2026-10-06. Game decisions live in [SOURCE_OF_TRUTH.md](SOURCE_OF_TRUTH.md) (the original v1 baseline is in [archive/DESIGN-v1.md](archive/DESIGN-v1.md)); this file covers frameworks, systems, boundaries and milestone tasks. How each task is coded is decided per task by the planner agent.
 
 The prototype is one browser game in TypeScript. A deterministic simulation core is walled off from rendering and UI, and all content lives in validated data files.
 
@@ -42,7 +42,7 @@ src/ui/          Preact screens: draft, HUD, between-phase, reports
 src/app/         wiring: frame clock, speed control, screen state machine
 tools/           Node: headless match, batch balance runner
 tests/           cross-layer tests: determinism, golden match, content, e2e
-docs/            DESIGN.md, ARCHITECTURE.md
+docs/            SOURCE_OF_TRUTH.md, CHANGELOG.md, ARCHITECTURE.md, archive/
 ```
 
 ## System map
@@ -265,7 +265,7 @@ Every task merges only when `npm run check` passes: typecheck, lint (including l
 
 ## Milestones
 
-Six milestones with one human checkpoint after M3. All tasks are built; see [BUILD_NOTES.md](BUILD_NOTES.md) for deviations, including that the human checkpoint was skipped by instruction and the M6 tuning pass touched code as well as content.
+Six milestones with one human checkpoint after M3. All tasks are built; see [archive/BUILD_NOTES.md](archive/BUILD_NOTES.md) for deviations, including that the human checkpoint was skipped by instruction and the M6 tuning pass touched code as well as content.
 
 ### M1 — Simulation core (headless)
 
@@ -371,4 +371,4 @@ An adversarial pass on the first draft found 16 issues; all are fixed above.
 | --- | --------------------------------------------- | --------------------------------------------------------- |
 | 1   | Do heroes stay where they are between phases? | Yes: keep position and hp, shop remotely                  |
 | 2   | M6 balance targets                            | Every hero at 40–60% win rate; median match 11–14 minutes |
-| 3   | Repo copy for the planner agent               | Yes: this file and `DESIGN.md`                            |
+| 3   | Repo copy for the planner agent               | Yes: this file and `SOURCE_OF_TRUTH.md`                   |
