@@ -18,12 +18,6 @@ interface Cand {
 
 const goalKey = (kind: GoalKind, id: string | number): string => `${kind}:${id}`;
 
-function openSlots(ctx: Ctx): Set<string> {
-  const out = new Set<string>();
-  for (const s of ctx.s.slots) if (s.open) out.add(s.id);
-  return out;
-}
-
 function cand(
   kind: GoalKind,
   x: number,
@@ -170,7 +164,7 @@ export function setGoal(ctx: Ctx, u: Unit, g: Goal): void {
   h.goal = g;
   if (keep) return;
   const route = (x: number, y: number): [number, number][] =>
-    findPath(ctx.world, { x: u.x, y: u.y }, { x, y }, openSlots(ctx));
+    findPath(ctx.world, { x: u.x, y: u.y }, { x, y }, ctx.open);
   let lp: [number, number][] | null =
     g.kind === 'retreat' || g.kind === 'base' ? retreatLanePath(ctx, u, g.x, g.y) : null;
   const tgt = g.kind === 'pushTower' && g.targetId !== null ? ctx.unit(g.targetId) : null;

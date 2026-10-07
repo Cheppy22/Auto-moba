@@ -4,6 +4,10 @@ Newest first. One entry per change: what changed, why, and any measured effect. 
 
 ## 2026-10-07
 
+- **3D island and mobile shop** (in progress, committed for testing). Why: Cheppy asked for a physical 3D map as the default and a shop that stops covering the phone screen.
+  - Map: the 3D view is the only view; the 2D map is deleted. Raised bases, valley lanes, cliffs and forest outside the walkable shapes, a river with fords, and sealed jungle clearings that open by phase. Units are kept inside walkable space by the sim; the unit-level stall test is in `tests/terrain.test.ts`.
+  - Interface: tappable shop pins over the 3D view. Shop: bottom sheet on phones, side sheet in landscape, drawer on desktop.
+  - Checks: `npm run check` and all 5 Playwright tests pass. Not yet done: balance re-measure after the walls, a real-phone test, and the Sim/Art polish passes listed as open in the source of truth.
 - **Wonderland blend, content and text pass** (spec [WONDERLAND.md](WONDERLAND.md); the art half is a separate entry). Data and text only, no engine code.
   - Four hero reskins with new ids, files, names, ability and upgrade text, sigil glyphs and hues, all numbers unchanged: Last Train `revenant` to The White Rabbit `rabbit`; Hatsu `rickshaw` to The Hatter `hatter`; Ashen Smelter `smelter` to The Queen of Hearts `queen`; The Hollow Cartographer `cartographer` to The Caterpillar `caterpillar`. Sigil hues nudged off clashes: rabbit 65 (cat is 48), hatter 150 (miko 172), queen 10 (ronin 350, oiran 345), caterpillar 235. Four glyphs added to the sigil schema: `watch`, `teacup`, `heart`, `mushroom`.
   - The Single Cut is now Vorpal Blade (`vorpal_blade`); its rule is named Snicker-Snack, same execute numbers. Two new cursed items: Drink Me (+20% move speed, +15% attack speed; price max health −15%) and Eat Me (+25% max health, +10 armor; price move speed −15%).

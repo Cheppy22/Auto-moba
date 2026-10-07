@@ -3,7 +3,7 @@ import type { ShopEntry } from '../sim';
 import { ItemIcon } from './ItemIcon';
 import { keeperPlace, n0 } from './format';
 import { itemCategory } from './itemInfo';
-import { RichText, plainText, ruleName, splitRule } from './richtext';
+import { RichText, plainText, splitRule } from './richtext';
 import { useSession } from './session';
 
 const BLURB: Record<string, string> = {
@@ -70,6 +70,7 @@ function ItemDesc({ desc }: { desc: string }) {
 }
 
 const JUNGLE_ONLY = 'sold at the jungle stalls';
+const NO_SHOP = 'no shop in reach';
 
 function Tile(props: {
   e: ShopEntry;
@@ -89,17 +90,17 @@ function Tile(props: {
       data-testid={`item-${e.id}`}
       onClick={props.onPick}
       title={e.name}
+      aria-label={`${e.name}, tier ${e.tier}, ${n0(e.price)} gold`}
     >
-      <span class="tile-tier" aria-label={`Tier ${e.tier}`}>
+      <span class="tile-tier" aria-hidden="true">
         {'◆'.repeat(e.tier)}
       </span>
+      {props.recommended && <span class="tile-rec">Next</span>}
       <span class="tile-icon">
-        <ItemIcon id={e.id} size={26} />
+        <ItemIcon id={e.id} size={20} />
         {props.count > 0 && <i class="tile-count">{props.count}</i>}
       </span>
-      {props.recommended && <span class="tile-rec">Next</span>}
       <span class="tile-name">{e.name}</span>
-      {e.tier === 3 && ruleName(e.desc) && <span class="tile-rule">{ruleName(e.desc)}</span>}
       <span class="tile-price">{n0(e.price)}</span>
     </button>
   );
@@ -147,7 +148,24 @@ function Attunement({ cat, owned }: { cat: Cat; owned: number }) {
   );
 }
 
-export function ShopPanel() {
+function CloseGlyph() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      aria-hidden="true"
+    >
+      <path d="M6 6l12 12M18 6L6 18" stroke-width="2.2" stroke-linecap="round" />
+    </svg>
+  );
+}
+
+const sentence = (t: string): string => (t ? t[0].toUpperCase() + t.slice(1) : t);
+
+export function ShopPanel({ onClose }: { onClose?: () => void }) {
   const s = useSession();
   const m = s.match!;
   const entries = m.shopList();
@@ -161,6 +179,7 @@ export function ShopPanel() {
   const [picked, setSel] = useState<{ kind: 'shop' | 'owned'; id: string } | null>(null);
   const sel = picked ?? (first ? { kind: 'shop' as const, id: first.id } : null);
   const [confirming, setConfirming] = useState(false);
+  const live = m.state.phase.kind === 'live';
   const tier3 = entries.filter((e) => e.tier === 3);
   const atStall = tier3.some((e) => e.reason !== JUNGLE_ONLY);
   const ownedByCat: Record<string, number> = {};
@@ -181,85 +200,120 @@ export function ShopPanel() {
   const selEntry = sel?.kind === 'shop' ? byId.get(sel.id) : undefined;
   const selOwned = sel?.kind === 'owned' ? sel.id : null;
 
-  const detail = () => {
+  const sendTo = (shopId: string): void => {
+    const queued = p.hero!.suggest.includes(shopId);
+    if (s.suggestShop(shopId) && !queued) onClose?.();
+  };
+
+  const strip = () => {
     if (selEntry) {
       const def = s.content.itemById.get(selEntry.id)!;
       const builtFrom = def.from;
       const buildsInto = s.content.items.filter((x) => x.from.includes(def.id));
       const saved = selEntry.cost - selEntry.price;
+      const needsStall =
+        live && !selEntry.canBuy && [JUNGLE_ONLY, NO_SHOP].includes(selEntry.reason);
       return (
-        <div class="col detail-body" data-testid="item-detail">
-          <div class={`row detail-head cat-${def.category}`}>
+        <div class="strip-body" data-testid="item-detail">
+          <div class={`strip-top cat-${def.category}`}>
             <span class="detail-icon">
-              <ItemIcon id={def.id} size={28} />
+              <ItemIcon id={def.id} size={24} />
             </span>
-            <div class="grow">
+            <div class="strip-title">
               <div class="detail-name">{def.name}</div>
-              <div class="dim tiny">
+              <div class="dim tiny strip-meta">
                 {def.category} · tier {def.tier}
-                {selEntry.source === 'keeper' ? ' · Cheshire Keeper stock' : ''}
-                {selEntry.source === 'jungle' ? ' · Jungle stalls only' : ''}
-                {selEntry.id === recommended ? ' · Recommended' : ''}
+                {selEntry.source === 'keeper' ? ' · Keeper stock' : ''}
+                {selEntry.source === 'jungle' ? ' · jungle stalls only' : ''}
+                {selEntry.id === recommended ? ' · recommended' : ''}
+                {saved > 0 ? ` · parts worth ${n0(saved)}g used` : ''}
               </div>
             </div>
-          </div>
-          <ItemDesc desc={def.desc} />
-          {builtFrom.length > 0 && (
-            <div class="tiny">
-              <span class="dim">Built from </span>
-              {builtFrom.map((id, i) => (
-                <span key={id} class={owned.includes(id) ? 'good' : ''}>
-                  {i > 0 ? ', ' : ''}
-                  {nameOf(id)}
-                  {owned.includes(id) ? ' (owned)' : ''}
-                </span>
-              ))}
-            </div>
-          )}
-          {buildsInto.length > 0 && (
-            <div class="tiny">
-              <span class="dim">Builds into </span>
-              {buildsInto.map((x) => x.name).join(', ')}
-            </div>
-          )}
-          <div class="row">
-            <span class="gold">{n0(selEntry.price)}g</span>
-            {saved > 0 && <span class="dim tiny">(components worth {n0(saved)}g used)</span>}
-          </div>
-          <div class="buy-pin">
             {!confirming ? (
               <button
-                class="btn primary"
+                class="btn primary strip-act"
                 disabled={!selEntry.canBuy}
                 data-testid="buy"
                 onClick={() => setConfirming(true)}
               >
-                {selEntry.canBuy ? 'Buy' : selEntry.reason || 'Unavailable'}
+                Buy <span class="strip-price">{n0(selEntry.price)}g</span>
               </button>
             ) : (
-              <div class="col confirm" data-testid="buy-confirm-box">
-                <div>
-                  Spend <b class="gold">{n0(selEntry.price)}g</b> on {def.name}?
-                </div>
-                <div class="row">
-                  <button
-                    class="btn primary grow"
-                    data-testid="buy-confirm"
-                    onClick={() => {
-                      const r = s.issue({ type: 'buy', itemId: selEntry.id });
-                      if (r.ok) pick(null);
-                      else setConfirming(false);
-                    }}
-                  >
-                    Confirm
-                  </button>
-                  <button class="btn grow" onClick={() => setConfirming(false)}>
-                    Cancel
-                  </button>
-                </div>
+              <div class="strip-confirm" data-testid="buy-confirm-box">
+                <button
+                  class="btn primary"
+                  data-testid="buy-confirm"
+                  onClick={() => {
+                    const r = s.issue({ type: 'buy', itemId: selEntry.id });
+                    if (r.ok) pick(null);
+                    else setConfirming(false);
+                  }}
+                >
+                  Spend {n0(selEntry.price)}g
+                </button>
+                <button class="btn" aria-label="Cancel" onClick={() => setConfirming(false)}>
+                  <CloseGlyph />
+                </button>
               </div>
             )}
           </div>
+          <div class="strip-desc">
+            <ItemDesc desc={def.desc} />
+          </div>
+          {!selEntry.canBuy && selEntry.reason && !needsStall && (
+            <div class="strip-reason" data-testid="buy-reason">
+              {sentence(selEntry.reason)}
+            </div>
+          )}
+          {needsStall && (
+            <div class="strip-send">
+              {s.content.map.shops.map((shop) => {
+                const queued = p.hero!.suggest.includes(shop.id);
+                return (
+                  <button
+                    key={shop.id}
+                    class={`btn small ${queued ? 'on' : ''}`}
+                    data-testid={`send-${shop.id}`}
+                    aria-pressed={queued}
+                    onClick={() => sendTo(shop.id)}
+                  >
+                    {queued ? `Sending you to ${shop.name}` : `Send me to ${shop.name}`}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          {(builtFrom.length > 0 || buildsInto.length > 0) &&
+            (selEntry.canBuy || !selEntry.reason || needsStall) && (
+              <div
+                class="tiny strip-foot"
+                title={`${builtFrom.length ? `Built from ${builtFrom.map(nameOf).join(', ')}. ` : ''}${
+                  buildsInto.length
+                    ? `Builds into ${buildsInto.map((x) => x.name).join(', ')}.`
+                    : ''
+                }`}
+              >
+                {builtFrom.length > 0 && (
+                  <span>
+                    <span class="dim">Built from </span>
+                    {builtFrom.map((id, i) => (
+                      <span key={id} class={owned.includes(id) ? 'good' : ''}>
+                        {i > 0 ? ', ' : ''}
+                        {nameOf(id)}
+                        {owned.includes(id) ? ' (owned)' : ''}
+                      </span>
+                    ))}
+                  </span>
+                )}
+                {buildsInto.length > 0 && (
+                  <span>
+                    {builtFrom.length > 0 ? ' · ' : ''}
+                    <span class="dim">Into </span>
+                    {buildsInto.map((x) => x.name).join(', ')}
+                  </span>
+                )}
+              </div>
+            )}
         </div>
       );
     }
@@ -269,44 +323,46 @@ export function ShopPanel() {
       const holy = s.content.holyById.get(selOwned);
       const refund = def ? Math.round(def.cost * s.content.tuning.shop.sellRefund) : 0;
       return (
-        <div class="col detail-body" data-testid="item-detail">
-          <div class={`row detail-head cat-${itemCategory(s.content, selOwned)}`}>
+        <div class="strip-body" data-testid="item-detail">
+          <div class={`strip-top cat-${itemCategory(s.content, selOwned)}`}>
             <span class="detail-icon">
-              <ItemIcon id={selOwned} size={28} />
+              <ItemIcon id={selOwned} size={24} />
             </span>
-            <div class="detail-name grow">{nameOf(selOwned)}</div>
-          </div>
-          <ItemDesc desc={def?.desc ?? (cursed ? cursed.boonText : holy ? holy.desc : '')} />
-          {def ? (
-            !confirming ? (
-              <button class="btn" data-testid="sell" onClick={() => setConfirming(true)}>
-                Sell for {n0(refund)}g
-              </button>
-            ) : (
-              <div class="col confirm">
-                <div>
-                  Sell {def.name} for <b class="gold">{n0(refund)}g</b>?
-                </div>
-                <div class="row">
+            <div class="strip-title">
+              <div class="detail-name">{nameOf(selOwned)}</div>
+              <div class="dim tiny strip-meta">yours</div>
+            </div>
+            {def &&
+              (!confirming ? (
+                <button
+                  class="btn strip-act"
+                  data-testid="sell"
+                  onClick={() => setConfirming(true)}
+                >
+                  Sell <span class="strip-price">{n0(refund)}g</span>
+                </button>
+              ) : (
+                <div class="strip-confirm">
                   <button
-                    class="btn primary grow"
+                    class="btn primary"
                     data-testid="sell-confirm"
                     onClick={() => {
                       s.issue({ type: 'sell', itemId: selOwned });
                       pick(null);
                     }}
                   >
-                    Confirm
+                    Sell for {n0(refund)}g
                   </button>
-                  <button class="btn grow" onClick={() => setConfirming(false)}>
-                    Cancel
+                  <button class="btn" aria-label="Cancel" onClick={() => setConfirming(false)}>
+                    <CloseGlyph />
                   </button>
                 </div>
-              </div>
-            )
-          ) : (
-            <div class="dim tiny">This cannot be sold.</div>
-          )}
+              ))}
+          </div>
+          <div class="strip-desc">
+            <ItemDesc desc={def?.desc ?? (cursed ? cursed.boonText : holy ? holy.desc : '')} />
+          </div>
+          {!def && <div class="dim tiny">This cannot be sold.</div>}
         </div>
       );
     }
@@ -318,10 +374,12 @@ export function ShopPanel() {
   };
 
   return (
-    <div class="col shop" data-testid="shop">
-      <div class="row wrap shop-top">
-        <span class="gold">{n0(p.hero!.gold)} gold</span>
-        {!p.alive && <span class="chip bad">Down: base items only</span>}
+    <div class="shop" data-testid="shop">
+      <div class="shop-head">
+        <span class="gold shop-gold" aria-label={`${n0(p.hero!.gold)} gold`}>
+          <i class="coin" aria-hidden="true" />
+          {n0(p.hero!.gold)}
+        </span>
         <div class="slots" aria-label="Your items">
           {Array.from({ length: slots }, (_, i) => {
             const id = owned[i];
@@ -330,72 +388,81 @@ export function ShopPanel() {
                 key={i}
                 class={`slot filled cat-${itemCategory(s.content, id)} ${selOwned === id ? 'sel' : ''}`}
                 title={nameOf(id)}
+                aria-label={nameOf(id)}
                 onClick={() => pick({ kind: 'owned', id })}
               >
-                <ItemIcon id={id} size={26} />
+                <ItemIcon id={id} size={22} />
               </button>
             ) : (
               <span key={i} class="slot" />
             );
           })}
         </div>
-        <span class="dim small grow" style={{ textAlign: 'right' }}>
-          Cheshire Keeper: {keeperPlace(m.state.keeper.spot)}
-        </span>
+        {onClose && (
+          <button class="shop-x" data-testid="shop-close" aria-label="Close shop" onClick={onClose}>
+            <CloseGlyph />
+          </button>
+        )}
       </div>
-      <div class="shop-body">
-        <div class="col shop-main">
-          <div class="cat-tabs">
-            {CATS.map((c) => (
-              <button
-                key={c.id}
-                class={`btn cat-${c.id} ${cat === c.id ? 'on' : ''}`}
-                data-testid={`cat-${c.id}`}
-                onClick={() => {
-                  setCat(c.id);
-                  pick(null);
-                }}
-              >
-                <CatGlyph cat={c.id} size={16} /> {c.label}
-                <i class="cat-count">{ownedByCat[c.id] ?? 0}</i>
-              </button>
-            ))}
-          </div>
-          <Attunement cat={cat} owned={ownedByCat[cat] ?? 0} />
-          <div class="col shop-tiles">
-            {(atStall ? [3, 1, 2] : [1, 2, 3]).map((tier) => {
-              const list = entries.filter((e) => e.category === cat && e.tier === tier);
-              if (list.length === 0) return null;
-              const jungleOnly = tier === 3 && !atStall;
-              return (
-                <div class={`tier-row ${jungleOnly ? 'dimmed' : ''}`} key={tier} data-tier={tier}>
-                  <div class="tier-label">
-                    {tier === 3 && atStall
-                      ? 'Sold here: tier 3'
-                      : jungleOnly
-                        ? 'Tier 3 · Jungle stalls only'
-                        : `Tier ${tier}`}
-                  </div>
-                  <div class="tiles">
-                    {list.map((e) => (
-                      <Tile
-                        key={e.id}
-                        e={e}
-                        selected={sel?.kind === 'shop' && sel.id === e.id}
-                        count={owned.filter((x) => x === e.id).length}
-                        recommended={e.id === recommended}
-                        dimmed={jungleOnly}
-                        onPick={() => pick({ kind: 'shop', id: e.id })}
-                      />
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-        <aside class="panel shop-detail">{detail()}</aside>
+      <div class="cat-tabs" role="tablist" aria-label="Item category">
+        {CATS.map((c) => (
+          <button
+            key={c.id}
+            role="tab"
+            aria-selected={cat === c.id}
+            class={`btn cat-${c.id} ${cat === c.id ? 'on' : ''}`}
+            data-testid={`cat-${c.id}`}
+            onClick={() => {
+              setCat(c.id);
+              pick(null);
+            }}
+          >
+            <CatGlyph cat={c.id} size={15} />
+            <span>{c.label}</span>
+            <i class="cat-count" aria-label={`${ownedByCat[c.id] ?? 0} owned`}>
+              {ownedByCat[c.id] ?? 0}
+            </i>
+          </button>
+        ))}
       </div>
+      <div class="shop-tiles">
+        <Attunement cat={cat} owned={ownedByCat[cat] ?? 0} />
+        {!p.alive && <span class="chip bad">Down: base items only</span>}
+        {(atStall ? [3, 1, 2] : [1, 2, 3]).map((tier) => {
+          const list = entries.filter((e) => e.category === cat && e.tier === tier);
+          if (list.length === 0) return null;
+          const jungleOnly = tier === 3 && !atStall;
+          return (
+            <div class={`tier-row ${jungleOnly ? 'dimmed' : ''}`} key={tier} data-tier={tier}>
+              <div class="tier-label">
+                <span aria-hidden="true">{'◆'.repeat(tier)}</span>{' '}
+                {tier === 3 && atStall
+                  ? 'Tier 3 · sold here'
+                  : jungleOnly
+                    ? 'Tier 3 · jungle stalls only'
+                    : `Tier ${tier}`}
+              </div>
+              <div class="tiles">
+                {list.map((e) => (
+                  <Tile
+                    key={e.id}
+                    e={e}
+                    selected={sel?.kind === 'shop' && sel.id === e.id}
+                    count={owned.filter((x) => x === e.id).length}
+                    recommended={e.id === recommended}
+                    dimmed={jungleOnly}
+                    onPick={() => pick({ kind: 'shop', id: e.id })}
+                  />
+                ))}
+              </div>
+            </div>
+          );
+        })}
+        <div class="tiny dim keeper-line">Cheshire Keeper: {keeperPlace(m.state.keeper.spot)}</div>
+      </div>
+      <aside class="shop-strip" aria-label="Selected item">
+        {strip()}
+      </aside>
     </div>
   );
 }

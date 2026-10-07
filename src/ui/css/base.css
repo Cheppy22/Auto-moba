@@ -116,7 +116,7 @@ h4 {
 .stage canvas[hidden] {
   display: none;
 }
-.stage canvas.broadcast {
+.stage canvas.game-canvas {
   position: absolute;
   inset: 0;
   touch-action: none;

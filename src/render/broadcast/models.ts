@@ -33,6 +33,7 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import { cheshireFade } from '../icons';
 import { drawSigil, type SigilSpec } from '../sigils';
 import { PALETTE, teamColor } from '../theme';
+import { WATER_Y } from './terrain';
 import {
   type Bit,
   BRASS,
@@ -312,9 +313,13 @@ export class HeroModel {
     this.markers.add(kit.blob(12, 0.6), ring);
   }
 
-  place(x: number, z: number, yaw: number): void {
-    this.root.position.set(x, 0, z);
-    this.markers.position.set(x, 0, z);
+  /** `boost` enlarges the figure on far shots so it stays readable on small screens. */
+  place(x: number, y: number, z: number, yaw: number, boost = 1): void {
+    this.root.position.set(x, y, z);
+    this.root.scale.setScalar(HERO_SCALE * boost);
+    // rings and blobs ride the water's surface when the unit wades
+    this.markers.position.set(x, Math.max(y, WATER_Y + 0.2), z);
+    this.markers.scale.setScalar(boost);
     this.root.rotation.y = yaw;
   }
 
@@ -595,6 +600,7 @@ export class MinionKit {
     yaw: number,
     lean: number,
     scale: number,
+    ground = 0,
   ): void {
     const v = this.variants.get(`${team}:${ranged}`) ?? this.variants.get(`neutral:${ranged}`)!;
     if (v.count >= v.cap) return;
@@ -606,7 +612,7 @@ export class MinionKit {
     v.hull.setMatrixAt(v.count, _m);
     v.count++;
     if (this.shadowCount < MinionKit.SHADOWS) {
-      _m.compose(_p.set(x, 0.55, z), _qt.identity(), _s.set(scale * 9, 1, scale * 9));
+      _m.compose(_p.set(x, ground + 0.55, z), _qt.identity(), _s.set(scale * 9, 1, scale * 9));
       this.shadows.setMatrixAt(this.shadowCount++, _m);
     }
   }

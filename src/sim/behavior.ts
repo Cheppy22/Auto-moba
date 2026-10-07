@@ -5,24 +5,111 @@ import { matchupAt } from './ai/power';
 import { retreatLanePath } from './ai/strategic';
 import { isWary } from './ai/swap';
 import { findPath, LANES } from './world/map';
+import { clearLine, confine, walkable } from './world/terrain';
 import { tickRecall } from './recall';
 import type { PlayTeam, Unit } from './types';
 
-function openSet(ctx: Ctx): Set<string> {
-  const out = new Set<string>();
-  for (const s of ctx.s.slots) if (s.open) out.add(s.id);
-  return out;
+/** How long a cached detour waypoint is followed before the route is planned again. */
+const DETOUR_TICKS = 10;
+
+/** True when the unit can take its first step toward (x, y) and then walk straight there. */
+function stepClear(ctx: Ctx, u: Unit, x: number, y: number): boolean {
+  const terrain = ctx.world.terrain;
+  const d = dist(u.x, u.y, x, y);
+  const f = Math.min(1, u.stats.moveSpeed / TPS / (d || 1));
+  return (
+    walkable(terrain, ctx.open, u.x + (x - u.x) * f, u.y + (y - u.y) * f) &&
+    clearLine(terrain, ctx.open, u.x, u.y, x, y)
+  );
 }
 
-export function stepToward(_ctx: Ctx, u: Unit, tx: number, ty: number, speedMul = 1): number {
-  const dx = tx - u.x;
-  const dy = ty - u.y;
-  const d = Math.sqrt(dx * dx + dy * dy);
+/**
+ * Plans a way around solid terrain: the furthest point of the nav-graph route that the unit can
+ * walk to in a straight line. Null when no such point exists.
+ */
+function planDetour(ctx: Ctx, u: Unit, tx: number, ty: number): void {
+  const terrain = ctx.world.terrain;
+  const route = findPath(ctx.world, { x: u.x, y: u.y }, { x: tx, y: ty }, ctx.open, {
+    from: (nx, ny) => stepClear(ctx, u, nx, ny),
+    to: (nx, ny) => clearLine(terrain, ctx.open, tx, ty, nx, ny),
+  });
+  let best = -1;
+  for (let i = 0; i < route.length - 1; i++) {
+    const wp = route[i];
+    if (dist(u.x, u.y, wp[0], wp[1]) < 3) continue;
+    if (stepClear(ctx, u, wp[0], wp[1])) best = i;
+    else if (best >= 0) break;
+  }
+  if (best < 0) {
+    u.detour = null;
+    return;
+  }
+  const wp = route[best];
+  u.detour = { x: wp[0], y: wp[1], untilTick: ctx.s.tick + DETOUR_TICKS };
+}
+
+function detourActive(ctx: Ctx, u: Unit): boolean {
+  const dt = u.detour;
+  if (!dt) return false;
+  if (ctx.s.tick >= dt.untilTick || dist(u.x, u.y, dt.x, dt.y) <= 2) {
+    u.detour = null;
+    return false;
+  }
+  return true;
+}
+
+/**
+ * One step toward (tx, ty) that never leaves walkable space. When a straight step would leave it,
+ * or (with `routed`) the straight line to the target is blocked, the unit walks a cached detour
+ * waypoint from the nav graph instead of hugging the wall.
+ */
+export function stepToward(
+  ctx: Ctx,
+  u: Unit,
+  tx: number,
+  ty: number,
+  speedMul = 1,
+  routed = false,
+): number {
+  const terrain = ctx.world.terrain;
+  if (!detourActive(ctx, u) && routed && !clearLine(terrain, ctx.open, u.x, u.y, tx, ty))
+    planDetour(ctx, u, tx, ty);
+  let dt: Unit['detour'] = u.detour;
+  let gx = dt ? dt.x : tx;
+  let gy = dt ? dt.y : ty;
+  let dx = gx - u.x;
+  let dy = gy - u.y;
+  let d = Math.sqrt(dx * dx + dy * dy);
   if (d < 0.001) return 0;
-  const step = Math.min(d, (u.stats.moveSpeed * speedMul) / TPS);
-  u.x += (dx / d) * step;
-  u.y += (dy / d) * step;
-  return step;
+  const reach = (u.stats.moveSpeed * speedMul) / TPS;
+  let step = Math.min(d, reach);
+  let nx = u.x + (dx / d) * step;
+  let ny = u.y + (dy / d) * step;
+  if (!walkable(terrain, ctx.open, nx, ny)) {
+    if (!dt) {
+      planDetour(ctx, u, tx, ty);
+      dt = u.detour;
+      if (dt) {
+        gx = dt.x;
+        gy = dt.y;
+        dx = gx - u.x;
+        dy = gy - u.y;
+        d = Math.sqrt(dx * dx + dy * dy) || 1;
+        step = Math.min(d, reach);
+        nx = u.x + (dx / d) * step;
+        ny = u.y + (dy / d) * step;
+      }
+    }
+    if (!walkable(terrain, ctx.open, nx, ny)) {
+      const p = confine(terrain, ctx.open, nx, ny);
+      nx = p.x;
+      ny = p.y;
+    }
+  }
+  const moved = dist(u.x, u.y, nx, ny);
+  u.x = nx;
+  u.y = ny;
+  return moved;
 }
 
 function followPath(ctx: Ctx, u: Unit): boolean {
@@ -35,7 +122,7 @@ function followPath(ctx: Ctx, u: Unit): boolean {
   }
   const moved = stepToward(ctx, u, wp[0], wp[1]);
   if (u.hero) u.hero.distance += moved;
-  if (d - moved <= 1 && u.pathI < u.path.length - 1) u.pathI++;
+  if (dist(u.x, u.y, wp[0], wp[1]) <= 1 && u.pathI < u.path.length - 1) u.pathI++;
   return true;
 }
 
@@ -113,7 +200,7 @@ function updateEngage(ctx: Ctx, u: Unit): void {
   if (h.engage === 'flee' && prev !== 'flee') {
     const b = ctx.world.basePos[u.team as PlayTeam];
     u.path =
-      retreatLanePath(ctx, u, b.x, b.y) ?? findPath(ctx.world, { x: u.x, y: u.y }, b, openSet(ctx));
+      retreatLanePath(ctx, u, b.x, b.y) ?? findPath(ctx.world, { x: u.x, y: u.y }, b, ctx.open);
     u.pathI = 0;
   }
 }
@@ -170,7 +257,7 @@ function heroBehavior(ctx: Ctx, u: Unit): void {
     const leash = ctx.t.ai.aggroRadius * pers.chase + u.stats.range;
     const allowChase = h.engage === 'fight' && dist(u.x, u.y, t.x, t.y) <= leash;
     if (allowChase) {
-      const moved = stepToward(ctx, u, t.x, t.y);
+      const moved = stepToward(ctx, u, t.x, t.y, 1, true);
       h.distance += moved;
       return;
     }
@@ -189,7 +276,7 @@ function minionBehavior(ctx: Ctx, u: Unit): void {
   }
   if (t) {
     if (inAttackRange(u, t)) tryAttack(ctx, u, t);
-    else stepToward(ctx, u, t.x, t.y);
+    else stepToward(ctx, u, t.x, t.y, 1, true);
     return;
   }
   followPath(ctx, u);
@@ -233,10 +320,10 @@ function eventUnitBehavior(ctx: Ctx, u: Unit): void {
   }
   if (t) {
     if (inAttackRange(u, t)) tryAttack(ctx, u, t);
-    else stepToward(ctx, u, t.x, t.y);
+    else stepToward(ctx, u, t.x, t.y, 1, true);
     return;
   }
-  if (away > 6) stepToward(ctx, u, ev.homeX, ev.homeY, 1.4);
+  if (away > 6) stepToward(ctx, u, ev.homeX, ev.homeY, 1.4, true);
 }
 
 function campBehavior(ctx: Ctx, u: Unit): void {
@@ -253,11 +340,11 @@ function campBehavior(ctx: Ctx, u: Unit): void {
   }
   if (t) {
     if (inAttackRange(u, t)) tryAttack(ctx, u, t);
-    else stepToward(ctx, u, t.x, t.y);
+    else stepToward(ctx, u, t.x, t.y, 1, true);
     return;
   }
   if (away > 6) {
-    stepToward(ctx, u, c.homeX, c.homeY, 1.4);
+    stepToward(ctx, u, c.homeX, c.homeY, 1.4, true);
     u.hp = Math.min(u.stats.maxHp, u.hp + (u.stats.maxHp * 0.1) / TPS);
   }
 }
@@ -306,7 +393,7 @@ function guardianBehavior(ctx: Ctx, u: Unit): void {
   }
   if (t) {
     if (inAttackRange(u, t)) tryAttack(ctx, u, t);
-    else stepToward(ctx, u, t.x, t.y);
+    else stepToward(ctx, u, t.x, t.y, 1, true);
     return;
   }
   followPath(ctx, u);

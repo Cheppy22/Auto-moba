@@ -23,7 +23,12 @@ export function App() {
   if (!m) return <Title />;
   const kind = m.state.phase.kind;
   return (
-    <div class="shell" data-phase={kind} data-testid="shell">
+    <div
+      class="shell"
+      data-phase={kind}
+      data-sheet={kind === 'live' && s.ui.shopOpen ? 'open' : undefined}
+      data-testid="shell"
+    >
       <Stage />
       {kind === 'draft' && <Draft />}
       {kind === 'prep' && <Prep />}

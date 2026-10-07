@@ -55,7 +55,7 @@
 
 ### Map
 
-- Round playfield, base at the bottom and enemy base at the top; the HUD sits in the dead corners. The side lanes curve; mid is a straight diagonal.
+- A 3D island (three.js, the only view): bases on raised daises at opposite corners, lanes as valley roads, cliffs and forest outside the walkable shapes, a river crossing Mid with fords, and jungle clearings sealed by mist and ofuda until their phase opens them. Units walk inside the walkable shapes in `src/sim/world/terrain.ts`; cliffs match those edges. Height is visual only.
 - **Jungle areas** connect to lanes through gates. The 3-lane skeleton is fixed; jungle zones open in mirrored pairs over phases 1–3 (shown as "Uncharted" until then) with randomized biomes (five: Midnight Station, Hollow Foundry, Drowned Shrine, Tea Party Glade and Croquet Rose Garden). Mirrored pairing is a fairness requirement (guarded by `tests/symmetry.test.ts`).
 - **Two jungle shops** sit diagonally: Western Stall (bottom-left of the screen) and Eastern Stall (top-right), mirrored for fairness. Standing at one lets a hero buy the base catalog and tier 3.
 - **Cheshire Keeper:** a roaming NPC (a crescent grin on the map, labelled "Cheshire", that fades in and out as it moves) that stocks a few tier-3 items during a phase and moves each phase. It is reached on foot. The Keeper teleport no longer exists.
@@ -108,7 +108,7 @@ Minor random objectives that give team points plus a small buff, gold, or a **25
 - **Where to buy:** tiers 1–2 at base and at the jungle shops; **tier 3 only at the jungle shops** (and from the Keeper's stock). Never in the between-phase shop. A dead hero can still buy base items.
 - **Auto-buy:** the player's hero buys its build list on its own by default, as AI heroes do. It can be turned off; manual buying always works. The next build item shows beside the gold.
 - **Shop UI:** Deadlock style. Click an item to read it, then confirm the purchase. The detail panel is always on screen. The recommended next item is preselected.
-- **Shop suggestions:** clicking a shop on the map queues it (up to 3) as a **suggestion, not a command**. Rescuing allies and defending outrank it. A toast shows the travel time.
+- **Shop suggestions:** tapping a shop pin (or a shop in the shop panel) queues it (up to 3) as a **suggestion, not a command**. Rescuing allies and defending outrank it. A toast shows the travel time.
 - **Colors (the item color theory):**
   - Each category owns one hue: Mind is cobalt steel, Body is moss, Soul is lantern violet. No other part of the game uses those hues.
   - Brightness shows tier: tier 1 muted, tier 2 full, Relic brightest with a brass rim.
@@ -154,10 +154,10 @@ Each hero re-plans about once per second and scores goals (farm lane, push tower
 - **Your hero** has a gold ring and a pulsing halo at phase start and on respawn; tapping your portrait flashes it.
 - **Map labels** are drawn last and nudged or skipped on collision.
 - Escape closes overlays; an unspent-gold reminder appears before starting a phase; the Shop tab shows your gold.
-- **Broadcast view** (spec: [BROADCAST.md](BROADCAST.md)): a **Map / Broadcast** toggle in the speed panel switches to a 3D spectator view drawn with three.js. The 2D map stays the default and the only place to click shops.
+- **View** (spec: [BROADCAST.md](BROADCAST.md)): the three.js 3D view is the only game view. The 2D map is removed. Jungle shops are tapped as HTML pins over the 3D view.
   - **Auto** camera works like an NFL broadcast: a high wide shot when it's quiet, a sideline camera that dollies onto the most important play (guardian siege, tower falls, multi-kills, team fights, kills, jungle events, skirmishes), and a lower-third caption naming the play.
   - **Follow** tracks your hero; tap any roster portrait to follow that hero instead. **Free** lets you drag, zoom and turn the camera.
-  - Art is built from code. Physics (ragdolls, debris) is visual only and never affects the match. If WebGL is missing, the game falls back to the map.
+  - Art is built from code. Physics (ragdolls, debris) is visual only and never affects the match. If WebGL is missing, the game shows a clear message instead of a picture.
 
 ## Balance targets and method
 
@@ -187,23 +187,24 @@ Meta-progression between matches; era-themed lane identity; "The Core" alternate
 
 ## Reversed decisions (don't bring these back)
 
-| Old decision                                       | Replaced by                                                                                                 |
-| -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| Square map with right-angle lanes                  | Rounded map with curved side lanes                                                                          |
-| Teleport to the Keeper                             | Removed; the Keeper is reached on foot                                                                      |
-| Two jungle shops both on the Left side             | Diagonal pair (bottom-left and top-right)                                                                   |
-| Tier 3 sold between phases and by obelisk unlock   | Tier 3 only at jungle shops (and the Keeper's stock); obelisk gives 25% off                                 |
-| Sealed team auction for the holy item              | Switched off with a flag                                                                                    |
-| Posture picker (Push/Farm/Defend)                  | Dispositions; only a Farm toggle remains, hidden for farmers                                                |
-| "Usually X lane" hero preference                   | Farmer/Attacker/Defender dispositions                                                                       |
-| AI drafts 9 heroes first, you choose from the rest | You pick first from all 14                                                                                  |
-| Duplicate heroes allowed                           | One of each hero per match                                                                                  |
-| Category names Blade/Flesh/Soul                    | Mind/Body/Soul                                                                                              |
-| Player's hero never buys or recalls on its own     | Auto-buy and heal recall for the player (toggleable)                                                        |
-| Towers: 3000 health, heroes at full damage         | 3600 health, ×0.5 hero damage, 9% per second cap                                                            |
-| Reports as separate team, hero and totals views    | One scoreboard screen with a collapsed Details section                                                      |
-| Canvas 2D only, no drawing library                 | 2D map plus a lazy-loaded three.js Broadcast view                                                           |
-| Why the teams fight is deliberately undecided      | White Queen vs. Red Queen chess game on a Looking-Glass board (White Court and Red Court, Kings, Checkmate) |
+| Old decision                                              | Replaced by                                                                                                 |
+| --------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Square map with right-angle lanes                         | Rounded map with curved side lanes                                                                          |
+| Teleport to the Keeper                                    | Removed; the Keeper is reached on foot                                                                      |
+| Two jungle shops both on the Left side                    | Diagonal pair (bottom-left and top-right)                                                                   |
+| Tier 3 sold between phases and by obelisk unlock          | Tier 3 only at jungle shops (and the Keeper's stock); obelisk gives 25% off                                 |
+| Sealed team auction for the holy item                     | Switched off with a flag                                                                                    |
+| Posture picker (Push/Farm/Defend)                         | Dispositions; only a Farm toggle remains, hidden for farmers                                                |
+| "Usually X lane" hero preference                          | Farmer/Attacker/Defender dispositions                                                                       |
+| AI drafts 9 heroes first, you choose from the rest        | You pick first from all 14                                                                                  |
+| Duplicate heroes allowed                                  | One of each hero per match                                                                                  |
+| Category names Blade/Flesh/Soul                           | Mind/Body/Soul                                                                                              |
+| Player's hero never buys or recalls on its own            | Auto-buy and heal recall for the player (toggleable)                                                        |
+| Towers: 3000 health, heroes at full damage                | 3600 health, ×0.5 hero damage, 9% per second cap                                                            |
+| Reports as separate team, hero and totals views           | One scoreboard screen with a collapsed Details section                                                      |
+| Canvas 2D only, no drawing library                        | 2D map plus a lazy-loaded three.js Broadcast view                                                           |
+| 2D map as the default view, with a Map / Broadcast toggle | The 3D terrain is the only view; the 2D map is deleted                                                      |
+| Why the teams fight is deliberately undecided             | White Queen vs. Red Queen chess game on a Looking-Glass board (White Court and Red Court, Kings, Checkmate) |
 
 ## Where to look first (for code work)
 

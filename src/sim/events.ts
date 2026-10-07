@@ -80,9 +80,9 @@ function beginWarning(ctx: Ctx, def: EventDef): void {
       a === b
         ? [
             [pa.x, pa.y],
-            [pa.x + 90, pa.y],
-            [pa.x + 90, pa.y + 90],
-            [pa.x, pa.y + 90],
+            [pa.x + 60, pa.y],
+            [pa.x + 60, pa.y + 60],
+            [pa.x, pa.y + 60],
           ]
         : findPath(ctx.world, pa, pb, openSet);
   } else {

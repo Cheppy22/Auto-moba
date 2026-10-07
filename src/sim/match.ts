@@ -145,6 +145,7 @@ function buildCtx(content: Content, state: MatchState): Ctx {
     c: content,
     t: content.tuning,
     world,
+    open: new Set(state.slots.filter((x) => x.open).map((x) => x.id)),
     rec,
     idx: new Map(),
     grid: new Grid<Unit>(content.map.size, 100),

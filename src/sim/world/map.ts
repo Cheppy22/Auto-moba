@@ -1,6 +1,7 @@
 import { dist, sqrt } from '../core/math';
 import type { LaneId, MapDef } from '../content/schema';
 import type { PlayTeam } from '../types';
+import { buildTerrain, type Terrain } from './terrain';
 
 export interface Pt {
   x: number;
@@ -33,6 +34,7 @@ export interface World {
   guardianPos: Record<PlayTeam, Pt>;
   basePos: Record<PlayTeam, Pt>;
   slotPos: Record<string, Pt>;
+  terrain: Terrain;
 }
 
 export const LANES: LaneId[] = ['top', 'mid', 'bot'];
@@ -194,27 +196,45 @@ export function buildWorld(map: MapDef): World {
     guardianPos,
     basePos,
     slotPos,
+    terrain: buildTerrain(map),
   };
 }
 
 const START_SLACK = 140;
+
+/** Tells whether a straight walk from (x, y) to a node's position stays on walkable ground. */
+export type SeesNode = (nodeX: number, nodeY: number) => boolean;
 
 function candidateNodes(
   world: World,
   x: number,
   y: number,
   open: ReadonlySet<string>,
+  sees?: SeesNode,
 ): { node: number; d: number }[] {
-  const out: { node: number; d: number }[] = [];
-  let best = Infinity;
+  const all: { node: number; d: number }[] = [];
   for (let i = 0; i < world.nodes.length; i++) {
     const n = world.nodes[i];
     if (n.slot && !open.has(n.slot)) continue;
-    const d = dist(x, y, n.x, n.y);
-    out.push({ node: i, d });
-    if (d < best) best = d;
+    all.push({ node: i, d: dist(x, y, n.x, n.y) });
   }
-  return out.filter((c) => c.d <= best + START_SLACK);
+  if (!sees) {
+    let best = Infinity;
+    for (const c of all) if (c.d < best) best = c.d;
+    return all.filter((c) => c.d <= best + START_SLACK);
+  }
+  // Only nodes a unit can walk to directly count as ways onto the graph.
+  all.sort((a, b) => a.d - b.d || a.node - b.node);
+  const out: { node: number; d: number }[] = [];
+  let best = Infinity;
+  for (const c of all) {
+    if (c.d > best + START_SLACK) break;
+    const n = world.nodes[c.node];
+    if (!sees(n.x, n.y)) continue;
+    if (c.d < best) best = c.d;
+    out.push(c);
+  }
+  return out.length ? out : candidateNodes(world, x, y, open);
 }
 
 export function nearestNode(world: World, x: number, y: number, open: ReadonlySet<string>): number {
@@ -237,13 +257,15 @@ export function findPath(
   from: Pt,
   to: Pt,
   open: ReadonlySet<string>,
+  /** Optional line-of-walk tests from the start and the end; they narrow the entry nodes. */
+  sees?: { from: SeesNode; to: SeesNode },
 ): [number, number][] {
   const n = world.nodes.length;
   const d = new Array<number>(n).fill(Infinity);
   const prev = new Array<number>(n).fill(-1);
   const done = new Array<boolean>(n).fill(false);
-  for (const c of candidateNodes(world, from.x, from.y, open)) d[c.node] = c.d;
-  const ends = candidateNodes(world, to.x, to.y, open);
+  for (const c of candidateNodes(world, from.x, from.y, open, sees?.from)) d[c.node] = c.d;
+  const ends = candidateNodes(world, to.x, to.y, open, sees?.to);
   for (let iter = 0; iter < n; iter++) {
     let u = -1;
     let best = Infinity;

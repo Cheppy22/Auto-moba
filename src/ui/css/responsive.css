@@ -99,59 +99,84 @@ html:not([data-layout='desktop']) .codex-detail {
   max-height: calc(100dvh - 230px);
 }
 
-/* shop: side panel on landscape, docked bottom detail on portrait */
-html:not([data-layout='desktop']) .shop {
-  --shop-h: calc(100dvh - 255px);
-  min-height: 300px;
-}
-html:not([data-layout='desktop']) .shop-scroll .shop {
-  --shop-h: calc(100dvh - 80px);
-}
-html:not([data-layout='desktop']) .shop-scroll {
-  max-height: none;
-}
-html[data-layout='landscape'] .shop {
-  --shop-h: calc(100dvh - 215px);
-  min-height: 200px;
-}
-html[data-layout='landscape'] .shop-scroll .shop {
-  --shop-h: calc(100dvh - 70px);
-}
-html[data-layout='landscape'] .shop-body {
-  grid-template-columns: minmax(0, 1fr) 240px;
-  gap: var(--sp-3);
-}
-html[data-layout='portrait'] .shop-body {
-  grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: minmax(0, 1fr) auto;
-  gap: var(--sp-2);
-}
-html[data-layout='portrait'] .shop-detail {
-  position: static;
-  align-self: stretch;
-  min-height: 0;
-  max-height: 44dvh;
-  padding: var(--sp-2) var(--sp-3);
-}
-html:not([data-layout='desktop']) .tiles {
-  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
-}
-html:not([data-layout='desktop']) .tile {
-  min-height: 100px;
-}
-
 /* hud */
+html[data-layout='portrait'] .corner.tr {
+  max-width: none;
+}
+html[data-layout='portrait'] .hud-dock {
+  flex-direction: row;
+  align-items: stretch;
+  gap: 4px;
+  padding: 4px 6px calc(4px + env(safe-area-inset-bottom));
+  background: linear-gradient(to top, rgba(8, 6, 12, 0.9) 70%, rgba(8, 6, 12, 0));
+}
+html[data-layout='portrait'] .hud-dock .player-card-wrap {
+  flex: none;
+}
 html[data-layout='portrait'] .hud-dock .player-card {
-  width: 100%;
+  display: grid;
+  grid-template-columns: auto auto;
+  grid-template-areas:
+    'ring pips'
+    'ring gold';
+  align-items: center;
+  gap: 1px 8px;
+  height: 100%;
+  padding: 3px 8px 3px 4px;
+}
+html[data-layout='portrait'] .hud-dock .player-card .hpring {
+  grid-area: ring;
+}
+html[data-layout='portrait'] .hud-dock .player-main {
+  display: contents;
+}
+html[data-layout='portrait'] .hud-dock .pips {
+  grid-area: pips;
+  gap: 4px;
+}
+html[data-layout='portrait'] .hud-dock .pip {
+  width: 22px;
+  height: 22px;
+  font-size: var(--fs-xs);
+}
+html[data-layout='portrait'] .hud-dock .player-sub {
+  display: none;
+}
+html[data-layout='portrait'] .hud-dock .player-gold {
+  grid-area: gold;
+  margin: 0;
+  font-size: var(--fs-md);
+}
+html[data-layout='portrait'] .hud-dock .next-item {
+  width: 22px;
+  height: 22px;
+  margin-left: 6px;
 }
 html[data-layout='portrait'] .hud-dock .controls {
+  flex: 1;
+  min-width: 0;
   justify-content: space-between;
 }
 html[data-layout='portrait'] .hud-dock .act {
   flex: 1;
+  min-width: 0;
+  padding: 3px 2px;
 }
 html[data-layout='portrait'] .hud-dock .card-pop {
-  width: 100%;
+  width: calc(100vw - 12px);
+}
+html[data-layout='portrait'] .recalling {
+  top: -26px;
+}
+html[data-layout='portrait'] .cam-panel .btn.small {
+  min-height: 32px;
+  min-width: 0;
+  padding: 2px 9px;
+  font-size: var(--fs-xs);
+}
+html[data-layout='portrait'] .speed-seg .btn.small {
+  min-width: 36px;
+  padding: 2px 4px;
 }
 html[data-layout='portrait'] .corner.bl .roster,
 html[data-layout='portrait'] .corner.br .roster {
@@ -235,18 +260,6 @@ html[data-layout='landscape'] .prep-scroll {
   flex: 1 1 0;
   min-height: 0;
   max-height: none;
-}
-html[data-layout='landscape'] .prep-scroll .shop {
-  height: auto;
-  min-height: 0;
-}
-html[data-layout='landscape'] .prep-scroll .shop-tiles {
-  overflow: visible;
-}
-html[data-layout='landscape'] .prep-scroll .shop-detail {
-  position: static;
-  max-height: none;
-  overflow: visible;
 }
 html[data-layout='landscape'] .upg-hint,
 html[data-layout='landscape'] .upg-about {

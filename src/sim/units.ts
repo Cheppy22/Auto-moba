@@ -47,6 +47,7 @@ export function newUnit(
     pendingKill: null,
     bounty: 0,
     lastDamagedTick: -9999,
+    detour: null,
   };
   ctx.s.units.push(u);
   ctx.idx.set(u.id, u);

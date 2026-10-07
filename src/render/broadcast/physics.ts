@@ -73,6 +73,8 @@ const _local = new Vector3();
  */
 export class VisualPhysics {
   readonly group = new Group();
+  /** Floor height under a scene-space point; the view points this at the terrain. */
+  ground: (x: number, z: number) => number = () => 0;
   private bodies: Body[] = [];
   private acc = 0;
   private seed = 7;
@@ -150,8 +152,9 @@ export class VisualPhysics {
       _dq.setFromAxisAngle(_axis.copy(b.spin).divideScalar(w), w * STEP);
       o.quaternion.premultiply(_dq);
     }
-    if (o.position.y > b.radius) return;
-    o.position.y = b.radius;
+    const floor = this.ground(o.position.x, o.position.z) + b.radius;
+    if (o.position.y > floor) return;
+    o.position.y = floor;
     if (b.vel.y < 0) {
       b.vel.y = -b.vel.y > 16 ? -b.vel.y * b.bounce : 0;
       if (b.vel.y > 0) {
@@ -226,6 +229,7 @@ export class VisualPhysics {
   /** Stone chunks, splinters and embers from a structure falling at ground point (x, z). */
   debris(
     x: number,
+    base: number,
     z: number,
     height: number,
     spread: number,
@@ -241,7 +245,11 @@ export class VisualPhysics {
       mesh.scale.set(size * this.rnd(0.7, 1.3), size * this.rnd(0.6, 1), size * this.rnd(0.7, 1.3));
       const a = this.rnd(0, Math.PI * 2);
       const r = this.rnd(0, spread);
-      mesh.position.set(x + Math.cos(a) * r, this.rnd(0.2, 0.9) * height, z + Math.sin(a) * r);
+      mesh.position.set(
+        x + Math.cos(a) * r,
+        base + this.rnd(0.2, 0.9) * height,
+        z + Math.sin(a) * r,
+      );
       mesh.rotation.set(this.rnd(0, 6), this.rnd(0, 6), this.rnd(0, 6));
       const { object, materials } = kit.fadable(mesh);
       object.position.copy(mesh.position);
@@ -277,7 +285,7 @@ export class VisualPhysics {
       const out = this.rnd(30, 90);
       const m = new Mesh(ember, mats[0]);
       m.scale.setScalar(this.rnd(0.7, 1.5));
-      m.position.set(x, this.rnd(0.3, 0.8) * height, z);
+      m.position.set(x, base + this.rnd(0.3, 0.8) * height, z);
       this.spawn(
         {
           object: m,

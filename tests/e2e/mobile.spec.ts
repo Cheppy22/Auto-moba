@@ -71,8 +71,63 @@ for (const v of views) {
       if (await page.getByTestId('farm-toggle').count())
         await page.getByTestId('farm-toggle').tap();
       await page.getByTestId('shop-toggle').tap();
+      const sheet = page.getByTestId('shop-sheet');
+      await expect(sheet).toBeVisible();
+      await expect(page.getByTestId('shop')).toBeVisible();
+      await page.waitForTimeout(600);
       await shot(page, `${v.name}-hud-shop`);
-      await page.getByRole('button', { name: 'Close' }).tap();
+      const vp2 = page.viewportSize()!;
+      const sheetBox = (await sheet.boundingBox())!;
+      if (v.name === 'portrait') {
+        expect(sheetBox.y, 'game stays visible above the sheet').toBeGreaterThanOrEqual(
+          vp2.height * 0.4,
+        );
+        expect(sheetBox.y + sheetBox.height).toBeLessThanOrEqual(vp2.height + 1);
+      } else {
+        expect(sheetBox.x, 'game stays visible left of the sheet').toBeGreaterThanOrEqual(
+          vp2.width * 0.4,
+        );
+        expect(sheetBox.height).toBeGreaterThanOrEqual(vp2.height - 2);
+      }
+      await expect(page.getByTestId('buy')).toBeInViewport();
+      const buy = (await page.getByTestId('buy').boundingBox())!;
+      expect(buy.y + buy.height, 'Buy is on screen without scrolling').toBeLessThanOrEqual(
+        vp2.height,
+      );
+      expect(buy.height, 'buy tap target').toBeGreaterThanOrEqual(40);
+      expect((await page.getByTestId('shop-close').boundingBox())!.height).toBeGreaterThanOrEqual(
+        36,
+      );
+      const tile = (await page.locator('[data-testid^="item-"]').first().boundingBox())!;
+      expect(tile.width).toBeGreaterThanOrEqual(54);
+      expect(tile.height).toBeGreaterThanOrEqual(44);
+      expect(await overflow(page)).toBeLessThanOrEqual(0);
+      await page.getByTestId('shop-close').tap();
+      await expect(sheet).toHaveCount(0);
+
+      await page.getByTestId('shop-toggle').tap();
+      await expect(sheet).toBeVisible();
+      const grip = (await page.locator('.sheet-grip').boundingBox())!;
+      await page.mouse.move(grip.x + grip.width / 2, grip.y + grip.height / 2);
+      await page.mouse.down();
+      const sideways = v.name === 'landscape';
+      await page.mouse.move(
+        grip.x + grip.width / 2 + (sideways ? 40 : 0),
+        grip.y + grip.height / 2 + (sideways ? 0 : 40),
+        { steps: 4 },
+      );
+      await page.mouse.move(
+        grip.x + grip.width / 2 + (sideways ? 140 : 0),
+        grip.y + grip.height / 2 + (sideways ? 0 : 140),
+        { steps: 4 },
+      );
+      await page.mouse.up();
+      await expect(sheet).toHaveCount(0);
+
+      await page.getByTestId('shop-toggle').tap();
+      await expect(sheet).toBeVisible();
+      await page.touchscreen.tap(Math.round(vp2.width * 0.15), Math.round(vp2.height * 0.3));
+      await expect(sheet).toHaveCount(0);
 
       await page.evaluate(() => {
         const s = (

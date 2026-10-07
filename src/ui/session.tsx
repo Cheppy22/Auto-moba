@@ -2,6 +2,7 @@ import { createContext } from 'preact';
 import { useContext, useEffect, useRef, useState } from 'preact/hooks';
 import { Match, type Command, type CommandResult, type Content, type MatchConfig } from '../sim';
 import type { CamMode } from '../render/broadcast/types';
+import { roleLabel } from './format';
 import { plainText } from './richtext';
 
 export type Speed = 0 | 1 | 2 | 4 | 8;
@@ -28,7 +29,6 @@ export interface UiState {
   shopOpen: boolean;
   toast: string | null;
   info: string | null;
-  view: 'map' | 'broadcast';
   cam: CamMode;
   follow: number | null;
   caption: string | null;
@@ -44,7 +44,6 @@ const freshUi = (): UiState => ({
   shopOpen: false,
   toast: null,
   info: null,
-  view: 'map',
   cam: 'auto',
   follow: null,
   caption: null,
@@ -58,7 +57,6 @@ export class Session {
   private curseSeq = -1;
   private pendingCurses: { hero: number; item: string; flaw: string }[] = [];
   private noticeId = 0;
-  flashHalo: () => void = () => {};
   private infoTimer = 0;
   private escapes: (() => void)[] = [];
   private listeners = new Set<() => void>();
@@ -95,6 +93,27 @@ export class Session {
     window.clearTimeout(this.infoTimer);
     this.setUi({ info: message });
     this.infoTimer = window.setTimeout(() => this.setUi({ info: null }), ms);
+  }
+
+  /** Tapping your own portrait: the camera follows your hero. */
+  flashHalo(): void {
+    const id = this.match?.state.playerHeroId;
+    if (id != null) this.setUi({ cam: 'follow', follow: id });
+  }
+
+  /** Queue (or unqueue) a jungle shop as a suggestion and say how far away it is. */
+  suggestShop(shopId: string): boolean {
+    const m = this.match;
+    const shop = this.content.map.shops.find((x) => x.id === shopId);
+    if (!m || !shop) return false;
+    const queued = m.snapshot().suggest.includes(shopId);
+    if (!this.issue({ type: 'suggestShop', shopId }).ok) return false;
+    const hero = m.state.playerHeroId != null ? m.unitById(m.state.playerHeroId) : undefined;
+    if (queued || !hero) return true;
+    const secs = Math.round(Math.hypot(shop.x - hero.x, shop.y - hero.y) / hero.stats.moveSpeed);
+    const lane = hero.lane ? ` and leaves the ${roleLabel(hero.lane)}` : '';
+    this.flash(`${shop.name}: ~${secs}s away${lane}`);
+    return true;
   }
 
   pushEscape(close: () => void): () => void {
@@ -160,7 +179,7 @@ export class Session {
     this.match = Match.create(this.content, { seed, ...config });
     this.curseSeq = -1;
     this.pendingCurses = [];
-    this.ui = { ...freshUi(), view: this.ui.view, cam: this.ui.cam };
+    this.ui = { ...freshUi(), cam: this.ui.cam };
     this.notify();
   }
 

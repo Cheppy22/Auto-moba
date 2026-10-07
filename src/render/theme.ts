@@ -13,8 +13,6 @@ export const PALETTE = {
   teamB: '#d04a52',
 } as const;
 
-export const DISPLAY_FONT = "'IM Fell English SC', Georgia, serif";
-
 export function teamColor(team: string): string {
   return team === 'A' ? PALETTE.teamA : team === 'B' ? PALETTE.teamB : PALETTE.neutral;
 }

@@ -15,7 +15,6 @@ function Roster({ team }: { team: 'A' | 'B' }) {
   const s = useSession();
   const m = s.match!;
   const narrow = window.innerWidth < 420;
-  const broadcast = s.ui.view === 'broadcast';
   return (
     <div
       class="roster"
@@ -28,10 +27,10 @@ function Roster({ team }: { team: 'A' | 'B' }) {
         const frac = u.alive ? u.hp / u.stats.maxHp : 0;
         return (
           <div
-            class={`roster-cell ${broadcast ? 'pick' : ''} ${broadcast && s.ui.cam === 'follow' && s.ui.follow === id ? 'followed' : ''}`}
+            class={`roster-cell pick ${s.ui.cam === 'follow' && s.ui.follow === id ? 'followed' : ''}`}
             key={id}
             title={`${def.name} · ${u.hero!.kills} kills, ${u.hero!.deaths} deaths`}
-            onClick={broadcast ? () => s.setUi({ cam: 'follow', follow: id }) : undefined}
+            onClick={() => s.setUi({ cam: 'follow', follow: id })}
           >
             <HpRing
               size={narrow ? 26 : 34}
@@ -51,6 +50,7 @@ function Roster({ team }: { team: 'A' | 'B' }) {
 
 function PlayerCard({ u }: { u: Unit }) {
   const s = useSession();
+  const compact = useLayout() === 'portrait';
   const [open, setOpen] = useState(false);
   const wrap = useRef<HTMLDivElement>(null);
   useEscape(open, () => setOpen(false));
@@ -112,13 +112,13 @@ function PlayerCard({ u }: { u: Unit }) {
         }}
       >
         <HpRing
-          size={58}
+          size={compact ? 48 : 58}
           frac={u.alive ? u.hp / u.stats.maxHp : 0}
           color="var(--a)"
           alive={u.alive}
           me
         >
-          <SigilIcon spec={def.sigil} team="A" size={44} alive={u.alive} />
+          <SigilIcon spec={def.sigil} team="A" size={compact ? 36 : 44} alive={u.alive} />
         </HpRing>
         <div class="player-main">
           <div class="pips">
@@ -169,15 +169,24 @@ function PlayerCard({ u }: { u: Unit }) {
 function SpeedControls() {
   const s = useSession();
   return (
-    <div class="seg" role="group" aria-label="Speed">
+    <div class="seg speed-seg" role="group" aria-label="Speed">
       {([0, 1, 2, 4, 8] as Speed[]).map((v) => (
         <button
           key={v}
           class={`btn small ${s.ui.speed === v ? 'on' : ''}`}
           data-testid={`speed-${v}`}
+          aria-label={v === 0 ? 'Pause' : `${v} times speed`}
+          title={v === 0 ? 'Pause' : `${v}x speed`}
           onClick={() => s.setUi({ speed: v })}
         >
-          {v === 0 ? 'Pause' : `${v}x`}
+          {v === 0 ? (
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true">
+              <rect x="2" y="1" width="3" height="10" rx="0.5" />
+              <rect x="7" y="1" width="3" height="10" rx="0.5" />
+            </svg>
+          ) : (
+            `${v}x`
+          )}
         </button>
       ))}
     </div>
@@ -190,38 +199,28 @@ const CAMS: { id: CamMode; label: string; tip: string }[] = [
   { id: 'free', label: 'Free', tip: 'Drag to pan, scroll or pinch to zoom, right-drag to turn' },
 ];
 
-function ViewControls() {
+function CamControls() {
   const s = useSession();
-  const broadcast = s.ui.view === 'broadcast';
   return (
-    <div class="seg" role="group" aria-label="View">
-      <button
-        class={`btn small ${broadcast ? 'on' : ''}`}
-        data-testid={broadcast ? 'view-map' : 'view-broadcast'}
-        title={broadcast ? 'Back to the tactical map' : 'Watch the match in 3D'}
-        onClick={() => s.setUi({ view: broadcast ? 'map' : 'broadcast', caption: null })}
-      >
-        {broadcast ? 'Map' : 'Broadcast'}
-      </button>
-      {broadcast &&
-        CAMS.map((c) => (
-          <button
-            key={c.id}
-            class={`btn small ${s.ui.cam === c.id ? 'on' : ''}`}
-            data-testid={`cam-${c.id}`}
-            title={c.tip}
-            onClick={() => s.setUi({ cam: c.id, follow: c.id === 'follow' ? s.ui.follow : null })}
-          >
-            {c.label}
-          </button>
-        ))}
+    <div class="seg cam-seg" role="group" aria-label="Camera">
+      {CAMS.map((c) => (
+        <button
+          key={c.id}
+          class={`btn small ${s.ui.cam === c.id ? 'on' : ''}`}
+          data-testid={`cam-${c.id}`}
+          title={c.tip}
+          onClick={() => s.setUi({ cam: c.id, follow: c.id === 'follow' ? s.ui.follow : null })}
+        >
+          {c.label}
+        </button>
+      ))}
     </div>
   );
 }
 
 function Caption() {
   const s = useSession();
-  const text = s.ui.view === 'broadcast' ? s.ui.caption : null;
+  const text = s.ui.caption;
   if (!text) return null;
   return (
     <div class="caption" data-testid="caption" key={text}>
@@ -360,6 +359,52 @@ function CurseNotices() {
   );
 }
 
+function ShopSheet({ layout }: { layout: Layout }) {
+  const s = useSession();
+  const close = (): void => s.setUi({ shopOpen: false });
+  useEscape(true, close);
+  const sheet = useRef<HTMLDivElement>(null);
+  const drag = useRef<number | null>(null);
+  const sideways = layout === 'landscape';
+  const pos = (e: PointerEvent): number => (sideways ? e.clientX : e.clientY);
+  const offset = (e: PointerEvent): number => Math.max(0, pos(e) - (drag.current ?? 0));
+  const settle = (e: PointerEvent): void => {
+    if (drag.current === null || !sheet.current) return;
+    const moved = offset(e);
+    drag.current = null;
+    sheet.current.style.transition = '';
+    sheet.current.style.transform = '';
+    if (moved > 64) close();
+  };
+  return (
+    <div class="sheet-layer">
+      <div class="sheet-scrim" data-testid="shop-scrim" onClick={close} />
+      <div class="sheet" ref={sheet} role="dialog" aria-label="Shop" data-testid="shop-sheet">
+        <div
+          class="sheet-grip"
+          aria-hidden="true"
+          onPointerDown={(e) => {
+            drag.current = pos(e);
+            (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+            if (sheet.current) sheet.current.style.transition = 'none';
+          }}
+          onPointerMove={(e) => {
+            if (drag.current === null || !sheet.current) return;
+            const d = offset(e);
+            sheet.current.style.transform = sideways ? `translateX(${d}px)` : `translateY(${d}px)`;
+          }}
+          onPointerUp={settle}
+          onPointerCancel={settle}
+        >
+          <i />
+          <span class="sheet-paused">Game paused</span>
+        </div>
+        <ShopPanel onClose={close} />
+      </div>
+    </div>
+  );
+}
+
 export function Hud() {
   const s = useSession();
   const layout: Layout = useLayout();
@@ -420,30 +465,14 @@ export function Hud() {
       {announce}
     </div>
   );
-  useEscape(s.ui.shopOpen, () => s.setUi({ shopOpen: false }));
-  const shop = s.ui.shopOpen && (
-    <div class="overlay shop-overlay">
-      <div class="panel col" style={{ width: 'min(960px,100%)', maxHeight: '100%' }}>
-        <div class="row">
-          <h2 class="grow">Shop</h2>
-          <span class="dim small">The match is paused while you shop.</span>
-          <button class="btn" data-testid="shop-close" onClick={() => s.setUi({ shopOpen: false })}>
-            Close
-          </button>
-        </div>
-        <div class="scroll shop-scroll">
-          <ShopPanel />
-        </div>
-      </div>
-    </div>
-  );
+  const shop = s.ui.shopOpen && <ShopSheet layout={layout} />;
   const toast = (s.ui.toast || s.ui.info) && (
     <div class={`toast ${s.ui.toast ? '' : 'info'}`}>{s.ui.toast ?? s.ui.info}</div>
   );
   const speed = (
     <div class="glass speed-panel">
       <SpeedControls />
-      <ViewControls />
+      {layout !== 'portrait' && <CamControls />}
     </div>
   );
 
@@ -453,6 +482,9 @@ export function Hud() {
         <div class="map-zone">
           <div class="corner tl">
             {score}
+            <div class="glass speed-panel cam-panel">
+              <CamControls />
+            </div>
             {suggestChip}
             {chips}
           </div>

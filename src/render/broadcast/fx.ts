@@ -309,11 +309,11 @@ export class EventRing {
     );
   }
 
-  setTelegraph(wx: number, wz: number, r: number, time: number, on: boolean): void {
+  setTelegraph(wx: number, dy: number, wz: number, r: number, time: number, on: boolean): void {
     this.tele.visible = on;
     if (!on) return;
     const pulse = 0.5 + 0.5 * Math.sin(time * 9);
-    this.tele.position.set(wx - this.group.position.x, 0, wz - this.group.position.z);
+    this.tele.position.set(wx - this.group.position.x, dy, wz - this.group.position.z);
     this.teleDisc.scale.set(r * 2.2, 1, r * 2.2);
     this.teleRing.scale.set(r * 2, 1, r * 2);
     (this.teleDisc.material as MeshBasicMaterial).opacity = 0.35 + 0.35 * pulse;

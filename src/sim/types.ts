@@ -204,6 +204,8 @@ export interface Unit {
   rageStage?: number;
   roaming?: boolean;
   lastDamagedTick: number;
+  /** Waypoint around solid terrain while the unit walks a detour; null when it walks straight. */
+  detour: { x: number; y: number; untilTick: number } | null;
 }
 
 export interface TeamState {

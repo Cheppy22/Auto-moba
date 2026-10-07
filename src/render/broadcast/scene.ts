@@ -61,6 +61,8 @@ class UnitView {
   lunge = 0;
   flinch = 0;
   stamp = 0;
+  /** Ground height under the unit this frame. */
+  gy = 0;
   placed = false;
   readonly objects: Object3D[] = [];
   hero?: HeroModel;
@@ -114,11 +116,15 @@ export class BroadcastView {
   private readonly half: number;
   private readonly shadows: boolean;
   private time = 0;
+  /** Dev tool: speeds up the view's own animation clock (slow software renderers). */
+  private devTimeScale = 1;
   private stamp = 0;
   private lastTick = -1;
   private cssW = 0;
   private cssH = 0;
   private barScale = 1;
+  /** Far shots enlarge heroes and minions a little so phones can still read them. */
+  private boost = 1;
   private readonly tmp = new Vector3();
   private readonly from = new Vector3();
   private readonly to = new Vector3();
@@ -168,9 +174,15 @@ export class BroadcastView {
     this.scene.add(sky, sun, sun.target, rim);
 
     this.arena = new Arena(this.kit, content, this.shadows);
-    this.rig = new CameraRig(canvas, content.map.size * 0.6);
+    this.rig = new CameraRig(
+      canvas,
+      content.map.size * 0.6,
+      (x, z) => this.arena.field.surfaceW(x, z),
+      this.arena.field.outline(),
+    );
     this.minions = new MinionKit(this.kit);
     this.physics = new VisualPhysics(this.kit);
+    this.physics.ground = (x, z) => this.arena.field.heightW(x, z);
     this.bars = new BarBatch(this.kit);
     this.streaks = new StreakPool(this.kit);
     this.unitGroup.add(this.minions.group);
@@ -182,6 +194,46 @@ export class BroadcastView {
       this.bars.group,
     );
     this.resize();
+    if (import.meta.env.DEV) {
+      const w = window as unknown as {
+        __bvStats?: () => ReturnType<BroadcastView['stats']>;
+        __bvSettle?: () => void;
+        __bvTime?: (k: number) => void;
+        __bvCam?: () => number[];
+        __bvWide?: (on: boolean) => void;
+        __bvPin?: (
+          p: { x: number; z: number; dist: number; elev: number; azim: number } | null,
+        ) => void;
+      };
+      w.__bvStats = () => this.stats();
+      w.__bvSettle = () => this.rig.settle();
+      w.__bvCam = () => {
+        const c = this.rig.camera.position;
+        const f = this.rig.focus;
+        return [c.x, c.y, c.z, f.x, f.y, f.z];
+      };
+      w.__bvWide = (on) => {
+        this.rig.forceWide = on;
+      };
+      w.__bvTime = (k) => {
+        this.devTimeScale = k;
+      };
+      w.__bvPin = (p) => {
+        this.rig.pinned = p;
+        this.rig.settle(p ?? undefined);
+      };
+    }
+  }
+
+  /** Draw calls, triangles and GPU objects in the last frame (for profiling). */
+  stats(): { calls: number; triangles: number; geometries: number; textures: number } {
+    const i = this.renderer.info;
+    return {
+      calls: i.render.calls,
+      triangles: i.render.triangles,
+      geometries: i.memory.geometries,
+      textures: i.memory.textures,
+    };
   }
 
   resize(): void {
@@ -198,21 +250,22 @@ export class BroadcastView {
     if (this.canvas.clientWidth !== this.cssW || this.canvas.clientHeight !== this.cssH)
       this.resize();
     const dt = MathUtils.clamp(frame.dtMs, 0, 100) / 1000;
-    this.time += dt;
+    this.time += dt * this.devTimeScale;
     if (snap.tick < this.lastTick) this.reset();
     this.lastTick = snap.tick;
     this.stamp++;
 
     this.byId.clear();
     for (const u of snap.units) this.byId.set(u.id, u);
-    this.arena.sync(snap);
+    this.arena.sync(snap, this.time);
 
     const follow = this.followPoint(frame);
     this.rig.update(frame, this.half, follow);
     const camera = this.rig.camera;
     const dist = this.rig.distance;
     this.kit.inkWidth.value = MathUtils.clamp(dist * 0.0032, 0.4, 2.6);
-    this.barScale = MathUtils.clamp(dist / 700, 0.8, 1.5);
+    this.barScale = MathUtils.clamp(dist / 700, 0.8, 2.4);
+    this.boost = MathUtils.clamp(dist / 1700, 1, 1.65);
     this.aimSun();
 
     this.handleEvents(events);
@@ -233,7 +286,8 @@ export class BroadcastView {
    * from the canvas's top-left. `visible` is false behind the camera or off screen.
    */
   project(x: number, y: number, lift = 0): { x: number; y: number; visible: boolean } {
-    const v = this.tmp.set(x - this.half, lift, y - this.half).project(this.rig.camera);
+    const ground = this.arena.field.heightAt(x, y);
+    const v = this.tmp.set(x - this.half, ground + lift, y - this.half).project(this.rig.camera);
     const w = this.canvas.clientWidth;
     const h = this.canvas.clientHeight;
     const sx = ((v.x + 1) / 2) * w;
@@ -361,6 +415,8 @@ export class BroadcastView {
       if (u.kind === 'guardian') v.yaw = Math.atan2(-x, -z);
       if (u.kind === 'camp') v.yaw = Math.atan2(-x, -z) + ((hash(`${u.id}`) % 100) / 100 - 0.5);
     }
+    const gy = this.arena.field.heightW(x, z);
+    v.gy = gy;
     const dx = x - v.x;
     const dz = z - v.z;
     const dist = Math.hypot(dx, dz);
@@ -397,7 +453,7 @@ export class BroadcastView {
         if (!m) return;
         m.setVisible(u.alive);
         if (!u.alive) return;
-        m.place(x, z, v.yaw);
+        m.place(x, gy, z, v.yaw, this.boost);
         m.animate(
           { yaw: v.yaw, move: v.move, phase: v.phase, lunge, flinch: v.flinch, time },
           this.rig.camera.quaternion,
@@ -410,75 +466,94 @@ export class BroadcastView {
             holy: u.holy,
           },
         );
-        this.bars.add(x, 60, z, 24 * k, 3.4 * k, frac, col);
+        this.bars.add(x, gy + 60 * this.boost, z, 24 * k, 3.4 * k, frac, col);
         if (u.shield > 0)
-          this.bars.add(x, 60 + 4.4 * k, z, 24 * k, 2 * k, Math.min(1, u.shield / u.maxHp), SHIELD);
+          this.bars.add(
+            x,
+            gy + 60 * this.boost + 4.4 * k,
+            z,
+            24 * k,
+            2 * k,
+            Math.min(1, u.shield / u.maxHp),
+            SHIELD,
+          );
         break;
       }
       case 'minion': {
         if (v.jabber) {
-          v.jabber.root.position.set(x, 0, z);
+          v.jabber.root.position.set(x, gy, z);
           v.jabber.root.rotation.y = v.yaw;
           v.jabber.animate(time, lunge);
-          this.bars.add(x, 112, z, 50 * k, 4.8 * k, frac, ONI_RED);
+          this.bars.add(x, gy + 112, z, 50 * k, 4.8 * k, frac, ONI_RED);
           break;
         }
         if (v.camp) {
-          v.camp.root.position.set(x, 0, z);
+          v.camp.root.position.set(x, gy, z);
           v.camp.root.rotation.y = v.yaw;
           v.camp.animate(time, lunge);
-          this.bars.add(x, 62, z, 40 * k, 4.4 * k, frac, ONI_RED);
+          this.bars.add(x, gy + 62, z, 40 * k, 4.4 * k, frac, ONI_RED);
           break;
         }
         const neutral = u.team === 'neutral';
         const scale =
-          (neutral ? (u.maxHp < 400 ? 1.1 : u.maxHp < 800 ? 1.5 : 2) : 1) * MINION_SCALE;
+          (neutral ? (u.maxHp < 400 ? 1.1 : u.maxHp < 800 ? 1.5 : 2) : 1) *
+          MINION_SCALE *
+          this.boost;
         const bob = Math.abs(Math.sin(v.phase)) * 1.3 * v.move * scale;
         this.minions.add(
           u.team,
           u.range > 40,
           x,
-          bob,
+          gy + bob,
           z,
           v.yaw,
           v.move * 0.12 + lunge * 0.35 - v.flinch * 0.3,
           scale,
+          gy,
         );
         if (u.hp < u.maxHp)
-          this.bars.add(x, 14 * scale, z, 9 * k, 1.8 * k, frac, neutral ? PALETTE.neutral : col);
+          this.bars.add(
+            x,
+            gy + 14 * scale,
+            z,
+            9 * k,
+            1.8 * k,
+            frac,
+            neutral ? PALETTE.neutral : col,
+          );
         break;
       }
       case 'tower': {
-        v.tower?.root.position.set(x, 0, z);
+        v.tower?.root.position.set(x, gy, z);
         v.tower?.animate(time, lunge, frac);
-        this.bars.add(x, 56, z, 28 * k, 3.6 * k, frac, col);
+        this.bars.add(x, gy + 56, z, 28 * k, 3.6 * k, frac, col);
         break;
       }
       case 'guardian': {
         const g = v.king;
         if (!g) return;
-        g.root.position.set(x, 0, z);
+        g.root.position.set(x, gy, z);
         g.root.rotation.y = v.yaw;
         g.animate(time, lunge, frac);
-        this.bars.add(x, 92, z, 52 * k, 4.6 * k, frac, col);
+        this.bars.add(x, gy + 92, z, 52 * k, 4.6 * k, frac, col);
         break;
       }
       case 'camp': {
         const c = v.camp;
         if (!c) return;
-        c.root.position.set(x, 0, z);
+        c.root.position.set(x, gy, z);
         c.root.rotation.y = v.yaw;
         c.animate(time, lunge);
         if (u.hp < u.maxHp)
-          this.bars.add(x, u.maxHp > 900 ? 38 : 26, z, 15 * k, 2.4 * k, frac, PALETTE.camp);
+          this.bars.add(x, gy + (u.maxHp > 900 ? 38 : 26), z, 15 * k, 2.4 * k, frac, PALETTE.camp);
         break;
       }
       case 'obelisk':
-        v.obelisk?.root.position.set(x, 0, z);
+        v.obelisk?.root.position.set(x, gy, z);
         v.obelisk?.animate(time, u.claim);
         break;
       case 'keeper':
-        v.keeper?.root.position.set(x, 0, z);
+        v.keeper?.root.position.set(x, gy, z);
         v.keeper?.animate(time, this.rig.camera.quaternion);
         break;
     }
@@ -506,8 +581,8 @@ export class BroadcastView {
         a.lunge = 1;
         if (p.srcKind === 'minion' && p.tgtKind === 'minion') break;
         const structure = p.srcKind === 'tower' || p.srcKind === 'guardian';
-        this.from.set(a.x, CHEST[p.srcKind] ?? 10, a.z);
-        this.to.set(b.x, CHEST[p.tgtKind] ?? 10, b.z);
+        this.from.set(a.x, a.gy + (CHEST[p.srcKind] ?? 10), a.z);
+        this.to.set(b.x, b.gy + (CHEST[p.tgtKind] ?? 10), b.z);
         this.streaks.fire(
           this.from,
           this.to,
@@ -526,14 +601,14 @@ export class BroadcastView {
           if (v?.hero?.root.visible) {
             this.physics.ragdoll(
               v.hero.pieces(),
-              killer ? this.tmp.set(killer.x, 0, killer.z) : null,
+              killer ? this.tmp.set(killer.x, killer.gy, killer.z) : null,
             );
             if (this.focusNear(x, z, 420)) this.rig.kick(0.22);
           }
         } else if (p.kind === 'minion') {
-          this.physics.paperBurst(x, 4, z, teamColor(p.team));
+          this.physics.paperBurst(x, this.arena.field.heightW(x, z) + 4, z, teamColor(p.team));
         } else if (p.kind === 'camp') {
-          this.physics.paperBurst(x, 6, z, PALETTE.camp);
+          this.physics.paperBurst(x, this.arena.field.heightW(x, z) + 6, z, PALETTE.camp);
         }
         break;
       }
@@ -545,6 +620,7 @@ export class BroadcastView {
         const guardian = p.kind === 'guardian';
         this.physics.debris(
           x,
+          this.arena.field.heightW(x, z),
           z,
           guardian ? 64 : 38,
           guardian ? 20 : 10,
@@ -567,7 +643,11 @@ export class BroadcastView {
       let ring = this.rings.get(e.id);
       if (!ring) {
         ring = new EventRing(this.kit, e.type, e.radius);
-        ring.group.position.set(e.x - this.half, 0, e.y - this.half);
+        ring.group.position.set(
+          e.x - this.half,
+          this.arena.field.surfaceAt(e.x, e.y),
+          e.y - this.half,
+        );
         this.rings.set(e.id, ring);
         this.unitGroup.add(ring.group);
       }
@@ -576,6 +656,7 @@ export class BroadcastView {
       const t = e.telegraph;
       ring.setTelegraph(
         t ? t.x - this.half : 0,
+        t ? this.arena.field.surfaceAt(t.x, t.y) - ring.group.position.y : 0,
         t ? t.y - this.half : 0,
         t?.radius ?? 0,
         this.time,

@@ -152,6 +152,14 @@
 .glass.speed-panel {
   padding: 3px;
 }
+.speed-seg .btn.small,
+.cam-seg .btn.small {
+  display: grid;
+  place-items: center;
+  min-width: 40px;
+  min-height: 36px;
+  padding: 2px 8px;
+}
 
 /* player card: portrait, four ability dials, gold */
 .player-card-wrap {
@@ -277,9 +285,6 @@
   gap: 6px;
   padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
   background: linear-gradient(to top, rgba(8, 6, 12, 0.96) 80%, rgba(8, 6, 12, 0));
-}
-.shop-overlay {
-  z-index: 4;
 }
 
 .pts,
@@ -478,12 +483,11 @@
   flex: 1 1 150px;
 }
 
-/* broadcast view: view toggle, follow picks, lower-third caption */
+/* speed and camera controls, follow picks, lower-third caption */
 .glass.speed-panel {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 3px;
+  align-items: center;
+  gap: 8px;
 }
 .roster-cell.pick {
   pointer-events: auto;
@@ -525,10 +529,90 @@
 }
 .hud-portrait .caption {
   bottom: 8px;
+  max-width: 64vw;
 }
 @keyframes caption-in {
   from {
     opacity: 0;
     translate: calc(-50% - 24px) 0;
   }
+}
+
+/* shop pins: small labeled buttons hung over the two jungle stalls */
+.shop-pins {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.shop-pin {
+  position: absolute;
+  left: 0;
+  top: 0;
+  translate: -50% calc(-100% - 9px);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 4px 13px 4px 10px;
+  border: 1px solid var(--brass);
+  border-radius: 20px;
+  background: rgba(12, 10, 18, 0.84);
+  color: var(--brass-hi);
+  font-family: var(--font-display);
+  font-size: var(--fs-sm);
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  cursor: pointer;
+  pointer-events: auto;
+  backdrop-filter: blur(4px);
+  box-shadow: var(--sh-1), var(--glow-brass);
+}
+.shop-pin[hidden] {
+  display: none;
+}
+.shop-pin::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -5px;
+  width: 8px;
+  height: 8px;
+  translate: -50% 0;
+  rotate: 45deg;
+  border: 1px solid var(--brass);
+  border-top: 0;
+  border-left: 0;
+  background: #0c0a12;
+}
+.shop-pin:hover {
+  color: #fff3dc;
+  border-color: var(--brass-hi);
+}
+.shop-pin.queued {
+  background: linear-gradient(180deg, #3a2f18, #221a0d);
+  border-color: var(--brass-hi);
+}
+.shop-pin.queued::after {
+  background: #221a0d;
+}
+.shop-pin.queued span::after {
+  content: ' ✓';
+}
+
+/* shown instead of the game when the device has no WebGL */
+.stage-error {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: var(--sp-5);
+}
+.stage-error .panel {
+  max-width: 420px;
+  text-align: center;
+  margin-top: -10vh;
+}
+.stage-error p {
+  margin: 0;
 }

@@ -4,6 +4,7 @@ import { hpPct, isEnemy, isTargetable, type Ctx } from './ctx';
 import type { AbilityDef, DamageType, EffectDef, TriggerDef } from './content/schema';
 import { addMod, recompute, triggersOf } from './stats';
 import type { Unit } from './types';
+import { confine, walkable } from './world/terrain';
 
 const HERO_ASSIST_WINDOW = 160;
 export const TPS = 20;
@@ -171,8 +172,25 @@ function moveDash(
     move = Math.max(0, Math.min(e.distance, d - Math.max(8, caster.atkRange * 0.6)));
   const sign = e.toward === 'target' ? 1 : -1;
   const size = ctx.world.map.size;
-  caster.x = clamp(caster.x + (dx / d) * move * sign, 0, size);
-  caster.y = clamp(caster.y + (dy / d) * move * sign, 0, size);
+  const ex = clamp(caster.x + (dx / d) * move * sign, 0, size);
+  const ey = clamp(caster.y + (dy / d) * move * sign, 0, size);
+  // The dash stops at the last walkable point of its line: no leaping through solid terrain.
+  const terrain = ctx.world.terrain;
+  const sx = caster.x;
+  const sy = caster.y;
+  const n = Math.max(1, Math.ceil(move / 4));
+  for (let i = 1; i <= n; i++) {
+    const px = sx + ((ex - sx) * i) / n;
+    const py = sy + ((ey - sy) * i) / n;
+    if (!walkable(terrain, ctx.open, px, py)) break;
+    caster.x = px;
+    caster.y = py;
+  }
+  if (!walkable(terrain, ctx.open, caster.x, caster.y)) {
+    const p = confine(terrain, ctx.open, caster.x, caster.y);
+    caster.x = p.x;
+    caster.y = p.y;
+  }
   caster.path = [];
 }
 
