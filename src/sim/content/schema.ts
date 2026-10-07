@@ -317,6 +317,17 @@ export const MapSchema = z.object({
     z.object({ id: z.string(), x: z.number(), y: z.number(), slot: z.string().optional() }),
   ),
   keeperSpots: z.array(z.object({ id: z.string(), x: z.number(), y: z.number() })),
+  /** Walkable space: everything outside these shapes is solid terrain. */
+  walk: z
+    .object({
+      lane: z.number(),
+      base: z.number(),
+      port: z.number(),
+      slotPad: z.number(),
+      shopPad: z.number(),
+      spot: z.number(),
+    })
+    .default({ lane: 40, base: 105, port: 26, slotPad: 14, shopPad: 14, spot: 34 }),
 });
 
 export const PressureSchema = z.object({

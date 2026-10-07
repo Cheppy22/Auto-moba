@@ -287,5 +287,13 @@
         }
       ]
     }
-  ]
+  ],
+  "walk": {
+    "lane": 40,
+    "base": 105,
+    "port": 26,
+    "slotPad": 14,
+    "shopPad": 14,
+    "spot": 34
+  }
 }

@@ -228,6 +228,20 @@ export class BroadcastView {
     this.renderer.render(this.scene, camera);
   }
 
+  /**
+   * Where a sim point (plus `lift` units above the ground) lands on the canvas, in CSS pixels
+   * from the canvas's top-left. `visible` is false behind the camera or off screen.
+   */
+  project(x: number, y: number, lift = 0): { x: number; y: number; visible: boolean } {
+    const v = this.tmp.set(x - this.half, lift, y - this.half).project(this.rig.camera);
+    const w = this.canvas.clientWidth;
+    const h = this.canvas.clientHeight;
+    const sx = ((v.x + 1) / 2) * w;
+    const sy = ((1 - v.y) / 2) * h;
+    const visible = v.z > -1 && v.z < 1 && sx >= 0 && sy >= 0 && sx <= w && sy <= h;
+    return { x: sx, y: sy, visible };
+  }
+
   /** Keeps the shadow frustum on whatever the camera is looking at. */
   private aimSun(): void {
     const f = this.rig.focus;
