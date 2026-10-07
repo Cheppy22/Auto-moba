@@ -477,3 +477,58 @@
 .event-prompt span {
   flex: 1 1 150px;
 }
+
+/* broadcast view: view toggle, follow picks, lower-third caption */
+.glass.speed-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+}
+.roster-cell.pick {
+  pointer-events: auto;
+  cursor: pointer;
+}
+.roster-cell.followed {
+  filter: drop-shadow(0 0 6px var(--brass-hi));
+}
+.caption {
+  position: absolute;
+  left: 50%;
+  bottom: calc(18px + env(safe-area-inset-bottom));
+  translate: -50% 0;
+  z-index: 2;
+  display: flex;
+  align-items: stretch;
+  max-width: min(46vw, 440px);
+  background: linear-gradient(180deg, rgba(26, 22, 36, 0.92), rgba(12, 10, 18, 0.92));
+  border: 1px solid var(--brass-dim);
+  border-radius: var(--r-1);
+  box-shadow: var(--sh-2);
+  overflow: hidden;
+  animation: caption-in var(--t-med) var(--ease) both;
+}
+.caption-bar {
+  width: 6px;
+  flex: none;
+  background: linear-gradient(180deg, var(--seal-hi), var(--seal-deep));
+}
+.caption-text {
+  padding: 6px 14px;
+  font-family: var(--font-display);
+  font-size: var(--fs-lg);
+  letter-spacing: 0.06em;
+  color: var(--brass-hi);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hud-portrait .caption {
+  bottom: 8px;
+}
+@keyframes caption-in {
+  from {
+    opacity: 0;
+    translate: calc(-50% - 24px) 0;
+  }
+}

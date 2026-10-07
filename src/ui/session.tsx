@@ -1,6 +1,7 @@
 import { createContext } from 'preact';
 import { useContext, useEffect, useRef, useState } from 'preact/hooks';
 import { Match, type Command, type CommandResult, type Content, type MatchConfig } from '../sim';
+import type { CamMode } from '../render/broadcast/types';
 import { plainText } from './richtext';
 
 export type Speed = 0 | 1 | 2 | 4 | 8;
@@ -27,6 +28,10 @@ export interface UiState {
   shopOpen: boolean;
   toast: string | null;
   info: string | null;
+  view: 'map' | 'broadcast';
+  cam: CamMode;
+  follow: number | null;
+  caption: string | null;
 }
 
 const freshUi = (): UiState => ({
@@ -39,6 +44,10 @@ const freshUi = (): UiState => ({
   shopOpen: false,
   toast: null,
   info: null,
+  view: 'map',
+  cam: 'auto',
+  follow: null,
+  caption: null,
 });
 
 export class Session {
@@ -151,7 +160,7 @@ export class Session {
     this.match = Match.create(this.content, { seed, ...config });
     this.curseSeq = -1;
     this.pendingCurses = [];
-    this.ui = freshUi();
+    this.ui = { ...freshUi(), view: this.ui.view, cam: this.ui.cam };
     this.notify();
   }
 

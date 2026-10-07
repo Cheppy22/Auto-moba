@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { Unit } from '../sim';
+import type { CamMode } from '../render/broadcast/types';
 import { HpRing, Icon } from './Ornament';
 import { ItemIcon } from './ItemIcon';
 import { SigilIcon } from './SigilIcon';
@@ -14,6 +15,7 @@ function Roster({ team }: { team: 'A' | 'B' }) {
   const s = useSession();
   const m = s.match!;
   const narrow = window.innerWidth < 420;
+  const broadcast = s.ui.view === 'broadcast';
   return (
     <div
       class="roster"
@@ -26,9 +28,10 @@ function Roster({ team }: { team: 'A' | 'B' }) {
         const frac = u.alive ? u.hp / u.stats.maxHp : 0;
         return (
           <div
-            class="roster-cell"
+            class={`roster-cell ${broadcast ? 'pick' : ''} ${broadcast && s.ui.cam === 'follow' && s.ui.follow === id ? 'followed' : ''}`}
             key={id}
             title={`${def.name} · ${u.hero!.kills} kills, ${u.hero!.deaths} deaths`}
+            onClick={broadcast ? () => s.setUi({ cam: 'follow', follow: id }) : undefined}
           >
             <HpRing
               size={narrow ? 26 : 34}
@@ -177,6 +180,53 @@ function SpeedControls() {
           {v === 0 ? 'Pause' : `${v}x`}
         </button>
       ))}
+    </div>
+  );
+}
+
+const CAMS: { id: CamMode; label: string; tip: string }[] = [
+  { id: 'auto', label: 'Auto', tip: 'The camera follows the big plays' },
+  { id: 'follow', label: 'Follow', tip: 'Track one hero (tap a portrait to switch)' },
+  { id: 'free', label: 'Free', tip: 'Drag to pan, scroll or pinch to zoom, right-drag to turn' },
+];
+
+function ViewControls() {
+  const s = useSession();
+  const broadcast = s.ui.view === 'broadcast';
+  return (
+    <div class="seg" role="group" aria-label="View">
+      <button
+        class={`btn small ${broadcast ? 'on' : ''}`}
+        data-testid={broadcast ? 'view-map' : 'view-broadcast'}
+        title={broadcast ? 'Back to the tactical map' : 'Watch the match in 3D'}
+        onClick={() => s.setUi({ view: broadcast ? 'map' : 'broadcast', caption: null })}
+      >
+        {broadcast ? 'Map' : 'Broadcast'}
+      </button>
+      {broadcast &&
+        CAMS.map((c) => (
+          <button
+            key={c.id}
+            class={`btn small ${s.ui.cam === c.id ? 'on' : ''}`}
+            data-testid={`cam-${c.id}`}
+            title={c.tip}
+            onClick={() => s.setUi({ cam: c.id, follow: c.id === 'follow' ? s.ui.follow : null })}
+          >
+            {c.label}
+          </button>
+        ))}
+    </div>
+  );
+}
+
+function Caption() {
+  const s = useSession();
+  const text = s.ui.view === 'broadcast' ? s.ui.caption : null;
+  if (!text) return null;
+  return (
+    <div class="caption" data-testid="caption" key={text}>
+      <span class="caption-bar" />
+      <span class="caption-text">{text}</span>
     </div>
   );
 }
@@ -393,6 +443,7 @@ export function Hud() {
   const speed = (
     <div class="glass speed-panel">
       <SpeedControls />
+      <ViewControls />
     </div>
   );
 
@@ -414,6 +465,7 @@ export function Hud() {
           </div>
           <CurseNotices />
           <EventPrompt />
+          <Caption />
         </div>
         {toast}
         <div class="hud-dock portrait">
@@ -438,6 +490,7 @@ export function Hud() {
       </div>
       <CurseNotices />
       <EventPrompt />
+      <Caption />
       <div class="corner bl">{p && <PlayerCard u={p} />}</div>
       <div class="corner br">{p && <Controls u={p} />}</div>
       {toast}

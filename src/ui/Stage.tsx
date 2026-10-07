@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'preact/hooks';
 import { Renderer } from '../render';
+import { Broadcast } from './Broadcast';
 import { roleLabel } from './format';
 import { NOTICE_TICKS, useSession } from './session';
 
@@ -25,6 +26,7 @@ export function Stage() {
       }
       r.setFrame(insets, layout === 'portrait' ? 1.6 : layout === 'landscape' ? 1.0 : 1.3);
       const m = s.match;
+      if (s.ui.view === 'broadcast' && m && m.state.phase.kind !== 'draft') return;
       if (!m || m.state.phase.kind === 'draft') {
         r.drawEmpty();
         return;
@@ -81,9 +83,11 @@ export function Stage() {
       canvas.removeEventListener('mousemove', onMove);
     };
   }, [s]);
+  const broadcast = s.ui.view === 'broadcast' && !!s.match && s.match.state.phase.kind !== 'draft';
   return (
     <div class="stage">
-      <canvas ref={ref} data-testid="stage" />
+      <canvas ref={ref} data-testid="stage" hidden={broadcast} />
+      {broadcast && <Broadcast />}
     </div>
   );
 }

@@ -4,6 +4,7 @@ Newest first. One entry per change: what changed, why, and any measured effect. 
 
 ## 2026-10-07
 
+- **Broadcast view** (spec [BROADCAST.md](BROADCAST.md)). A three.js spectator view toggled from the speed panel: a director picks the most important play each moment and an NFL-style camera dollies or cuts to it with a lower-third caption; Follow and Free camera modes; roster portraits pick who to follow. Art built from code, visual-only ragdoll and debris physics. Why: Cheppy wanted to watch fights up close, Deadlock-style, without changing the game. three.js is a new dependency (approved) and loads only when the view is opened, so the 2D game's load is unchanged. The sim is untouched (no balance effect).
 - **Docs consolidated** (this commit). `SOURCE_OF_TRUTH.md` (living game description) and this changelog replace `DESIGN.md`, `BUILD_NOTES.md` and `DECISIONS.md`, which moved to `docs/archive/`. `ARCHITECTURE.md` stays.
 - **Decision log added** (`80695d0`), later merged into the source of truth.
 - **Item sheet v2** (`264b0a8`, spec `810ff99`).

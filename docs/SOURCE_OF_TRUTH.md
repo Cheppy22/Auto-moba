@@ -4,7 +4,7 @@
 
 - What changed and when: [CHANGELOG.md](CHANGELOG.md). Never put history in this file.
 - How the code is organized: [ARCHITECTURE.md](ARCHITECTURE.md).
-- Dated specs and reports this file links to: [ITEMS.md](ITEMS.md), [PLAYTEST.md](PLAYTEST.md), [BALANCE_REPORT.md](BALANCE_REPORT.md).
+- Dated specs and reports this file links to: [ITEMS.md](ITEMS.md), [PLAYTEST.md](PLAYTEST.md), [BALANCE_REPORT.md](BALANCE_REPORT.md), [BROADCAST.md](BROADCAST.md).
 - Old design docs, kept for history only: [archive/](archive/).
 
 ## Update rules (every session must follow these)
@@ -26,7 +26,7 @@
   - Work on branch `test-product`, and never open a PR unless asked.
   - Push with `git push -u origin test-product`, retrying on network errors.
   - End commit messages with the attribution lines from the latest system reminder.
-- **Models:** Opus designs, playtests and writes specs; Sonnet implements. Say when a hand-off point is reached.
+- **Models:** the session stays on Opus, which designs, writes specs, reviews and integrates. It delegates through subagents: Sonnet builds features, and Haiku does mechanical bulk work (renames, sweeps, formatting), which is always reviewed before commit. Say which agent and model did each piece.
 - **Publishing:** GitHub Pages deploys from `test-product`. The Pages source must be set to "GitHub Actions". Site: https://cheppy22.github.io/Auto-moba/.
 - **Run it:** see [README.md](../README.md). `npm run check` runs typecheck, lint, prettier and unit tests; `npx playwright test` runs the browser tests.
 
@@ -151,6 +151,10 @@ Each hero re-plans about once per second and scores goals (farm lane, push tower
 - **Your hero** has a gold ring and a pulsing halo at phase start and on respawn; tapping your portrait flashes it.
 - **Map labels** are drawn last and nudged or skipped on collision.
 - Escape closes overlays; an unspent-gold reminder appears before starting a phase; the Shop tab shows your gold.
+- **Broadcast view** (spec: [BROADCAST.md](BROADCAST.md)): a **Map / Broadcast** toggle in the speed panel switches to a 3D spectator view drawn with three.js. The 2D map stays the default and the only place to click shops.
+  - **Auto** camera works like an NFL broadcast: a high wide shot when it's quiet, a sideline camera that dollies onto the most important play (guardian siege, tower falls, multi-kills, team fights, kills, jungle events, skirmishes), and a lower-third caption naming the play.
+  - **Follow** tracks your hero; tap any roster portrait to follow that hero instead. **Free** lets you drag, zoom and turn the camera.
+  - Art is built from code. Physics (ragdolls, debris) is visual only and never affects the match. If WebGL is missing, the game falls back to the map.
 
 ## Balance targets and method
 
@@ -195,6 +199,7 @@ Meta-progression between matches; era-themed lane identity; "The Core" alternate
 | Player's hero never buys or recalls on its own     | Auto-buy and heal recall for the player (toggleable)                        |
 | Towers: 3000 health, heroes at full damage         | 3600 health, ×0.5 hero damage, 9% per second cap                            |
 | Reports as separate team, hero and totals views    | One scoreboard screen with a collapsed Details section                      |
+| Canvas 2D only, no drawing library                 | 2D map plus a lazy-loaded three.js Broadcast view                           |
 
 ## Where to look first (for code work)
 

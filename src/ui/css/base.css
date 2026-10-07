@@ -113,3 +113,11 @@ h4 {
 .teamB {
   color: var(--b);
 }
+.stage canvas[hidden] {
+  display: none;
+}
+.stage canvas.broadcast {
+  position: absolute;
+  inset: 0;
+  touch-action: none;
+}

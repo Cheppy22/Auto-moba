@@ -27,7 +27,7 @@ The prototype is one browser game in TypeScript. A deterministic simulation core
 | Dev server / bundle | Vite                                                          | Zero-config, fast reload                             |
 | Tests               | Vitest                                                        | Same config as Vite; runs sim tests in Node          |
 | Browser smoke tests | Playwright (preinstalled Chromium)                            | Checks screens load and a match runs                 |
-| Game drawing        | Canvas 2D, no library                                         | Enough for about 100 units; nothing to port          |
+| Game drawing        | Canvas 2D map; three.js for the Broadcast view (lazy loaded)  | 2D stays the tactical view; 3D is for spectating     |
 | Screens             | Preact                                                        | Reports and shop need interactive UI; about 4 KB     |
 | Content schemas     | Zod                                                           | One schema gives both types and load-time validation |
 | Lint / format       | ESLint with `no-restricted-imports` per folder, plus Prettier | Enforces layer boundaries without an extra plugin    |
@@ -37,7 +37,8 @@ The prototype is one browser game in TypeScript. A deterministic simulation core
 content/         JSON: heroes, items, upgrades, biomes, pressure, badges, map, tuning
 src/sim/         pure simulation: core, world, systems, ai, events, commands, content loader
 src/analysis/    pure: event log -> report models (stats, fights, badges, paths)
-src/render/      Canvas drawing of snapshots, sigils, map, replay overlays
+src/render/      Canvas drawing of snapshots, sigils, map, replay overlays;
+                 broadcast/ = three.js spectator view and play director
 src/ui/          Preact screens: draft, HUD, between-phase, reports
 src/app/         wiring: frame clock, speed control, screen state machine
 tools/           Node: headless match, batch balance runner
