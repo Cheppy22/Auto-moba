@@ -22,3 +22,14 @@ export function useLayout(): Layout {
   }, []);
   return layout;
 }
+
+export function useWidthBelow(px: number): boolean {
+  const read = (): boolean => window.innerWidth < px;
+  const [below, setBelow] = useState(read);
+  useEffect(() => {
+    const on = (): void => setBelow(read());
+    window.addEventListener('resize', on);
+    return () => window.removeEventListener('resize', on);
+  }, [px]);
+  return below;
+}

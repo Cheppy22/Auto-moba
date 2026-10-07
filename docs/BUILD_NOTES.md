@@ -137,3 +137,10 @@ Meta-progression, lane identity, "The Core" mode, lore, multiple AI difficulties
 - Reported: four heroes took both towers of a lane within 15 s. Measured peak: one tower could lose ~580 hp/s and two same-lane towers fell inside 15 s in 2 of 30 matches.
 - Towers: hp 3600 (inner x1.25), damage 100, heroes deal x0.5 to towers and guardians (`tower.heroDamageMul`), and any tower or guardian can lose at most 9% of max hp per second (`tower.maxHpPerSec`). Now no same-lane double fall inside 15 s in 30 matches; fastest outer fall about 11 s, inner about 14 s.
 - Cost: median match length rose from ~12 to ~14.8 min (p90 20.6).
+
+## Playtest 1 fixes
+
+- All items in `docs/PLAYTEST.md` are implemented, except: the jungle-event prompt does not pause the match, roster icons on phones are only shrunk (not moved to the corner bands), and the report takeaways fold only in landscape.
+- Sim: player hero uses auto-buy (`HeroState.autoBuy`, command `setAutoBuy`), heal and shop recalls (`RecallState.auto`; the shop auto-opens only on player-started recalls), shopping while dead (base catalog), no keeper stock in prep, `suggestEvent` command, comeback bounty (`gold.comebackBounty`, also fixed the kill-streak bounty reading a zeroed streak), deferred draft (`draft.deferred`, `pickDeferred`): the player picks from all 14 heroes first, then the AI fills both teams.
+- Hands-off player team win rate went from 14% to 36–50% (28 matches, noisy).
+- Balance after this pass (800 matches, seeds 29000+): hero win rates 44–59%, Team A 50.1%, median 15.8 min. Not fully converged: smelter and rickshaw run high, warden and cosmonaut low.

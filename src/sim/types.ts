@@ -66,6 +66,7 @@ export interface RecallState {
   startTick: number;
   endTick: number;
   dest: 'base';
+  auto: boolean;
 }
 
 export interface HeroState {
@@ -104,6 +105,8 @@ export interface HeroState {
   suggest: string[];
   lossStreak: number;
   lastDeathTick: number;
+  autoBuy: boolean;
+  suggestEvent: number | null;
 }
 
 export interface CampState {
@@ -263,6 +266,7 @@ export interface DraftState {
   playerRole: Role | null;
   playerTeam: PlayTeam;
   unique: boolean;
+  deferred: boolean;
 }
 
 export interface Blackboard {
@@ -345,7 +349,12 @@ export interface EventPayloads {
   sell: { id: number; item: string; refund: number };
   upgradePick: { id: number; upgrade: string };
   posture: { id: number; posture: Posture };
-  recall: { id: number; dest: string; stage: 'start' | 'done' | 'interrupted' };
+  recall: {
+    id: number;
+    dest: string;
+    stage: 'start' | 'done' | 'interrupted';
+    auto?: boolean;
+  };
   structureDown: {
     kind: UnitKind;
     team: TeamId;
@@ -450,6 +459,8 @@ export type Command =
   | { type: 'recall'; dest: 'base' }
   | { type: 'suggestShop'; shopId: string }
   | { type: 'clearSuggest' }
+  | { type: 'setAutoBuy'; on: boolean }
+  | { type: 'suggestEvent'; eventId: number }
   | { type: 'pickUpgrade'; upgradeId: string }
   | { type: 'buy'; itemId: string }
   | { type: 'sell'; itemId: string }

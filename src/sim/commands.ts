@@ -1,4 +1,5 @@
 import { awardHoly, placeBid } from './auction';
+import { pickDeferred } from './draft';
 import type { Ctx } from './ctx';
 import { pendingOffer, resolveCurse } from './curses';
 import { continueFromReport, startLive } from './phase';
@@ -31,9 +32,11 @@ function run(ctx: Ctx, cmd: Command, startMatch: StartMatchFn): CommandResult {
       if (!ctx.c.heroById.has(cmd.heroId)) return { ok: false, reason: 'unknown hero' };
       if (
         s.draft.unique &&
+        !s.draft.deferred &&
         (s.draft.aiHeroes.A.includes(cmd.heroId) || s.draft.aiHeroes.B.includes(cmd.heroId))
       )
         return { ok: false, reason: 'that hero is already on a team this match' };
+      if (s.draft.deferred) pickDeferred(ctx, cmd.heroId);
       s.draft.playerHero = cmd.heroId;
       return { ok: true };
     }
@@ -82,10 +85,26 @@ function run(ctx: Ctx, cmd: Command, startMatch: StartMatchFn): CommandResult {
       else q.push(cmd.shopId);
       return { ok: true };
     }
+    case 'setAutoBuy': {
+      const p = playerHero(ctx);
+      if (!p || !p.hero) return { ok: false, reason: 'no player hero' };
+      p.hero.autoBuy = cmd.on;
+      return { ok: true };
+    }
+    case 'suggestEvent': {
+      const p = playerHero(ctx);
+      if (!p || !p.hero) return { ok: false, reason: 'no player hero' };
+      if (kind !== 'live') return { ok: false, reason: 'suggestions work during a phase' };
+      if (!s.events.some((e) => e.id === cmd.eventId))
+        return { ok: false, reason: 'event is over' };
+      p.hero.suggestEvent = cmd.eventId;
+      return { ok: true };
+    }
     case 'clearSuggest': {
       const p = playerHero(ctx);
       if (!p || !p.hero) return { ok: false, reason: 'no player hero' };
       p.hero.suggest = [];
+      p.hero.suggestEvent = null;
       return { ok: true };
     }
     case 'buy': {

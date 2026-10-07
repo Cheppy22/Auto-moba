@@ -1,7 +1,11 @@
+import { Fragment } from 'preact';
+import { useState } from 'preact/hooks';
 import type { HeroModel, Report } from '../../analysis';
 import { ItemIcon } from '../ItemIcon';
 import { SigilIcon } from '../SigilIcon';
-import { n0, keeperPlace, roleLabel } from '../format';
+import { eventLines } from '../../analysis/text';
+import { mmss, n0, roleLabel } from '../format';
+import { useWidthBelow } from '../layout';
 import { useSession } from '../session';
 import { heroName, itemName, teamClass } from './common';
 
@@ -11,7 +15,7 @@ function best(hs: HeroModel[], f: (h: HeroModel) => number): HeroModel | null {
   return top;
 }
 
-export function Takeaways(props: { report: Report }) {
+export function Takeaways(props: { report: Report; folded: boolean }) {
   const s = useSession();
   const r = props.report;
   const nm = (h: HeroModel): string => heroName(s.content, h.def);
@@ -26,8 +30,36 @@ export function Takeaways(props: { report: Report }) {
   const mine = r.heroes.filter((h) => h.team === 'A');
   const top = mine.length ? mine.reduce((a, b) => (score(b) > score(a) ? b : a)) : null;
   const low = mine.length ? mine.reduce((a, b) => (score(b) < score(a) ? b : a)) : null;
-  return (
+  const pts = { A: r.teams.A.pointsEarned, B: r.teams.B.pointsEarned };
+  const winner = pts.A === pts.B ? null : pts.A > pts.B ? 'A' : 'B';
+  const wt = winner ? r.teams[winner] : null;
+  const reasons = wt
+    ? (
+        [
+          [wt.kills, 'kill'],
+          [wt.towersDestroyed, 'tower'],
+          [wt.campsCleared, 'camp'],
+          [wt.obelisksClaimed, 'obelisk'],
+        ] as [number, string][]
+      )
+        .filter(([n]) => n > 0)
+        .map(([n, w]) => `${n} ${w}${n === 1 ? '' : 's'}`)
+        .join(', ')
+    : '';
+  const unit = r.scope.kind === 'match' ? 'Match' : 'Phase';
+  const verdict = (
+    <>
+      <span class="tk-k">Points</span>
+      {winner && wt
+        ? `${unit} won by ${winner === 'A' ? 'you' : 'the enemy'}: +${n0(pts[winner])} points${
+            reasons ? ` (${reasons})` : ''
+          }; the other side earned ${n0(pts[winner === 'A' ? 'B' : 'A'])}.`
+        : `${unit} tied on points (${n0(pts.A)} each).`}
+    </>
+  );
+  const list = (
     <ul class="takeaways" data-testid="takeaways">
+      {!props.folded && <li>{verdict}</li>}
       <li>
         <span class="tk-k">Towers</span>
         {lost.length === 0 ? 'You lost no towers' : `You lost ${lost.length} (${lanes.join(', ')})`}
@@ -61,13 +93,26 @@ export function Takeaways(props: { report: Report }) {
       </li>
     </ul>
   );
+  if (!props.folded) return list;
+  return (
+    <details class="takeaways-fold" data-testid="takeaways-fold">
+      <summary>{verdict}</summary>
+      {list}
+    </details>
+  );
 }
 
 export function Scoreboard(props: { report: Report; items: Record<number, string[]> }) {
   const s = useSession();
   const r = props.report;
+  const narrow = useWidthBelow(500);
+  const [expanded, setExpanded] = useState<number | null>(null);
+  const playerId = s.match!.state.playerHeroId;
+  const open = (id: number): void => s.setUi({ reportHero: id });
   const group = (team: 'A' | 'B') => {
-    const hs = r.heroes.filter((h) => h.team === team);
+    const hs = r.heroes
+      .filter((h) => h.team === team)
+      .sort((a, b) => Number(b.id === playerId) - Number(a.id === playerId));
     const t = r.teams[team];
     return (
       <>
@@ -77,51 +122,73 @@ export function Scoreboard(props: { report: Report; items: Record<number, string
             {t.kills}/{t.deaths}/{t.assists}
           </td>
           <td>{n0(t.goldEarned)}</td>
-          <td>{n0(t.damageToHeroes)}</td>
-          <td class="sb-items tiny dim">
-            {t.towersDestroyed} towers · {t.campsCleared} camps
-          </td>
+          {!narrow && <td>{n0(t.damageToHeroes)}</td>}
+          {!narrow && (
+            <td class="sb-items tiny dim">
+              {t.towersDestroyed} towers · {t.campsCleared} camps
+            </td>
+          )}
         </tr>
         {hs.map((h) => {
           const def = s.content.heroById.get(h.def)!;
-          const open = (): void => s.setUi({ reportHero: h.id });
+          const activate = (): void =>
+            narrow ? setExpanded(expanded === h.id ? null : h.id) : open(h.id);
+          const icons = (props.items[h.id] ?? []).map((id, i) => (
+            <span key={`${id}:${i}`} class="sb-item" title={itemName(s.content, id)}>
+              <ItemIcon id={id} size={18} />
+            </span>
+          ));
           return (
-            <tr
-              key={h.id}
-              class={`sb-row ${s.ui.reportHero === h.id ? 'sel' : ''}`}
-              data-testid={`report-hero-${h.id}`}
-              tabIndex={0}
-              role="button"
-              onClick={open}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  open();
-                }
-              }}
-            >
-              <td>
-                <span class="sb-hero">
-                  <SigilIcon spec={def.sigil} team={h.team} size={26} />
-                  <span>
-                    {heroName(s.content, h.def)}
-                    <span class="dim tiny"> {roleLabel(h.role)}</span>
+            <Fragment key={h.id}>
+              <tr
+                class={`sb-row ${s.ui.reportHero === h.id ? 'sel' : ''} ${h.id === playerId ? 'you' : ''}`}
+                data-testid={`report-hero-${h.id}`}
+                tabIndex={0}
+                role="button"
+                aria-expanded={narrow ? expanded === h.id : undefined}
+                onClick={activate}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    activate();
+                  }
+                }}
+              >
+                <td>
+                  <span class="sb-hero">
+                    <SigilIcon spec={def.sigil} team={h.team} size={26} />
+                    <span>
+                      {heroName(s.content, h.def)}
+                      {h.id === playerId && <b class="you-tag">you</b>}
+                      <span class="dim tiny"> {roleLabel(h.role)}</span>
+                    </span>
                   </span>
-                </span>
-              </td>
-              <td>
-                {h.kills}/{h.deaths}/{h.assists}
-              </td>
-              <td>{n0(h.goldEarned)}</td>
-              <td>{n0(h.damageDealt)}</td>
-              <td class="sb-items">
-                {(props.items[h.id] ?? []).map((id, i) => (
-                  <span key={i} class="sb-item" title={itemName(s.content, id)}>
-                    <ItemIcon id={id} size={18} />
-                  </span>
-                ))}
-              </td>
-            </tr>
+                </td>
+                <td>
+                  {h.kills}/{h.deaths}/{h.assists}
+                </td>
+                <td>{n0(h.goldEarned)}</td>
+                {!narrow && <td>{n0(h.damageDealt)}</td>}
+                {!narrow && <td class="sb-items">{icons}</td>}
+              </tr>
+              {narrow && expanded === h.id && (
+                <tr key={`${h.id}x`} class="sb-more">
+                  <td colSpan={3}>
+                    <div class="row wrap">
+                      <span class="small">Damage {n0(h.damageDealt)}</span>
+                      <span class="sb-icons">{icons}</span>
+                      <button
+                        class="btn small grow"
+                        data-testid={`open-hero-${h.id}`}
+                        onClick={() => open(h.id)}
+                      >
+                        Replay
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </Fragment>
           );
         })}
       </>
@@ -135,8 +202,8 @@ export function Scoreboard(props: { report: Report; items: Record<number, string
             <th>Hero</th>
             <th>K/D/A</th>
             <th>Gold</th>
-            <th>Damage</th>
-            <th class="sb-items">Items</th>
+            {!narrow && <th>Damage</th>}
+            {!narrow && <th class="sb-items">Items</th>}
           </tr>
         </thead>
         <tbody>
@@ -150,47 +217,13 @@ export function Scoreboard(props: { report: Report; items: Record<number, string
 
 export function EventLog(props: { report: Report }) {
   const s = useSession();
-  const r = props.report;
+  const lines = eventLines(props.report, s.content, 'A');
   return (
     <div class="card col">
       <b class="small">Recorded in this window</b>
-      {r.special.structures.map((x, i) => (
-        <div class="tiny" key={i}>
-          {Math.floor(x.tick / 1200)}:{String(Math.floor((x.tick % 1200) / 20)).padStart(2, '0')}{' '}
-          {x.kind} ({x.lane}
-          {x.kind === 'tower' ? ` #${x.index + 1}` : ''}) belonging to{' '}
-          <span class={teamClass(x.team)}>team {x.team}</span> destroyed
-        </div>
-      ))}
-      {r.special.biomes.map((x, i) => (
-        <div class="tiny" key={`b${i}`}>
-          {s.content.biomeById.get(x.biome)?.name} opened at {x.slot}
-        </div>
-      ))}
-      {r.special.pressure.map((x, i) => (
-        <div class="tiny teamB" key={`p${i}`}>
-          Pressure event: {x.name}
-        </div>
-      ))}
-      {r.special.obelisks.map((x, i) => (
-        <div class="tiny" key={`o${i}`}>
-          <span class={teamClass(x.team)}>Team {x.team}</span> claimed {x.node}: {x.reward}{' '}
-          {x.value ? `(${x.value})` : ''}
-        </div>
-      ))}
-      {r.special.keeper.map((x, i) => (
-        <div class="tiny dim" key={`k${i}`}>
-          Keeper at {keeperPlace(x.spot)}: {x.stock.map((id) => itemName(s.content, id)).join(', ')}
-        </div>
-      ))}
-      {r.special.curses.map((x, i) => (
-        <div class="tiny" key={`c${i}`}>
-          {heroName(s.content, r.heroes.find((h) => h.id === x.hero)?.def ?? '')}:{' '}
-          {x.flaw
-            ? `accepted ${itemName(s.content, x.item)}, flaw ${x.flaw}`
-            : x.refused
-              ? `refused ${itemName(s.content, x.item)}`
-              : `offered ${itemName(s.content, x.item)}`}
+      {lines.map((l, i) => (
+        <div class={`tiny ${l.team ? teamClass(l.team) : 'dim'}`} key={i}>
+          {mmss(l.tick)} {l.text}
         </div>
       ))}
     </div>

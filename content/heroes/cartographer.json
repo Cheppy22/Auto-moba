@@ -6,13 +6,13 @@
   "attackKind": "ranged",
   "playstyle": "A long-range mage with large area damage and slowing ink. Stay at the back, and drop the big map collapse on grouped enemy heroes.",
   "stats": {
-    "maxHp": 671.27,
+    "maxHp": 631.6,
     "hpRegen": 2,
     "armor": 18,
     "resist": 24,
-    "bladeDmg": 36.67,
+    "bladeDmg": 34.5,
     "atkSpeed": 0.8,
-    "soulPower": 43.7,
+    "soulPower": 41.12,
     "moveSpeed": 44,
     "cdr": 0,
     "range": 115

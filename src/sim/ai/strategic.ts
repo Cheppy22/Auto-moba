@@ -236,6 +236,7 @@ export function strategicUpdate(ctx: Ctx, u: Unit): void {
   const cands: Cand[] = [];
   const cur = h.goal;
 
+  const auto = !h.isPlayer || h.autoBuy;
   const here = shopAt(ctx, u);
   if (here) {
     const q = h.suggest.indexOf(here);
@@ -244,7 +245,7 @@ export function strategicUpdate(ctx: Ctx, u: Unit): void {
       if (h.isPlayer) ctx.emit('shopVisit', { id: u.id, shop: here });
       else aiShop(ctx, u);
       if (cur?.kind === 'visitShop') h.goal = null;
-    } else if (!h.isPlayer && cur?.kind === 'visitShop') {
+    } else if (auto && cur?.kind === 'visitShop') {
       aiShop(ctx, u);
       h.lastRecallTick = ctx.s.tick;
       h.goal = null;
@@ -264,14 +265,14 @@ export function strategicUpdate(ctx: Ctx, u: Unit): void {
     if (distBase <= ai.ai.healBaseRadius) {
       cands.push(cand('base', base.x, base.y, goalKey('base', 0), 10));
     } else {
-      if (!h.isPlayer && !threatened && distBase > 350) {
-        startRecall(ctx, u, 'base');
+      if (!threatened && distBase > 350) {
+        startRecall(ctx, u, 'base', h.isPlayer);
         return;
       }
       cands.push(cand('retreat', base.x, base.y, goalKey('retreat', 0), 10));
     }
   } else {
-    if (!h.isPlayer && distBase > 400 && enemiesNear(ctx, u, u.x, u.y, 260) === 0) {
+    if (auto && distBase > 400 && enemiesNear(ctx, u, u.x, u.y, 260) === 0) {
       const p = nextPurchase(ctx, u, 'base');
       const since = ctx.s.tick - (h.lastRecallTick ?? -9999);
       let shopClose = false;
@@ -279,7 +280,7 @@ export function strategicUpdate(ctx: Ctx, u: Unit): void {
         if (dist(u.x, u.y, sh.x, sh.y) <= ai.ai.shopTripRadius) shopClose = true;
       if (p && h.gold >= 750 && since > 400 && !shopClose) {
         h.lastRecallTick = ctx.s.tick;
-        startRecall(ctx, u, 'base');
+        startRecall(ctx, u, 'base', h.isPlayer);
         return;
       }
     }
@@ -573,7 +574,7 @@ export function strategicUpdate(ctx: Ctx, u: Unit): void {
     };
     if (h.suggest.length > 0) {
       shopCand(h.suggest[0], ai.ai.suggestScore);
-    } else if (!h.isPlayer && h.gold >= ai.ai.shopTripGold) {
+    } else if (auto && h.gold >= ai.ai.shopTripGold) {
       const big = nextPurchase(ctx, u, 'jungle');
       const smallOnly = nextPurchase(ctx, u, 'base');
       const wantsT3 = !!big && ctx.c.itemById.get(big.id)?.tier === 3;
@@ -593,6 +594,14 @@ export function strategicUpdate(ctx: Ctx, u: Unit): void {
     }
   }
 
+  if (h.suggestEvent !== null) {
+    const ev = ctx.s.events.find((e) => e.id === h.suggestEvent);
+    if (!ev) h.suggestEvent = null;
+    else {
+      const key = goalKey('contestEvent', ev.id);
+      cands.push(cand('contestEvent', ev.x, ev.y, key, ai.ai.suggestScore, null));
+    }
+  }
   if (wary) {
     for (const c of cands) {
       if (c.goal.kind === 'pushTower') c.score *= 0.45;

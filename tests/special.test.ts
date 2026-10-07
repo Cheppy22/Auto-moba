@@ -278,7 +278,12 @@ function isolate(m: Match, keep: number[]): void {
       const u = m.unitById(hid)!;
       u.x = 0;
       u.y = 0;
-      u.hero!.recall = { startTick: m.state.tick, endTick: m.state.tick + 99999, dest: 'base' };
+      u.hero!.recall = {
+        startTick: m.state.tick,
+        endTick: m.state.tick + 99999,
+        dest: 'base',
+        auto: false,
+      };
     }
   }
 }

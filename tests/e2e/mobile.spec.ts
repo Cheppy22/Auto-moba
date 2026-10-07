@@ -42,11 +42,24 @@ for (const v of views) {
       await expect(page.getByTestId('prep')).toBeVisible();
       await shot(page, `${v.name}-prep`);
       expect(await overflow(page)).toBeLessThanOrEqual(0);
-      await page.locator('[data-testid^="upgrade-"]').first().tap();
+      const cards = page.locator('[data-testid^="upgrade-"]');
+      const vp = page.viewportSize()!;
+      for (let i = 0; i < (await cards.count()); i++) {
+        await cards.nth(i).scrollIntoViewIfNeeded();
+        const box = (await cards.nth(i).boundingBox())!;
+        expect(box.x, `card ${i} left`).toBeGreaterThanOrEqual(0);
+        expect(box.x + box.width, `card ${i} right`).toBeLessThanOrEqual(vp.width);
+        expect(box.y, `card ${i} top`).toBeGreaterThanOrEqual(0);
+        expect(box.y + box.height, `card ${i} bottom`).toBeLessThanOrEqual(vp.height);
+      }
+      await cards.first().tap();
       await page.getByTestId('tab-shop').tap();
+      await expect(page.getByTestId('buy')).toBeInViewport();
       await shot(page, `${v.name}-prep-shop`);
       await page.getByTestId('start-phase').scrollIntoViewIfNeeded();
       await page.getByTestId('start-phase').tap();
+      const startAnyway = page.getByTestId('unspent-start');
+      if (await startAnyway.count()) await startAnyway.tap();
 
       await expect(page.getByTestId('phase')).toHaveText('Phase 1');
       await page.getByTestId('speed-4').tap();
@@ -73,7 +86,9 @@ for (const v of views) {
       await expect(page.getByTestId('report')).toBeVisible();
       await shot(page, `${v.name}-report`);
       expect(await overflow(page)).toBeLessThanOrEqual(0);
+      await expect(page.locator('[data-testid^="report-hero-"]')).toHaveCount(10);
       await page.locator('[data-testid^="report-hero-"]').first().tap();
+      if (page.viewportSize()!.width < 500) await page.locator('[data-testid^="open-hero-"]').tap();
       await expect(page.getByTestId('hero-view')).toBeVisible();
       await shot(page, `${v.name}-hero-view`);
       expect(errors).toEqual([]);

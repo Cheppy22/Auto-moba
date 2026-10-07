@@ -98,6 +98,15 @@ export function nextPurchase(ctx: Ctx, u: Unit, where: Where = 'here'): Purchase
   return fill;
 }
 
+/** The next build-list item the hero still lacks, whether or not it is affordable. */
+export function nextTarget(ctx: Ctx, u: Unit): string | null {
+  const h = u.hero;
+  if (!h) return null;
+  const def = ctx.c.heroById.get(h.defId)!;
+  for (const id of def.buildList) if (!satisfied(ctx, u, id)) return id;
+  return null;
+}
+
 export function aiShop(ctx: Ctx, u: Unit): void {
   for (let i = 0; i < 5; i++) {
     const p = nextPurchase(ctx, u);

@@ -6,11 +6,11 @@
   "attackKind": "melee",
   "playstyle": "A sword duelist that darts in, trades blows and punishes single targets. Pick one enemy hero and stay on it; its weapon techniques make it scale well with attack items.",
   "stats": {
-    "maxHp": 1065.96,
+    "maxHp": 991.34,
     "hpRegen": 2.5,
     "armor": 30,
     "resist": 18,
-    "bladeDmg": 71.06,
+    "bladeDmg": 66.09,
     "atkSpeed": 0.95,
     "soulPower": 0.0,
     "moveSpeed": 50,

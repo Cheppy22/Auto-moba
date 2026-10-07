@@ -34,7 +34,7 @@ export function Icon({
   name,
   size = 20,
 }: {
-  name: 'base' | 'keeper' | 'shop' | 'farm';
+  name: 'base' | 'keeper' | 'shop' | 'farm' | 'coin';
   size?: number;
 }) {
   if (name === 'keeper') return <Butterfly size={size} />;
@@ -56,6 +56,13 @@ export function Icon({
         <path d="M3 11l9-7 9 7" />
         <path d="M5 10v10h14V10" />
         <path d="M10 20v-6h4v6" />
+      </svg>
+    );
+  if (name === 'coin')
+    return (
+      <svg {...common}>
+        <circle cx="12" cy="12" r="8" />
+        <path d="M9 12h6M12 9v6" />
       </svg>
     );
   if (name === 'shop')

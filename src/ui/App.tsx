@@ -1,3 +1,4 @@
+import { useEffect } from 'preact/hooks';
 import { Draft } from './Draft';
 import { Hud } from './Hud';
 import { Prep } from './Prep';
@@ -11,6 +12,13 @@ export function App() {
   const s = useSession();
   const layout = useLayout();
   document.documentElement.dataset.layout = layout;
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key === 'Escape') s.closeTopOverlay();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [s]);
   const m = s.match;
   if (!m) return <Title />;
   const kind = m.state.phase.kind;

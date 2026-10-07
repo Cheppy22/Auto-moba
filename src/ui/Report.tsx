@@ -2,7 +2,8 @@ import { useMemo, useState } from 'preact/hooks';
 import { buildReport, inputFromMatch, type Scope } from '../analysis';
 import { HeroView } from './report/HeroView';
 import { EventLog, Scoreboard, Takeaways } from './report/TeamView';
-import { useSession } from './session';
+import { useLayout } from './layout';
+import { useEscape, useSession } from './session';
 
 export function Report(props: { scope: 'phase' | 'match' }) {
   const s = useSession();
@@ -27,6 +28,11 @@ export function Report(props: { scope: 'phase' | 'match' }) {
   const phases = whole.phases;
   const hero = s.ui.reportHero;
   const showDetails = open || hero !== null;
+  useEscape(showDetails, () => {
+    setOpen(false);
+    s.setUi({ reportHero: null });
+  });
+  const layout = useLayout();
   const items: Record<number, string[]> = {};
   for (const h of report.heroes) items[h.id] = [...(m.unitById(h.id)?.hero?.items ?? [])];
   const title = props.scope === 'match' ? 'Match report' : `Phase ${current} report`;
@@ -78,7 +84,7 @@ export function Report(props: { scope: 'phase' | 'match' }) {
           )}
         </div>
         <div class="scroll report-scroll col">
-          <Takeaways report={report} />
+          <Takeaways report={report} folded={layout === 'landscape'} />
           <Scoreboard report={report} items={items} />
           <section class="details">
             <button

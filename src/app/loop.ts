@@ -36,7 +36,10 @@ export class FrameClock {
     for (let i = ev.length - 1; i >= 0 && ev[i].seq > this.seenSeq; i--) {
       const e = ev[i];
       if (
-        (e.type === 'recall' && e.payload.stage === 'done' && e.payload.id === pid) ||
+        (e.type === 'recall' &&
+          e.payload.stage === 'done' &&
+          e.payload.id === pid &&
+          !e.payload.auto) ||
         (e.type === 'shopVisit' && e.payload.id === pid)
       ) {
         this.session.setUi({ shopOpen: true });

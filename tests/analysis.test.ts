@@ -96,3 +96,20 @@ describe('sealed auction in reports', () => {
     expect(seen.teams.B.pointsSpent).toBe(0);
   });
 });
+
+describe('plain-language event text', () => {
+  it('rewrites lanes, teams, slots and obelisk rewards', async () => {
+    const { laneName, teamLabel, slotName, obeliskRewardText, structureText } =
+      await import('../src/analysis');
+    expect(laneName('bot')).toBe('Right');
+    expect(teamLabel('A')).toBe('your team');
+    expect(teamLabel('B')).toBe('the enemy');
+    expect(slotName('tlc')).toBe('left jungle');
+    const text = obeliskRewardText('unlock:hundred_hand_ledger', 0, content);
+    expect(text).toMatch(/^25% off .+ at the jungle stalls$/);
+    expect(text).not.toContain('hundred_hand_ledger');
+    expect(
+      structureText({ tick: 0, kind: 'tower', team: 'B', lane: 'bot', index: 0, killer: 1 }),
+    ).toBe('Enemy outer tower (Right lane) fell');
+  });
+});

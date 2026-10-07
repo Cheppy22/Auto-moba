@@ -22,11 +22,18 @@ test('draft, play a phase, read the report, start the next phase', async ({ page
 
   await page.goto('/');
   await expect(page.getByTestId('title')).toBeVisible();
+  await page.getByTestId('open-codex').click();
+  await expect(page.getByTestId('codex')).toBeVisible();
+  await expect(async () => {
+    await page.keyboard.press('Escape');
+    await expect(page.getByTestId('codex')).toHaveCount(0, { timeout: 500 });
+  }).toPass();
   await page.getByTestId('seed').fill('42');
   await page.getByTestId('start').click();
 
   await expect(page.getByTestId('draft')).toBeVisible();
   await expect(page.getByTestId('begin')).toBeDisabled();
+  await expect(page.getByTestId('hero-detail')).toBeVisible();
   await page.locator('.hero-row [data-testid^="hero-"]').first().click();
   await page.getByTestId('lane-top').click();
   await page.getByTestId('begin').click();
@@ -37,16 +44,38 @@ test('draft, play a phase, read the report, start the next phase', async ({ page
   await page.locator('[data-testid^="upgrade-"]').first().click();
   await page.getByTestId('tab-shop').click();
   await expect(page.getByTestId('shop')).toBeVisible();
+  await page.getByTestId('cat-mind').click();
   await page.getByTestId('item-rusted_cleaver').click();
   await expect(page.getByTestId('item-detail')).toContainText('Rusted Cleaver');
   await page.getByTestId('buy').click();
   await expect(page.getByTestId('buy-confirm-box')).toBeVisible();
   await page.getByTestId('buy-confirm').click();
   await expect(page.locator('.slot.filled')).toHaveCount(1);
+  await page.evaluate(() => {
+    const s = (
+      window as unknown as {
+        __session: {
+          match: {
+            state: { playerHeroId: number };
+            unitById(id: number): { hero: { gold: number } };
+          };
+          notify(): void;
+        };
+      }
+    ).__session;
+    s.match.unitById(s.match.state.playerHeroId).hero.gold = 1200;
+    s.notify();
+  });
   await page.getByTestId('start-phase').click();
+  await expect(page.getByTestId('unspent-prompt')).toBeVisible();
+  await page.getByTestId('unspent-start').click();
 
   await expect(page.getByTestId('phase')).toHaveText('Phase 1');
   await page.getByTestId('speed-4').click();
+  const autoBuy = page.getByTestId('autobuy-toggle');
+  await expect(autoBuy).toHaveAttribute('aria-pressed', 'true');
+  await autoBuy.click();
+  await expect(autoBuy).toHaveAttribute('aria-pressed', 'false');
   if (await page.getByTestId('farm-toggle').count()) {
     const farmBefore = await page.getByTestId('farm-toggle').getAttribute('aria-pressed');
     await page.getByTestId('farm-toggle').click();
@@ -62,6 +91,7 @@ test('draft, play a phase, read the report, start the next phase', async ({ page
   const box = (await page.getByTestId('stage').boundingBox())!;
   await page.mouse.click(box.x + shops[0].x, box.y + shops[0].y);
   await expect(page.getByTestId('suggest-chip')).toBeVisible();
+  await expect(page.locator('.toast.info')).toBeVisible();
   await page.getByRole('button', { name: 'Clear suggestions' }).click();
   await expect(page.getByTestId('suggest-chip')).toHaveCount(0);
   await page.getByTestId('recall-base').click();
@@ -70,7 +100,7 @@ test('draft, play a phase, read the report, start the next phase', async ({ page
   await page.waitForTimeout(800);
   await expect(page.getByTestId('shop')).toBeVisible();
   expect(await page.getByTestId('clock').textContent()).toBe(frozen);
-  await page.getByTestId('shop-close').click();
+  await page.keyboard.press('Escape');
   await expect(page.getByTestId('shop')).toHaveCount(0);
   await expect(page.getByTestId('player-card')).toBeVisible();
 

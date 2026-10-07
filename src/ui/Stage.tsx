@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'preact/hooks';
 import { Renderer } from '../render';
+import { roleLabel } from './format';
 import { NOTICE_TICKS, useSession } from './session';
 
 export function Stage() {
@@ -42,18 +43,28 @@ export function Stage() {
         })),
       });
     };
+    s.flashHalo = () => r.flashHalo();
     const off = s.onFrame(draw);
     const toCanvas = (e: MouseEvent): { x: number; y: number } => {
       const rect = canvas.getBoundingClientRect();
       const k = canvas.width / Math.max(1, rect.width);
       return { x: (e.clientX - rect.left) * k, y: (e.clientY - rect.top) * k };
     };
+    const announceTrip = (shopId: string): void => {
+      const shop = s.content.map.shops.find((x) => x.id === shopId);
+      const m = s.match;
+      const hero = m?.state.playerHeroId != null ? m.unitById(m.state.playerHeroId) : undefined;
+      if (!shop || !hero) return;
+      const secs = Math.round(Math.hypot(shop.x - hero.x, shop.y - hero.y) / hero.stats.moveSpeed);
+      const lane = hero.lane ? ` and leaves the ${roleLabel(hero.lane)}` : '';
+      s.flash(`${shop.name}: ~${secs}s away${lane}`);
+    };
     const onClick = (e: MouseEvent): void => {
       const m = s.match;
       if (!m || m.state.phase.kind !== 'live') return;
       const p = toCanvas(e);
       const id = r.pickShop(p.x, p.y, 80);
-      if (id) s.issue({ type: 'suggestShop', shopId: id });
+      if (id && s.issue({ type: 'suggestShop', shopId: id }).ok) announceTrip(id);
     };
     const onMove = (e: MouseEvent): void => {
       const m = s.match;
@@ -65,6 +76,7 @@ export function Stage() {
     canvas.addEventListener('mousemove', onMove);
     return () => {
       off();
+      s.flashHalo = () => {};
       canvas.removeEventListener('click', onClick);
       canvas.removeEventListener('mousemove', onMove);
     };

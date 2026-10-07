@@ -15,6 +15,7 @@ import { tickObelisks } from './obelisks';
 import { enterPrep, endLive } from './phase';
 import { tickSpiritTide } from './pressure';
 import { aiShop } from './ai/shopping';
+import { nextTarget } from './ai/shopping';
 import { itemPrice, nearBase, quote } from './shop';
 import {
   passiveGold,
@@ -64,8 +65,11 @@ function initialState(
     pool = pool.filter((x) => x.id !== h.id);
     return h.id;
   };
-  for (let i = 0; i < nA; i++) aiHeroes.A.push(take());
-  for (let i = 0; i < 5; i++) aiHeroes.B.push(take());
+  const deferred = withPlayer === true && !fixed && !reserved;
+  if (!deferred) {
+    for (let i = 0; i < nA; i++) aiHeroes.A.push(take());
+    for (let i = 0; i < 5; i++) aiHeroes.B.push(take());
+  }
   if (fixed) {
     aiHeroes.A = fixed.A.slice(0, nA);
     aiHeroes.B = fixed.B.slice(0, 5);
@@ -119,6 +123,7 @@ function initialState(
       playerRole: null,
       playerTeam: 'A',
       unique: !fixed,
+      deferred,
     },
     board: {
       A: { claims: {}, plan: { tick: -999, siege: false, lane: 'mid' } },
@@ -268,7 +273,7 @@ function stepTick(ctx: Ctx): void {
       if ((s.tick + (u.hero ? u.hero.slot : id) * 3) % 20 === 0) strategicUpdate(ctx, u);
       if (
         u.hero &&
-        !u.hero.isPlayer &&
+        (!u.hero.isPlayer || u.hero.autoBuy) &&
         (s.tick + id) % 20 === 0 &&
         u.hero.gold >= ctx.t.ai.shopAtBaseGold &&
         nearBase(ctx, u)
@@ -511,6 +516,13 @@ export class Match {
       });
     }
     return out;
+  }
+
+  /** Build-list item the player's hero should buy next (for the shop's Recommended tag). */
+  recommendedItem(): string | null {
+    const id = this.ctx.s.playerHeroId;
+    const u = id !== null ? this.ctx.unit(id) : undefined;
+    return u ? nextTarget(this.ctx, u) : null;
   }
 
   unitById(id: number): Unit | undefined {

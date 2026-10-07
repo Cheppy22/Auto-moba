@@ -1,12 +1,13 @@
 import { useState } from 'preact/hooks';
 import { HeroCodex } from './HeroCodex';
 import { Butterfly, RitualRing, Seal } from './Ornament';
-import { useSession } from './session';
+import { useEscape, useSession } from './session';
 
 export function Title() {
   const s = useSession();
   const [seed, setSeed] = useState('');
   const [codex, setCodex] = useState(false);
+  useEscape(codex, () => setCodex(false));
   const start = (): void => {
     const n = Number(seed);
     s.newMatch(seed.trim() !== '' && Number.isFinite(n) ? { seed: n } : {});

@@ -74,7 +74,7 @@
     "shareRadius": 600,
     "minionShare": 6,
     "killBountyPerStreak": 20,
-    "comebackBounty": 0
+    "comebackBounty": 40
   },
   "respawn": {
     "baseSec": 10,
@@ -275,7 +275,7 @@
     "joinFightRadius": 450,
     "defendOffLaneRadius": 600,
     "guardianThreatRadius": 400,
-    "suggestScore": 1.5,
+    "suggestScore": 1.2,
     "shopTripGold": 700,
     "shopTripRadius": 380,
     "shopTripScore": 0.9,

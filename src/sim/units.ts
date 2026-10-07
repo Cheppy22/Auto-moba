@@ -107,6 +107,8 @@ export function makeHero(
     suggest: [],
     lossStreak: 0,
     lastDeathTick: -9999,
+    autoBuy: true,
+    suggestEvent: null,
   };
   u.hero = hero;
   ctx.s.teams[team].heroIds.push(u.id);

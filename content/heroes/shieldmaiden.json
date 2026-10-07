@@ -6,11 +6,11 @@
   "attackKind": "melee",
   "playstyle": "A frontline engager that charges the enemy, shields her team and soaks hits. Start the fight by charging in; she heals herself once when nearly dead.",
   "stats": {
-    "maxHp": 1830.63,
+    "maxHp": 2017.54,
     "hpRegen": 3,
     "armor": 44,
     "resist": 24,
-    "bladeDmg": 99.81,
+    "bladeDmg": 110.0,
     "atkSpeed": 0.9,
     "soulPower": 0.0,
     "moveSpeed": 47,

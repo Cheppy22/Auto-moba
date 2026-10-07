@@ -65,7 +65,32 @@ export function drawButterfly(
   g.restore();
 }
 
+interface MapLabel {
+  text: string;
+  x: number;
+  y: number;
+  px: number;
+  fill: string;
+  prio: number;
+  pinned?: boolean;
+  bold?: boolean;
+}
+
+interface Obstacle {
+  x: number;
+  y: number;
+  r: number;
+}
+
+const HALO_TICKS = 60;
+
 export class Renderer {
+  private labels: MapLabel[] = [];
+  private obstacles: Obstacle[] = [];
+  private haloUntil = 0;
+  private haloRequested = false;
+  private lastPhaseKey = '';
+  private lastPlayerAlive: boolean | null = null;
   private g: CanvasRenderingContext2D;
   private backdrop: HTMLCanvasElement;
   private backdropKey = '';
@@ -673,12 +698,14 @@ export class Renderer {
         g.restore();
       }
       drawShopStall(g, c.x, c.y, 8 * q, snap.tick, order, near);
-      g.save();
-      g.font = `${Math.max(10, Math.round(10 * q * 1.1))}px ${DISPLAY_FONT}`;
-      g.textAlign = 'center';
-      g.fillStyle = order > 0 ? '#f0d58a' : 'rgba(240,213,138,0.75)';
-      g.fillText(sh.name, c.x, c.y + 14 * q);
-      g.restore();
+      this.labels.push({
+        text: sh.name,
+        x: c.x,
+        y: c.y + 14 * q,
+        px: Math.max(10, Math.round(10 * q * 1.1)),
+        fill: order > 0 ? '#f0d58a' : 'rgba(240,213,138,0.85)',
+        prio: 2,
+      });
     }
   }
 
@@ -753,22 +780,14 @@ export class Renderer {
           );
           b.fill();
         }
-        b.fillStyle = biome.palette.glow + 'dd';
-        b.font = `${Math.max(10, Math.round(11 * p * 1.3))}px ${DISPLAY_FONT}`;
-        b.textAlign = 'center';
-        b.fillText(biome.name, c.x, c.y - ry * 1.12 - 6 * p);
       } else {
-        b.fillStyle = 'rgba(16,14,24,0.7)';
+        b.fillStyle = 'rgba(10,8,16,0.82)';
         this.ellipse(b, s.x, s.y, s.radius);
         b.fill();
-        b.strokeStyle = 'rgba(185,160,230,0.22)';
+        b.strokeStyle = 'rgba(185,160,230,0.12)';
         b.setLineDash([4 * p, 7 * p]);
         b.stroke();
         b.setLineDash([]);
-        b.fillStyle = 'rgba(200,185,225,0.3)';
-        b.font = `${Math.max(9, Math.round(13 * p * 1.3))}px ${DISPLAY_FONT}`;
-        b.textAlign = 'center';
-        b.fillText('uncharted', c.x, c.y + 4 * p);
       }
     }
     this.paintWalls(b, snap);
@@ -914,14 +933,14 @@ export class Renderer {
         }
         g.stroke();
       }
-      g.font = `${Math.max(10, Math.round(10 * q * 1.2))}px ${DISPLAY_FONT}`;
-      g.textAlign = 'center';
-      g.fillStyle = col;
-      g.fillText(
-        warn ? `${e.name} in ${Math.ceil(e.ticksLeft / 20)}s` : e.name,
-        c.x,
-        c.y + ry + 13 * q,
-      );
+      this.labels.push({
+        text: warn ? `${e.name} in ${Math.ceil(e.ticksLeft / 20)}s` : e.name,
+        x: c.x,
+        y: c.y + ry + 13 * q,
+        px: Math.max(10, Math.round(10 * q * 1.2)),
+        fill: col,
+        prio: 1,
+      });
       if (e.telegraph) {
         const t = this.S(e.telegraph.x, e.telegraph.y);
         g.beginPath();
@@ -933,6 +952,134 @@ export class Renderer {
       }
       g.restore();
     }
+  }
+
+  /** Flash the player's halo again (e.g. when their portrait is tapped). */
+  flashHalo(): void {
+    this.haloRequested = true;
+  }
+
+  private trackHalo(snap: Snapshot): void {
+    const player = snap.units.find((u) => u.isPlayer);
+    const phaseKey = `${snap.phase.kind}${snap.phase.n}`;
+    const alive = player ? player.alive : null;
+    const liveStart = phaseKey !== this.lastPhaseKey && snap.phase.kind === 'live';
+    const respawn = this.lastPlayerAlive === false && alive === true;
+    if (liveStart || respawn || this.haloRequested) this.haloUntil = snap.tick + HALO_TICKS;
+    this.haloRequested = false;
+    this.lastPhaseKey = phaseKey;
+    this.lastPlayerAlive = alive;
+  }
+
+  private cssDpr(): number {
+    return Math.min(2, window.devicePixelRatio || 1);
+  }
+
+  private youPx(q: number): number {
+    const dpr = this.cssDpr();
+    const narrow = this.canvas.clientWidth < 600;
+    return Math.max((narrow ? 12 : 11) * dpr, Math.round(10 * q * 1.5));
+  }
+
+  private drawYouRing(
+    g: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    r: number,
+    tick: number,
+    alive: boolean,
+    q: number,
+  ): void {
+    g.save();
+    g.strokeStyle = alive ? '#f0c24a' : 'rgba(240,194,74,0.45)';
+    g.lineWidth = Math.max(1, 1.3 * q);
+    g.beginPath();
+    g.arc(x, y, r * 1.4, 0, TAU);
+    g.stroke();
+    const left = this.haloUntil - tick;
+    if (alive && left > 0) {
+      const f = left / HALO_TICKS;
+      const pulse = 0.5 + 0.5 * Math.sin(tick / 2.5);
+      const rad = r * 1.4 * (1 + pulse * 1);
+      g.globalAlpha = Math.min(1, 0.35 + f * 0.65);
+      g.strokeStyle = '#fff1b8';
+      g.lineWidth = Math.max(2, 2.4 * q);
+      g.beginPath();
+      g.arc(x, y, rad, 0, TAU);
+      g.stroke();
+      g.fillStyle = 'rgba(240,194,74,0.16)';
+      g.fill();
+    }
+    g.restore();
+  }
+
+  private addSlotLabels(snap: Snapshot): void {
+    const narrow = this.canvas.clientWidth < 600;
+    for (const s of snap.slots) {
+      const c = this.S(s.x, s.y);
+      if (s.open && s.biomeId) {
+        const biome = this.content.biomeById.get(s.biomeId);
+        if (!biome) continue;
+        this.labels.push({
+          text: biome.name,
+          x: c.x,
+          y: c.y - s.radius * this.view.sy * 1.12 - 6 * this.view.p,
+          px: Math.max(10, Math.round(11 * this.view.p * 1.3)),
+          fill: biome.palette.glow + 'dd',
+          prio: 4,
+        });
+      } else if (!narrow) {
+        this.labels.push({
+          text: 'uncharted',
+          x: c.x,
+          y: c.y + 4 * this.view.p,
+          px: Math.max(9, Math.round(13 * this.view.p * 1.3)),
+          fill: 'rgba(200,185,225,0.2)',
+          prio: 5,
+        });
+      }
+    }
+  }
+
+  private drawLabels(g: CanvasRenderingContext2D): void {
+    const dpr = this.cssDpr();
+    const step = 10 * dpr;
+    const placed: { l: number; t: number; r: number; b: number }[] = [];
+    const hits = (b: { l: number; t: number; r: number; b: number }) => {
+      for (const o of placed) if (b.l < o.r && b.r > o.l && b.t < o.b && b.b > o.t) return true;
+      for (const o of this.obstacles) {
+        const cx = Math.max(b.l, Math.min(o.x, b.r));
+        const cy = Math.max(b.t, Math.min(o.y, b.b));
+        if ((cx - o.x) ** 2 + (cy - o.y) ** 2 < o.r * o.r) return true;
+      }
+      return false;
+    };
+    g.save();
+    g.textAlign = 'center';
+    g.lineJoin = 'round';
+    const order = this.labels.slice().sort((a, b) => a.prio - b.prio);
+    for (const lb of order) {
+      g.font = `${lb.bold ? 'bold ' : ''}${lb.px}px ${DISPLAY_FONT}`;
+      const w = g.measureText(lb.text).width;
+      const h = lb.px;
+      let placedY: number | null = null;
+      for (const dy of lb.pinned ? [0] : [0, step, step * 2]) {
+        const y = lb.y + dy;
+        const box = { l: lb.x - w / 2 - 2, r: lb.x + w / 2 + 2, t: y - h * 0.85, b: y + h * 0.25 };
+        if (lb.pinned || !hits(box)) {
+          placed.push(box);
+          placedY = y;
+          break;
+        }
+      }
+      if (placedY === null) continue;
+      g.lineWidth = Math.max(2, lb.px / 4);
+      g.strokeStyle = 'rgba(8,6,12,0.85)';
+      g.strokeText(lb.text, lb.x, placedY);
+      g.fillStyle = lb.fill;
+      g.fillText(lb.text, lb.x, placedY);
+    }
+    g.restore();
   }
 
   drawEmpty(): void {
@@ -953,6 +1100,9 @@ export class Renderer {
     g.setTransform(1, 0, 0, 1, 0, 0);
     this.paintBackdrop(snap);
     g.drawImage(this.backdrop, 0, 0);
+    this.labels = [];
+    this.obstacles = [];
+    this.trackHalo(snap);
     const pos = (u: SnapUnit): { x: number; y: number } =>
       this.S(lerp(u.px, u.x, opts.alpha), lerp(u.py, u.y, opts.alpha));
     const byId = new Map<number, SnapUnit>();
@@ -1020,23 +1170,27 @@ export class Renderer {
         case 'camp': {
           const elite = u.maxHp > 900;
           drawCamp(g, x, y, (elite ? 7 : 5) * q, PALETTE.camp, elite, snap.tick);
+          this.obstacles.push({ x, y, r: (elite ? 8 : 6) * q });
           if (u.hp < u.maxHp) this.bar(x, y - 10 * q, 12 * q, u.hp / u.maxHp, PALETTE.camp);
           break;
         }
         case 'tower': {
           const s = 9 * q;
           drawTower(g, x, y, s, col, u.flash);
+          this.obstacles.push({ x, y, r: s * 1.1 });
           this.bar(x, y - s * 1.7 - 4 * q, 22 * q, u.hp / u.maxHp, col);
           break;
         }
         case 'guardian': {
           const s = 14 * q;
           drawGuardian(g, x, y, s, col, snap.tick, (u.maxHp > 0 ? u.hp / u.maxHp : 1) < 0.5);
+          this.obstacles.push({ x, y, r: s * 1.2 });
           this.bar(x, y - s * 1.6 - 4 * q, 40 * q, u.hp / u.maxHp, col);
           break;
         }
         case 'obelisk': {
           drawObelisk(g, x, y, 8 * q, PALETTE.spirit, u.claim, snap.tick);
+          this.obstacles.push({ x, y, r: 9 * q });
           break;
         }
         case 'keeper': {
@@ -1050,10 +1204,15 @@ export class Renderer {
           g.stroke();
           g.setLineDash([]);
           drawButterfly(g, x, y - s * 0.2, s * 1.3, Math.sin(snap.tick / 5), PALETTE.gold);
-          g.fillStyle = PALETTE.text;
-          g.font = `${Math.round(10 * q * 1.2)}px ${DISPLAY_FONT}`;
-          g.textAlign = 'center';
-          g.fillText('Keeper', x, y + s * 2.9);
+          this.labels.push({
+            text: 'Keeper',
+            x,
+            y: y + s * 2.9,
+            px: Math.max(10, Math.round(10 * q * 1.2)),
+            fill: PALETTE.text,
+            prio: 3,
+          });
+          this.obstacles.push({ x, y, r: s * 1.3 });
           break;
         }
         case 'hero': {
@@ -1067,13 +1226,15 @@ export class Renderer {
             g.arc(x, y, r * (1.5 + ((snap.tick % 20) / 20) * 0.8), 0, Math.PI * 2);
             g.stroke();
           }
-          if (u.isPlayer || u.id === opts.highlightId) {
+          this.obstacles.push({ x, y, r: r * 1.25 });
+          if (u.id === opts.highlightId && !u.isPlayer) {
             g.strokeStyle = '#ffffff';
             g.lineWidth = 2;
             g.beginPath();
             g.arc(x, y, r * 1.45, 0, Math.PI * 2);
             g.stroke();
           }
+          if (u.isPlayer) this.drawYouRing(g, x, y, r, snap.tick, u.alive, q);
           if (u.curse && u.alive) this.drawCurseAura(g, x, y, r, snap.tick, u.id);
           drawHeroFrame(g, x, y, r * 1.12, u.team, col, u.alive);
           drawSigil(g, x, y, r, spec, col, u.alive);
@@ -1091,16 +1252,24 @@ export class Renderer {
             }
           }
           if (u.isPlayer) {
-            g.fillStyle = '#ffffff';
-            g.font = `${Math.round(10 * q * 1.2)}px ${DISPLAY_FONT}`;
-            g.textAlign = 'center';
-            g.fillText('YOU', x, y + r + 12 * q);
+            this.labels.push({
+              text: 'YOU',
+              x,
+              y: y + r + 4 * q + this.youPx(q),
+              px: this.youPx(q),
+              fill: '#ffe08a',
+              prio: 0,
+              pinned: true,
+              bold: true,
+            });
           }
           break;
         }
       }
     }
     if (opts.curses?.length) this.drawCurseMarks(g, snap, opts.curses, byId, q, opts.alpha);
+    this.addSlotLabels(snap);
+    this.drawLabels(g);
     if (snap.pressure.length) {
       g.fillStyle = 'rgba(110,20,30,0.12)';
       g.fillRect(0, 0, this.canvas.width, this.canvas.height);

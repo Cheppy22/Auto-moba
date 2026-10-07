@@ -1,3 +1,4 @@
+import { useEffect } from 'preact/hooks';
 import type { Role } from '../sim';
 import { HeroDetail } from './HeroCodex';
 import { SigilIcon } from './SigilIcon';
@@ -68,7 +69,12 @@ export function Draft() {
   const m = s.match!;
   const d = m.state.draft!;
   const taken = new Set([...d.aiHeroes.A, ...d.aiHeroes.B]);
-  const heroes = s.content.heroes.filter((h) => !d.unique || !taken.has(h.id));
+  const heroes = s.content.heroes.filter((h) => d.deferred || !d.unique || !taken.has(h.id));
+  const firstHero = heroes[0]?.id;
+  useEffect(() => {
+    if (!d.playerHero && firstHero) s.issue({ type: 'pickHero', heroId: firstHero });
+  }, []);
+  const pending = <div class="dim tiny pending">Drafted after you pick</div>;
   const sel = d.playerHero ? s.content.heroById.get(d.playerHero) : undefined;
   const ready = !!d.playerHero && !!d.playerRole;
   const slot = (id: string, team: 'A' | 'B', key: number) => {
@@ -92,6 +98,7 @@ export function Draft() {
         </header>
         <aside class="draft-team">
           <h3 class="teamA">Your team</h3>
+          {d.aiHeroes.A.length === 0 && pending}
           {d.aiHeroes.A.map((id, i) => slot(id, 'A', i))}
           <div class={`slotcard you ${sel ? 'filled' : ''}`}>
             {sel ? <SigilIcon spec={sel.sigil} team="A" size={38} /> : <span class="slot-empty" />}
@@ -132,15 +139,9 @@ export function Draft() {
         <aside class="draft-side">
           <LaneMap value={d.playerRole} onPick={(role) => s.issue({ type: 'pickLane', role })} />
           <h3 class="teamB">Enemy team</h3>
-          <div class="enemy-row">
-            {d.aiHeroes.B.map((id, i) => {
-              const h = s.content.heroById.get(id)!;
-              return (
-                <div class="enemy-chip" key={i} title={h.name}>
-                  <SigilIcon spec={h.sigil} team="B" size={34} />
-                </div>
-              );
-            })}
+          <div class="enemy-list">
+            {d.aiHeroes.B.length === 0 && pending}
+            {d.aiHeroes.B.map((id, i) => slot(id, 'B', i))}
           </div>
         </aside>
         <footer class="draft-foot">

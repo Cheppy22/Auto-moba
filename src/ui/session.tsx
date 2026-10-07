@@ -1,8 +1,8 @@
 import { createContext } from 'preact';
-import { useContext, useEffect, useState } from 'preact/hooks';
+import { useContext, useEffect, useRef, useState } from 'preact/hooks';
 import { Match, type Command, type CommandResult, type Content, type MatchConfig } from '../sim';
 
-export type Speed = 0 | 1 | 2 | 4;
+export type Speed = 0 | 1 | 2 | 4 | 8;
 
 export interface Notice {
   id: number;
@@ -25,6 +25,7 @@ export interface UiState {
   prepTab: 'upgrade' | 'shop' | 'auction' | 'curse';
   shopOpen: boolean;
   toast: string | null;
+  info: string | null;
 }
 
 const freshUi = (): UiState => ({
@@ -36,6 +37,7 @@ const freshUi = (): UiState => ({
   prepTab: 'upgrade',
   shopOpen: false,
   toast: null,
+  info: null,
 });
 
 export class Session {
@@ -46,6 +48,9 @@ export class Session {
   private curseSeq = -1;
   private pendingCurses: { hero: number; item: string; flaw: string }[] = [];
   private noticeId = 0;
+  flashHalo: () => void = () => {};
+  private infoTimer = 0;
+  private escapes: (() => void)[] = [];
   private listeners = new Set<() => void>();
   private frameListeners = new Set<(alpha: number) => void>();
 
@@ -74,6 +79,23 @@ export class Session {
   setUi(patch: Partial<UiState>): void {
     this.ui = { ...this.ui, ...patch };
     this.notify();
+  }
+
+  flash(message: string, ms = 4000): void {
+    window.clearTimeout(this.infoTimer);
+    this.setUi({ info: message });
+    this.infoTimer = window.setTimeout(() => this.setUi({ info: null }), ms);
+  }
+
+  pushEscape(close: () => void): () => void {
+    this.escapes.push(close);
+    return () => {
+      this.escapes = this.escapes.filter((fn) => fn !== close);
+    };
+  }
+
+  closeTopOverlay(): void {
+    this.escapes[this.escapes.length - 1]?.();
   }
 
   syncNotices(): void {
@@ -152,6 +174,13 @@ export class Session {
     this.ui = freshUi();
     this.notify();
   }
+}
+
+export function useEscape(active: boolean, close: () => void): void {
+  const s = useSession();
+  const latest = useRef(close);
+  latest.current = close;
+  useEffect(() => (active ? s.pushEscape(() => latest.current()) : undefined), [s, active]);
 }
 
 export const SessionContext = createContext<Session | null>(null);

@@ -49,14 +49,23 @@ function CatGlyph({ cat, size = 18 }: { cat: string; size?: number }) {
   );
 }
 
-function Tile(props: { e: ShopEntry; selected: boolean; onPick: () => void; count: number }) {
+const JUNGLE_ONLY = 'sold at the jungle stalls';
+
+function Tile(props: {
+  e: ShopEntry;
+  selected: boolean;
+  onPick: () => void;
+  count: number;
+  recommended: boolean;
+  dimmed: boolean;
+}) {
   const { e } = props;
   const state = e.canBuy ? 'ready' : 'poor';
   return (
     <button
       class={`tile t${e.tier} cat-${e.category} ${state} ${props.selected ? 'sel' : ''} ${
         e.consumed.length ? 'combo' : ''
-      }`}
+      } ${props.dimmed ? 'dimmed' : ''} ${props.recommended ? 'rec' : ''}`}
       data-testid={`item-${e.id}`}
       onClick={props.onPick}
       title={e.name}
@@ -68,6 +77,7 @@ function Tile(props: { e: ShopEntry; selected: boolean; onPick: () => void; coun
         <ItemIcon id={e.id} size={26} />
         {props.count > 0 && <i class="tile-count">{props.count}</i>}
       </span>
+      {props.recommended && <span class="tile-rec">Next</span>}
       <span class="tile-name">{e.name}</span>
       <span class="tile-price">{n0(e.price)}</span>
     </button>
@@ -123,10 +133,15 @@ export function ShopPanel() {
   const p = m.unitById(m.state.playerHeroId!)!;
   const owned = p.hero!.items;
   const slots = s.content.tuning.shop.slots;
-  const [cat, setCat] = useState<Cat>('mind');
-  const [sel, setSel] = useState<{ kind: 'shop' | 'owned'; id: string } | null>(null);
-  const [confirming, setConfirming] = useState(false);
   const byId = new Map(entries.map((e) => [e.id, e]));
+  const recommended = m.recommendedItem();
+  const first = recommended ? byId.get(recommended) : undefined;
+  const [cat, setCat] = useState<Cat>(first?.category ?? 'mind');
+  const [picked, setSel] = useState<{ kind: 'shop' | 'owned'; id: string } | null>(null);
+  const sel = picked ?? (first ? { kind: 'shop' as const, id: first.id } : null);
+  const [confirming, setConfirming] = useState(false);
+  const tier3 = entries.filter((e) => e.tier === 3);
+  const atStall = tier3.some((e) => e.reason !== JUNGLE_ONLY);
   const ownedByCat: Record<string, number> = {};
   for (const id of owned) {
     const c = s.content.itemById.get(id)?.category ?? s.content.cursedById.get(id)?.category;
@@ -162,7 +177,8 @@ export function ShopPanel() {
               <div class="dim tiny">
                 {def.category} · tier {def.tier}
                 {selEntry.source === 'keeper' ? ' · Keeper stock' : ''}
-                {selEntry.source === 'jungle' ? ' · Jungle stock' : ''}
+                {selEntry.source === 'jungle' ? ' · Jungle stalls only' : ''}
+                {selEntry.id === recommended ? ' · Recommended' : ''}
               </div>
             </div>
           </div>
@@ -189,38 +205,40 @@ export function ShopPanel() {
             <span class="gold">{n0(selEntry.price)}g</span>
             {saved > 0 && <span class="dim tiny">(components worth {n0(saved)}g used)</span>}
           </div>
-          {!confirming ? (
-            <button
-              class="btn primary"
-              disabled={!selEntry.canBuy}
-              data-testid="buy"
-              onClick={() => setConfirming(true)}
-            >
-              {selEntry.canBuy ? 'Buy' : selEntry.reason || 'Unavailable'}
-            </button>
-          ) : (
-            <div class="col confirm" data-testid="buy-confirm-box">
-              <div>
-                Spend <b class="gold">{n0(selEntry.price)}g</b> on {def.name}?
+          <div class="buy-pin">
+            {!confirming ? (
+              <button
+                class="btn primary"
+                disabled={!selEntry.canBuy}
+                data-testid="buy"
+                onClick={() => setConfirming(true)}
+              >
+                {selEntry.canBuy ? 'Buy' : selEntry.reason || 'Unavailable'}
+              </button>
+            ) : (
+              <div class="col confirm" data-testid="buy-confirm-box">
+                <div>
+                  Spend <b class="gold">{n0(selEntry.price)}g</b> on {def.name}?
+                </div>
+                <div class="row">
+                  <button
+                    class="btn primary grow"
+                    data-testid="buy-confirm"
+                    onClick={() => {
+                      const r = s.issue({ type: 'buy', itemId: selEntry.id });
+                      if (r.ok) pick(null);
+                      else setConfirming(false);
+                    }}
+                  >
+                    Confirm
+                  </button>
+                  <button class="btn grow" onClick={() => setConfirming(false)}>
+                    Cancel
+                  </button>
+                </div>
               </div>
-              <div class="row">
-                <button
-                  class="btn primary grow"
-                  data-testid="buy-confirm"
-                  onClick={() => {
-                    const r = s.issue({ type: 'buy', itemId: selEntry.id });
-                    if (r.ok) pick(null);
-                    else setConfirming(false);
-                  }}
-                >
-                  Confirm
-                </button>
-                <button class="btn grow" onClick={() => setConfirming(false)}>
-                  Cancel
-                </button>
-              </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       );
     }
@@ -277,6 +295,7 @@ export function ShopPanel() {
     <div class="col shop" data-testid="shop">
       <div class="row wrap shop-top">
         <span class="gold">{n0(p.hero!.gold)} gold</span>
+        {!p.alive && <span class="chip bad">Down: base items only</span>}
         <div class="slots" aria-label="Your items">
           {Array.from({ length: slots }, (_, i) => {
             const id = owned[i];
@@ -318,12 +337,19 @@ export function ShopPanel() {
           </div>
           <Attunement cat={cat} owned={ownedByCat[cat] ?? 0} />
           <div class="col shop-tiles">
-            {[1, 2, 3].map((tier) => {
+            {(atStall ? [3, 1, 2] : [1, 2, 3]).map((tier) => {
               const list = entries.filter((e) => e.category === cat && e.tier === tier);
               if (list.length === 0) return null;
+              const jungleOnly = tier === 3 && !atStall;
               return (
-                <div class="tier-row" key={tier}>
-                  <div class="tier-label">Tier {tier}</div>
+                <div class={`tier-row ${jungleOnly ? 'dimmed' : ''}`} key={tier} data-tier={tier}>
+                  <div class="tier-label">
+                    {tier === 3 && atStall
+                      ? 'Sold here: tier 3'
+                      : jungleOnly
+                        ? 'Tier 3 · Jungle stalls only'
+                        : `Tier ${tier}`}
+                  </div>
                   <div class="tiles">
                     {list.map((e) => (
                       <Tile
@@ -331,6 +357,8 @@ export function ShopPanel() {
                         e={e}
                         selected={sel?.kind === 'shop' && sel.id === e.id}
                         count={owned.filter((x) => x === e.id).length}
+                        recommended={e.id === recommended}
+                        dimmed={jungleOnly}
                         onPick={() => pick({ kind: 'shop', id: e.id })}
                       />
                     ))}

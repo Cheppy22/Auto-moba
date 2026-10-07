@@ -1,4 +1,5 @@
 import { maybeSwapLane } from './ai/swap';
+import { teamNetWorth } from './curses';
 import {
   TPS,
   HERO_ASSIST_WINDOW,
@@ -129,6 +130,7 @@ function killUnit(ctx: Ctx, u: Unit): void {
     case 'hero': {
       const h = u.hero!;
       h.deaths++;
+      const victimStreak = h.streak;
       h.streak = 0;
       h.lossStreak = ctx.s.tick - h.lastDeathTick > ctx.t.ai.lossWindowTicks ? 1 : h.lossStreak + 1;
       h.lastDeathTick = ctx.s.tick;
@@ -142,10 +144,16 @@ function killUnit(ctx: Ctx, u: Unit): void {
         kh.kills++;
         kh.lossStreak = 0;
         kh.streak++;
+        const behind = Math.max(
+          0,
+          teamNetWorth(ctx, u.team as PlayTeam) - teamNetWorth(ctx, killerTeam),
+        );
         giveGold(
           ctx,
           killerHero,
-          ctx.t.gold.heroKill + ctx.t.gold.killBountyPerStreak * Math.min(5, h.streak),
+          ctx.t.gold.heroKill +
+            ctx.t.gold.killBountyPerStreak * Math.min(5, victimStreak) +
+            Math.round((ctx.t.gold.comebackBounty * Math.min(behind, 8000)) / 1000),
           'kill',
         );
         fireTriggers(ctx, killerHero, 'kill', { victim: u });

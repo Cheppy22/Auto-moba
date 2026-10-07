@@ -15,6 +15,7 @@ import { PositionIndex } from './positions';
 export type { BadgeAward } from './badges';
 export type { Fight } from './fights';
 export { PositionIndex } from './positions';
+export * from './text';
 
 export interface RosterEntry {
   id: number;
@@ -30,6 +31,8 @@ export interface AnalysisInput {
   fightGapSec: number;
   fightRadius: number;
   badges: BadgeDef[];
+  /** The human player's team; defaults to A. */
+  playerTeam?: PlayTeam;
 }
 
 export function inputFromMatch(m: Match, c: Content): AnalysisInput {
@@ -40,6 +43,7 @@ export function inputFromMatch(m: Match, c: Content): AnalysisInput {
     fightGapSec: c.tuning.fight.clusterGapSec,
     fightRadius: c.tuning.fight.clusterRadius,
     badges: c.badges,
+    playerTeam: m.config.player?.team ?? 'A',
   };
 }
 
@@ -149,6 +153,8 @@ export interface Report {
   badges: BadgeAward[];
   special: SpecialFacts;
   phases: number[];
+  /** The player's team, for "your team" / "the enemy" wording. */
+  viewerTeam: PlayTeam;
 }
 
 const emptyMix = (): Record<DamageType, number> => ({ blade: 0, soul: 0, true: 0 });
@@ -518,6 +524,7 @@ export function buildReport(input: AnalysisInput, scope: Scope, viewer?: PlayTea
     badges,
     special,
     phases,
+    viewerTeam: viewer ?? input.playerTeam ?? 'A',
   };
 }
 

@@ -6,13 +6,13 @@
   "attackKind": "ranged",
   "playstyle": "A trapper that covers the ground with marigold snares and slows. Throw fields where enemies must walk, then let your team catch them; she is fragile when caught.",
   "stats": {
-    "maxHp": 591.84,
+    "maxHp": 615.51,
     "hpRegen": 2,
     "armor": 16,
     "resist": 26,
-    "bladeDmg": 26.47,
+    "bladeDmg": 27.53,
     "atkSpeed": 0.8,
-    "soulPower": 37.39,
+    "soulPower": 38.89,
     "moveSpeed": 44,
     "cdr": 0,
     "range": 110

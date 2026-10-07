@@ -309,3 +309,34 @@
 html[data-layout='portrait'] .detail-body {
   gap: var(--sp-2);
 }
+
+.tile.ready {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--good) 70%, transparent);
+}
+.tile.sel.ready {
+  box-shadow:
+    0 0 0 1px var(--brass-hi),
+    var(--glow-brass);
+}
+.tile.dimmed,
+.tier-row.dimmed .tile {
+  opacity: 0.5;
+}
+.tile-rec {
+  position: absolute;
+  top: 3px;
+  right: 5px;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--brass-hi);
+}
+.buy-pin {
+  position: sticky;
+  bottom: 0;
+  padding-top: var(--sp-2);
+  background: linear-gradient(to top, #14101c 75%, transparent);
+}
+.shop-tiles {
+  padding-bottom: 32px;
+}

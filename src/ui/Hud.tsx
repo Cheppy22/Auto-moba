@@ -1,15 +1,17 @@
-import { useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import type { Unit } from '../sim';
 import { HpRing, Icon } from './Ornament';
+import { ItemIcon } from './ItemIcon';
 import { SigilIcon } from './SigilIcon';
 import { mmss, n0 } from './format';
 import { useLayout, type Layout } from './layout';
-import { useSession, NOTICE_TICKS, type Speed } from './session';
+import { useEscape, useSession, NOTICE_TICKS, type Speed } from './session';
 import { ShopPanel } from './ShopPanel';
 
 function Roster({ team }: { team: 'A' | 'B' }) {
   const s = useSession();
   const m = s.match!;
+  const narrow = window.innerWidth < 420;
   return (
     <div
       class="roster"
@@ -27,13 +29,13 @@ function Roster({ team }: { team: 'A' | 'B' }) {
             title={`${def.name} · ${u.hero!.kills} kills, ${u.hero!.deaths} deaths`}
           >
             <HpRing
-              size={34}
+              size={narrow ? 26 : 34}
               frac={frac}
               color={team === 'A' ? 'var(--a)' : 'var(--b)'}
               alive={u.alive}
               me={u.hero!.isPlayer}
             >
-              <SigilIcon spec={def.sigil} team={team} size={26} alive={u.alive} />
+              <SigilIcon spec={def.sigil} team={team} size={narrow ? 18 : 26} alive={u.alive} />
             </HpRing>
           </div>
         );
@@ -45,17 +47,28 @@ function Roster({ team }: { team: 'A' | 'B' }) {
 function PlayerCard({ u }: { u: Unit }) {
   const s = useSession();
   const [open, setOpen] = useState(false);
+  const wrap = useRef<HTMLDivElement>(null);
+  useEscape(open, () => setOpen(false));
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: PointerEvent): void => {
+      if (!wrap.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('pointerdown', onDown);
+    return () => document.removeEventListener('pointerdown', onDown);
+  }, [open]);
+  const next = s.match!.recommendedItem();
   const def = s.content.heroById.get(u.defId)!;
   const h = u.hero!;
   const itemDef = (id: string) =>
     s.content.itemById.get(id) ?? s.content.cursedById.get(id) ?? s.content.holyById.get(id);
   const dead = !u.alive;
   return (
-    <div class="player-card-wrap">
+    <div class="player-card-wrap" ref={wrap}>
       {open && (
         <div class="panel col card-pop" data-testid="card-details">
           {def.abilities.map((a, i) => (
-            <div class="small" key={a.id}>
+            <div class="small pop-line" key={a.id} title={a.desc}>
               <b>
                 {i + 1}. {a.name}
               </b>{' '}
@@ -63,10 +76,10 @@ function PlayerCard({ u }: { u: Unit }) {
             </div>
           ))}
           {h.items.length === 0 && <div class="dim small">No items yet.</div>}
-          {h.items.map((id) => {
+          {h.items.map((id, i) => {
             const it = itemDef(id);
             return (
-              <div class="small" key={id}>
+              <div class="small pop-line" key={`${id}:${i}`} title={it?.name}>
                 <b>{it?.name ?? id}</b>{' '}
                 <span class="dim">{it && 'desc' in it ? (it as { desc: string }).desc : ''}</span>
               </div>
@@ -78,7 +91,10 @@ function PlayerCard({ u }: { u: Unit }) {
         class="glass player-card"
         data-testid="player-card"
         aria-expanded={open}
-        onClick={() => setOpen(!open)}
+        onClick={() => {
+          s.flashHalo();
+          setOpen(!open);
+        }}
       >
         <HpRing
           size={58}
@@ -120,6 +136,11 @@ function PlayerCard({ u }: { u: Unit }) {
         <div class="gold player-gold" data-testid="gold">
           <i class="coin" aria-hidden="true" />
           {n0(h.gold)}
+          {next && (
+            <span class="next-item" data-testid="next-item" title={`Next: ${itemDef(next)?.name}`}>
+              <ItemIcon id={next} size={20} />
+            </span>
+          )}
         </div>
       </button>
     </div>
@@ -130,7 +151,7 @@ function SpeedControls() {
   const s = useSession();
   return (
     <div class="seg" role="group" aria-label="Speed">
-      {([0, 1, 2, 4] as Speed[]).map((v) => (
+      {([0, 1, 2, 4, 8] as Speed[]).map((v) => (
         <button
           key={v}
           class={`btn small ${s.ui.speed === v ? 'on' : ''}`}
@@ -171,6 +192,16 @@ function Controls({ u }: { u: Unit }) {
         <Icon name="shop" />
         <span>Shop</span>
       </button>
+      <button
+        class={`act ${u.hero!.autoBuy ? 'on' : ''}`}
+        data-testid="autobuy-toggle"
+        aria-pressed={u.hero!.autoBuy}
+        title="Let your hero buy its build items at base or a stall"
+        onClick={() => s.issue({ type: 'setAutoBuy', on: !u.hero!.autoBuy })}
+      >
+        <Icon name="coin" />
+        <span>Auto-buy</span>
+      </button>
       {u.hero!.disposition !== 'farmer' && (
         <button
           class={`act ${farming ? 'on' : ''}`}
@@ -184,6 +215,48 @@ function Controls({ u }: { u: Unit }) {
         </button>
       )}
       {u.hero!.recall && <span class="ofuda warn recalling">recalling…</span>}
+    </div>
+  );
+}
+
+const PROMPT_MS = 8000;
+
+function EventPrompt() {
+  const s = useSession();
+  const m = s.match!;
+  const seen = useRef(new Set<number>());
+  const [shown, setShown] = useState<{ id: number; name: string } | null>(null);
+  const live = shown && m.state.events.some((e) => e.id === shown.id);
+  useEffect(() => {
+    if (shown && !live) setShown(null);
+    if (shown) return;
+    const ev = m.state.events.find((e) => !seen.current.has(e.id));
+    if (!ev) return;
+    seen.current.add(ev.id);
+    setShown({ id: ev.id, name: s.content.eventById.get(ev.defId)?.name ?? ev.defId });
+  });
+  useEffect(() => {
+    if (!shown) return;
+    const timer = window.setTimeout(() => setShown(null), PROMPT_MS);
+    return () => window.clearTimeout(timer);
+  }, [shown]);
+  if (!shown || !live) return null;
+  return (
+    <div class="glass event-prompt" role="alert" data-testid="event-prompt">
+      <span>{shown.name} starting: send your hero?</span>
+      <button
+        class="btn small primary"
+        data-testid="event-send"
+        onClick={() => {
+          s.issue({ type: 'suggestEvent', eventId: shown.id });
+          setShown(null);
+        }}
+      >
+        Send
+      </button>
+      <button class="btn small" data-testid="event-ignore" onClick={() => setShown(null)}>
+        Ignore
+      </button>
     </div>
   );
 }
@@ -230,18 +303,21 @@ export function Hud() {
   const pressure = snap.pressure.map(
     (id) => s.content.pressure.find((x) => x.id === id)?.name ?? id,
   );
+  const pointsHint = 'Points: kills, towers and objectives. The team with more wins the phase.';
   const score = (
     <div class="clock" data-testid="score">
-      <b class="pts a" title="Your team's points">
-        {snap.points.A}
-      </b>
+      <div class="pts-col" title={`Your team's ${pointsHint}`}>
+        <b class="pts a">{snap.points.A}</b>
+        <span class="pts-label">You</span>
+      </div>
       <div class="ofuda">
         <b data-testid="phase">Phase {m.state.phase.n}</b>
         <span data-testid="clock">{mmss(snap.phaseTicksLeft)}</span>
       </div>
-      <b class="pts b" title="Enemy points">
-        {snap.points.B}
-      </b>
+      <div class="pts-col" title={`Enemy team's ${pointsHint}`}>
+        <b class="pts b">{snap.points.B}</b>
+        <span class="pts-label">Foe</span>
+      </div>
     </div>
   );
   const announce = snap.events.map((e) => (
@@ -278,6 +354,7 @@ export function Hud() {
       {announce}
     </div>
   );
+  useEscape(s.ui.shopOpen, () => s.setUi({ shopOpen: false }));
   const shop = s.ui.shopOpen && (
     <div class="overlay shop-overlay">
       <div class="panel col" style={{ width: 'min(960px,100%)', maxHeight: '100%' }}>
@@ -294,7 +371,9 @@ export function Hud() {
       </div>
     </div>
   );
-  const toast = s.ui.toast && <div class="toast">{s.ui.toast}</div>;
+  const toast = (s.ui.toast || s.ui.info) && (
+    <div class={`toast ${s.ui.toast ? '' : 'info'}`}>{s.ui.toast ?? s.ui.info}</div>
+  );
   const speed = (
     <div class="glass speed-panel">
       <SpeedControls />
@@ -318,6 +397,7 @@ export function Hud() {
             <Roster team="B" />
           </div>
           <CurseNotices />
+          <EventPrompt />
         </div>
         {toast}
         <div class="hud-dock portrait">
@@ -341,6 +421,7 @@ export function Hud() {
         <Roster team="B" />
       </div>
       <CurseNotices />
+      <EventPrompt />
       <div class="corner bl">{p && <PlayerCard u={p} />}</div>
       <div class="corner br">{p && <Controls u={p} />}</div>
       {toast}

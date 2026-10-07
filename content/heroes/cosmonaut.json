@@ -6,11 +6,11 @@
   "attackKind": "ranged",
   "playstyle": "A slippery ranged skirmisher with a jetpack. Hop in, shoot, and slide back out; it speeds up after every kill, so hunt stragglers and roam the jungle.",
   "stats": {
-    "maxHp": 833.61,
+    "maxHp": 892.96,
     "hpRegen": 2,
     "armor": 20,
     "resist": 16,
-    "bladeDmg": 68.6,
+    "bladeDmg": 73.48,
     "atkSpeed": 1,
     "soulPower": 0.0,
     "moveSpeed": 55,

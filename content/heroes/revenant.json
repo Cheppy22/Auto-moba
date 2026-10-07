@@ -6,11 +6,11 @@
   "attackKind": "melee",
   "playstyle": "A fast melee skirmisher that dashes into heroes and heals on kills. Hunt weakened enemies and roam the jungle between fights.",
   "stats": {
-    "maxHp": 1077.03,
+    "maxHp": 982.25,
     "hpRegen": 2,
     "armor": 26,
     "resist": 16,
-    "bladeDmg": 91.92,
+    "bladeDmg": 83.83,
     "atkSpeed": 1.1,
     "soulPower": 0.0,
     "moveSpeed": 52,

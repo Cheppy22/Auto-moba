@@ -6,11 +6,11 @@
   "attackKind": "melee",
   "playstyle": "A sturdy melee fighter that runs at the enemy and hits hard while soaking damage. Good at the front of a lane; pop its fire ritual when a hero fight starts.",
   "stats": {
-    "maxHp": 1674.82,
+    "maxHp": 1540.83,
     "hpRegen": 3,
     "armor": 32,
     "resist": 18,
-    "bladeDmg": 85.07,
+    "bladeDmg": 78.26,
     "atkSpeed": 0.85,
     "soulPower": 0.0,
     "moveSpeed": 46,

@@ -66,8 +66,9 @@ export interface Access {
 export type Where = 'here' | 'base' | 'jungle';
 
 export function shopAccess(ctx: Ctx, u: Unit): Access {
-  if (ctx.s.phase.kind === 'prep') return { base: true, keeper: true, jungle: false };
-  if (ctx.s.phase.kind !== 'live' || !u.alive) return { base: false, keeper: false, jungle: false };
+  if (ctx.s.phase.kind === 'prep') return { base: true, keeper: false, jungle: false };
+  if (ctx.s.phase.kind !== 'live') return { base: false, keeper: false, jungle: false };
+  if (!u.alive) return { base: true, keeper: false, jungle: false };
   const jungle = nearJungleShop(ctx, u);
   return { base: nearBase(ctx, u) || jungle, keeper: nearKeeper(ctx, u), jungle };
 }
