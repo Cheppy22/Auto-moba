@@ -164,7 +164,7 @@ Each hero re-plans about once per second and scores goals (farm lane, push tower
 - **Targets:** hero win rates 45–55%, Team A about 50%, median match about 12–16 minutes, Mid about a quarter to a third of hero time.
 - **Method:** `npm run balance -- --matches 800 --seed 29000 --quiet` writes `out/balance.md`. `npm run diagnose` measures engagement, healing, rescues, feeding and tier-3 buys. `tools/lane-share.ts` measures lane share. Test hero scaling with the `BALANCE_SCALE` environment variable, then bake it into `content/heroes/*.json`.
 - **Noise:** 400 matches gives about ±3.5% per hero. Decide on 800.
-- **Last measured** (after item sheet v2, 800 matches): heroes 44.5–54.8%, Team A 52.4%, median 16.0 minutes (p90 22.0). Item numbers are untuned.
+- **Last measured** (after the Wonderland content pass, 800 matches, seed 29000): heroes 43.3–57.7%, Team A 52.8%, median 16.0 minutes (p90 22.1). Outside the 44–56% band: Rabbit 57.7%, Hatter 56.8% (high) and Sweep 43.3% (low); not yet retuned. Drink Me and Eat Me teams won 40.2% and 45.6% when accepted (about 200 cases each). Item numbers are untuned.
 
 ## Known weaknesses and open questions
 
