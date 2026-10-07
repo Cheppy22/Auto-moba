@@ -189,6 +189,7 @@ export interface Unit {
   path: [number, number][];
   pathI: number;
   lane: LaneId | null;
+  structWindow?: { tick: number; taken: number };
   pendingKill: { killerId: number } | null;
   bounty: number;
   hero?: HeroState;

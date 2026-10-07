@@ -74,6 +74,8 @@ export function dealDamage(
   origin: string,
 ): number {
   if (!tgt.alive || tgt.pendingKill || raw <= 0) return 0;
+  if (src?.kind === 'hero' && (tgt.kind === 'tower' || tgt.kind === 'guardian'))
+    raw *= ctx.t.tower.heroDamageMul;
   let dmg = Math.max(1, mitigate(tgt, raw, dtype));
   let absorbed = 0;
   if (tgt.shields.length) {
@@ -85,6 +87,17 @@ export function dealDamage(
       absorbed += take;
     }
     tgt.shields = tgt.shields.filter((sh) => sh.amount > 0);
+  }
+  if (tgt.kind === 'tower' || tgt.kind === 'guardian') {
+    const w = tgt.structWindow ?? (tgt.structWindow = { tick: ctx.s.tick, taken: 0 });
+    if (ctx.s.tick - w.tick >= TPS) {
+      w.tick = ctx.s.tick;
+      w.taken = 0;
+    }
+    const room = Math.max(0, tgt.stats.maxHp * ctx.t.tower.maxHpPerSec - w.taken);
+    dmg = Math.min(dmg, room);
+    w.taken += dmg;
+    if (dmg <= 0) return 0;
   }
   const applied = dmg;
   if (applied > 0) tgt.hp -= applied;

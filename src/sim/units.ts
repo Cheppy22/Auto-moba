@@ -162,7 +162,7 @@ export function makeTower(ctx: Ctx, team: PlayTeam, lane: LaneId, index: 0 | 1):
   const t = ctx.t.tower;
   const pos = ctx.world.towerPos[team][lane][index];
   const stats: Stats = {
-    maxHp: t.hp,
+    maxHp: index === 1 ? Math.round(t.hp * t.innerHpMul) : t.hp,
     hpRegen: 0,
     armor: t.armor,
     resist: t.resist,

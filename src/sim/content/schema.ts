@@ -435,6 +435,9 @@ export const TuningSchema = z.object({
     gold: z.number(),
     teamGold: z.number(),
     heroFocusSec: z.number(),
+    heroDamageMul: z.number(),
+    innerHpMul: z.number(),
+    maxHpPerSec: z.number(),
   }),
   guardian: z.object({
     hp: z.number(),

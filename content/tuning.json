@@ -42,15 +42,18 @@
     "structureMulPerPhase": 1.2
   },
   "tower": {
-    "hp": 3000,
-    "damage": 75,
+    "hp": 3600,
+    "damage": 100,
     "range": 120,
     "atkSpeed": 0.8,
     "armor": 35,
     "resist": 35,
     "gold": 200,
     "teamGold": 70,
-    "heroFocusSec": 3
+    "heroFocusSec": 3,
+    "heroDamageMul": 0.5,
+    "innerHpMul": 1.25,
+    "maxHpPerSec": 0.09
   },
   "guardian": {
     "hp": 6800,

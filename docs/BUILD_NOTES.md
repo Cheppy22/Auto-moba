@@ -131,3 +131,9 @@ Meta-progression, lane identity, "The Core" mode, lore, multiple AI difficulties
 - Shops: the second jungle shop is now `shop_e` (810,520), diagonal to `shop_w`. Tier 3 is sold only at jungle shops (and by the Keeper); an obelisk unlock gives a 25% discount (`shop.unlockDiscount`). AI plans trips for tier-3 purchases (`tier3TripRadius`).
 - The auction is switched off (`auction.enabled: false`); code and tests remain.
 - Open: a few heroes (oiran, revenant, smelter, ronin) still die 8+ times per match; this is mostly durability balance rather than AI.
+
+## Tower tuning
+
+- Reported: four heroes took both towers of a lane within 15 s. Measured peak: one tower could lose ~580 hp/s and two same-lane towers fell inside 15 s in 2 of 30 matches.
+- Towers: hp 3600 (inner x1.25), damage 100, heroes deal x0.5 to towers and guardians (`tower.heroDamageMul`), and any tower or guardian can lose at most 9% of max hp per second (`tower.maxHpPerSec`). Now no same-lane double fall inside 15 s in 30 matches; fastest outer fall about 11 s, inner about 14 s.
+- Cost: median match length rose from ~12 to ~14.8 min (p90 20.6).
