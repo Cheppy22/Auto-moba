@@ -41,7 +41,7 @@ const CHEST: Partial<Record<UnitKind, number>> = {
   hero: 14 * HERO_SCALE,
   minion: 7,
   tower: 24,
-  guardian: 44,
+  guardian: 50,
   camp: 8,
 };
 
@@ -406,7 +406,7 @@ export class BroadcastView {
           v.jabber.root.position.set(x, 0, z);
           v.jabber.root.rotation.y = v.yaw;
           v.jabber.animate(time, lunge);
-          this.bars.add(x, 90, z, 46 * k, 4.6 * k, frac, ONI_RED);
+          this.bars.add(x, 112, z, 50 * k, 4.8 * k, frac, ONI_RED);
           break;
         }
         if (v.camp) {

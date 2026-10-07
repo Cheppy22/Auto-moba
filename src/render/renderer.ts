@@ -553,7 +553,7 @@ export class Renderer {
     const n = Math.ceil(r / t);
     for (let i = -n; i < n; i++) {
       for (let j = -n; j < n; j++) {
-        b.fillStyle = (i + j) % 2 === 0 ? 'rgba(8,6,12,0.5)' : 'rgba(58,36,44,0.34)';
+        b.fillStyle = (i + j) % 2 === 0 ? 'rgba(8,6,12,0.4)' : 'rgba(58,36,44,0.26)';
         b.fillRect(cx + i * t, cy + j * t, t + 0.5, t + 0.5);
       }
     }

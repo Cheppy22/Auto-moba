@@ -512,12 +512,12 @@ function pawnGeometry(team: string, ranged: boolean): BufferGeometry {
   ];
   if (ranged) {
     parts.push(
-      bit(new BoxGeometry(4.6, 0.45, 6.4).rotateX(-0.55), PAPER, 6.2, 10.4, 2.4),
+      bit(new BoxGeometry(6.4, 0.6, 8.6).rotateX(-0.4), PAPER, 6.8, 11.4, 2.4),
       bit(
-        new BoxGeometry(1.6, 0.5, 1.6).rotateY(Math.PI / 4).rotateX(-0.55),
+        new BoxGeometry(2.4, 0.7, 2.4).rotateY(Math.PI / 4).rotateX(-0.4),
         PALETTE.seal,
-        6.2,
-        10.7,
+        6.8,
+        11.8,
         2.5,
       ),
     );
@@ -1480,6 +1480,7 @@ export class JabberwockModel {
     this.head.position.set(0, 56, 27);
     this.head.rotation.x = 0.35;
     this.root.add(this.head);
+    this.root.scale.setScalar(1.3);
   }
 
   animate(time: number, lunge: number): void {
