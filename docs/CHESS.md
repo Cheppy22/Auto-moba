@@ -14,7 +14,7 @@ An experimental twist on Auto-MOBA. **On this branch this file overrides [SOURCE
 | Lane towers               | Renamed **Bastions**.                                                                                                                                          |
 | First move                | Both sides start at the same instant.                                                                                                                          |
 | Between-phase screens     | Cut. The match runs continuously ("Doctrine and Gambits" below).                                                                                               |
-| Level-ups                 | Automatic **Ranks 1–8**, plus two **fork** choices (Rank 4 and 8). Rank is easy to read on units.                                                              |
+| Level-ups                 | Automatic **Ranks 1–8**, plus two **fork** choices (Rank 4 and 8). **The game pauses for a fork** until the player chooses. Rank is easy to read on units.     |
 | Gambits                   | A **random hand** of orders, for replayability.                                                                                                                |
 | Jungle shops              | Stay.                                                                                                                                                          |
 
@@ -45,7 +45,7 @@ Both teams field the same five pieces, so balance lives in roles, styles, paths 
 
 - **Rank 1–8**, from lifetime gold earned (thresholds in `tuning.json` → `ranks.goldThresholds`, 8 entries starting at 0). Replaces per-phase stat growth.
 - Each rank-up applies stat growth (`ranks.growth`, % health, Blade damage, Soul power) and the style's **rank bonus** for that rank (Ranks 2, 3, 5, 6, 7), automatically. A small non-blocking chip says so ("Bishop · Rank 5: Radiance").
-- **Forks at Rank 4 and 8:** two options from the style. White's forks wait **10 s** (`ranks.forkSec`) for the player without pausing; then the AI's pick applies. Black's forks are picked by the AI at once. Pending forks queue; several can be open at once.
+- **Forks at Rank 4 and 8:** two options from the style. **When a White piece reaches a fork rank the match pauses** (the sim stops stepping) and a fork sheet lists every pending White fork; play resumes when all are answered. There is no timeout for the player; a **"Let the AI choose"** button picks for all of them. Black's forks are picked by the AI at once. In headless runs (no player) White's forks resolve like Black's after `ranks.forkSec`.
 - **Readability:** every piece shows its rank as a numeral badge on its health bar (and pips 1–8 on the roster); a pending fork makes the badge pulse.
 
 ## Pawnlings and pawns
@@ -94,7 +94,7 @@ Both teams field the same five pieces, so balance lives in roles, styles, paths 
 Mobile first (portrait 390×844, landscape 844×390, desktop). The 3D island stays; the HUD sits in the corners.
 
 - **Setup board:** five piece cards (style picker, path toggle) and three lane slots to drop them in. One "Begin" button.
-- **Live HUD:** Act clock and score (top); White's roster with rank pips, health and lane (left column); Black's roster (right); **gambit hand + Tempo meter + Field Pawn button** (pawn count / cap; tap, then pick Left / Mid / Right) (bottom); **fork cards** stacked above the hand with a 10 s ring; **Adjourn** button (top right, next to speed). Camera Auto / Follow (tap a roster portrait) / Free.
+- **Live HUD:** Act clock and score (top); White's roster with rank pips, health and lane (left column); Black's roster (right); **gambit hand + Tempo meter + Field Pawn button** (pawn count / cap; tap, then pick Left / Mid / Right) (bottom); **fork sheet** that pauses the game (see Ranks and forks); **Adjourn** button (top right, next to speed). Camera Auto / Follow (tap a roster portrait) / Free.
 - **Gambit targeting:** tap a card. Lane cards show three big Left / Mid / Right buttons; point and enemy cards are aimed by tapping the 3D view (ground pick or piece pick); a Cancel chip backs out.
 - **Adjourn panel:** paused. Lanes (move pieces between lanes), paths, the **Armory** (each piece's items and next buy, read-only), mini scoreboard. Resume.
 - **End screen:** "Checkmate: White wins" (or Black) and the existing report.
@@ -125,7 +125,7 @@ type Path = 'offense' | 'defense' | 'utility';
 
 // Commands (src/sim/types.ts)
 | { type: 'setupTeam'; pieces: { piece: PieceId; style: string; path: Path; lane: LaneId }[] } // setup only
-| { type: 'chooseFork'; heroId: number; optionId: string }
+| { type: 'chooseFork'; heroId: number; optionId: string }   // optionId 'auto' = the AI's pick
 | { type: 'playGambit'; slot: number; lane?: LaneId; x?: number; y?: number; targetId?: number }
 | { type: 'setLane'; heroId: number; lane: LaneId }   // live or adjourned
 | { type: 'setPath'; heroId: number; path: Path }
@@ -149,3 +149,8 @@ BroadcastView.pickUnit(clientX, clientY): number | null                        /
 ```
 
 New events: `rankUp { id, rank, bonus }`, `fork { id, rank, optionId, auto }`, `gambit { team, cardId, lane?, x?, y?, targetId? }`, `check { team }`, `throneDown { team }`, `checkmate { winner }`.
+
+## Visual distinction and a calmer screen (owner feedback, 2026-10-08)
+
+- **Style must be readable on sight, for both teams.** Every one of the 15 styles gets: a distinct **emblem** (a simple glyph in a style colour) shown next to the rank badge on the piece's bar, on the roster portraits of **both** teams and in tooltips; a **signature accessory/prop** on the 3D piece (different silhouette, not just a colour); and a style-coloured ground ring. Tapping any piece or roster portrait (including Black's) opens a small **piece card**: style name and one-line description, path, rank, items.
+- **Calm HUD:** the screen is cluttered at all times, so the default view shows less: full-health pawnlings and pawns have no health bars; pieces keep a thin bar with emblem and rank; gambit cards show name and cost only (full text on tap or hold); roster cells drop the 8 rank pips (numeral only); speed and camera controls collapse to compact controls; banners and chips stack and fade faster; scenery and effects stay out of the lanes. Information appears when it matters (damaged, selected, fork pending, low health) rather than all the time.

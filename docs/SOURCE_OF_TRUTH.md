@@ -207,6 +207,7 @@ Meta-progression between matches; era-themed lane identity; "The Core" alternate
 | Canvas 2D only, no drawing library                        | 2D map plus a lazy-loaded three.js Broadcast view                                                           |
 | 2D map as the default view, with a Map / Broadcast toggle | The 3D terrain is the only view; the 2D map is deleted                                                      |
 | Why the teams fight is deliberately undecided             | White Queen vs. Red Queen chess game on a Looking-Glass board (White Court and Red Court, Kings, Checkmate) |
+| Forks decided within 10 s without pausing (chess branch)  | The game pauses at Rank 4 and 8 forks until the player chooses (CHESS.md)                                   |
 
 ## Where to look first (for code work)
 
