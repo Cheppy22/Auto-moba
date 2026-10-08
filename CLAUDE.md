@@ -1,6 +1,6 @@
 # Project instructions
 
-Auto-MOBA: a single-player auto-battler MOBA (TypeScript, Vite, Preact, Canvas). Work on branch `test-product`.
+Auto-MOBA: a single-player auto-battler MOBA (TypeScript, Vite, Preact, Canvas). Work on branch `test-product-2` (the chess variant; spec `docs/CHESS.md` overrides the source of truth here). `test-product` is the main game.
 
 **Read first:** `docs/SOURCE_OF_TRUTH.md`. It describes the game as it is now, the owner's working agreement (answer style, approval rules, git rules) and the list of decisions that were reversed. `docs/ARCHITECTURE.md` covers the code layout.
 
@@ -13,4 +13,4 @@ Auto-MOBA: a single-player auto-battler MOBA (TypeScript, Vite, Preact, Canvas).
 
 ## Before you finish
 
-Run `npm run check`, and `npx playwright test` for interface changes. Balance changes need `npm run balance -- --matches 800 --seed 29000 --quiet`. Commit and push to `test-product` (never open a PR unless asked).
+Run `npm run check`, and `npx playwright test` for interface changes. Balance changes need `npm run balance -- --matches 800 --seed 29000 --quiet`. Commit and push to `test-product-2` (never open a PR unless asked).

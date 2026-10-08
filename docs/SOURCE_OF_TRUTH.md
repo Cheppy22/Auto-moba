@@ -1,5 +1,7 @@
 # Auto-MOBA: source of truth
 
+> **Branch `test-product-2`:** this branch is the chess variant. [CHESS.md](CHESS.md) overrides this file wherever they disagree.
+
 **This is the one living description of the game as it is built now.** If another doc or a task conflicts with this file, this file wins until Cheppy changes it.
 
 - What changed and when: [CHANGELOG.md](CHANGELOG.md). Never put history in this file.

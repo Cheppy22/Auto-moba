@@ -4,6 +4,7 @@ Newest first. One entry per change: what changed, why, and any measured effect. 
 
 ## 2026-10-08
 
+- **Chess variant spec** ([CHESS.md](CHESS.md), branch `test-product-2` only). Five chess pieces per team replace the heroes, no player character, pawns replace minion waves, continuous Acts with Ranks, forks and a random Gambit hand. Why: Cheppy's experimental twist, workshopped and approved 2026-10-08.
 - **Second test site** at `/v2/`. The Pages workflow now builds `test-product` at the root and `test-product-2` (the chess experiment) under `/v2/`; a push to either branch redeploys both. If the v2 build fails, the main site still deploys. Why: Cheppy wants to play the experimental branch in a browser.
 
 ## 2026-10-07
