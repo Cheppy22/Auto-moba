@@ -10,7 +10,7 @@
       "id": "top_damage",
       "metric": "damageDealt",
       "rank": "max",
-      "label": "Most damage dealt to heroes"
+      "label": "Most damage dealt to pieces"
     },
     {
       "id": "objective_damage",

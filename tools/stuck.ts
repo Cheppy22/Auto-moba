@@ -12,13 +12,13 @@ let stuckTicks = 0;
 let runs = 0;
 
 for (const seed of seeds) {
-  const m = Match.create(content, { seed, player: null });
+  const m = Match.create(content, { seed, autoGambits: { A: true, B: true } });
   const run = new Map<number, number>();
   for (let guard = 0; guard < 60; guard++) {
     const s = m.state;
     if (s.phase.kind === 'end') break;
     if (s.phase.kind !== 'live') {
-      if (!m.autoAdvance().ok) break;
+      if (!m.issue({ type: 'setupTeam', pieces: m.defaultSetup() }).ok) break;
       continue;
     }
     while (m.state.phase.kind === 'live') {

@@ -4,8 +4,7 @@ import { rand, seedStreams, shuffle } from '../src/sim/core/rng';
 import { mitigate, abilityMods } from '../src/sim/combat';
 import { quote, buyItem, sellItem, netWorth } from '../src/sim/shop';
 import { buildWorld, findPath, lanePoint, laneT } from '../src/sim/world/map';
-import { Match } from '../src/sim';
-import { content } from './helpers';
+import { content, liveMatch, piece } from './helpers';
 
 describe('rng', () => {
   it('streams are independent and repeatable', () => {
@@ -52,8 +51,8 @@ describe('world', () => {
 });
 
 describe('damage and shop', () => {
-  const m = Match.create(content, { seed: 9, player: { heroId: 'queen', role: 'top' } });
-  const hero = m.unitById(m.state.playerHeroId!)!;
+  const m = liveMatch(9, { autoGambits: { A: false, B: false } });
+  const hero = piece(m, 'A', 'queen');
 
   it('armor reduces blade damage, resist reduces soul, true ignores both', () => {
     const blade = mitigate(hero, 100, 'blade');
@@ -62,7 +61,8 @@ describe('damage and shop', () => {
     expect(blade).toBeLessThan(100);
     expect(soul).toBeLessThan(100);
     expect(truth).toBe(100);
-    expect(blade).toBeLessThan(soul);
+    if (hero.stats.armor > hero.stats.resist) expect(blade).toBeLessThan(soul);
+    else expect(blade).toBeGreaterThanOrEqual(soul);
   });
 
   it('combining discounts owned components and refunds on sell', () => {
@@ -87,9 +87,23 @@ describe('damage and shop', () => {
     expect('price' in q).toBe(stocked);
   });
 
-  it('upgrades scale ability numbers', () => {
-    hero.hero!.upgrades = ['queen_u1'];
-    expect(abilityMods(m.ctx, hero, 0).powerMul).toBeCloseTo(1.3);
-    expect(abilityMods(m.ctx, hero, 1).powerMul).toBe(1);
+  it('rank bonuses and fork picks scale ability numbers', () => {
+    const st = content.styleByKey.get(`queen/${hero.hero!.style}`)!;
+    const bonus = [st.ranks['2'], st.ranks['3'], st.ranks['5'], st.ranks['6'], st.ranks['7']].find(
+      (r) => r.ability !== undefined && r.powerMul !== 1,
+    );
+    hero.hero!.perks = [];
+    const idx = bonus?.ability ?? 0;
+    const before = abilityMods(m.ctx, hero, idx).powerMul;
+    if (bonus) {
+      const rank = Number(Object.entries(st.ranks).find(([, r]) => r === bonus)![0]);
+      hero.hero!.perks = [{ rank, optionId: null }];
+      expect(abilityMods(m.ctx, hero, idx).powerMul).toBeCloseTo(before * bonus.powerMul);
+    }
+    const opt = st.forks['4'][0];
+    hero.hero!.perks = [{ rank: 4, optionId: opt.id }];
+    if (opt.ability !== undefined)
+      expect(abilityMods(m.ctx, hero, opt.ability).powerMul).toBeCloseTo(opt.powerMul);
+    hero.hero!.perks = [];
   });
 });

@@ -4,6 +4,12 @@ Newest first. One entry per change: what changed, why, and any measured effect. 
 
 ## 2026-10-08
 
+- **Chess variant playable** (branch `test-product-2`, spec [CHESS.md](CHESS.md), pieces [PIECES.md](PIECES.md)). Why: Cheppy's experimental twist.
+  - Sim: five pieces per side (King, Queen, Rook, Bishop, Knight) with 3 styles each, build paths, automatic Ranks 1–8 with forks at 4 and 8, pawnlings (old minion waves) plus pawns fielded with Tempo, a random hand of gambits, Bastions and Thrones, Check and Checkmate. No player character; the 14 heroes are removed. Engine additions: stun, taunt, Knight leaps over terrain, per-style attack kind and build paths, and a fix for ally-targeted skills never casting.
+  - Interface: setup board, live HUD with gambit hand, Tempo, Field Pawn and fork cards, Adjourn panel with the read-only Armory, Checkmate screen. Phone, landscape and desktop.
+  - Art: chess-piece characters, ivory and ebony board, rank badges.
+  - Checks: `npm run check` (173 unit tests) and the Playwright suite pass.
+  - Measured (400 matches, seed 29000, gambits on both sides): White 48.1%, median 16.6 min. With gambits off for both sides White wins only 44.1%, so a bias against White remains (same pattern as `test-product` after the walls change). Outlier styles: Shadow, Regent, Errant and Battering Ram win 58–62%; Duelist, Lancer and Light win 40–44%. Not tuned yet.
 - **Chess variant spec** ([CHESS.md](CHESS.md), branch `test-product-2` only). Five chess pieces per team replace the heroes, no player character, pawns replace minion waves, continuous Acts with Ranks, forks and a random Gambit hand. Why: Cheppy's experimental twist, workshopped and approved 2026-10-08.
 - **Second test site** at `/v2/`. The Pages workflow now builds `test-product` at the root and `test-product-2` (the chess experiment) under `/v2/`; a push to either branch redeploys both. If the v2 build fails, the main site still deploys. Why: Cheppy wants to play the experimental branch in a browser.
 

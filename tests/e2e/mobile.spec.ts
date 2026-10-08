@@ -1,19 +1,34 @@
 import { expect, test, type Page } from '@playwright/test';
+import {
+  boxOf,
+  overflow,
+  pauseAtStart,
+  setTempo,
+  snap,
+  stepUntil,
+  watchErrors,
+  viewReady,
+} from './helpers';
 
 const shots = process.env.SHOTS_DIR;
-
-async function overflow(page: Page): Promise<number> {
-  return page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
-}
 
 async function shot(page: Page, name: string): Promise<void> {
   if (shots) await page.screenshot({ path: `${shots}/${name}.png` });
 }
 
-async function tallEnough(page: Page, id: string, min = 36): Promise<void> {
-  const box = await page.getByTestId(id).boundingBox();
-  expect(box, id).not.toBeNull();
-  expect(box!.height, id).toBeGreaterThanOrEqual(min);
+/** Every tap target is at least 40 CSS pixels each way. */
+async function bigEnough(page: Page, id: string, min = 40): Promise<void> {
+  const box = await boxOf(page, id);
+  expect(box.height, `${id} height`).toBeGreaterThanOrEqual(min);
+  expect(box.width, `${id} width`).toBeGreaterThanOrEqual(min);
+}
+
+/** The middle of the screen shows the 3D view, not a HUD element. */
+async function centreIsMap(page: Page): Promise<void> {
+  const cls = await page.evaluate(
+    () => document.elementFromPoint(window.innerWidth / 2, window.innerHeight / 2)?.className ?? '',
+  );
+  expect(String(cls), 'element in the middle of the screen').toContain('game-canvas');
 }
 
 const views = [
@@ -25,127 +40,183 @@ for (const v of views) {
   test.describe(v.name, () => {
     test.use({ viewport: v.viewport, hasTouch: true, isMobile: true });
 
-    test('full flow with taps', async ({ page }) => {
-      const errors: string[] = [];
-      page.on('pageerror', (e) => errors.push(e.message));
+    test('setup, live HUD, aim, fork, adjourn and the end screen fit and can be tapped', async ({
+      page,
+    }) => {
+      test.setTimeout(900_000);
+      const errors = watchErrors(page);
+      const vp = page.viewportSize()!;
+
+      // ---- setup board
       await page.goto('/');
+      await expect(page.getByTestId('title')).toBeVisible();
+      await shot(page, `${v.name}-title`);
+      expect(await overflow(page)).toBeLessThanOrEqual(0);
       await page.getByTestId('seed').fill('42');
       await page.getByTestId('start').tap();
-      await expect(page.getByTestId('draft')).toBeVisible();
-      await shot(page, `${v.name}-draft`);
+      await expect(page.getByTestId('setup')).toBeVisible();
+      await shot(page, `${v.name}-setup`);
       expect(await overflow(page)).toBeLessThanOrEqual(0);
-      await page.locator('.hero-row [data-testid^="hero-"]').first().tap();
-      await page.getByTestId('lane-top').tap();
-      await page.getByTestId('begin').scrollIntoViewIfNeeded();
+      await expect(page.getByTestId('begin')).toBeInViewport({ ratio: 1 });
+      await expect(page.getByTestId('lane-board')).toBeInViewport({ ratio: 1 });
+      for (const id of ['begin', 'zone-top', 'zone-mid', 'zone-bot', 'chip-king', 'chip-queen']) {
+        await bigEnough(page, id);
+      }
+      for (const el of await page.locator('[data-testid^="style-"][role="radio"]').all())
+        expect((await el.boundingBox())!.height).toBeGreaterThanOrEqual(40);
+      for (const el of await page.locator('[data-testid^="path-"][role="radio"]').all())
+        expect((await el.boundingBox())!.height).toBeGreaterThanOrEqual(40);
+      await page.getByTestId('chip-king').tap();
+      await page.getByTestId('zone-mid').tap();
+      await expect(page.getByTestId('zone-mid')).toContainText('King');
+      await pauseAtStart(page);
       await page.getByTestId('begin').tap();
 
-      await expect(page.getByTestId('prep')).toBeVisible();
-      await shot(page, `${v.name}-prep`);
-      expect(await overflow(page)).toBeLessThanOrEqual(0);
-      const cards = page.locator('[data-testid^="upgrade-"]');
-      const vp = page.viewportSize()!;
-      for (let i = 0; i < (await cards.count()); i++) {
-        await cards.nth(i).scrollIntoViewIfNeeded();
-        const box = (await cards.nth(i).boundingBox())!;
-        expect(box.x, `card ${i} left`).toBeGreaterThanOrEqual(0);
-        expect(box.x + box.width, `card ${i} right`).toBeLessThanOrEqual(vp.width);
-        expect(box.y, `card ${i} top`).toBeGreaterThanOrEqual(0);
-        expect(box.y + box.height, `card ${i} bottom`).toBeLessThanOrEqual(vp.height);
-      }
-      await cards.first().tap();
-      await page.getByTestId('tab-shop').tap();
-      await expect(page.getByTestId('buy')).toBeInViewport();
-      await shot(page, `${v.name}-prep-shop`);
-      await page.getByTestId('start-phase').scrollIntoViewIfNeeded();
-      await page.getByTestId('start-phase').tap();
-      const startAnyway = page.getByTestId('unspent-start');
-      if (await startAnyway.count()) await startAnyway.tap();
-
-      await expect(page.getByTestId('phase')).toHaveText('Phase 1');
-      await page.getByTestId('speed-4').tap();
-      await page.waitForTimeout(1500);
+      // ---- live HUD
+      await expect(page.getByTestId('hud')).toBeVisible();
+      await viewReady(page);
+      await page.waitForTimeout(1000);
       await shot(page, `${v.name}-hud`);
       expect(await overflow(page)).toBeLessThanOrEqual(0);
-      await tallEnough(page, 'shop-toggle', 40);
-      await tallEnough(page, 'recall-base', 40);
-      if (await page.getByTestId('farm-toggle').count())
-        await page.getByTestId('farm-toggle').tap();
-      await page.getByTestId('shop-toggle').tap();
-      const sheet = page.getByTestId('shop-sheet');
-      await expect(sheet).toBeVisible();
-      await expect(page.getByTestId('shop')).toBeVisible();
-      await page.waitForTimeout(600);
-      await shot(page, `${v.name}-hud-shop`);
-      const vp2 = page.viewportSize()!;
-      const sheetBox = (await sheet.boundingBox())!;
-      if (v.name === 'portrait') {
-        expect(sheetBox.y, 'game stays visible above the sheet').toBeGreaterThanOrEqual(
-          vp2.height * 0.4,
-        );
-        expect(sheetBox.y + sheetBox.height).toBeLessThanOrEqual(vp2.height + 1);
-      } else {
-        expect(sheetBox.x, 'game stays visible left of the sheet').toBeGreaterThanOrEqual(
-          vp2.width * 0.4,
-        );
-        expect(sheetBox.height).toBeGreaterThanOrEqual(vp2.height - 2);
+      await centreIsMap(page);
+      for (const id of [
+        'gambit-0',
+        'gambit-1',
+        'gambit-2',
+        'field-pawn',
+        'tempo',
+        'adjourn',
+        'speed-0',
+        'speed-1',
+        'speed-2',
+        'speed-4',
+        'speed-8',
+        'cam-auto',
+        'cam-follow',
+        'cam-free',
+        'roster-A-king',
+        'roster-A-knight',
+        'roster-B-king',
+        'roster-B-knight',
+      ]) {
+        await expect(page.getByTestId(id), `${id} in the viewport`).toBeInViewport({ ratio: 1 });
       }
-      await expect(page.getByTestId('buy')).toBeInViewport();
-      const buy = (await page.getByTestId('buy').boundingBox())!;
-      expect(buy.y + buy.height, 'Buy is on screen without scrolling').toBeLessThanOrEqual(
-        vp2.height,
-      );
-      expect(buy.height, 'buy tap target').toBeGreaterThanOrEqual(40);
-      expect((await page.getByTestId('shop-close').boundingBox())!.height).toBeGreaterThanOrEqual(
-        36,
-      );
-      const tile = (await page.locator('[data-testid^="item-"]').first().boundingBox())!;
-      expect(tile.width).toBeGreaterThanOrEqual(54);
-      expect(tile.height).toBeGreaterThanOrEqual(44);
+      for (const id of ['gambit-0', 'gambit-1', 'gambit-2', 'field-pawn', 'adjourn']) {
+        await bigEnough(page, id);
+      }
+      for (const id of ['0', '1', '2', '4', '8']) await bigEnough(page, `speed-${id}`);
+      for (const id of ['auto', 'follow', 'free']) await bigEnough(page, `cam-${id}`);
+      for (const piece of ['king', 'queen', 'rook', 'bishop', 'knight']) {
+        await bigEnough(page, `roster-A-${piece}`);
+        await bigEnough(page, `roster-B-${piece}`);
+      }
+      // the five rank pips and numeral are on every portrait
+      await expect(page.locator('[data-testid="roster"] .rank-pips i')).toHaveCount(40);
+      // the hand never covers the Field Pawn button or the Tempo meter
+      const hand = await boxOf(page, 'hand');
+      const pawn = await boxOf(page, 'field-pawn');
+      const tempo = await boxOf(page, 'tempo');
+      for (const b of [pawn, tempo]) {
+        const apart =
+          b.y >= hand.y + hand.height - 1 ||
+          b.x >= hand.x + hand.width - 1 ||
+          b.x + b.width <= hand.x + 1;
+        expect(apart, 'hand and Tempo/Pawn do not overlap').toBe(true);
+      }
+
+      // ---- aim a lane gambit with taps
+      const s = await stepUntil(page, { kind: 'card', target: 'lane' });
+      const slot = s.hand.find((c) => c.target === 'lane' && c.usable)!.slot;
+      await page.getByTestId(`gambit-${slot}`).tap();
+      await expect(page.getByTestId('aim')).toBeVisible();
+      await shot(page, `${v.name}-aim-lane`);
+      for (const id of ['aim-top', 'aim-mid', 'aim-bot']) {
+        await expect(page.getByTestId(id)).toBeInViewport({ ratio: 1 });
+        const box = await boxOf(page, id);
+        expect(box.height, `${id} is a big button`).toBeGreaterThanOrEqual(52);
+        expect(box.width).toBeGreaterThanOrEqual(64);
+      }
+      await bigEnough(page, 'aim-cancel');
+      await centreIsMap(page);
       expect(await overflow(page)).toBeLessThanOrEqual(0);
-      await page.getByTestId('shop-close').tap();
-      await expect(sheet).toHaveCount(0);
+      await page.getByTestId('aim-cancel').tap();
+      await expect(page.getByTestId('aim')).toHaveCount(0);
 
-      await page.getByTestId('shop-toggle').tap();
-      await expect(sheet).toBeVisible();
-      const grip = (await page.locator('.sheet-grip').boundingBox())!;
-      await page.mouse.move(grip.x + grip.width / 2, grip.y + grip.height / 2);
-      await page.mouse.down();
-      const sideways = v.name === 'landscape';
-      await page.mouse.move(
-        grip.x + grip.width / 2 + (sideways ? 40 : 0),
-        grip.y + grip.height / 2 + (sideways ? 0 : 40),
-        { steps: 4 },
+      // ---- point aim: the next tap on the 3D view plays the card
+      const pt = await stepUntil(page, { kind: 'card', target: 'point' });
+      await page
+        .getByTestId(`gambit-${pt.hand.find((c) => c.target === 'point' && c.usable)!.slot}`)
+        .tap();
+      await expect(page.getByTestId('aim-hint')).toContainText('Tap the board');
+      await shot(page, `${v.name}-aim-point`);
+      await page.touchscreen.tap(vp.width / 2, vp.height / 2);
+      await expect(page.getByTestId('aim')).toHaveCount(0);
+
+      // ---- field a pawn
+      await setTempo(page, 60);
+      await page.getByTestId('field-pawn').tap();
+      await expect(page.getByTestId('aim-bot')).toBeVisible();
+      await page.getByTestId('aim-bot').tap();
+      await expect(page.getByTestId('pawn-count')).toContainText('1/8');
+
+      // ---- forks stack above the hand without covering the middle of the screen
+      await stepUntil(page, { kind: 'fork' });
+      await expect(page.getByTestId('forks')).toBeVisible();
+      await page.waitForTimeout(500);
+      await shot(page, `${v.name}-forks`);
+      expect(await overflow(page)).toBeLessThanOrEqual(0);
+      await centreIsMap(page);
+      const forks = await page.locator('.fork:not(.strip)').all();
+      expect(forks.length).toBeGreaterThan(0);
+      for (const f of forks) await expect(f).toBeInViewport({ ratio: 1 });
+      for (const o of await page.locator('.fork-opt').all()) {
+        await expect(o).toBeInViewport({ ratio: 1 });
+        expect((await o.boundingBox())!.height).toBeGreaterThanOrEqual(40);
+      }
+      const first = (await snap(page)).forks[0];
+      await page.getByTestId(`fork-opt-${first.heroId}-${first.options[0].id}`).tap();
+      await expect
+        .poll(async () =>
+          (await snap(page)).forks.some((f) => f.heroId === first.heroId && f.rank === first.rank),
+        )
+        .toBe(false);
+
+      // ---- Adjourn fits the screen
+      await page.getByTestId('adjourn').tap();
+      await expect(page.getByTestId('adjourn-panel')).toBeVisible();
+      await page.waitForTimeout(500);
+      await shot(page, `${v.name}-adjourn`);
+      expect(await overflow(page)).toBeLessThanOrEqual(0);
+      await expect(page.getByTestId('resume')).toBeInViewport({ ratio: 1 });
+      await bigEnough(page, 'resume');
+      for (const t of ['lanes', 'paths', 'armory']) await bigEnough(page, `tab-${t}-btn`);
+      const panel = (await page.locator('.adjourn-panel').boundingBox())!;
+      expect(panel.y).toBeGreaterThanOrEqual(0);
+      expect(panel.y + panel.height).toBeLessThanOrEqual(vp.height + 1);
+      expect(panel.x + panel.width).toBeLessThanOrEqual(vp.width + 1);
+      await page.getByTestId('tab-armory-btn').tap();
+      await expect(page.getByTestId('tab-armory')).toBeVisible();
+      await shot(page, `${v.name}-armory`);
+      await page.getByTestId('tab-paths-btn').tap();
+      await page.getByTestId('setpath-king-defense').tap();
+      await expect(page.getByTestId('setpath-king-defense')).toHaveAttribute(
+        'aria-checked',
+        'true',
       );
-      await page.mouse.move(
-        grip.x + grip.width / 2 + (sideways ? 140 : 0),
-        grip.y + grip.height / 2 + (sideways ? 0 : 140),
-        { steps: 4 },
-      );
-      await page.mouse.up();
-      await expect(sheet).toHaveCount(0);
+      await page.getByTestId('tab-lanes-btn').tap();
+      await page.getByTestId('resume').tap();
+      await expect(page.getByTestId('adjourn-panel')).toHaveCount(0);
 
-      await page.getByTestId('shop-toggle').tap();
-      await expect(sheet).toBeVisible();
-      await page.touchscreen.tap(Math.round(vp2.width * 0.15), Math.round(vp2.height * 0.3));
-      await expect(sheet).toHaveCount(0);
-
-      await page.evaluate(() => {
-        const s = (
-          window as unknown as {
-            __session: { match: { step(n: number): number }; notify(): void };
-          }
-        ).__session;
-        s.match.step(4900);
-        s.notify();
-      });
+      // ---- the end screen
+      await stepUntil(page, { kind: 'end' }, 1500, 80);
       await expect(page.getByTestId('report')).toBeVisible();
-      await shot(page, `${v.name}-report`);
+      await expect(page.getByTestId('winner')).toHaveText(/Checkmate: (White|Black) wins/);
+      await shot(page, `${v.name}-end`);
       expect(await overflow(page)).toBeLessThanOrEqual(0);
       await expect(page.locator('[data-testid^="report-hero-"]')).toHaveCount(10);
       await page.locator('[data-testid^="report-hero-"]').first().tap();
-      if (page.viewportSize()!.width < 500) await page.locator('[data-testid^="open-hero-"]').tap();
+      if (vp.width < 500) await page.locator('[data-testid^="open-hero-"]').tap();
       await expect(page.getByTestId('hero-view')).toBeVisible();
-      await shot(page, `${v.name}-hero-view`);
       expect(errors).toEqual([]);
     });
   });

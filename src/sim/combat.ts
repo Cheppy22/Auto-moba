@@ -2,6 +2,7 @@ import { dist, clamp } from './core/math';
 import { rand } from './core/rng';
 import { hpPct, isEnemy, isTargetable, type Ctx } from './ctx';
 import type { AbilityDef, DamageType, EffectDef, TriggerDef } from './content/schema';
+import { kitOf, perksOf, pieceDef } from './pieces';
 import { addMod, recompute, triggersOf } from './stats';
 import type { Unit } from './types';
 import { confine, walkable } from './world/terrain';
@@ -75,8 +76,14 @@ export function dealDamage(
   origin: string,
 ): number {
   if (!tgt.alive || tgt.pendingKill || raw <= 0) return 0;
-  if (src?.kind === 'hero' && (tgt.kind === 'tower' || tgt.kind === 'guardian'))
+  const structure = tgt.kind === 'tower' || tgt.kind === 'guardian';
+  if (src?.kind === 'hero' && structure) {
     raw *= ctx.t.tower.heroDamageMul;
+    const sm = src.hero!.structMul;
+    if (sm && sm.untilTick > ctx.s.tick) raw *= sm.value;
+  }
+  if (tgt.kind === 'guardian') raw *= ctx.s.tagMult.throneDamage ?? 1;
+  if (src && src.team !== 'neutral' && ctx.s.check[src.team]) raw *= ctx.t.check.damageMul;
   let dmg = Math.max(1, mitigate(tgt, raw, dtype));
   let absorbed = 0;
   if (tgt.shields.length) {
@@ -174,11 +181,26 @@ function moveDash(
   const size = ctx.world.map.size;
   const ex = clamp(caster.x + (dx / d) * move * sign, 0, size);
   const ey = clamp(caster.y + (dy / d) * move * sign, 0, size);
-  // The dash stops at the last walkable point of its line: no leaping through solid terrain.
   const terrain = ctx.world.terrain;
   const sx = caster.x;
   const sy = caster.y;
   const n = Math.max(1, Math.ceil(move / 4));
+  if (e.leap || caster.hero?.defId === 'knight') {
+    // A leap clears solid terrain and lands on the walkable point nearest the end of its arc.
+    for (let i = n; i >= 1; i--) {
+      const px = sx + ((ex - sx) * i) / n;
+      const py = sy + ((ey - sy) * i) / n;
+      if (walkable(terrain, ctx.open, px, py)) {
+        caster.x = px;
+        caster.y = py;
+        break;
+      }
+    }
+    caster.path = [];
+    caster.detour = null;
+    return;
+  }
+  // A dash stops at the last walkable point of its line: no running through solid terrain.
   for (let i = 1; i <= n; i++) {
     const px = sx + ((ex - sx) * i) / n;
     const py = sy + ((ey - sy) * i) / n;
@@ -254,6 +276,16 @@ export function applyEffect(ctx: Ctx, e: EffectDef, ec: EffectCtx): void {
     case 'dash':
       moveDash(ctx, caster, target, e);
       break;
+    case 'stun':
+      stunUnit(ctx, target, e.durationSec);
+      break;
+    case 'taunt':
+      if (target.team !== caster.team) {
+        const until = ctx.s.tick + Math.round(e.durationSec * TPS);
+        target.taunt = { by: caster.id, untilTick: until };
+        target.targetId = caster.id;
+      }
+      break;
     case 'aura': {
       const near = ctx.grid.query(caster.x, caster.y, e.radius);
       for (const u of near) {
@@ -275,6 +307,26 @@ export function applyEffect(ctx: Ctx, e: EffectDef, ec: EffectCtx): void {
   }
 }
 
+/** No moving, attacking or casting until the stun ends (a longer stun wins). */
+export function stunUnit(ctx: Ctx, u: Unit, sec: number): void {
+  if (u.kind === 'tower' || u.kind === 'guardian') return;
+  const until = ctx.s.tick + Math.round(sec * TPS);
+  u.stunUntil = Math.max(u.stunUntil ?? 0, until);
+  if (u.hero?.recall) u.hero.recall = null;
+}
+
+/** The unit a taunted unit must attack, or null when no taunt holds. */
+export function tauntTarget(ctx: Ctx, u: Unit): Unit | null {
+  const t = u.taunt;
+  if (!t) return null;
+  const by = ctx.unit(t.by);
+  if (t.untilTick <= ctx.s.tick || !by || !by.alive) {
+    u.taunt = undefined;
+    return null;
+  }
+  return by;
+}
+
 export interface AbilityMods {
   cooldownMul: number;
   powerMul: number;
@@ -285,9 +337,8 @@ export interface AbilityMods {
 export function abilityMods(ctx: Ctx, hero: Unit, idx: number): AbilityMods {
   const m: AbilityMods = { cooldownMul: 1, powerMul: 1, rangeMul: 1, radiusMul: 1 };
   if (!hero.hero) return m;
-  for (const id of hero.hero.upgrades) {
-    const u = ctx.c.upgradeById.get(id);
-    if (u && u.ability === idx) {
+  for (const u of perksOf(ctx.c, hero.hero)) {
+    if (u.ability === idx) {
       m.cooldownMul *= u.cooldownMul;
       m.powerMul *= u.powerMul;
       m.rangeMul *= u.rangeMul;
@@ -325,7 +376,7 @@ function pickEnemy(list: Unit[], from: Unit, heroOnly: boolean): Unit | null {
 export function tryCast(ctx: Ctx, u: Unit, idx: number): boolean {
   const h = u.hero;
   if (!h) return false;
-  const def = ctx.c.heroById.get(h.defId)?.abilities[idx];
+  const def = kitOf(ctx.c, h)[idx];
   if (!def || h.cd[idx] > 0) return false;
   const mods = abilityMods(ctx, u, idx);
   const range = def.range * mods.rangeMul;
@@ -381,6 +432,12 @@ export function tryCast(ctx: Ctx, u: Unit, idx: number): boolean {
       break;
     }
   }
+  if (def.target === 'allyArea' || def.target === 'lowestAlly') {
+    // Ally skills still check the enemies around the caster (minEnemies / minEnemyHeroes).
+    const near = enemiesNear(ctx, u, Math.max(radius, range, 120));
+    enemiesCount = near.length;
+    enemyHeroes = near.filter((e) => e.kind === 'hero').length;
+  }
   if (targets.length === 0) return false;
   if (cond.minEnemies !== undefined && enemiesCount < cond.minEnemies) return false;
   if (cond.minEnemyHeroes !== undefined && enemyHeroes < cond.minEnemyHeroes) return false;
@@ -410,6 +467,7 @@ function castOn(ctx: Ctx, u: Unit, def: AbilityDef, targets: Unit[], mods: Abili
 
 export function castAbilities(ctx: Ctx, u: Unit): void {
   if (!u.hero || !u.alive || u.hero.recall) return;
+  if (u.stunUntil !== undefined && u.stunUntil > ctx.s.tick) return;
   for (let i = 3; i >= 0; i--) {
     if (u.hero.cd[i] <= 0) tryCast(ctx, u, i);
   }
@@ -623,9 +681,11 @@ export function cleanExpired(ctx: Ctx, u: Unit): void {
 
 export function performAttack(ctx: Ctx, a: Unit, t: Unit): void {
   let dmg = a.atkType === 'soul' ? a.stats.soulPower || a.stats.bladeDmg : a.stats.bladeDmg;
-  if (a.hero) dmg += (ctx.c.heroById.get(a.defId)?.autoSoulScale ?? 0) * a.stats.soulPower;
+  if (a.hero) dmg += pieceDef(ctx.c, a.hero).autoSoulScale * a.stats.soulPower;
   if (a.kind === 'minion' && (t.kind === 'tower' || t.kind === 'guardian'))
-    dmg *= ctx.t.minions.structureMul + ctx.t.minions.structureMulPerPhase * (ctx.s.phase.n - 1);
+    dmg *= a.pawn
+      ? ctx.t.pawns.structureMul
+      : ctx.t.minions.structureMul + ctx.t.minions.structureMulPerPhase * (ctx.s.phase.n - 1);
   const origin = a.kind === 'tower' || a.kind === 'guardian' ? a.kind : 'attack';
   dealDamage(ctx, a, t, dmg, a.atkType, origin);
   if (a.hero) fireTriggers(ctx, a, 'hit', { victim: t, damage: dmg });

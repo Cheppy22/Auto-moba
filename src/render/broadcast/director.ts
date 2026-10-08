@@ -44,7 +44,6 @@ const JUMP = 450;
 const MARGIN = 70;
 const MIN_RADIUS = 140;
 const MAX_RADIUS = 520;
-const LOW_HP = 0.3;
 const JUNGLE_DIST = 90;
 const BASE_DIST = 160;
 
@@ -352,11 +351,6 @@ export class Director {
     }
     const brawl = bestCluster([...fighting.values()].sort(byId), 1);
     if (brawl) add('skirmish', 'skirmish', brawl, titled('Skirmish', centroid(brawl)), ids(brawl));
-
-    const me = heroes.find((h) => h.isPlayer);
-    if (me && (fighting.has(me.id) || me.hp < me.maxHp * LOW_HP)) {
-      add('player', 'player', [me], titled('Your hero', me), [me.id]);
-    }
 
     return out.sort((a, b) => b.priority - a.priority);
   }

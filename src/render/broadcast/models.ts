@@ -1,8 +1,6 @@
 import {
-  AdditiveBlending,
   BoxGeometry,
   BufferGeometry,
-  CanvasTexture,
   Color,
   type ColorRepresentation,
   ConeGeometry,
@@ -19,7 +17,6 @@ import {
   MeshBasicMaterial,
   MeshToonMaterial,
   type Object3D,
-  PlaneGeometry,
   Quaternion,
   Shape,
   ShapeGeometry,
@@ -31,24 +28,8 @@ import {
 } from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { cheshireFade } from '../icons';
-import { drawSigil, type SigilSpec } from '../sigils';
-import { PALETTE, teamColor } from '../theme';
-import { WATER_Y } from './terrain';
-import {
-  type Bit,
-  BRASS,
-  hash,
-  INK,
-  type Kit,
-  LACQUER,
-  PAPER,
-  type Piece,
-  ProgressRing,
-  put,
-  SKIN,
-  STONE,
-  STONE_DARK,
-} from './kit';
+import { PALETTE } from '../theme';
+import { type Bit, BRASS, hash, INK, type Kit, PAPER, ProgressRing, put, STONE_DARK } from './kit';
 
 const TAU = Math.PI * 2;
 const Y_AXIS = new Vector3(0, 1, 0);
@@ -58,7 +39,9 @@ const RAGE = new Color('#ff3b3b');
 
 /** Heroes are drawn slightly larger than their sim footprint so they read from the skycam. */
 export const HERO_SCALE = 1.3;
-export const MINION_SCALE = 1.25;
+export const MINION_SCALE = 1.1;
+/** Pawns are modelled bigger than pawnlings; this is their extra display scale. */
+export const PAWN_SCALE = 1.1;
 
 function tint(geometry: BufferGeometry, color: ColorRepresentation): BufferGeometry {
   const c = new Color(color);
@@ -86,447 +69,101 @@ function bit(geo: BufferGeometry, color: ColorRepresentation, x = 0, y = 0, z = 
 }
 
 /* -------------------------------------------------------------------------- */
-/* Heroes                                                                     */
-/* -------------------------------------------------------------------------- */
-
-export interface HeroLook {
-  hue: number;
-  ranged: boolean;
-  team: string;
-  sigilTexture: CanvasTexture;
-}
-
-export interface HeroPose {
-  yaw: number;
-  move: number;
-  phase: number;
-  lunge: number;
-  flinch: number;
-  time: number;
-}
-
-export interface HeroMarks {
-  tick: number;
-  time: number;
-  isPlayer: boolean;
-  recalling: boolean;
-  curse: boolean;
-  holy: boolean;
-}
-
-export function sigilTexture(
-  kit: Kit,
-  defId: string,
-  spec: SigilSpec,
-  team: string,
-): CanvasTexture {
-  return kit.texture(`sigil:${defId}:${team}`, 256, 256, (g) => {
-    drawSigil(g, 128, 128, 120, spec, teamColor(team), true);
-  });
-}
-
-/** A robed figure with a team banner, a weapon and a floating sigil disc. */
-export class HeroModel {
-  readonly root = new Group();
-  /** Ground markers (rings, auras): positioned with the root but never yawed. */
-  readonly markers = new Group();
-  private readonly figure = new Group();
-  private readonly body = new Group();
-  private readonly head = new Group();
-  private readonly sigil = new Group();
-  private readonly arm = new Group();
-  private readonly cloth: MeshToonMaterial;
-  private readonly orb: MeshToonMaterial | null = null;
-  private you: Group | null = null;
-  private recall: Group | null = null;
-  private curse: Group | null = null;
-  private halo: Mesh | null = null;
-  private readonly seed: number;
-  private readonly melee: boolean;
-  private readonly inv = new Quaternion();
-
-  constructor(
-    private kit: Kit,
-    look: HeroLook,
-  ) {
-    this.seed = look.hue;
-    this.melee = !look.ranged;
-    const team = teamColor(look.team);
-    const id = `${look.hue}:${look.team}:${look.ranged}`;
-    const robe = new Color().setHSL(look.hue / 360, 0.5, 0.34).lerp(new Color(team), 0.2);
-    const trim = new Color().setHSL(look.hue / 360, 0.55, 0.52);
-    const teamCloth = new Color(team).lerp(WHITE, 0.12);
-    this.cloth = kit.uniqueVertexToon();
-
-    const solid = (key: string, bits: () => Bit[], k = 0.8): Mesh =>
-      kit.solid(`hero-${key}:${id}`, bits, k, this.cloth);
-
-    this.body.add(
-      solid(
-        'body',
-        () => [
-          {
-            geo: lathe(
-              [
-                [0.01, -8],
-                [7.0, -7.8],
-                [7.2, -6.4],
-                [6.0, -1],
-                [4.6, 3.5],
-                [4.1, 7],
-                [3.3, 8.2],
-                [0.01, 8.6],
-              ],
-              16,
-            ),
-            color: robe,
-          },
-          {
-            geo: new SphereGeometry(4.9, 14, 8),
-            color: trim,
-            at: [0, 6.2, 0],
-            scale: [1, 0.42, 0.9],
-          },
-          {
-            geo: new TorusGeometry(5.2, 1.2, 8, 18),
-            color: teamCloth,
-            at: [0, 0.4, 0],
-            rot: [Math.PI / 2, 0, 0],
-          },
-          {
-            geo: new BoxGeometry(1.8, 5.4, 0.5),
-            color: teamCloth,
-            at: [0, -2.8, -5.4],
-            rot: [0.12, 0, 0],
-          },
-        ],
-        0.9,
-      ),
-    );
-    this.body.position.set(0, 8, 0);
-    this.figure.add(this.body);
-
-    this.head.add(
-      solid('head', () => {
-        const bits: Bit[] = [
-          { geo: new SphereGeometry(4.1, 16, 12), color: SKIN },
-          { geo: new SphereGeometry(0.5, 6, 5), color: INK, at: [-1.4, 0.3, 3.7] },
-          { geo: new SphereGeometry(0.5, 6, 5), color: INK, at: [1.4, 0.3, 3.7] },
-        ];
-        if (this.melee)
-          bits.push(
-            { geo: new ConeGeometry(8.6, 4.2, 14), color: '#1c1722', at: [0, 3.7, 0] },
-            {
-              geo: new TorusGeometry(8.2, 0.45, 5, 20),
-              color: team,
-              at: [0, 1.7, 0],
-              rot: [Math.PI / 2, 0, 0],
-            },
-          );
-        else
-          bits.push(
-            {
-              geo: new SphereGeometry(4.9, 14, 10, 0, TAU, 0, 2.1),
-              color: robe,
-              at: [0, 0.4, -0.4],
-            },
-            { geo: new ConeGeometry(1.4, 4.8, 5), color: trim, at: [0, 5.3, -0.4] },
-          );
-        return bits;
-      }),
-    );
-    this.head.position.set(0, 20.4, 0);
-    this.figure.add(this.head);
-
-    this.arm.position.set(5.6, 13.2, 1);
-    this.figure.add(this.arm);
-    if (this.melee) {
-      this.arm.add(
-        solid(
-          'sword',
-          () => [
-            {
-              geo: new CylinderGeometry(0.6, 0.6, 3.6, 6),
-              color: LACQUER,
-              at: [0, -1, 1.4],
-              rot: [Math.PI / 2, 0, 0],
-            },
-            { geo: new BoxGeometry(3.4, 0.6, 0.9), color: BRASS, at: [0, -1, 3.2] },
-            { geo: new BoxGeometry(1, 0.55, 12), color: '#dfe5ea', at: [0, -1, 9.4] },
-          ],
-          0.6,
-        ),
-      );
-      this.arm.rotation.x = 0.35;
-    } else {
-      this.arm.add(
-        solid(
-          'staff',
-          () => [{ geo: new CylinderGeometry(0.55, 0.65, 27, 6), color: LACQUER, at: [0, 2, 1.2] }],
-          0.6,
-        ),
-      );
-      const glow = new Color().setHSL(look.hue / 360, 0.8, 0.62);
-      this.orb = kit.uniqueToon(glow, glow, 0.9);
-      put(
-        this.arm,
-        kit.part('hero-orb', () => new SphereGeometry(2.3, 12, 9), this.orb, 0.6),
-        0,
-        16,
-        1.2,
-      );
-      put(this.arm, kit.glowSprite(glow, 13, 0.6), 0, 16, 1.2);
-      this.arm.rotation.x = 0.12;
-    }
-
-    const disc = new Mesh(
-      kit.geo('hero-sigil', () => new PlaneGeometry(14, 14)),
-      kit.own(
-        new MeshBasicMaterial({
-          map: look.sigilTexture,
-          transparent: true,
-          fog: false,
-          alphaTest: 0.02,
-          side: DoubleSide,
-        }),
-      ),
-    );
-    disc.renderOrder = 20;
-    put(this.sigil, disc);
-    put(
-      this.sigil,
-      new Mesh(
-        kit.geo('hero-sigil-ring', () => new TorusGeometry(7.1, 0.6, 6, 32)),
-        kit.basic(BRASS),
-      ),
-      0,
-      0,
-      -0.2,
-    );
-    this.sigil.position.set(0, 39, 0);
-
-    this.root.add(this.figure, this.sigil);
-    this.root.scale.setScalar(HERO_SCALE);
-
-    const ring = kit.decalRing(team, 15, false, 0.85);
-    ring.position.y = 0.9;
-    this.markers.add(kit.blob(12, 0.6), ring);
-  }
-
-  /** `boost` enlarges the figure on far shots so it stays readable on small screens. */
-  place(x: number, y: number, z: number, yaw: number, boost = 1): void {
-    this.root.position.set(x, y, z);
-    this.root.scale.setScalar(HERO_SCALE * boost);
-    // rings and blobs ride the water's surface when the unit wades
-    this.markers.position.set(x, Math.max(y, WATER_Y + 0.2), z);
-    this.markers.scale.setScalar(boost);
-    this.root.rotation.y = yaw;
-  }
-
-  setVisible(v: boolean): void {
-    this.root.visible = v;
-    this.markers.visible = v;
-  }
-
-  /** Parts the ragdoll takes with it. */
-  pieces(): Piece[] {
-    this.root.updateWorldMatrix(true, true);
-    return [
-      { object: this.body, radius: 5.8 * HERO_SCALE, lie: true },
-      { object: this.head, radius: 3.6 * HERO_SCALE, lie: false },
-      { object: this.sigil, radius: 4 * HERO_SCALE, lie: false },
-    ];
-  }
-
-  animate(p: HeroPose, camQuat: Quaternion, marks: HeroMarks): void {
-    const bob = Math.abs(Math.sin(p.phase)) * 1.7 * p.move;
-    const swing = Math.sin(p.phase);
-    const f = this.figure;
-    const lunge = this.melee ? p.lunge * 4.4 : -p.lunge * 1.2;
-    f.position.set(0, bob, lunge - p.flinch * 2.4);
-    f.rotation.set(
-      p.move * 0.1 + p.lunge * (this.melee ? 0.4 : -0.12) - p.flinch * 0.42,
-      0,
-      swing * 0.06 * p.move,
-    );
-    const breathe = 1 + Math.sin(p.time * 2.2 + this.seed) * 0.014;
-    f.scale.set(1 + p.flinch * 0.06, breathe - p.flinch * 0.07, 1 + p.flinch * 0.06);
-    this.head.position.y = 20.4 + Math.sin(p.time * 2.2 + this.seed + 0.6) * 0.25;
-    this.arm.rotation.x =
-      (this.melee ? 0.35 : 0.12) - p.lunge * (this.melee ? 1.9 : 0.6) + swing * 0.18 * p.move;
-    this.sigil.position.y = 39 + Math.sin(p.time * 1.9 + this.seed) * 1.1;
-    this.inv.setFromAxisAngle(Y_AXIS, -this.root.rotation.y).multiply(camQuat);
-    this.sigil.quaternion.copy(this.inv);
-    if (this.orb)
-      this.orb.emissiveIntensity = 0.7 + p.lunge * 1.2 + Math.sin(p.time * 4 + this.seed) * 0.12;
-    this.cloth.emissive.setScalar(p.flinch * 0.6);
-    this.updateMarks(marks);
-  }
-
-  private updateMarks(k: HeroMarks): void {
-    const kit = this.kit;
-    if (k.isPlayer && !this.you) {
-      const you = new Group();
-      const ring = kit.decalRing(PALETTE.gold, 20, false, 1);
-      ring.position.y = 1.1;
-      const dash = kit.decalRing('#fff1b8', 26, true, 0.85);
-      dash.position.y = 1.2;
-      const arrow = kit.part(
-        'you-arrow',
-        () => new ConeGeometry(3.4, 7.5, 4).rotateX(Math.PI),
-        kit.toon(PALETTE.gold, PALETTE.gold, 0.9),
-        0.7,
-      );
-      arrow.castShadow = false;
-      you.add(ring, dash, arrow);
-      you.userData = { dash, arrow };
-      this.markers.add(you);
-      this.you = you;
-    }
-    if (this.you) {
-      this.you.visible = k.isPlayer;
-      const { dash, arrow } = this.you.userData as { dash: Mesh; arrow: Mesh };
-      dash.rotation.y = k.time * 0.6;
-      arrow.position.y = 58 + Math.sin(k.time * 3) * 2;
-      arrow.rotation.y = k.time * 1.7;
-    }
-    if (k.recalling && !this.recall) {
-      const recall = new Group();
-      const ring = kit.decalRing(PALETTE.gold, 1, false, 1);
-      ring.position.y = 1;
-      const col = new Mesh(
-        kit.geo('recall-col', () =>
-          new CylinderGeometry(1, 1, 1, 24, 1, true).translate(0, 0.5, 0),
-        ),
-        kit.own(
-          new MeshBasicMaterial({
-            map: kit.beamTexture(),
-            color: PALETTE.gold,
-            transparent: true,
-            opacity: 0.6,
-            blending: AdditiveBlending,
-            depthWrite: false,
-            side: DoubleSide,
-            fog: false,
-          }),
-        ),
-      );
-      recall.add(ring, col);
-      recall.userData = { ring, col };
-      this.markers.add(recall);
-      this.recall = recall;
-    }
-    if (this.recall) {
-      this.recall.visible = k.recalling;
-      if (k.recalling) {
-        const { ring, col } = this.recall.userData as { ring: Mesh; col: Mesh };
-        const t = (k.tick % 20) / 20;
-        const r = 14 + t * 22;
-        ring.scale.set(r * 2, 1, r * 2);
-        (ring.material as MeshBasicMaterial).opacity = 1 - t;
-        col.scale.set(15, 80, 15);
-        (col.material as MeshBasicMaterial).opacity = 0.7 + 0.25 * Math.sin(k.time * 8);
-      }
-    }
-    if (k.curse && !this.curse) {
-      const curse = new Group();
-      const ring = kit.decalRing(PALETTE.seal, 25, true, 1);
-      ring.position.y = 1.3;
-      const ring2 = kit.decalRing(PALETTE.spirit, 32, true, 0.7);
-      ring2.position.y = 1.35;
-      const pool = kit.glowDisc('#b3262e', 40, 0.55);
-      pool.position.y = 0.8;
-      const motes: Sprite[] = [];
-      for (let i = 0; i < 5; i++) {
-        const s = kit.glowSprite('#ff8c78', 5, 0.9);
-        s.material = kit.own(s.material.clone());
-        motes.push(s);
-        curse.add(s);
-      }
-      curse.add(ring, ring2, pool);
-      curse.userData = { ring, ring2, pool, motes };
-      this.markers.add(curse);
-      this.curse = curse;
-    }
-    if (this.curse) {
-      this.curse.visible = k.curse;
-      if (k.curse) {
-        const { ring, ring2, pool, motes } = this.curse.userData as {
-          ring: Mesh;
-          ring2: Mesh;
-          pool: Mesh;
-          motes: Sprite[];
-        };
-        const pulse = 0.5 + 0.5 * Math.sin(k.time * 4);
-        ring.rotation.y = k.time * 0.9;
-        ring2.rotation.y = -k.time * 0.5;
-        (pool.material as MeshBasicMaterial).opacity = 0.3 + 0.3 * pulse;
-        for (let i = 0; i < motes.length; i++) {
-          const ph = (k.time * 0.6 + i / motes.length) % 1;
-          const a = (i / motes.length) * TAU + this.seed;
-          motes[i].position.set(Math.cos(a) * 17, 2 + ph * 36, Math.sin(a) * 17);
-          motes[i].material.opacity = 0.9 * (1 - ph);
-        }
-      }
-    }
-    if (k.holy && !this.halo) {
-      this.halo = new Mesh(
-        kit.geo('holy-halo', () => new TorusGeometry(5, 0.45, 6, 28).rotateX(Math.PI / 2)),
-        kit.basic('#f0d48a'),
-      );
-      this.halo.position.y = 40;
-      this.root.add(this.halo);
-    }
-    if (this.halo) {
-      this.halo.visible = k.holy;
-      this.halo.rotation.y = k.time * 1.4;
-    }
-  }
-}
-
-/* -------------------------------------------------------------------------- */
 /* Minions (instanced)                                                        */
 /* -------------------------------------------------------------------------- */
 
-/** A chess pawn: turned base, collar and ball head. Ranged pawns hold up a playing card. */
-function pawnGeometry(team: string, ranged: boolean): BufferGeometry {
-  const cloth = new Color(team).multiplyScalar(0.9);
-  const trim = new Color(team).offsetHSL(0, 0, 0.14);
+interface PawnColors {
+  body: string;
+  shade: string;
+  trim: string;
+  skin: string;
+}
+
+const PAWN_COLORS: Record<string, PawnColors> = {
+  A: {
+    body: PALETTE.whiteBody,
+    shade: PALETTE.whiteShade,
+    trim: PALETTE.whiteTrim,
+    skin: '#f3e6cc',
+  },
+  B: {
+    body: PALETTE.blackBody,
+    shade: PALETTE.blackShade,
+    trim: PALETTE.blackTrim,
+    skin: '#7b7690',
+  },
+  neutral: { body: PALETTE.neutral, shade: '#6f5f93', trim: PALETTE.spirit, skin: '#d9cdf0' },
+};
+
+/** A pawnling: a small, simple turned pawn (base, waist, collar, ball head). */
+function pawnlingGeometry(c: PawnColors): BufferGeometry {
+  return mergeGeometries([
+    bit(
+      lathe(
+        [
+          [0.01, 0],
+          [4.6, 0],
+          [4.6, 1.3],
+          [3.4, 2.3],
+          [2.2, 4.8],
+          [2, 7.6],
+          [3.1, 8.3],
+          [3.1, 9.1],
+          [1.4, 9.7],
+          [0.01, 9.7],
+        ],
+        10,
+      ),
+      c.body,
+    ),
+    bit(new SphereGeometry(3, 10, 8), c.body, 0, 12.3),
+    bit(new TorusGeometry(3.2, 0.5, 4, 12).rotateX(Math.PI / 2), c.trim, 0, 8.8),
+  ])!;
+}
+
+/**
+ * A pawn: the elite foot soldier. Bigger and more detailed than a pawnling: a plumed helm with a
+ * visor slit, pauldrons, a team-trimmed shield on the left arm and a spear on the right.
+ */
+function pawnGeometry(c: PawnColors): BufferGeometry {
   const parts = [
     bit(
       lathe(
         [
           [0.01, 0],
-          [4.9, 0],
-          [4.9, 1.5],
-          [3.7, 2.5],
-          [2.4, 5],
-          [2.1, 8],
-          [3.3, 8.7],
-          [3.3, 9.6],
-          [1.5, 10.2],
-          [0.01, 10.2],
+          [8.2, 0],
+          [8.2, 2.2],
+          [6.3, 3.8],
+          [4.2, 8],
+          [3.8, 13],
+          [5.6, 14.6],
+          [5.6, 16.2],
+          [2.6, 17],
+          [0.01, 17],
         ],
-        12,
+        14,
       ),
-      cloth,
+      c.body,
     ),
-    bit(new SphereGeometry(3.2, 12, 9), cloth, 0, 12.9),
-    bit(new TorusGeometry(3.4, 0.55, 5, 14).rotateX(Math.PI / 2), trim, 0, 9.2),
-    bit(new TorusGeometry(4.6, 0.55, 5, 14).rotateX(Math.PI / 2), trim, 0, 1.9),
+    bit(new TorusGeometry(5.9, 0.9, 5, 16).rotateX(Math.PI / 2), c.trim, 0, 15.4),
+    bit(new TorusGeometry(7.9, 0.8, 5, 16).rotateX(Math.PI / 2), c.trim, 0, 2.6),
+    bit(new TorusGeometry(4.5, 0.7, 5, 14).rotateX(Math.PI / 2), c.trim, 0, 9),
+    // helm: dome, brim, visor slit, crest
+    bit(new SphereGeometry(5.2, 14, 10), c.body, 0, 21.4),
+    bit(new TorusGeometry(5.3, 0.7, 5, 16).rotateX(Math.PI / 2), c.trim, 0, 20.4),
+    bit(new BoxGeometry(5.6, 0.9, 1.2), INK, 0, 21, 4.8),
+    bit(new BoxGeometry(1, 6, 7).rotateX(-0.2), c.trim, 0, 25.6, -0.4),
+    // pauldrons
+    bit(new SphereGeometry(2.8, 8, 6), c.shade, -6.4, 14, 0),
+    bit(new SphereGeometry(2.8, 8, 6), c.shade, 6.4, 14, 0),
+    // kite shield, left arm
+    bit(new BoxGeometry(1.2, 11, 7.6), c.shade, -7.8, 10, 3.2),
+    bit(new BoxGeometry(1.4, 8.6, 1.4), c.trim, -8.1, 10, 3.2),
+    bit(new BoxGeometry(1.4, 1.4, 5.4), c.trim, -8.1, 11.6, 3.2),
+    // spear, right arm
+    bit(new CylinderGeometry(0.55, 0.55, 26, 5).rotateX(Math.PI / 2.3), c.trim, 7.4, 12, 8),
+    bit(new ConeGeometry(1.3, 4.6, 5).rotateX(Math.PI / 2.3), '#e4eaf0', 7.4, 14.2, 20),
   ];
-  if (ranged) {
-    parts.push(
-      bit(new BoxGeometry(6.4, 0.6, 8.6).rotateX(-0.4), PAPER, 6.8, 11.4, 2.4),
-      bit(
-        new BoxGeometry(2.4, 0.7, 2.4).rotateY(Math.PI / 4).rotateX(-0.4),
-        PALETTE.seal,
-        6.8,
-        11.8,
-        2.5,
-      ),
-    );
-  }
   return mergeGeometries(parts)!;
 }
 
@@ -543,7 +180,10 @@ const _qt = new Quaternion();
 const _p = new Vector3();
 const _s = new Vector3();
 
-/** Lane minions and event spirits: chess pawns (ranged ones carry a card), instanced. */
+/**
+ * Pawnlings (the lane waves) and pawns (elite soldiers fielded with Tempo), instanced per team.
+ * Neutral spirits reuse the pawnling shape in lantern violet.
+ */
 export class MinionKit {
   readonly group = new Group();
   private variants = new Map<string, MinionVariant>();
@@ -552,32 +192,33 @@ export class MinionKit {
   private static readonly SHADOWS = 480;
 
   constructor(kit: Kit) {
-    const teams: [string, string, number][] = [
-      ['A', PALETTE.teamA, 160],
-      ['B', PALETTE.teamB, 160],
-      ['neutral', PALETTE.neutral, 96],
+    const specs: [string, boolean, number][] = [
+      ['A', false, 200],
+      ['B', false, 200],
+      ['neutral', false, 96],
+      ['A', true, 40],
+      ['B', true, 40],
     ];
-    for (const [id, color, cap] of teams) {
-      for (const ranged of [false, true]) {
-        const geo = kit.own(pawnGeometry(color, ranged));
-        const mat = kit.own(
-          new MeshToonMaterial({
-            vertexColors: true,
-            gradientMap: kit.gradient,
-            emissive: ranged ? color : '#000000',
-            emissiveIntensity: ranged ? 0.18 : 0,
-          }),
-        );
-        const mesh = new InstancedMesh(geo, mat, cap);
-        const hull = new InstancedMesh(kit.hull(geo), kit.ink(0.8), cap);
-        for (const im of [mesh, hull]) {
-          im.frustumCulled = false;
-          im.count = 0;
-          this.group.add(im);
-        }
-        mesh.castShadow = true;
-        this.variants.set(`${id}:${ranged}`, { mesh, hull, count: 0, cap });
+    for (const [id, elite, cap] of specs) {
+      const c = PAWN_COLORS[id];
+      const geo = kit.own(elite ? pawnGeometry(c) : pawnlingGeometry(c));
+      const mat = kit.own(
+        new MeshToonMaterial({
+          vertexColors: true,
+          gradientMap: kit.gradient,
+          emissive: id === 'B' ? '#1a1d2e' : '#000000',
+          emissiveIntensity: id === 'B' ? 0.5 : 0,
+        }),
+      );
+      const mesh = new InstancedMesh(geo, mat, cap);
+      const hull = new InstancedMesh(kit.hull(geo), kit.ink(elite ? 0.9 : 0.8), cap);
+      for (const im of [mesh, hull]) {
+        im.frustumCulled = false;
+        im.count = 0;
+        this.group.add(im);
       }
+      mesh.castShadow = true;
+      this.variants.set(`${id}:${elite}`, { mesh, hull, count: 0, cap });
     }
     const blob = kit.blob(1);
     this.shadows = new InstancedMesh(blob.geometry, blob.material, MinionKit.SHADOWS);
@@ -593,7 +234,7 @@ export class MinionKit {
 
   add(
     team: string,
-    ranged: boolean,
+    elite: boolean,
     x: number,
     y: number,
     z: number,
@@ -602,7 +243,7 @@ export class MinionKit {
     scale: number,
     ground = 0,
   ): void {
-    const v = this.variants.get(`${team}:${ranged}`) ?? this.variants.get(`neutral:${ranged}`)!;
+    const v = this.variants.get(`${team}:${elite}`) ?? this.variants.get('neutral:false')!;
     if (v.count >= v.cap) return;
     _q.setFromAxisAngle(Y_AXIS, yaw);
     _qt.setFromAxisAngle(X_AXIS, lean);
@@ -644,47 +285,230 @@ export class MinionKit {
 const pyramid = (rTop: number, rBottom: number, height: number): CylinderGeometry =>
   new CylinderGeometry(rTop, rBottom, height, 4).rotateY(Math.PI / 4);
 
-/** A stone tōrō lantern: plinth, post, fire box with a glowing core, lacquered roof. */
-export class TowerModel {
+/** A Bastion: a squat battlemented tower in team stone, a banner and a lit arrow window. */
+export class BastionModel {
   readonly root = new Group();
   private readonly core: Mesh;
   private readonly coreMat: MeshBasicMaterial;
   private readonly halo: Sprite;
   private readonly team: Color;
 
-  constructor(kit: Kit, team: string) {
+  constructor(kit: Kit, team: string, side: 'A' | 'B') {
     this.team = new Color(team);
     const lit = new Color(team).lerp(WHITE, 0.25);
+    const white = side === 'A';
+    const stone = white ? '#d8cdb2' : '#37323f';
+    const stoneDark = white ? '#a99d82' : '#221f2b';
+    const trim = white ? PALETTE.whiteTrim : PALETTE.blackTrim;
     const r = this.root;
-    r.add(kit.blob(20, 0.6));
+    r.add(kit.blob(22, 0.6));
     r.add(
       kit.solid(
-        `tower:${team}`,
+        `bastion:${side}`,
         () => {
           const bits: Bit[] = [
-            { geo: new CylinderGeometry(12.5, 14.5, 3.4, 6), color: STONE_DARK, at: [0, 1.7, 0] },
-            { geo: new CylinderGeometry(9.5, 11, 2.6, 6), color: STONE, at: [0, 4.7, 0] },
-            { geo: new CylinderGeometry(3.3, 4.3, 12, 8), color: STONE, at: [0, 11.8, 0] },
-            { geo: new CylinderGeometry(7.6, 4.6, 2.4, 6), color: STONE, at: [0, 18.8, 0] },
-            { geo: new CylinderGeometry(7, 7.6, 1.5, 6), color: STONE_DARK, at: [0, 29, 0] },
+            { geo: new CylinderGeometry(15.5, 17.5, 3.6, 8), color: stoneDark, at: [0, 1.8, 0] },
             {
-              geo: new ConeGeometry(11.4, 9.5, 6),
-              color: new Color('#2a2133').lerp(this.team, 0.1),
-              at: [0, 35.4, 0],
+              geo: lathe(
+                [
+                  [0.01, 3.6],
+                  [14, 3.6],
+                  [12.4, 14],
+                  [11, 28],
+                  [11.6, 31],
+                  [13.6, 33],
+                  [0.01, 33],
+                ],
+                8,
+              ),
+              color: stone,
             },
+            { geo: new CylinderGeometry(13.9, 13.9, 1.6, 8), color: trim, at: [0, 32.2, 0] },
+            { geo: new CylinderGeometry(11.6, 11.6, 3, 8), color: stoneDark, at: [0, 34.5, 0] },
+            // brick bands
+            {
+              geo: new TorusGeometry(12.6, 0.5, 4, 8).rotateX(Math.PI / 2),
+              color: stoneDark,
+              at: [0, 11, 0],
+            },
+            {
+              geo: new TorusGeometry(11.8, 0.5, 4, 8).rotateX(Math.PI / 2),
+              color: stoneDark,
+              at: [0, 21, 0],
+            },
+            // door
+            { geo: new BoxGeometry(5.2, 8, 1.4), color: INK, at: [0, 8.2, 12.4] },
+            // arrow window (the lit core shows through)
+            { geo: new BoxGeometry(3.6, 8, 1.4), color: INK, at: [0, 23.5, 11.5] },
+          ];
+          for (let i = 0; i < 8; i++) {
+            const a = (i / 8) * TAU + Math.PI / 8;
+            bits.push({
+              geo: new BoxGeometry(5, 5.6, 3.6),
+              color: stone,
+              at: [Math.cos(a) * 11.6, 38.8, Math.sin(a) * 11.6],
+              rot: [0, -a + Math.PI / 2, 0],
+            });
+          }
+          for (let i = 0; i < 4; i++) {
+            const a = (i / 4) * TAU;
+            bits.push({
+              geo: new BoxGeometry(3.4, 14, 5).translate(0, 7, 0),
+              color: stoneDark,
+              at: [Math.cos(a) * 14.4, 3.6, Math.sin(a) * 14.4],
+              rot: [0, -a + Math.PI / 2, 0],
+            });
+          }
+          return bits;
+        },
+        1.2,
+      ),
+    );
+    r.add(
+      kit.glowSolid(`bastion-trim:${side}:${team}`, () => [
+        { geo: new BoxGeometry(11, 15, 0.5), color: lit, at: [0, 18, 12.6] },
+        { geo: new BoxGeometry(1.6, 18, 1.6), color: trim, at: [0, 46, 0] },
+        { geo: new ConeGeometry(2.4, 5, 4).rotateY(Math.PI / 4), color: lit, at: [0, 57.5, 0] },
+        { geo: new BoxGeometry(0.6, 6.5, 9), color: lit, at: [0, 51, 5.2] },
+      ]),
+    );
+    this.coreMat = kit.own(new MeshBasicMaterial({ color: lit, fog: false }));
+    this.core = put(
+      r,
+      new Mesh(
+        kit.geo('b-core', () => new SphereGeometry(2.6, 10, 8)),
+        this.coreMat,
+      ),
+      0,
+      23.5,
+      10.4,
+    );
+    this.halo = put(r, kit.glowSprite(team, 34, 0.55), 0, 23.5, 11);
+    r.scale.setScalar(1.1);
+  }
+
+  animate(time: number, flash: number, hpFrac: number): void {
+    const flick = hpFrac < 0.4 ? 0.7 + 0.3 * Math.sin(time * 19) : 1;
+    const base = 0.55 + 0.1 * Math.sin(time * 2.4);
+    this.halo.scale.setScalar(26 + flash * 20 + Math.sin(time * 2.4) * 2);
+    this.core.scale.setScalar(1 + flash * 0.4);
+    this.coreMat.color
+      .copy(this.team)
+      .lerp(WHITE, 0.25 + flash * 0.7)
+      .multiplyScalar(flick * (base + 0.5));
+  }
+}
+
+/** The Throne: a great seat on a stepped dais, a crown hanging over it, and a pale flame. */
+export class ThroneModel {
+  readonly root = new Group();
+  private readonly crown = new Group();
+  private readonly gems: MeshBasicMaterial;
+  private readonly cloth: MeshToonMaterial;
+  private readonly team: Color;
+  private readonly aura: Sprite;
+
+  constructor(kit: Kit, team: string, side: 'A' | 'B') {
+    this.team = new Color(team);
+    const lit = new Color(team).lerp(WHITE, 0.2);
+    const white = side === 'A';
+    const stone = white ? '#e2d8bd' : '#3b3544';
+    const stoneDark = white ? '#b3a78a' : '#252130';
+    const trim = white ? PALETTE.whiteTrim : PALETTE.blackTrim;
+    const velvet = white ? '#9c2d38' : '#4a2a6a';
+    this.cloth = kit.uniqueVertexToon();
+    this.root.add(kit.blob(40, 0.5));
+    this.root.add(
+      kit.solid(
+        `throne:${side}`,
+        () => {
+          const bits: Bit[] = [
+            { geo: new CylinderGeometry(30, 33, 3, 8), color: stoneDark, at: [0, 1.5, 0] },
+            { geo: new CylinderGeometry(24, 27, 3, 8), color: stone, at: [0, 4.5, 0] },
+            { geo: new CylinderGeometry(18, 21, 3, 8), color: stoneDark, at: [0, 7.5, 0] },
+            // seat, cushion and arms
+            { geo: new BoxGeometry(22, 8, 17), color: stone, at: [0, 13, -1] },
+            { geo: new BoxGeometry(17, 2.4, 13), color: velvet, at: [0, 17.6, 0.2] },
+            { geo: new BoxGeometry(4.2, 9, 15), color: stone, at: [-12, 18, -1] },
+            { geo: new BoxGeometry(4.2, 9, 15), color: stone, at: [12, 18, -1] },
+            { geo: new BoxGeometry(5, 1.8, 16), color: trim, at: [-12, 23, -1] },
+            { geo: new BoxGeometry(5, 1.8, 16), color: trim, at: [12, 23, -1] },
+            // backrest with a pointed arch
+            { geo: new BoxGeometry(24, 46, 5), color: stone, at: [0, 36, -9] },
+            { geo: new BoxGeometry(15, 40, 5.6), color: velvet, at: [0, 35, -6.4] },
+            {
+              geo: new ConeGeometry(12.4, 14, 4).rotateY(Math.PI / 4),
+              color: stone,
+              at: [0, 66, -9],
+              scale: [1, 1, 0.22],
+            },
+            { geo: new CylinderGeometry(1.4, 1.4, 52, 6), color: trim, at: [-13.4, 36, -9] },
+            { geo: new CylinderGeometry(1.4, 1.4, 52, 6), color: trim, at: [13.4, 36, -9] },
+          ];
+          for (const x of [-1, 1]) {
+            bits.push(
+              { geo: new CylinderGeometry(3, 3.6, 40, 8), color: stone, at: [x * 26, 22, 4] },
+              { geo: new CylinderGeometry(4.2, 3.4, 2.4, 8), color: trim, at: [x * 26, 42.4, 4] },
+              { geo: new SphereGeometry(2.6, 8, 6), color: trim, at: [x * 13.4, 63, -9] },
+            );
+          }
+          return bits;
+        },
+        1.5,
+        this.cloth,
+      ),
+    );
+    this.gems = kit.own(new MeshBasicMaterial({ color: lit, vertexColors: true, fog: false }));
+    this.root.add(
+      new Mesh(
+        kit.geo('throne-gems', () =>
+          kit.merge([
+            { geo: new SphereGeometry(2, 8, 6), color: WHITE, at: [-26, 46.4, 4] },
+            { geo: new SphereGeometry(2, 8, 6), color: WHITE, at: [26, 46.4, 4] },
+            {
+              geo: new SphereGeometry(2.2, 8, 6),
+              color: WHITE,
+              at: [0, 58, -6.2],
+              scale: [1, 1.5, 0.6],
+            },
+            { geo: new BoxGeometry(23, 1, 1), color: WHITE, at: [0, 13.4, 8.2] },
+          ]),
+        ),
+        this.gems,
+      ),
+    );
+    const c = this.crown;
+    c.add(
+      kit.solid(
+        `throne-crown:${side}`,
+        () => {
+          const bits: Bit[] = [
+            { geo: new CylinderGeometry(9, 9.6, 5, 14, 1, true), color: trim, at: [0, 0, 0] },
+            {
+              geo: new TorusGeometry(9.4, 0.9, 5, 18).rotateX(Math.PI / 2),
+              color: trim,
+              at: [0, 2.6, 0],
+            },
+            {
+              geo: new TorusGeometry(9.2, 0.9, 5, 18).rotateX(Math.PI / 2),
+              color: trim,
+              at: [0, -2.6, 0],
+            },
+            { geo: new CylinderGeometry(1, 1, 8, 6), color: trim, at: [0, 10, 0] },
+            { geo: new BoxGeometry(6, 1.8, 1.8), color: trim, at: [0, 11.6, 0] },
           ];
           for (let i = 0; i < 6; i++) {
             const a = (i / 6) * TAU;
             bits.push(
               {
-                geo: new BoxGeometry(1.5, 8.8, 1.5),
-                color: STONE_DARK,
-                at: [Math.cos(a) * 6, 24.3, Math.sin(a) * 6],
+                geo: new ConeGeometry(1.6, 6, 5),
+                color: trim,
+                at: [Math.cos(a) * 9, 5.4, Math.sin(a) * 9],
               },
               {
-                geo: new SphereGeometry(1, 8, 6),
-                color: BRASS,
-                at: [Math.cos(a) * 12, 31.2, Math.sin(a) * 12],
+                geo: new SphereGeometry(1, 6, 5),
+                color: '#ffffff',
+                at: [Math.cos(a) * 9, 9, Math.sin(a) * 9],
               },
             );
           }
@@ -693,231 +517,26 @@ export class TowerModel {
         1.2,
       ),
     );
-    r.add(
-      kit.glowSolid(`tower-trim:${team}`, () => [
-        {
-          geo: new TorusGeometry(4, 0.85, 6, 16),
-          color: lit,
-          at: [0, 9, 0],
-          rot: [Math.PI / 2, 0, 0],
-        },
-        { geo: new CylinderGeometry(12.2, 12.8, 1, 6), color: lit, at: [0, 30.4, 0] },
-        { geo: new SphereGeometry(2, 10, 8), color: lit, at: [0, 41, 0], scale: [1, 1.4, 1] },
-      ]),
-    );
-    this.coreMat = kit.own(new MeshBasicMaterial({ color: lit, fog: false }));
-    this.core = put(
-      r,
-      new Mesh(
-        kit.geo('t-core', () => new SphereGeometry(4.2, 12, 9)),
-        this.coreMat,
-      ),
-      0,
-      24.3,
-      0,
-    );
-    this.halo = put(r, kit.glowSprite(team, 36, 0.55), 0, 24.3, 0);
-    r.scale.setScalar(1.1);
-  }
-
-  animate(time: number, flash: number, hpFrac: number): void {
-    const flick = hpFrac < 0.4 ? 0.7 + 0.3 * Math.sin(time * 19) : 1;
-    const base = 0.55 + 0.1 * Math.sin(time * 2.4);
-    this.halo.scale.setScalar(30 + flash * 20 + Math.sin(time * 2.4) * 2);
-    this.core.scale.setScalar(1 + flash * 0.35);
-    this.coreMat.color
-      .copy(this.team)
-      .lerp(WHITE, 0.25 + flash * 0.7)
-      .multiplyScalar(flick * (base + 0.5));
-  }
-}
-
-/** A floating chess King: turned body in team colour, brass crown and cross, orbiting board squares. */
-export class KingModel {
-  readonly root = new Group();
-  private readonly hover = new Group();
-  private readonly orbit = new Group();
-  private readonly gems: MeshBasicMaterial;
-  private readonly cloth: MeshToonMaterial;
-  private readonly team: Color;
-  private readonly tail: Mesh;
-  private readonly halo: Mesh;
-  private readonly aura: Sprite;
-  private readonly tiles: Mesh[] = [];
-
-  constructor(kit: Kit, team: string) {
-    this.team = new Color(team);
-    const lit = new Color(team).lerp(WHITE, 0.2);
-    const body = new Color(team).multiplyScalar(0.78);
-    const h = this.hover;
-    this.cloth = kit.uniqueVertexToon();
-    this.root.add(kit.blob(34, 0.5));
-    this.tail = put(
-      h,
-      new Mesh(
-        kit.geo('g-tail', () => new ConeGeometry(11, 26, 10).rotateX(Math.PI)),
-        kit.own(
-          new MeshBasicMaterial({
-            color: team,
-            transparent: true,
-            opacity: 0.38,
-            blending: AdditiveBlending,
-            depthWrite: false,
-            fog: false,
-          }),
-        ),
-      ),
-      0,
-      12,
-      0,
-    );
-    h.add(
-      kit.solid(
-        `king:${team}`,
-        () => {
-          const bits: Bit[] = [
-            {
-              geo: lathe(
-                [
-                  [0.01, 20],
-                  [15.5, 20],
-                  [15.5, 23],
-                  [12.6, 24.6],
-                  [9.4, 28],
-                  [7.4, 38],
-                  [6, 50],
-                  [5.8, 56],
-                  [6.2, 57.5],
-                ],
-                18,
-              ),
-              color: body,
-            },
-            {
-              geo: lathe(
-                [
-                  [0.01, 56.6],
-                  [10.8, 56.6],
-                  [10.8, 58.4],
-                  [6.4, 59.6],
-                  [0.01, 60],
-                ],
-                18,
-              ),
-              color: BRASS,
-            },
-            {
-              geo: new SphereGeometry(7.6, 18, 12, 0, TAU, 0, Math.PI * 0.6),
-              color: body,
-              at: [0, 60, 0],
-              scale: [1, 1.1, 1],
-            },
-            {
-              geo: new TorusGeometry(8.6, 1.1, 6, 20),
-              color: BRASS,
-              at: [0, 55, 0],
-              rot: [Math.PI / 2, 0, 0],
-            },
-            {
-              geo: new TorusGeometry(10.2, 1.2, 6, 20),
-              color: BRASS,
-              at: [0, 21.4, 0],
-              rot: [Math.PI / 2, 0, 0],
-            },
-            { geo: new CylinderGeometry(1.4, 1.4, 10, 6), color: BRASS, at: [0, 74, 0] },
-            { geo: new BoxGeometry(8, 2.4, 2.4), color: BRASS, at: [0, 76.2, 0] },
-            { geo: new SphereGeometry(1.6, 8, 6), color: BRASS, at: [0, 79.2, 0] },
-          ];
-          for (let i = 0; i < 5; i++) {
-            const a = (i / 5) * TAU;
-            bits.push({
-              geo: new ConeGeometry(2.1, 7, 5),
-              color: BRASS,
-              at: [Math.cos(a) * 8.4, 63.6, Math.sin(a) * 8.4],
-            });
-          }
-          return bits;
-        },
-        1.6,
-        this.cloth,
-      ),
-    );
-    this.gems = kit.own(new MeshBasicMaterial({ color: lit, vertexColors: true, fog: false }));
-    h.add(
-      new Mesh(
-        kit.geo('king-gems', () =>
-          kit.merge([
-            { geo: new SphereGeometry(1.9, 8, 6), color: WHITE, at: [0, 58, 8.8] },
-            { geo: new SphereGeometry(1.4, 8, 6), color: WHITE, at: [-6.4, 58, 6.2] },
-            { geo: new SphereGeometry(1.4, 8, 6), color: WHITE, at: [6.4, 58, 6.2] },
-            {
-              geo: new TorusGeometry(7.2, 0.5, 5, 24),
-              color: WHITE,
-              at: [0, 29, 0],
-              rot: [Math.PI / 2, 0, 0],
-            },
-            {
-              geo: new TorusGeometry(6.6, 0.45, 5, 24),
-              color: WHITE,
-              at: [0, 46, 0],
-              rot: [Math.PI / 2, 0, 0],
-            },
-          ]),
-        ),
-        this.gems,
-      ),
-    );
-    this.halo = put(
-      h,
-      new Mesh(
-        kit.geo('king-halo', () => new TorusGeometry(24, 0.9, 6, 40).rotateX(Math.PI / 2)),
-        kit.basic(BRASS),
-      ),
-      0,
-      33,
-      0,
-    );
-    this.orbit.position.y = 40;
-    h.add(this.orbit);
-    for (let i = 0; i < 4; i++) {
-      const tile = kit.solid(
-        i % 2 ? 'g-tile-a' : 'g-tile-b',
-        () => [
-          {
-            geo: new BoxGeometry(7, 1.4, 7),
-            color: i % 2 ? PAPER : LACQUER,
-          },
-        ],
-        1.2,
-      );
-      this.tiles.push(tile);
-      this.orbit.add(tile);
-    }
-    this.aura = put(h, kit.glowSprite(team, 70, 0.35), 0, 44, 0);
+    c.position.set(0, 90, -2);
+    this.root.add(c);
+    this.aura = put(this.root, kit.glowSprite(team, 90, 0.3), 0, 62, -2);
     this.aura.material = kit.own(this.aura.material.clone());
-    this.root.add(h);
+    put(this.root, kit.glowSprite(team, 46, 0.5), 0, 90, -2);
+    this.root.scale.setScalar(1.25);
   }
 
   animate(time: number, flash: number, hpFrac: number): void {
-    this.hover.position.y = 6 + Math.sin(time * 1.3) * 2.2;
-    this.hover.rotation.y = Math.sin(time * 0.3) * 0.08;
     const rage = hpFrac < 0.5;
     const pulse = 0.5 + 0.5 * Math.sin(time * 6);
-    this.orbit.rotation.y = time * (rage ? 1.3 : 0.55);
-    this.halo.rotation.y = -time * (rage ? 1.4 : 0.4);
-    this.tiles.forEach((t, i) => {
-      const a = (i / this.tiles.length) * TAU;
-      t.position.set(Math.cos(a) * 25, Math.sin(time * 1.6 + i * 2) * 3, Math.sin(a) * 25);
-      t.rotation.y = -a + Math.PI / 2;
-    });
+    this.crown.position.y = 90 + Math.sin(time * 1.3) * 2.2;
+    this.crown.rotation.y = time * (rage ? 1.2 : 0.4);
     this.gems.color
       .copy(rage ? RAGE : this.team)
       .lerp(WHITE, 0.35 + flash * 0.6)
       .multiplyScalar(0.8 + 0.2 * Math.sin(time * 5));
-    if (rage) this.cloth.emissive.copy(RAGE).multiplyScalar(0.12 + 0.2 * pulse + flash * 0.3);
+    if (rage) this.cloth.emissive.copy(RAGE).multiplyScalar(0.1 + 0.18 * pulse + flash * 0.3);
     else this.cloth.emissive.setScalar(flash * 0.35);
     this.aura.material.color.copy(rage ? RAGE : this.team);
-    this.tail.scale.set(1 + Math.sin(time * 2) * 0.06, 1 + Math.sin(time * 3.1) * 0.1, 1);
   }
 }
 

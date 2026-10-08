@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { Match, buildTerrain, clearLine, confine, shapeDist, walkable } from '../src/sim';
+import { buildTerrain, clearLine, confine, shapeDist, walkable } from '../src/sim';
 import type { Terrain } from '../src/sim';
 import { buildWorld, findPath, laneWaypoints } from '../src/sim/world/map';
-import { content } from './helpers';
+import { content, liveMatch } from './helpers';
 
 const map = content.map;
 const terrain = buildTerrain(map);
@@ -254,16 +254,12 @@ describe('symmetry of the walk shapes', () => {
 describe('units stay inside walkable space during full matches', () => {
   for (const seed of [11, 22, 33]) {
     it(`seed ${seed}: every living unit is walkable at every 10th tick`, () => {
-      const m = Match.create(content, { seed, player: null });
+      const m = liveMatch(seed);
       const open = m.ctx.open;
       let samples = 0;
       let worst = -Infinity;
       let worstWhere = '';
-      for (let guard = 0; guard < 60 && m.state.phase.kind !== 'end'; guard++) {
-        if (m.state.phase.kind !== 'live') {
-          if (!m.autoAdvance().ok) break;
-          continue;
-        }
+      {
         while (m.state.phase.kind === 'live') {
           m.step(10);
           for (const u of m.state.units) {

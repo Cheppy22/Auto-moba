@@ -7,13 +7,17 @@ export type {
   BadgeDef,
   BiomeDef,
   CursedItemDef,
-  HeroDef,
+  ForkOptionDef,
+  GambitDef,
   HolyItemDef,
   ItemDef,
   MapDef,
+  PerkDef,
+  PieceDef,
+  StyleDef,
   Tuning,
-  UpgradeDef,
 } from './content/schema';
+export { PATHS, PIECE_IDS } from './content/schema';
 export { CUSTOM_BEHAVIORS } from './combat';
 export { hashContent } from './core/rng';
 export { buildTerrain, clearLine, confine, shapeDist, walkable } from './world/terrain';

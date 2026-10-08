@@ -1,9 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { Match } from '../src/sim';
 import type { GameEvent, SnapEvent, SnapUnit, Snapshot } from '../src/sim';
 import { Director } from '../src/render/broadcast/director';
 import type { Shot } from '../src/render/broadcast/types';
-import { content } from './helpers';
+import { content, liveMatch } from './helpers';
 
 const unit = (id: number, team: 'A' | 'B', x: number, y: number, o: Partial<SnapUnit> = {}) =>
   ({
@@ -19,9 +18,17 @@ const unit = (id: number, team: 'A' | 'B', x: number, y: number, o: Partial<Snap
     maxHp: 100,
     shield: 0,
     alive: true,
-    isPlayer: false,
+    piece: null,
+    style: null,
+    path: null,
+    rank: 1,
+    forkPending: false,
+    pawn: false,
+    lane: null,
     role: null,
-    posture: null,
+    marked: false,
+    stunned: false,
+    attackKind: null,
     recalling: false,
     goal: null,
     slot: 0,
@@ -42,11 +49,17 @@ const snap = (tick: number, units: SnapUnit[] = [], o: Partial<Snapshot> = {}): 
   slots: [],
   pressure: [],
   points: { A: 0, B: 0 },
-  playerHeroId: null,
   keeper: null,
-  suggest: [],
   phaseTicksLeft: 0,
   events: [],
+  act: 1,
+  tempo: { A: 0, B: 0 },
+  hand: [],
+  pawns: { A: { alive: 0, cap: 8, cost: 15 }, B: { alive: 0, cap: 8, cost: 15 } },
+  forks: [],
+  check: { A: false, B: false },
+  throneDown: { A: false, B: false },
+  zones: [],
   ...o,
 });
 
@@ -213,15 +226,6 @@ describe('Director', () => {
     expect(s.caption).toMatch(/^Skirmish · /);
   });
 
-  it('follows the player hero only when it is in trouble', () => {
-    const d = new Director(content);
-    const calm = unit(1, 'A', 300, 700, { isPlayer: true });
-    expect(d.update(snap(1000, [calm]), []).kind).toBe('wide');
-    const hurt = { ...calm, hp: 20 };
-    const s = d.update(snap(1100, [hurt]), []);
-    expect(s).toMatchObject({ kind: 'player', subjects: [1], priority: 20 });
-  });
-
   it('names kills by the nearest lane, jungle and base', () => {
     expect(captionAt(110, 500)).toBe('Hero down · Left');
     expect(captionAt(300, 700)).toBe('Hero down · Mid');
@@ -300,7 +304,7 @@ describe('Director', () => {
     expect(d.update(snap(5000), [death(5000, 1, 110, 500)]).kind).toBe('kill');
     expect(d.update(snap(10), []).kind).toBe('wide');
     d.update(snap(6000), [death(6000, 2, 110, 500)]);
-    const prep = snap(6001, [], { phase: { kind: 'prep', n: 2, startTick: 6001 } });
+    const prep = snap(6001, [], { phase: { kind: 'setup', n: 0, startTick: 6001 } });
     expect(d.update(prep, []).kind).toBe('wide');
   });
 
@@ -327,16 +331,13 @@ describe('Director', () => {
   });
 
   it('survives a real headless match with valid shots', () => {
-    const m = Match.create(content, { seed: 7, player: null });
+    const m = liveMatch(7);
     const d = new Director(content);
     const size = content.map.size;
     const kinds = new Set<string>();
     let fed = 0;
     for (let guard = 0; guard < 400 && m.state.tick < 6000; guard++) {
-      if (m.state.phase.kind !== 'live') {
-        if (!m.autoAdvance().ok) break;
-        continue;
-      }
+      if (m.state.phase.kind !== 'live') break;
       m.step(10);
       const events = m.events.slice(fed);
       fed = m.events.length;

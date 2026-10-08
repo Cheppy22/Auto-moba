@@ -9,7 +9,22 @@ describe('content', () => {
   });
 
   it('ships the prototype scope', () => {
-    expect(content.heroes).toHaveLength(14);
+    expect(content.pieces.map((p) => p.id).sort()).toEqual([
+      'bishop',
+      'king',
+      'knight',
+      'queen',
+      'rook',
+    ]);
+    for (const p of content.pieces) {
+      expect(p.abilities).toHaveLength(3);
+      expect(p.styles).toHaveLength(3);
+      for (const st of p.styles) {
+        expect(content.kitByKey.get(`${p.id}/${st.id}`)).toHaveLength(4);
+        expect(st.forks['4']).toHaveLength(2);
+        expect(st.forks['8']).toHaveLength(2);
+      }
+    }
     expect(content.items.length).toBeGreaterThanOrEqual(15);
     expect(content.cursed).toHaveLength(6);
     expect(content.holy).toHaveLength(2);
@@ -18,8 +33,31 @@ describe('content', () => {
       'thinning_veil',
       'spirit_tide',
       'keeper_debts',
-      'restless_guardians',
+      'endgame',
     ]);
+  });
+
+  it('has the ten starting gambit cards, one signature card per piece', () => {
+    expect(content.gambits.map((g) => g.effect ?? g.id).sort()).toEqual([
+      'advance',
+      'castle',
+      'check',
+      'fork',
+      'hold_the_file',
+      'pawn_storm',
+      'queens_gambit',
+      'regroup',
+      'sanctuary',
+      'siege',
+    ]);
+    const sig = content.gambits.filter((g) => g.piece !== null).map((g) => g.piece);
+    expect(sig.sort()).toEqual(['bishop', 'king', 'knight', 'queen', 'rook']);
+  });
+
+  it('rank thresholds start at 0 and rise', () => {
+    const th = content.tuning.ranks.goldThresholds;
+    expect(th[0]).toBe(0);
+    for (let i = 1; i < th.length; i++) expect(th[i]).toBeGreaterThan(th[i - 1]);
   });
 
   it('keeps the tick rate constant in step with tuning.json', () => {
@@ -36,7 +74,14 @@ describe('content', () => {
       ...content.items.flatMap((i) => i.triggers),
       ...content.cursed.flatMap((c) => [...c.triggers, ...c.flaws.flatMap((f) => f.triggers)]),
       ...content.holy.flatMap((h) => h.triggers),
-      ...content.heroes.flatMap((h) => h.passives),
+      ...content.pieces.flatMap((p) => [
+        ...p.passives,
+        ...p.styles.flatMap((st) => [
+          ...st.passives,
+          ...Object.values(st.ranks).flatMap((r) => r.triggers),
+          ...[...st.forks['4'], ...st.forks['8']].flatMap((f) => f.triggers),
+        ]),
+      ]),
     ];
     for (const t of all) if (t.custom) expect(names.has(t.custom)).toBe(true);
   });

@@ -14,37 +14,8 @@ export function applyPressure(ctx: Ctx): void {
     ctx.s.pressure.push(ev.id);
     for (const [tag, m] of Object.entries(ev.tagMult))
       ctx.s.tagMult[tag] = (ctx.s.tagMult[tag] ?? 1) * m;
-    if (ev.rules.includes('roamingGuardians')) {
-      for (const team of ['A', 'B'] as PlayTeam[]) {
-        const g = ctx.guardians[team];
-        if (!g) continue;
-        g.roaming = true;
-        const path = laneWaypoints(ctx.world, team, 'mid');
-        g.path = path;
-        g.pathI = 1;
-        g.base = { ...g.base, moveSpeed: ctx.t.guardian.roamMoveSpeed };
-      }
-    }
     ctx.emit('pressure', { event: ev.id, name: ev.name });
     dirtyAll(ctx);
-  }
-  if (ctx.s.pressure.includes('restless_guardians')) {
-    const extra = Math.max(0, n - 7);
-    for (const team of ['A', 'B'] as PlayTeam[]) {
-      const g = ctx.guardians[team];
-      if (!g) continue;
-      g.mods = g.mods.filter((m) => m.id !== 'roam:growth');
-      g.mods.push({
-        id: 'roam:growth',
-        stat: 'bladeDmg',
-        kind: 'mul',
-        value: 1 + ctx.t.guardian.roamDamageGrowth * extra,
-        source: 'pressure',
-        tags: [],
-        expiresTick: null,
-      });
-      g.dirty = true;
-    }
   }
 }
 

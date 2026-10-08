@@ -94,7 +94,7 @@ function sideSum(m: Match, team: PlayTeam, x: number, y: number) {
 }
 
 for (let k = 0; k < N; k++) {
-  const m = Match.create(content, { seed: SEED + k, player: null });
+  const m = Match.create(content, { seed: SEED + k, autoGambits: { A: true, B: true } });
   const ctx = m.ctx;
   const heroes = () => ctx.s.units.filter((u) => u.kind === 'hero');
   const lowSince = new Map<number, number>();
@@ -106,7 +106,7 @@ for (let k = 0; k < N; k++) {
   const fightStart = new Map<number, { tick: number; hp: number }>();
   for (let guard = 0; guard < 60 && ctx.s.phase.kind !== 'end'; guard++) {
     if (ctx.s.phase.kind !== 'live') {
-      m.autoAdvance();
+      m.issue({ type: 'setupTeam', pieces: m.defaultSetup() });
       continue;
     }
     while (ctx.s.phase.kind === 'live') {

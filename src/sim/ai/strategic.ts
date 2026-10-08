@@ -10,6 +10,7 @@ import { matchupAt } from './power';
 import { aiShop, nextPurchase } from './shopping';
 import { shopAt } from '../shop';
 import { isWary } from './swap';
+import { kitOf, pieceDef } from '../pieces';
 
 interface Cand {
   goal: Goal;
@@ -220,8 +221,8 @@ export function strategicUpdate(ctx: Ctx, u: Unit): void {
   if (!h || !u.alive || u.team === 'neutral') return;
   if (h.recall) return;
   const team = u.team as PlayTeam;
-  const def = ctx.c.heroById.get(h.defId)!;
-  const pers = ctx.t.personalities[def.personality];
+  const pers = ctx.t.personalities[pieceDef(ctx.c, h).personality];
+  const kit = kitOf(ctx.c, h);
   const post = ctx.t.posture[h.posture] ?? ctx.t.posture.default;
   const ai = ctx.t;
   const base = ctx.world.basePos[team];
@@ -230,20 +231,11 @@ export function strategicUpdate(ctx: Ctx, u: Unit): void {
   const cands: Cand[] = [];
   const cur = h.goal;
 
-  const auto = !h.isPlayer || h.autoBuy;
   const here = shopAt(ctx, u);
-  if (here) {
-    const q = h.suggest.indexOf(here);
-    if (q >= 0) {
-      h.suggest.splice(q, 1);
-      if (h.isPlayer) ctx.emit('shopVisit', { id: u.id, shop: here });
-      else aiShop(ctx, u);
-      if (cur?.kind === 'visitShop') h.goal = null;
-    } else if (auto && cur?.kind === 'visitShop') {
-      aiShop(ctx, u);
-      h.lastRecallTick = ctx.s.tick;
-      h.goal = null;
-    }
+  if (here && cur?.kind === 'visitShop') {
+    aiShop(ctx, u);
+    h.lastRecallTick = ctx.s.tick;
+    h.goal = null;
   }
 
   const wary = isWary(ctx, h);
@@ -260,13 +252,13 @@ export function strategicUpdate(ctx: Ctx, u: Unit): void {
       cands.push(cand('base', base.x, base.y, goalKey('base', 0), 10));
     } else {
       if (!threatened && distBase > 350) {
-        startRecall(ctx, u, 'base', h.isPlayer);
+        startRecall(ctx, u, 'base', true);
         return;
       }
       cands.push(cand('retreat', base.x, base.y, goalKey('retreat', 0), 10));
     }
   } else {
-    if (auto && distBase > 400 && enemiesNear(ctx, u, u.x, u.y, 260) === 0) {
+    if (distBase > 400 && enemiesNear(ctx, u, u.x, u.y, 260) === 0) {
       const p = nextPurchase(ctx, u, 'base');
       const since = ctx.s.tick - (h.lastRecallTick ?? -9999);
       let shopClose = false;
@@ -274,7 +266,7 @@ export function strategicUpdate(ctx: Ctx, u: Unit): void {
         if (dist(u.x, u.y, sh.x, sh.y) <= ai.ai.shopTripRadius) shopClose = true;
       if (p && h.gold >= 750 && since > 400 && !shopClose) {
         h.lastRecallTick = ctx.s.tick;
-        startRecall(ctx, u, 'base', h.isPlayer);
+        startRecall(ctx, u, 'base', true);
         return;
       }
     }
@@ -461,9 +453,7 @@ export function strategicUpdate(ctx: Ctx, u: Unit): void {
 
     // Rescue and join: count this hero in the fight, wherever it stands within reach.
     let bestFight: Cand | null = null;
-    const healer = def.abilities.some(
-      (a, i) => h.cd[i] <= 0 && a.effects.some((e) => e.type === 'heal'),
-    );
+    const healer = kit.some((a, i) => h.cd[i] <= 0 && a.effects.some((e) => e.type === 'heal'));
     for (const id of ctx.s.teams[team].heroIds) {
       const ally = ctx.unit(id);
       if (!ally || ally.id === u.id || !ally.alive) continue;
@@ -566,9 +556,7 @@ export function strategicUpdate(ctx: Ctx, u: Unit): void {
       const sh = ctx.world.map.shops.find((x) => x.id === id);
       if (sh) cands.push(cand('visitShop', sh.x, sh.y, goalKey('visitShop', id), score));
     };
-    if (h.suggest.length > 0) {
-      shopCand(h.suggest[0], ai.ai.suggestScore);
-    } else if (auto && h.gold >= ai.ai.shopTripGold) {
+    if (h.gold >= ai.ai.shopTripGold) {
       const big = nextPurchase(ctx, u, 'jungle');
       const smallOnly = nextPurchase(ctx, u, 'base');
       const wantsT3 = !!big && ctx.c.itemById.get(big.id)?.tier === 3;
@@ -588,14 +576,8 @@ export function strategicUpdate(ctx: Ctx, u: Unit): void {
     }
   }
 
-  if (h.suggestEvent !== null) {
-    const ev = ctx.s.events.find((e) => e.id === h.suggestEvent);
-    if (!ev) h.suggestEvent = null;
-    else {
-      const key = goalKey('contestEvent', ev.id);
-      cands.push(cand('contestEvent', ev.x, ev.y, key, ai.ai.suggestScore, null));
-    }
-  }
+  if (!needHeal) orderCandidate(ctx, u, cands);
+  if (!needHeal) kingHunt(ctx, u, cands);
   if (wary) {
     for (const c of cands) {
       if (c.goal.kind === 'pushTower') c.score *= 0.45;
@@ -611,4 +593,64 @@ export function strategicUpdate(ctx: Ctx, u: Unit): void {
   }
   if (!best) return;
   setGoal(ctx, u, best.goal);
+}
+
+/** Goal score for a live gambit order: beats ordinary goals, never a retreat. */
+const ORDER_SCORE = 3.2;
+
+function towardBase(ctx: Ctx, team: PlayTeam, st: Unit, d: number): { x: number; y: number } {
+  const base = ctx.world.basePos[team];
+  const dx = base.x - st.x;
+  const dy = base.y - st.y;
+  const l = Math.sqrt(dx * dx + dy * dy) || 1;
+  return { x: st.x + (dx / l) * d, y: st.y + (dy / l) * d };
+}
+
+/** Gambit orders (Advance, Hold the File, Regroup, Siege) become a strongly preferred goal. */
+function orderCandidate(ctx: Ctx, u: Unit, cands: Cand[]): void {
+  const h = u.hero!;
+  const o = h.order;
+  if (!o || o.untilTick <= ctx.s.tick) return;
+  const team = u.team as PlayTeam;
+  if (o.kind === 'gather') {
+    const key = goalKey('regroup', `${Math.round(o.x)},${Math.round(o.y)}`);
+    cands.push(cand('regroup', o.x, o.y, key, ORDER_SCORE));
+    return;
+  }
+  const lane: LaneId = o.lane ?? h.lane ?? 'mid';
+  if (o.kind === 'push') {
+    const fixed = o.targetId !== null ? ctx.unit(o.targetId) : undefined;
+    const foeG = ctx.guardians[other(team)];
+    const st =
+      fixed && fixed.alive
+        ? fixed
+        : (enemyTowerTarget(ctx, team, lane) ??
+          (foeG && foeG.alive && isTargetable(ctx, foeG) ? foeG : null));
+    if (!st) return;
+    let pt: { x: number; y: number };
+    if (st.kind === 'tower' && st.tower) {
+      const sl = st.tower.lane;
+      const tp = progressAt(ctx, team, sl, st.x, st.y);
+      pt = pointAtProgress(ctx, team, sl, tp - standoff(u) / ctx.world.lanes[sl].length);
+    } else pt = towardBase(ctx, team, st, 100);
+    cands.push(cand('pushTower', pt.x, pt.y, goalKey('pushTower', st.id), ORDER_SCORE, st.id));
+    return;
+  }
+  const [outer, inner] = ctx.towers[team][lane];
+  const st = outer?.alive ? outer : inner?.alive ? inner : ctx.guardians[team];
+  if (!st || !st.alive) return;
+  const pt = towardBase(ctx, team, st, 40);
+  cands.push(cand('defendTower', pt.x, pt.y, goalKey('defendTower', st.id), ORDER_SCORE, st.id));
+}
+
+/** With the enemy Throne down, killing their King is checkmate: every healthy piece hunts him. */
+function kingHunt(ctx: Ctx, u: Unit, cands: Cand[]): void {
+  const team = u.team as PlayTeam;
+  const foe = other(team);
+  if (!ctx.s.throneDown[foe] || hpPct(u) < 0.45) return;
+  for (const id of ctx.s.teams[foe].heroIds) {
+    const k = ctx.unit(id);
+    if (!k?.alive || k.hero?.defId !== 'king') continue;
+    cands.push(cand('joinFight', k.x, k.y, goalKey('joinFight', `king${k.id}`), 2.2, k.id));
+  }
 }

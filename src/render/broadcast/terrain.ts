@@ -14,7 +14,6 @@ import {
   Vector2,
 } from 'three';
 import { buildTerrain, type Content, type Terrain, type WalkShape } from '../../sim';
-import { PALETTE } from '../theme';
 import type { Kit } from './kit';
 import { rand01 } from './kit';
 
@@ -37,6 +36,8 @@ const RIVER_CORE = 20;
 const FALL_START = 664;
 const FALL_Y = -36;
 const SQRT1_2 = Math.SQRT1_2;
+/** Half width of the painted and raised road (the walkable lane is wider). */
+export const ROAD_HALF = 22;
 
 const clamp = (v: number, lo: number, hi: number): number => (v < lo ? lo : v > hi ? hi : v);
 const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
@@ -114,12 +115,14 @@ export class TerrainField {
   private readonly bases: [number, number][];
   private readonly slots: SlotDef[];
   private readonly shops: { x: number; y: number }[];
+  private readonly roads: WalkShape[];
 
   constructor(content: Content) {
     const map = content.map;
     this.half = map.size / 2;
     this.t = buildTerrain(map);
     this.shapes = this.t.shapes;
+    this.roads = this.shapes.filter((s) => s.kind === 'lane');
     this.bases = [map.bases.A, map.bases.B].map((b) => [b[0], b[1]] as [number, number]);
     this.slots = map.slots.map((s) => ({
       x: s.x,
@@ -211,11 +214,34 @@ export class TerrainField {
       const r = Math.hypot(x - s.x, y - s.y);
       g += 7 * (1 - smooth(60, 108, r));
     }
+    // roads: a low raised causeway of inlaid stone along each lane
+    g += this.roadLift(x, y);
     // the river: a shallow bed at a fixed depth under the water, banks easing up to the land
     const rr = this.riverDist(x, y);
     const bed = WATER_Y - 3 + (vnoise(x * 0.05, y * 0.05, 8) - 0.5) * 1.2;
     const t = smooth(RIVER_CORE, RIVER_CORE + 46, rr);
     return Math.min(g, bed + (g - bed) * t);
+  }
+
+  /** Height of the raised road under a sim point (0 off the lanes and on the base daises). */
+  private roadLift(x: number, y: number): number {
+    let d = 1e9;
+    for (const s of this.roads) {
+      const dx = s.bx - s.ax;
+      const dy = s.by - s.ay;
+      const l2 = dx * dx + dy * dy;
+      let f = l2 === 0 ? 0 : ((x - s.ax) * dx + (y - s.ay) * dy) / l2;
+      f = f < 0 ? 0 : f > 1 ? 1 : f;
+      const px = x - (s.ax + dx * f);
+      const py = y - (s.ay + dy * f);
+      const dd = px * px + py * py;
+      if (dd < d) d = dd;
+    }
+    d = Math.sqrt(d);
+    let lift = 1.7 * (1 - smooth(ROAD_HALF, ROAD_HALF + 7, d));
+    if (lift <= 0) return 0;
+    for (const [bx, by] of this.bases) lift *= smooth(88, 126, Math.hypot(x - bx, y - by));
+    return lift;
   }
 
   /** Rock massif height at a point `d` units from walkable ground (stepped ledges, noise-varied). */
@@ -364,13 +390,22 @@ export class TerrainField {
 
 const LANE_TINT: Record<string, string> = { top: '#78bec8', mid: '#e0a93e', bot: '#c878aa' };
 const FLOOR: Record<string, string> = {
-  lane: '#4a4260',
-  base: '#3a3050',
-  slot: '#3c3650',
-  port: '#43394f',
-  shop: '#4a3f52',
-  spot: '#4a4260',
+  lane: '#2c2733',
+  base: '#2c2733',
+  slot: '#2c2733',
+  port: '#2c2733',
+  shop: '#2c2733',
+  spot: '#2c2733',
 };
+
+/** Chessboard: tile size in sim units, and the ivory / ebony pairs for each half. */
+const TILE = 40;
+const BOARD = {
+  white: { light: '#d3c8a8', dark: '#4b4150' },
+  black: { light: '#8a8499', dark: '#1d1a26' },
+};
+/** Road stone and its inlay edge. */
+const ROAD = { stone: '#9a93a6', seam: '#5e5868', edge: '#c8963c', rim: '#15111b' };
 
 function rockTexture(): CanvasTexture {
   const S = 256;
@@ -607,131 +642,214 @@ export class TerrainView {
     };
     for (const s of f.shapes) stroke(s, (s.r + SHOULDER + 5) * 2, 'rgba(8,6,14,0.55)');
     for (const s of f.shapes) stroke(s, (s.r + SHOULDER) * 2, '#17131f');
+    for (const s of f.shapes) stroke(s, s.r * 2 + 3.4, 'rgba(200,150,60,0.7)');
     for (const s of f.shapes) stroke(s, s.r * 2, FLOOR[s.kind] ?? FLOOR.lane);
+    this.paintBoard(g);
 
-    // floor speckle: only where the ground really is walkable
-    seed = 5150;
-    for (let i = 0; i < 16000; i++) {
-      const x = rnd() * 1000;
-      const y = rnd() * 1000;
-      if (f.sdfAt(x, y) > -5) continue;
-      const kind = rnd();
-      g.fillStyle =
-        kind < 0.4
-          ? 'rgba(0,0,0,0.2)'
-          : kind < 0.86
-            ? 'rgba(190,176,214,0.12)'
-            : kind < 0.95
-              ? 'rgba(110,150,118,0.2)'
-              : 'rgba(224,169,62,0.28)';
-      g.beginPath();
-      g.ellipse(x, y, 0.8 + rnd() * 2.6, 0.6 + rnd() * 1.6, rnd() * 3, 0, TAU);
-      g.fill();
-    }
-
-    // lane wear: a lighter track with the lane's own colour as a faint dashed line
+    // roads: raised inlaid stone with a brass edge, flagstone seams and the lane's own colour
     const lanes = this.content.map.lanes;
+    const trace = (pts: number[][]): void => {
+      g.beginPath();
+      pts.forEach((p, i) => (i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])));
+    };
+    g.lineJoin = 'round';
     for (const id of ['top', 'mid', 'bot'] as const) {
       const pts = lanes[id];
-      const trace = (): void => {
-        g.beginPath();
-        pts.forEach((p, i) => (i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])));
-      };
-      g.lineJoin = 'round';
       g.lineCap = 'round';
-      g.strokeStyle = LANE_TINT[id] + '26';
-      g.lineWidth = 56;
-      trace();
+      g.strokeStyle = ROAD.rim;
+      g.lineWidth = ROAD_HALF * 2 + 7;
+      trace(pts);
       g.stroke();
-      g.strokeStyle = 'rgba(150,134,184,0.2)';
-      g.lineWidth = 44;
-      trace();
+      g.strokeStyle = ROAD.edge;
+      g.lineWidth = ROAD_HALF * 2 + 2.6;
+      trace(pts);
       g.stroke();
-      g.strokeStyle = 'rgba(196,182,222,0.16)';
-      g.lineWidth = 22;
-      trace();
+      g.strokeStyle = ROAD.stone;
+      g.lineWidth = ROAD_HALF * 2 - 1;
+      trace(pts);
       g.stroke();
-      g.setLineDash([9, 13]);
+      // flagstone seams across the road
       g.lineCap = 'butt';
-      g.strokeStyle = LANE_TINT[id] + 'aa';
-      g.lineWidth = 1.7;
-      trace();
+      g.setLineDash([1.4, 17]);
+      g.strokeStyle = ROAD.seam;
+      g.lineWidth = ROAD_HALF * 2 - 4;
+      trace(pts);
+      g.stroke();
+      g.setLineDash([]);
+      // the lane's colour as an inlaid centre line
+      g.strokeStyle = LANE_TINT[id] + 'cc';
+      g.lineWidth = 5;
+      trace(pts);
+      g.stroke();
+      g.strokeStyle = ROAD.stone + 'cc';
+      g.lineWidth = 1.6;
+      g.setLineDash([9, 13]);
+      trace(pts);
       g.stroke();
       g.setLineDash([]);
     }
-    // path stones along the lanes
-    seed = 777;
-    for (let i = 0; i < 2600; i++) {
-      const x = rnd() * 1000;
-      const y = rnd() * 1000;
-      const d = f.sdfAt(x, y);
-      if (d > -14 || d < -34) continue;
-      g.fillStyle = rnd() < 0.5 ? 'rgba(206,196,226,0.15)' : 'rgba(6,4,10,0.26)';
-      g.beginPath();
-      g.ellipse(x, y, 1.4 + rnd() * 2.8, 1 + rnd() * 1.8, rnd() * 3, 0, TAU);
-      g.fill();
-    }
-
-    // port and shop paths get a darker beaten-earth centre line
+    // ports: narrower stone paths into the clearings
     g.lineCap = 'round';
     for (const s of f.shapes) {
       if (s.kind !== 'port') continue;
-      stroke(s, 15, 'rgba(24,18,30,0.5)');
-      stroke(s, 7, 'rgba(120,104,140,0.2)');
+      stroke(s, 33, ROAD.rim);
+      stroke(s, 30.5, ROAD.edge);
+      stroke(s, 28.5, ROAD.stone);
     }
 
-    // bases: low-contrast checkerboard under a seal, matching the terraces
+    // bases: thrones on terraced daises, ringed in the team's metal
     for (const team of ['A', 'B'] as const) {
       const [bx, by] = this.content.map.bases[team];
-      const col = team === 'A' ? PALETTE.teamA : PALETTE.teamB;
+      const white = team === 'A';
+      const stone = white ? '#e6dcc0' : '#2b2733';
+      const stone2 = white ? '#bdb293' : '#443e52';
+      const metal = white ? '#c8963c' : '#c6cfdc';
       g.save();
       g.beginPath();
       g.arc(bx, by, this.content.map.walk.base - 1, 0, TAU);
       g.clip();
       g.translate(bx, by);
+      // terrace rings in alternating stone
+      for (const [r, c] of [
+        [110, stone2],
+        [90, stone],
+        [62, stone2],
+        [52, stone],
+      ] as const) {
+        g.fillStyle = c;
+        g.beginPath();
+        g.arc(0, 0, r, 0, TAU);
+        g.fill();
+      }
+      // the dais floor: a checker of its own
+      g.save();
+      g.beginPath();
+      g.arc(0, 0, 49, 0, TAU);
+      g.clip();
       g.rotate(Math.PI / 4);
-      const t = 15;
-      for (let i = -10; i <= 10; i++) {
-        for (let j = -10; j <= 10; j++) {
-          g.fillStyle = (i + j) & 1 ? '#43324a' : '#241b2e';
+      const t = 14;
+      for (let i = -4; i <= 3; i++)
+        for (let j = -4; j <= 3; j++) {
+          g.fillStyle =
+            (i + j) & 1 ? (white ? '#3e3544' : '#c3ccda') : white ? '#efe6cf' : '#15121c';
           g.fillRect(i * t, j * t, t, t);
         }
-      }
       g.restore();
-      g.lineWidth = 1.6;
+      // eight-pointed star inlay
+      g.fillStyle = metal + 'cc';
+      g.beginPath();
+      for (let i = 0; i < 16; i++) {
+        const a = (i / 16) * TAU;
+        const r = i % 2 ? 58 : 84;
+        g.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+      }
+      g.closePath();
+      g.globalAlpha = 0.35;
+      g.fill();
+      g.globalAlpha = 1;
+      g.restore();
+      g.lineWidth = 2.2;
       for (const [r, a] of [
-        [103, 0.55],
-        [86, 0.5],
-        [57, 0.5],
-        [46, 0.4],
+        [103, 0.85],
+        [88, 0.9],
+        [60, 0.9],
+        [51, 0.9],
       ] as const) {
-        g.strokeStyle = col + Math.round(a * 255).toString(16);
+        g.strokeStyle = metal + Math.round(a * 255).toString(16);
         g.beginPath();
         g.arc(bx, by, r, 0, TAU);
         g.stroke();
       }
-      g.fillStyle = col + '30';
+      g.fillStyle = metal + 'cc';
       for (let i = 0; i < 24; i++) {
         const a = (i / 24) * TAU;
         g.beginPath();
-        g.arc(bx + Math.cos(a) * 95, by + Math.sin(a) * 95, i % 6 === 0 ? 2.6 : 1.4, 0, TAU);
+        g.arc(bx + Math.cos(a) * 95, by + Math.sin(a) * 95, i % 6 === 0 ? 2.8 : 1.5, 0, TAU);
         g.fill();
       }
     }
-    // shops: a brass-ringed plaza
+    // shops: a brass-ringed marble plaza
     for (const s of this.content.map.shops) {
-      g.fillStyle = 'rgba(30,22,36,0.5)';
+      g.fillStyle = 'rgba(214,204,186,0.42)';
       g.beginPath();
       g.arc(s.x, s.y, s.radius, 0, TAU);
       g.fill();
-      g.strokeStyle = 'rgba(200,150,60,0.4)';
-      g.lineWidth = 1.6;
+      g.strokeStyle = 'rgba(200,150,60,0.8)';
+      g.lineWidth = 2;
       g.beginPath();
       g.arc(s.x, s.y, s.radius, 0, TAU);
       g.stroke();
     }
     g.setTransform(1, 0, 0, 1, 0, 0);
     return c;
+  }
+
+  /** The chessboard: ivory and ebony tiles over the walkable ground, White's half lighter. */
+  private paintBoard(g: CanvasRenderingContext2D): void {
+    const f = this.field;
+    const mk = (): [HTMLCanvasElement, CanvasRenderingContext2D] => {
+      const c = document.createElement('canvas');
+      c.width = this.size;
+      c.height = this.size;
+      const x = c.getContext('2d')!;
+      this.frame(x);
+      return [c, x];
+    };
+    const [mask, mg] = mk();
+    mg.lineCap = 'round';
+    mg.lineJoin = 'round';
+    mg.strokeStyle = '#fff';
+    for (const s of f.shapes) {
+      mg.lineWidth = s.r * 2;
+      mg.beginPath();
+      mg.moveTo(s.ax, s.ay);
+      mg.lineTo(s.bx, s.by);
+      mg.stroke();
+    }
+    const [board, bg] = mk();
+    const cw = new Color();
+    const mix = (a: string, b: string, t: number): string =>
+      cw.set(a).lerp(new Color(b), t).getStyle();
+    const n = Math.ceil(this.content.map.size / TILE);
+    for (let j = 0; j < n; j++)
+      for (let i = 0; i < n; i++) {
+        const cx = (i + 0.5) * TILE;
+        const cy = (j + 0.5) * TILE;
+        const w = smooth(-110, 110, cy - cx);
+        const light = (i + j) % 2 === 0;
+        bg.fillStyle = light
+          ? mix(BOARD.black.light, BOARD.white.light, w)
+          : mix(BOARD.black.dark, BOARD.white.dark, w);
+        bg.fillRect(i * TILE, j * TILE, TILE + 0.5, TILE + 0.5);
+        // marble veining: one soft stroke across each light tile
+        if (light) {
+          bg.strokeStyle = 'rgba(255,255,255,0.10)';
+          bg.lineWidth = 1.2;
+          bg.beginPath();
+          const k = (i * 7 + j * 13) % 5;
+          bg.moveTo(i * TILE + 4 + k * 3, j * TILE + 3);
+          bg.lineTo(i * TILE + TILE - 6, j * TILE + 10 + k * 5);
+          bg.stroke();
+        }
+      }
+    bg.strokeStyle = 'rgba(0,0,0,0.22)';
+    bg.lineWidth = 0.7;
+    bg.beginPath();
+    for (let i = 0; i <= n; i++) {
+      bg.moveTo(i * TILE, 0);
+      bg.lineTo(i * TILE, n * TILE);
+      bg.moveTo(0, i * TILE);
+      bg.lineTo(n * TILE, i * TILE);
+    }
+    bg.stroke();
+    bg.setTransform(1, 0, 0, 1, 0, 0);
+    mg.setTransform(1, 0, 0, 1, 0, 0);
+    bg.globalCompositeOperation = 'destination-in';
+    bg.drawImage(mask, 0, 0);
+    const keep = g.getTransform();
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.drawImage(board, 0, 0);
+    g.setTransform(keep);
   }
 
   /** Paints a clearing's floor (its biome, or the sealed look). `art` spans 2.6 radii. */

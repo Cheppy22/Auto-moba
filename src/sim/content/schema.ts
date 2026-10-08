@@ -80,7 +80,13 @@ export const EffectSchema = z.discriminatedUnion('type', [
     type: z.literal('dash'),
     distance: z.number(),
     toward: z.enum(['target', 'away']),
+    /** Leaps over solid terrain and lands on the nearest walkable ground (Knights always leap). */
+    leap: z.boolean().default(false),
   }),
+  /** No moving, attacking or casting for the duration. */
+  z.object({ type: z.literal('stun'), durationSec: z.number() }),
+  /** The target must attack the caster for the duration (while the caster lives). */
+  z.object({ type: z.literal('taunt'), durationSec: z.number() }),
   z.object({
     type: z.literal('aura'),
     radius: z.number(),
@@ -141,47 +147,114 @@ export const TriggerSchema = z.object({
 
 export const PersonalitySchema = z.enum(['reckless', 'cautious', 'opportunist', 'steadfast']);
 
-export const HeroSchema = z.object({
+export const PIECE_IDS = ['king', 'queen', 'rook', 'bishop', 'knight'] as const;
+export const PieceIdSchema = z.enum(PIECE_IDS);
+export const PATHS = ['offense', 'defense', 'utility'] as const;
+export const PathSchema = z.enum(PATHS);
+
+/**
+ * One automatic improvement: an optional ability tweak (same shape as the old upgrade cards) plus
+ * optional stat mods and triggers. Used for style rank bonuses (Ranks 2, 3, 5, 6, 7) and fork
+ * options (Ranks 4 and 8).
+ */
+export const PerkSchema = z.object({
+  name: z.string(),
+  desc: z.string().default(''),
+  /** 0-2 = the piece's base abilities, 3 = the style's signature ability. */
+  ability: z.number().int().min(0).max(3).optional(),
+  cooldownMul: z.number().default(1),
+  powerMul: z.number().default(1),
+  rangeMul: z.number().default(1),
+  radiusMul: z.number().default(1),
+  mods: z.array(ModSchema).default([]),
+  triggers: z.array(TriggerSchema).default([]),
+});
+
+export const ForkOptionSchema = PerkSchema.extend({ id: z.string() });
+
+const PathListsSchema = z.object({
+  offense: z.array(z.string()),
+  defense: z.array(z.string()),
+  utility: z.array(z.string()),
+});
+
+export const StyleSchema = z.object({
   id: z.string(),
   name: z.string(),
-  title: z.string(),
-  era: z.string(),
-  disposition: DispositionSchema,
-  attackKind: z.enum(['melee', 'ranged']),
-  playstyle: z.string().optional(),
-  stats: StatsSchema,
-  abilities: z.array(AbilitySchema).length(4),
+  desc: z.string().default(''),
+  /** Overrides the piece's attack kind (e.g. a melee style of a ranged piece). */
+  attackKind: z.enum(['melee', 'ranged']).optional(),
+  /** Overrides the piece's build lists for this style (any path left out uses the piece's). */
+  paths: PathListsSchema.partial().optional(),
+  /** The signature skill: becomes the piece's 4th ability. */
+  ability: AbilitySchema,
+  /** Stat tilt applied for the whole match. */
+  mods: z.array(ModSchema).default([]),
   passives: z.array(TriggerSchema).default([]),
-  autoSoulScale: z.number().default(0),
-  personality: PersonalitySchema,
-  buildList: z.array(z.string()),
-  sigil: z.object({
-    hue: z.number(),
-    rings: z.number(),
-    spokes: z.number(),
-    glyph: z.enum([
-      'gear',
-      'crane',
-      'rail',
-      'compass',
-      'gate',
-      'petal',
-      'paw',
-      'brush',
-      'lantern',
-      'blade',
-      'skull',
-      'anchor',
-      'orbit',
-      'shield',
-      'watch',
-      'teacup',
-      'heart',
-      'mushroom',
-    ]),
+  ranks: z.object({
+    '2': PerkSchema,
+    '3': PerkSchema,
+    '5': PerkSchema,
+    '6': PerkSchema,
+    '7': PerkSchema,
   }),
-  blurb: z.string().default(''),
+  forks: z.object({
+    '4': z.array(ForkOptionSchema).length(2),
+    '8': z.array(ForkOptionSchema).length(2),
+  }),
 });
+
+export const PieceSchema = z.object({
+  id: PieceIdSchema,
+  name: z.string(),
+  title: z.string(),
+  attackKind: z.enum(['melee', 'ranged']),
+  disposition: DispositionSchema,
+  personality: PersonalitySchema,
+  playstyle: z.string().default(''),
+  stats: StatsSchema,
+  abilities: z.array(AbilitySchema).length(3),
+  passives: z.array(TriggerSchema).default([]),
+  /** Auto attacks add this fraction of Soul power. */
+  autoSoulScale: z.number().default(0),
+  styles: z.array(StyleSchema).length(3),
+  /** Build path the AI prefers (and the setup board pre-fills); derived from disposition if absent. */
+  defaultPath: PathSchema.optional(),
+  /** Item build list per build path (item ids, in buy order). */
+  paths: PathListsSchema,
+});
+
+export const GambitTargetSchema = z.enum(['lane', 'point', 'enemy', 'none']);
+
+/** Effect families the sim implements; a card's `effect` defaults to its id. */
+export const GAMBIT_EFFECTS = [
+  'advance',
+  'hold_the_file',
+  'regroup',
+  'pawn_storm',
+  'check',
+  'castle',
+  'queens_gambit',
+  'siege',
+  'sanctuary',
+  'fork',
+] as const;
+
+export const GambitSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  desc: z.string().default(''),
+  cost: z.number().min(0),
+  target: GambitTargetSchema,
+  /** Signature card of this piece (only usable while it lives), or null for universal cards. */
+  piece: PieceIdSchema.nullable().default(null),
+  weight: z.number().min(0).default(1),
+  durationSec: z.number().min(0).default(0),
+  effect: z.enum(GAMBIT_EFFECTS).optional(),
+  params: z.record(z.string(), z.number()).default({}),
+});
+
+export const GambitFileSchema = z.object({ gambits: z.array(GambitSchema).min(1) });
 
 export const ItemSchema = z.object({
   id: z.string(),
@@ -229,20 +302,6 @@ export const ItemFileSchema = z.object({
   cursed: z.array(CursedItemSchema).default([]),
   holy: z.array(HolyItemSchema).default([]),
 });
-
-export const UpgradeSchema = z.object({
-  id: z.string(),
-  hero: z.string(),
-  name: z.string(),
-  ability: z.number().int().min(0).max(3),
-  cooldownMul: z.number().default(1),
-  powerMul: z.number().default(1),
-  rangeMul: z.number().default(1),
-  radiusMul: z.number().default(1),
-  desc: z.string(),
-});
-
-export const UpgradeFileSchema = z.object({ upgrades: z.array(UpgradeSchema) });
 
 export const CampTypeSchema = z.object({
   id: z.string(),
@@ -428,8 +487,48 @@ export const TuningSchema = z.object({
   phaseSeconds: z.number(),
   startingGold: z.number(),
   passiveGoldPerSec: z.number(),
-  phaseStatGrowth: z.number(),
   maxPhases: z.number().int(),
+  /** Ranks 1-8 from lifetime gold earned. */
+  ranks: z.object({
+    goldThresholds: z.array(z.number()).length(8),
+    /** Per rank above 1: +growth fraction of health, Blade damage and Soul power. */
+    growth: z.number(),
+    /** Seconds White's fork waits for the player before the AI picks. */
+    forkSec: z.number(),
+  }),
+  /** Elite pawns fielded with Tempo (pawnlings are the minion waves below). */
+  pawns: z.object({
+    cost: z.number(),
+    capBase: z.number().int(),
+    capFromAct: z.number().int(),
+    capPerAct: z.number().int(),
+    hp: z.number(),
+    damage: z.number(),
+    damageType: DamageTypeSchema.default('blade'),
+    armor: z.number(),
+    resist: z.number(),
+    range: z.number(),
+    atkSpeed: z.number(),
+    moveSpeed: z.number(),
+    scalePerAct: z.number(),
+    structureMul: z.number(),
+    /** Gold to the killing piece and to each piece of the killing team. */
+    bounty: z.number(),
+    teamBounty: z.number(),
+  }),
+  gambits: z.object({
+    tempoStart: z.number(),
+    tempoMax: z.number(),
+    tempoPerSec: z.number(),
+    tempoPieceKill: z.number(),
+    tempoBastion: z.number(),
+    tempoPawnKill: z.number(),
+    tempoPawnlingKill: z.number(),
+    handSize: z.number().int(),
+    refillSec: z.number(),
+    expireSec: z.number(),
+  }),
+  check: z.object({ kingRespawnMul: z.number(), damageMul: z.number() }),
   waves: z.object({
     firstSec: z.number(),
     intervalSec: z.number(),
@@ -470,8 +569,6 @@ export const TuningSchema = z.object({
     hpRegen: z.number(),
     rageThresholds: z.array(z.number()),
     rageDamageMul: z.number(),
-    roamMoveSpeed: z.number(),
-    roamDamageGrowth: z.number(),
   }),
   gold: z.object({
     heroKill: z.number(),
@@ -602,11 +699,11 @@ export const TuningSchema = z.object({
 });
 
 export const ContentSchema = z.object({
-  heroes: z.array(HeroSchema).min(1),
+  pieces: z.array(PieceSchema).length(5),
+  gambits: z.array(GambitSchema),
   items: z.array(ItemSchema),
   cursed: z.array(CursedItemSchema),
   holy: z.array(HolyItemSchema),
-  upgrades: z.array(UpgradeSchema),
   biomes: z.array(BiomeSchema),
   pressure: PressureSchema,
   badges: BadgesSchema,
@@ -626,12 +723,19 @@ export type ModDef = z.infer<typeof ModSchema>;
 export type EffectDef = z.infer<typeof EffectSchema>;
 export type AbilityDef = z.infer<typeof AbilitySchema>;
 export type TriggerDef = z.infer<typeof TriggerSchema>;
-export type HeroDef = z.infer<typeof HeroSchema>;
+export type PieceId = z.infer<typeof PieceIdSchema>;
+export type Path = z.infer<typeof PathSchema>;
+export type PieceDef = z.infer<typeof PieceSchema>;
+export type StyleDef = z.infer<typeof StyleSchema>;
+export type PerkDef = z.infer<typeof PerkSchema>;
+export type ForkOptionDef = z.infer<typeof ForkOptionSchema>;
+export type GambitDef = z.infer<typeof GambitSchema>;
+export type GambitTarget = z.infer<typeof GambitTargetSchema>;
+export type GambitEffect = (typeof GAMBIT_EFFECTS)[number];
 export type ItemDef = z.infer<typeof ItemSchema>;
 export type FlawDef = z.infer<typeof FlawSchema>;
 export type CursedItemDef = z.infer<typeof CursedItemSchema>;
 export type HolyItemDef = z.infer<typeof HolyItemSchema>;
-export type UpgradeDef = z.infer<typeof UpgradeSchema>;
 export type CampTypeDef = z.infer<typeof CampTypeSchema>;
 export type BiomeDef = z.infer<typeof BiomeSchema>;
 export type MapDef = z.infer<typeof MapSchema>;

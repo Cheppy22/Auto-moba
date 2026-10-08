@@ -7,6 +7,8 @@ export default defineConfig({
   testDir: 'tests/e2e',
   timeout: 180_000,
   retries: 0,
+  // software WebGL is CPU-bound: two browsers at once only make every test slower
+  workers: 1,
   reporter: 'list',
   use: {
     baseURL: 'http://localhost:4173',

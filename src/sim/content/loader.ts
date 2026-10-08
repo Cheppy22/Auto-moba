@@ -3,29 +3,34 @@ import {
   BadgesSchema,
   BiomeSchema,
   EventFileSchema,
-  HeroSchema,
+  GAMBIT_EFFECTS,
+  GambitFileSchema,
   ItemFileSchema,
   MapSchema,
   PressureSchema,
+  PieceSchema,
   TuningSchema,
-  UpgradeFileSchema,
   type BadgeDef,
   type BiomeDef,
   type CursedItemDef,
   type EventDef,
-  type HeroDef,
+  type AbilityDef,
+  type GambitDef,
+  type GambitEffect,
+  type PieceDef,
+  type PieceId,
+  type StyleDef,
   type HolyItemDef,
   type ItemDef,
   type MapDef,
   type PressureDef,
   type Tuning,
-  type UpgradeDef,
 } from './schema';
 
 export interface RawContentFiles {
-  heroes: unknown[];
+  pieces: unknown[];
+  gambits: unknown;
   items: unknown[];
-  upgrades: unknown[];
   biomes: unknown[];
   events: unknown[];
   pressure: unknown;
@@ -36,17 +41,20 @@ export interface RawContentFiles {
 
 export interface Content {
   hash: string;
-  heroes: HeroDef[];
-  heroById: Map<string, HeroDef>;
+  pieces: PieceDef[];
+  pieceById: Map<PieceId, PieceDef>;
+  /** Key `${piece}/${style}`. */
+  styleByKey: Map<string, StyleDef>;
+  /** The four abilities of a piece in a style (3 base + the style's signature). Key `${piece}/${style}`. */
+  kitByKey: Map<string, AbilityDef[]>;
+  gambits: GambitDef[];
+  gambitById: Map<string, GambitDef>;
   items: ItemDef[];
   itemById: Map<string, ItemDef>;
   cursed: CursedItemDef[];
   cursedById: Map<string, CursedItemDef>;
   holy: HolyItemDef[];
   holyById: Map<string, HolyItemDef>;
-  upgrades: UpgradeDef[];
-  upgradeById: Map<string, UpgradeDef>;
-  upgradesByHero: Map<string, UpgradeDef[]>;
   biomes: BiomeDef[];
   biomeById: Map<string, BiomeDef>;
   events: EventDef[];
@@ -82,19 +90,41 @@ export function validateRefs(c: Content): string[] {
     if (it.tier > 1 && it.from.length === 0)
       errs.push(`item ${it.id}: tier ${it.tier} has no recipe`);
   }
-  for (const h of c.heroes) {
-    for (const id of h.buildList) {
-      if (!c.itemById.has(id)) errs.push(`hero ${h.id}: build item ${id} unknown`);
+  for (const p of c.pieces) {
+    for (const path of ['offense', 'defense', 'utility'] as const) {
+      const list = p.paths[path];
+      for (const id of list)
+        if (!c.itemById.has(id)) errs.push(`piece ${p.id}: ${path} item ${id} unknown`);
+      if (list.length > c.tuning.shop.slots)
+        errs.push(`piece ${p.id}: ${path} build list exceeds slots`);
     }
-    if (!c.upgradesByHero.get(h.id) || c.upgradesByHero.get(h.id)!.length < 3) {
-      errs.push(`hero ${h.id}: needs at least 3 upgrades`);
+    const styleIds = new Set<string>();
+    for (const st of p.styles) {
+      for (const path of ['offense', 'defense', 'utility'] as const) {
+        const list = st.paths?.[path];
+        if (!list) continue;
+        for (const id of list)
+          if (!c.itemById.has(id)) errs.push(`style ${p.id}/${st.id}: ${path} item ${id} unknown`);
+        if (list.length > c.tuning.shop.slots)
+          errs.push(`style ${p.id}/${st.id}: ${path} build list exceeds slots`);
+      }
+      if (styleIds.has(st.id)) errs.push(`piece ${p.id}: duplicate style ${st.id}`);
+      styleIds.add(st.id);
+      const forkIds = [...st.forks['4'], ...st.forks['8']].map((f) => f.id);
+      if (new Set(forkIds).size !== forkIds.length)
+        errs.push(`piece ${p.id}/${st.id}: fork option ids must be unique`);
     }
-    if (h.buildList.length > c.tuning.shop.slots)
-      errs.push(`hero ${h.id}: build list exceeds slots`);
+    if (!c.tuning.personalities[p.personality])
+      errs.push(`piece ${p.id}: personality ${p.personality} missing`);
   }
-  for (const u of c.upgrades) {
-    if (!c.heroById.has(u.hero)) errs.push(`upgrade ${u.id}: unknown hero ${u.hero}`);
+  if (c.pieceById.size !== 5) errs.push('needs exactly one file per piece (5)');
+  for (const g of c.gambits) {
+    const eff = g.effect ?? g.id;
+    if (!(GAMBIT_EFFECTS as readonly string[]).includes(eff))
+      errs.push(`gambit ${g.id}: unknown effect ${eff}`);
   }
+  if (!c.gambits.some((g) => g.piece === null && g.weight > 0))
+    errs.push('gambits: needs at least one universal card');
   for (const b of c.biomes) {
     const ids = new Set(b.campTypes.map((t) => t.id));
     for (const row of b.campTable) {
@@ -115,10 +145,6 @@ export function validateRefs(c: Content): string[] {
   }
   const pressureIds = new Set(c.pressure.map((p) => p.id));
   if (pressureIds.size !== c.pressure.length) errs.push('pressure ids not unique');
-  for (const h of c.heroes) {
-    if (!c.tuning.personalities[h.personality])
-      errs.push(`hero ${h.id}: personality ${h.personality} missing`);
-  }
   for (const p of ['push', 'farm', 'defend', 'default']) {
     if (!c.tuning.posture[p]) errs.push(`posture table ${p} missing`);
   }
@@ -129,12 +155,12 @@ export function validateRefs(c: Content): string[] {
 }
 
 export function loadContent(raw: RawContentFiles): Content {
-  const heroes = raw.heroes.map((h) => HeroSchema.parse(h));
+  const pieces = raw.pieces.map((p) => PieceSchema.parse(p));
+  const gambits = GambitFileSchema.parse(raw.gambits).gambits;
   const itemFiles = raw.items.map((f) => ItemFileSchema.parse(f));
   const items = itemFiles.flatMap((f) => f.items);
   const cursed = itemFiles.flatMap((f) => f.cursed);
   const holy = itemFiles.flatMap((f) => f.holy);
-  const upgrades = raw.upgrades.flatMap((f) => UpgradeFileSchema.parse(f).upgrades);
   const biomes = raw.biomes.map((b) => BiomeSchema.parse(b));
   const events = raw.events.flatMap((f) => EventFileSchema.parse(f).events);
   const pressure = PressureSchema.parse(raw.pressure).events;
@@ -142,25 +168,28 @@ export function loadContent(raw: RawContentFiles): Content {
   const map = MapSchema.parse(raw.map);
   const tuning = TuningSchema.parse(raw.tuning);
 
-  const upgradesByHero = new Map<string, UpgradeDef[]>();
-  for (const u of upgrades) {
-    const list = upgradesByHero.get(u.hero) ?? [];
-    list.push(u);
-    upgradesByHero.set(u.hero, list);
+  const styleByKey = new Map<string, StyleDef>();
+  const kitByKey = new Map<string, AbilityDef[]>();
+  for (const p of pieces) {
+    for (const st of p.styles) {
+      styleByKey.set(`${p.id}/${st.id}`, st);
+      kitByKey.set(`${p.id}/${st.id}`, [...p.abilities, st.ability]);
+    }
   }
   const content: Content = {
     hash: hashContent(raw),
-    heroes,
-    heroById: byId(heroes, 'hero'),
+    pieces,
+    pieceById: byId(pieces, 'piece') as Map<PieceId, PieceDef>,
+    styleByKey,
+    kitByKey,
+    gambits,
+    gambitById: byId(gambits, 'gambit'),
     items,
     itemById: byId(items, 'item'),
     cursed,
     cursedById: byId(cursed, 'cursed item'),
     holy,
     holyById: byId(holy, 'holy item'),
-    upgrades,
-    upgradeById: byId(upgrades, 'upgrade'),
-    upgradesByHero,
     biomes,
     biomeById: byId(biomes, 'biome'),
     events,
@@ -174,3 +203,5 @@ export function loadContent(raw: RawContentFiles): Content {
   if (errs.length) throw new Error(`Content invalid:\n${errs.join('\n')}`);
   return content;
 }
+
+export const gambitEffect = (g: GambitDef): GambitEffect => (g.effect ?? g.id) as GambitEffect;

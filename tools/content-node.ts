@@ -22,61 +22,45 @@ function deepMerge(base: unknown, patch: unknown): unknown {
   return out;
 }
 
+// BALANCE_TUNING deep-merges a JSON patch into tuning.json; BALANCE_PATCH shallow-merges a patch per
+// piece id (e.g. {"knight":{"stats":{...}}}); BALANCE_SCALE scales a piece's health, Blade damage and
+// Soul power (e.g. {"queen":0.95}).
 function applyScale(raw: RawContentFiles): RawContentFiles {
   if (process.env.BALANCE_TUNING)
     raw.tuning = deepMerge(raw.tuning, JSON.parse(process.env.BALANCE_TUNING));
   const patch = process.env.BALANCE_PATCH;
   if (patch) {
     const patches = JSON.parse(patch) as Record<string, Record<string, unknown>>;
-    raw.heroes = raw.heroes.map((h) => {
-      const hero = h as { id: string };
-      return patches[hero.id] ? { ...hero, ...patches[hero.id] } : h;
+    raw.pieces = raw.pieces.map((p) => {
+      const piece = p as { id: string };
+      return patches[piece.id] ? deepMerge(piece, patches[piece.id]) : p;
     });
   }
   const spec = process.env.BALANCE_SCALE;
   if (!spec) return raw;
   const scale = JSON.parse(spec) as Record<string, number>;
-  raw.heroes = raw.heroes.map((h) => {
-    const hero = h as { id: string; stats: Record<string, number> };
-    const k = scale[hero.id];
-    if (!k) return h;
+  raw.pieces = raw.pieces.map((p) => {
+    const piece = p as { id: string; stats: Record<string, number> };
+    const k = scale[piece.id];
+    if (!k) return p;
     return {
-      ...hero,
+      ...piece,
       stats: {
-        ...hero.stats,
-        maxHp: hero.stats.maxHp * k,
-        bladeDmg: hero.stats.bladeDmg * k,
-        soulPower: hero.stats.soulPower * k,
+        ...piece.stats,
+        maxHp: piece.stats.maxHp * k,
+        bladeDmg: piece.stats.bladeDmg * k,
+        soulPower: piece.stats.soulPower * k,
       },
     };
   });
   return raw;
 }
 
-// BALANCE_HEROES="a,b,c" restricts the hero pool (e.g. to measure only a subset of the roster).
-function heroPool(): unknown[] {
-  const all = readDir('heroes');
-  const only = process.env.BALANCE_HEROES;
-  if (!only) return all;
-  const ids = new Set(only.split(','));
-  return all.filter((h) => ids.has((h as { id: string }).id));
-}
-
-function upgradePool(): unknown[] {
-  const all = readDir('upgrades');
-  const only = process.env.BALANCE_HEROES;
-  if (!only) return all;
-  const ids = new Set(only.split(','));
-  return all.filter((f) =>
-    ((f as { upgrades: { hero: string }[] }).upgrades ?? []).every((u) => ids.has(u.hero)),
-  );
-}
-
 export function readRawContent(): RawContentFiles {
   return applyScale({
-    heroes: heroPool(),
+    pieces: readDir('pieces'),
+    gambits: readJson(join(root, 'gambits.json')),
     items: readDir('items'),
-    upgrades: upgradePool(),
     events: readDir('events'),
     biomes: readDir('biomes'),
     pressure: readJson(join(root, 'pressure.json')),

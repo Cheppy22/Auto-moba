@@ -28,7 +28,7 @@ const zero = (): LaneShare => {
 
 export function measureLaneShare(content: Content, seed: number, maxPhases = 10): LaneShare {
   const out = zero();
-  const m = Match.create(content, { seed, player: null });
+  const m = Match.create(content, { seed, autoGambits: { A: true, B: true } });
   const ctx = m.ctx;
   const tps = content.tuning.tickRate;
   let seen = 0;
@@ -82,8 +82,8 @@ export function measureLaneShare(content: Content, seed: number, maxPhases = 10)
       }
       continue;
     }
-    if (s.phase.n >= maxPhases && s.phase.kind === 'report') break;
-    if (!m.autoAdvance().ok) break;
+    if (s.phase.n > maxPhases) break;
+    if (!m.issue({ type: 'setupTeam', pieces: m.defaultSetup() }).ok) break;
   }
   drain();
   return out;

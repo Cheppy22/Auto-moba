@@ -24,6 +24,19 @@ describe('golden matches', () => {
         last = e.seq;
       }
       expect(m.events.filter((e) => e.type === 'matchEnd')).toHaveLength(1);
+      // Checkmate: the loser's Throne is down and its King is dead.
+      const loser = s.winner === 'A' ? 'B' : 'A';
+      expect(m.events.filter((e) => e.type === 'checkmate')).toHaveLength(1);
+      expect(s.throneDown[loser]).toBe(true);
+      const king = s.teams[loser].heroIds
+        .map((id) => m.unitById(id)!)
+        .find((u) => u.hero!.defId === 'king')!;
+      expect(king.alive).toBe(false);
+      for (const id of [...s.teams.A.heroIds, ...s.teams.B.heroIds]) {
+        const h = m.unitById(id)!.hero!;
+        expect(h.rank).toBeGreaterThanOrEqual(1);
+        expect(h.rank).toBeLessThanOrEqual(8);
+      }
     });
   }
 });

@@ -49,7 +49,6 @@ export function isTargetable(ctx: Ctx, u: Unit): boolean {
     return !outer || !outer.alive;
   }
   if (u.kind === 'guardian' && u.team !== 'neutral') {
-    if (u.roaming) return true;
     const lanes = ctx.towers[u.team];
     return (['top', 'mid', 'bot'] as LaneId[]).some((l) => {
       const inner = lanes[l][1];

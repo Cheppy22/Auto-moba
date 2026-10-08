@@ -1,6 +1,5 @@
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { buildReport, inputFromMatch, mostTakenType } from '../src/analysis';
-import { Match } from '../src/sim';
 import { content, runAi } from './helpers';
 
 const m = runAi(3, 9);
@@ -23,7 +22,7 @@ describe('analysis', () => {
     }
   });
 
-  it('phase reports partition the match', () => {
+  it('Act reports partition the match', () => {
     const phases = whole.phases;
     expect(phases.length).toBeGreaterThan(0);
     const slices = phases.map((n) => buildReport(input, { kind: 'phase', n }));
@@ -33,7 +32,7 @@ describe('analysis', () => {
       r.heroes.reduce((a, h) => a + h.purchases.length, 0);
     expect(slices.reduce((a, r) => a + buys(r), 0)).toBe(buys(whole));
     const picks = (r: ReturnType<typeof buildReport>): number =>
-      r.heroes.reduce((a, h) => a + h.upgrades.length, 0);
+      r.heroes.reduce((a, h) => a + h.ranks.length, 0);
     expect(slices.reduce((a, r) => a + picks(r), 0)).toBe(picks(whole));
     const dealt = slices.reduce((a, r) => a + r.heroes.reduce((x, h) => x + h.damageDealt, 0), 0);
     expect(Math.abs(dealt - whole.heroes.reduce((a, h) => a + h.damageDealt, 0))).toBeLessThan(1);
@@ -61,6 +60,21 @@ describe('analysis', () => {
     }
   });
 
+  it('records ranks, forks, gambits and pawns from the log', () => {
+    const ranks = m.events.filter((e) => e.type === 'rankUp').length;
+    expect(whole.heroes.reduce((a, h) => a + h.ranks.length, 0)).toBe(ranks);
+    const forks = m.events.filter((e) => e.type === 'fork').length;
+    expect(whole.heroes.reduce((a, h) => a + h.forks.length, 0)).toBe(forks);
+    for (const t of ['A', 'B'] as const) {
+      const played = m.events.filter((e) => e.type === 'gambit' && e.payload.team === t).length;
+      const sum = Object.values(whole.teams[t].gambitsPlayed).reduce((a, b) => a + b, 0);
+      expect(sum).toBe(played);
+      const pawns = m.events.filter((e) => e.type === 'pawnFielded' && e.payload.team === t);
+      expect(whole.teams[t].pawnsFielded).toBe(pawns.length);
+    }
+    expect(whole.roster.every((r) => r.style.length > 0 && r.path.length > 0)).toBe(true);
+  });
+
   it('reports the damage type a hero took most of', () => {
     const h = whole.heroes.find((x) => x.damageTaken > 0)!;
     const r = mostTakenType(h)!;
@@ -69,38 +83,12 @@ describe('analysis', () => {
   });
 });
 
-describe('sealed auction in reports', () => {
-  beforeAll(() => {
-    content.tuning.auction.enabled = true;
-  });
-  afterAll(() => {
-    content.tuning.auction.enabled = false;
-  });
-  it('hides the other side bids until the auction resolves', () => {
-    const live = Match.create(content, { seed: 81, player: { heroId: 'queen', role: 'top' } });
-    const id = live.state.playerHeroId!;
-    live.unitById(id)!.hero!.gold = 800;
-    live.issue({ type: 'bid', points: 0, gold: 300 });
-    const offer = live.state.upgradeOffers[id];
-    if (offer?.length) live.issue({ type: 'pickUpgrade', upgradeId: offer[0] });
-    live.issue({ type: 'startPhase' });
-    live.step(4800);
-    const inp = inputFromMatch(live, content);
-    const hasBids = (r: ReturnType<typeof buildReport>, team: string): boolean =>
-      r.special.bids.some((b) => b.team === team);
-    const all = buildReport(inp, { kind: 'phase', n: 1 });
-    const seen = buildReport(inp, { kind: 'phase', n: 1 }, 'A');
-    expect(hasBids(all, 'B')).toBe(true);
-    expect(hasBids(seen, 'A')).toBe(true);
-    expect(hasBids(seen, 'B')).toBe(false);
-    expect(seen.teams.B.pointsSpent).toBe(0);
-  });
-});
-
 describe('plain-language event text', () => {
   it('rewrites lanes, teams, slots and obelisk rewards', async () => {
-    const { laneName, teamLabel, slotName, obeliskRewardText, structureText } =
+    const { laneName, teamLabel, slotName, obeliskRewardText, structureText, pieceName } =
       await import('../src/analysis');
+    expect(pieceName('A', 'knight')).toBe('White Knight');
+    expect(pieceName('B', 'queen')).toBe('Black Queen');
     expect(laneName('bot')).toBe('Right');
     expect(teamLabel('A')).toBe('your team');
     expect(teamLabel('B')).toBe('the enemy');
@@ -110,6 +98,9 @@ describe('plain-language event text', () => {
     expect(text).not.toContain('hundred_hand_ledger');
     expect(
       structureText({ tick: 0, kind: 'tower', team: 'B', lane: 'bot', index: 0, killer: 1 }),
-    ).toBe('Enemy outer tower (Right lane) fell');
+    ).toBe('Enemy outer Bastion (Right lane) fell');
+    expect(
+      structureText({ tick: 0, kind: 'guardian', team: 'A', lane: 'base', index: 0, killer: 1 }),
+    ).toBe('Your White Throne fell');
   });
 });

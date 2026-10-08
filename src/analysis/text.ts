@@ -14,17 +14,22 @@ export function teamLabel(team: string, viewer: PlayTeam = 'A'): string {
   return team === viewer ? 'your team' : 'the enemy';
 }
 
-/** The two courts of the Looking-Glass board: Team A is White, Team B is Red. */
+/** The two sides of the board: Team A is White, Team B is Black. */
 export function courtName(team: string): string {
-  return team === 'A' ? 'White Court' : team === 'B' ? 'Red Court' : team;
+  return team === 'A' ? 'White' : team === 'B' ? 'Black' : team;
 }
 
-/** The guardian's display name: each Court has a King. */
-export function kingName(team: string): string {
-  return team === 'A' ? 'White King' : team === 'B' ? 'Red King' : 'King';
+/** The base structure's display name: each side has a Throne. */
+export function throneName(team: string): string {
+  return team === 'A' ? 'White Throne' : team === 'B' ? 'Black Throne' : 'Throne';
 }
 
 const cap = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
+
+/** A piece's display name, e.g. "White Knight". */
+export function pieceName(team: string, piece: string): string {
+  return `${courtName(team)} ${cap(piece)}`;
+}
 
 export function teamLabelCap(team: string, viewer: PlayTeam = 'A'): string {
   return cap(teamLabel(team, viewer));
@@ -76,7 +81,7 @@ export function obeliskRewardText(reward: string, value: number, c: Content): st
     return buffText(stat, value);
   }
   if (reward === 'points') return `+${value} points`;
-  if (reward === 'gold') return `+${value} gold for each hero`;
+  if (reward === 'gold') return `+${value} gold for each piece`;
   if (reward === 'unlock') return 'a discount at the jungle stalls';
   return reward.replace(/_/g, ' ');
 }
@@ -88,9 +93,9 @@ export function structureText(
   const side = cap(teamLabel(s.team, viewer) === 'your team' ? 'your' : 'enemy');
   if (s.kind === 'tower') {
     const rank = s.index === 0 ? 'outer' : s.index === 1 ? 'inner' : `#${s.index + 1}`;
-    return `${side} ${rank} tower (${laneName(s.lane)} lane) fell`;
+    return `${side} ${rank} Bastion (${laneName(s.lane)} lane) fell`;
   }
-  if (s.kind === 'guardian') return `${side} ${kingName(s.team)} fell`;
+  if (s.kind === 'guardian') return `${side} ${throneName(s.team)} fell`;
   return `${side} ${s.kind} fell`;
 }
 

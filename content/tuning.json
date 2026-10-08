@@ -3,8 +3,46 @@
   "phaseSeconds": 240,
   "startingGold": 500,
   "passiveGoldPerSec": 1.5,
-  "phaseStatGrowth": 0.08,
   "maxPhases": 10,
+  "ranks": {
+    "goldThresholds": [0, 600, 1300, 2100, 3000, 4100, 5400, 7000],
+    "growth": 0.045,
+    "forkSec": 10
+  },
+  "pawns": {
+    "cost": 15,
+    "capBase": 8,
+    "capFromAct": 4,
+    "capPerAct": 2,
+    "hp": 1020,
+    "damage": 51,
+    "damageType": "blade",
+    "armor": 15,
+    "resist": 10,
+    "range": 22,
+    "atkSpeed": 0.9,
+    "moveSpeed": 36,
+    "scalePerAct": 0.3,
+    "structureMul": 1.4,
+    "bounty": 40,
+    "teamBounty": 10
+  },
+  "gambits": {
+    "tempoStart": 30,
+    "tempoMax": 100,
+    "tempoPerSec": 1,
+    "tempoPieceKill": 5,
+    "tempoBastion": 10,
+    "tempoPawnKill": 2,
+    "tempoPawnlingKill": 0,
+    "handSize": 3,
+    "refillSec": 6,
+    "expireSec": 40
+  },
+  "check": {
+    "kingRespawnMul": 1.5,
+    "damageMul": 0.9
+  },
   "waves": {
     "firstSec": 6,
     "intervalSec": 30,
@@ -64,9 +102,7 @@
     "resist": 55,
     "hpRegen": 2,
     "rageThresholds": [0.66, 0.33],
-    "rageDamageMul": 1.2,
-    "roamMoveSpeed": 28,
-    "roamDamageGrowth": 0.2
+    "rageDamageMul": 1.2
   },
   "gold": {
     "heroKill": 200,

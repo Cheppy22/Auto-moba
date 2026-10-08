@@ -1,0 +1,136 @@
+/* ---------- adjourn panel ---------- */
+.overlay.adjourn {
+  z-index: 4;
+  align-items: center;
+}
+.adjourn-panel {
+  width: min(780px, 100%);
+  max-height: calc(100dvh - 24px);
+  min-height: 0;
+}
+.adjourn-panel > * {
+  flex: none;
+}
+.adjourn-panel > .adjourn-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding-bottom: 4px;
+  overscroll-behavior: contain;
+}
+.adjourn-panel .tabs {
+  margin-bottom: 0;
+}
+.adjourn-panel .tabs .btn {
+  min-height: 40px;
+  font-size: var(--fs-md);
+}
+.mini {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-2);
+}
+.mini-team {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0 var(--sp-2);
+  align-items: baseline;
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--a);
+  background: rgba(255, 255, 255, 0.03);
+}
+.mini-team.b {
+  border-left-color: var(--b);
+}
+.mini-team > b {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: 0.06em;
+}
+.mini-team.a > b {
+  color: var(--a);
+}
+.mini-team.b > b {
+  color: var(--b);
+}
+.mini-team .tiny {
+  grid-column: 1 / -1;
+}
+.pts-big {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: var(--fs-xl);
+  font-variant-numeric: lining-nums tabular-nums;
+}
+.path-row {
+  display: grid;
+  gap: 6px;
+}
+.path-row .seg {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+}
+.path-row .seg .btn {
+  min-height: 40px;
+}
+.armory-card {
+  display: grid;
+  gap: 6px;
+}
+.atiles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.atile {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 3px 10px 3px 4px;
+  cursor: pointer;
+  color: var(--text);
+  background: linear-gradient(180deg, #211c2d, #130f1b);
+  border: 1px solid var(--cat-1);
+  border-radius: 22px;
+}
+.atile.sel {
+  border-color: var(--brass-hi);
+  box-shadow:
+    0 0 0 1px var(--brass-hi),
+    var(--glow-brass);
+}
+.atile.next {
+  border-style: dashed;
+  border-color: var(--brass);
+}
+.aicon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 30px;
+  height: 30px;
+  color: var(--cat);
+  border: 1px solid var(--cat);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.07), transparent 70%);
+}
+.aname {
+  font-size: 12.5px;
+  line-height: 1.15;
+}
+.anext {
+  font-style: normal;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--brass-hi);
+}
+.adesc {
+  padding: 6px 10px;
+  line-height: 1.4;
+  border-left: 2px solid var(--cat);
+  background: rgba(255, 255, 255, 0.04);
+}

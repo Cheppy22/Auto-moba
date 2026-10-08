@@ -5,7 +5,9 @@
       "name": "Thinning Veil",
       "fromPhase": 4,
       "desc": "Healing is reduced across the whole map.",
-      "tagMult": { "heal": 0.5 },
+      "tagMult": {
+        "heal": 0.5
+      },
       "rules": []
     },
     {
@@ -21,16 +23,21 @@
       "name": "The Cheshire Keeper Calls In Debts",
       "fromPhase": 6,
       "desc": "Cursed items double in both power and flaw.",
-      "tagMult": { "curse": 2 },
+      "tagMult": {
+        "curse": 2
+      },
       "rules": []
     },
     {
-      "id": "restless_guardians",
-      "name": "The Kings Wake",
+      "id": "endgame",
+      "name": "Endgame",
       "fromPhase": 7,
-      "desc": "Both Kings leave their bases and fight in the lanes.",
-      "tagMult": {},
-      "rules": ["roamingGuardians"]
+      "desc": "Thrones take 50% more damage and every respawn takes 50% longer.",
+      "tagMult": {
+        "throneDamage": 1.5,
+        "respawn": 1.5
+      },
+      "rules": ["endgame"]
     }
   ]
 }

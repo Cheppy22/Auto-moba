@@ -1,5 +1,6 @@
 import type { Ctx } from './ctx';
 import type { ModDef, Stats, StatKey, TriggerDef } from './content/schema';
+import { perksOf, pieceDef, styleDef } from './pieces';
 import type { Modifier, Unit } from './types';
 
 export interface TrigInst {
@@ -34,8 +35,15 @@ function equipment(ctx: Ctx, u: Unit): { mods: TaggedMod[]; trigs: TrigInst[] } 
   const trigs: TrigInst[] = [];
   const h = u.hero;
   if (!h) return { mods, trigs };
-  const hd = ctx.c.heroById.get(h.defId);
-  if (hd) hd.passives.forEach((def, idx) => trigs.push({ src: `hero:${hd.id}`, idx, def }));
+  const pd = pieceDef(ctx.c, h);
+  pd.passives.forEach((def, idx) => trigs.push({ src: `piece:${pd.id}`, idx, def }));
+  const st = styleDef(ctx.c, h);
+  for (const m of st.mods) mods.push({ ...m, tags: [] });
+  st.passives.forEach((def, idx) => trigs.push({ src: `style:${pd.id}/${st.id}`, idx, def }));
+  perksOf(ctx.c, h).forEach((perk, n) => {
+    for (const m of perk.mods) mods.push({ ...m, tags: [] });
+    perk.triggers.forEach((def, idx) => trigs.push({ src: `perk:${pd.id}/${n}`, idx, def }));
+  });
   for (const id of h.items) {
     const item = ctx.c.itemById.get(id);
     if (item) {
@@ -89,7 +97,7 @@ function tagFactor(ctx: Ctx, tags: string[]): number {
 
 export function recompute(ctx: Ctx, u: Unit): void {
   const out: Stats = { ...u.base };
-  const growth = u.kind === 'hero' ? 1 + ctx.t.phaseStatGrowth * (ctx.s.phase.n - 1) : 1;
+  const growth = u.hero ? 1 + ctx.t.ranks.growth * (u.hero.rank - 1) : 1;
   if (growth !== 1) {
     out.maxHp *= growth;
     out.bladeDmg *= growth;

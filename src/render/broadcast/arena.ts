@@ -754,11 +754,6 @@ export class Arena {
       this.slotGroup.add(view.group);
     }
     this.terrain.flush();
-    if (
-      snap.suggest.length !== this.suggested.size ||
-      snap.suggest.some((s) => !this.suggested.has(s))
-    )
-      this.suggested = new Set(snap.suggest);
   }
 
   private dropSlot(v: SlotView): void {
@@ -768,14 +763,16 @@ export class Arena {
 
   /* ------------------------------ bases & shops ------------------------------ */
 
-  /** Ink and lacquer checkerboard for the base platforms: low contrast so lanes still read. */
-  private boardMaterial(): MeshBasicMaterial {
-    const tex = this.kit.texture('base-board', 256, 256, (g) => {
+  /** The throne dais floor: an 8x8 ivory and ebony board in the team's pair. */
+  private boardMaterial(team: 'A' | 'B'): MeshBasicMaterial {
+    const white = team === 'A';
+    const tex = this.kit.texture(`base-board:${team}`, 256, 256, (g) => {
       const n = 8;
       const t = 256 / n;
       for (let i = 0; i < n; i++)
         for (let j = 0; j < n; j++) {
-          g.fillStyle = (i + j) % 2 ? '#3b2a34' : '#15111c';
+          g.fillStyle =
+            (i + j) % 2 ? (white ? '#4a3f50' : '#aeb8cb') : white ? '#efe6cf' : '#14111a';
           g.fillRect(i * t, j * t, t, t);
         }
     });
@@ -788,24 +785,34 @@ export class Arena {
       const [bx, by] = this.content.map.bases[team];
       const c = this.world(bx, by);
       const col = teamColor(team);
+      const white = team === 'A';
       const g = new Group();
       g.position.set(c.x, c.y, c.z);
+      const marble = white ? '#e2d8bd' : '#3b3544';
+      const marbleDark = white ? '#b3a78a' : '#252130';
+      const metal = white ? PALETTE.whiteTrim : PALETTE.blackTrim;
       g.add(
         kit.solid(
           `base:${team}`,
           () => {
             const bits: Bit[] = [];
+            // six fluted columns with capitals around the dais
             for (let i = 0; i < 6; i++) {
               const a = (i / 6) * TAU + Math.PI / 6;
-              bits.push({
-                geo: new CylinderGeometry(1.8, 2.3, 9, 6),
-                color: STONE_DARK,
-                at: [Math.cos(a) * 47, 4.5, Math.sin(a) * 47],
-              });
+              const at = (y: number): [number, number, number] => [
+                Math.cos(a) * 47,
+                y,
+                Math.sin(a) * 47,
+              ];
+              bits.push(
+                { geo: new CylinderGeometry(3.4, 3.8, 2.6, 8), color: marbleDark, at: at(1.3) },
+                { geo: new CylinderGeometry(2.2, 2.6, 14, 8), color: marble, at: at(9.6) },
+                { geo: new CylinderGeometry(3.6, 2.4, 2.6, 8), color: metal, at: at(17.8) },
+              );
             }
             return bits;
           },
-          1.5,
+          1.4,
         ),
       );
       g.add(
@@ -813,16 +820,16 @@ export class Arena {
           Array.from({ length: 6 }, (_, i) => {
             const a = (i / 6) * TAU + Math.PI / 6;
             return {
-              geo: new SphereGeometry(2.1, 8, 6),
+              geo: new SphereGeometry(2.3, 8, 6),
               color: col,
-              at: [Math.cos(a) * 47, 10.5, Math.sin(a) * 47] as [number, number, number],
+              at: [Math.cos(a) * 47, 21.4, Math.sin(a) * 47] as [number, number, number],
             };
           }),
         ),
       );
       const board = new Mesh(
         kit.geo('base-board', () => new CircleGeometry(35, 48).rotateX(-Math.PI / 2)),
-        this.boardMaterial(),
+        this.boardMaterial(team),
       );
       board.position.y = 0.5;
       board.renderOrder = 5;
@@ -831,7 +838,7 @@ export class Arena {
       inlay.position.y = 0.6;
       const inlay2 = kit.decalRing(col, 31, true, 0.55);
       inlay2.position.y = 0.7;
-      const pool = kit.glowDisc(col, 56, 0.4);
+      const pool = kit.glowDisc(col, 56, 0.3);
       pool.position.y = 0.4;
       g.add(inlay, inlay2, pool);
       this.seals.push(inlay2);

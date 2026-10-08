@@ -14,22 +14,23 @@ import type { Content, GameEvent, Snapshot, SnapUnit, UnitKind } from '../../sim
 import { PALETTE, teamColor } from '../theme';
 import { Arena } from './arena';
 import { CameraRig } from './camera';
-import { BarBatch, EventRing, StreakPool } from './fx';
+import { BadgeBatch, BarBatch, EventRing, StreakPool } from './fx';
+import { GambitFx } from './gambit';
 import { hash, Kit, STONE, STONE_DARK } from './kit';
 import {
+  BastionModel,
   CampModel,
-  KingModel,
-  HERO_SCALE,
-  HeroModel,
   JabberwockModel,
   KeeperModel,
   MINION_SCALE,
   MinionKit,
   ObeliskModel,
-  sigilTexture,
-  TowerModel,
+  PAWN_SCALE,
+  ThroneModel,
 } from './models';
+import { isPieceId, PIECE_IDS, PIECE_SCALE, PieceModel, type PieceId } from './pieces';
 import { VisualPhysics } from './physics';
+import { ISLAND_R } from './terrain';
 import type { BroadcastFrame, NewEvents } from './types';
 
 const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
@@ -37,13 +38,35 @@ const GOLD_BOLT = '#f0b44c';
 const ONI_RED = '#9c2a2e';
 const SHIELD = '#a9d0e0';
 const SUN_OFFSET = new Vector3(-380, 760, 520);
+/** Seconds a Sanctuary zone ring lasts. */
+const SANCTUARY_SEC = 6;
+/** Taps within this many CSS pixels of a unit pick it. */
+const PICK_PX = 36;
 const CHEST: Partial<Record<UnitKind, number>> = {
-  hero: 14 * HERO_SCALE,
+  hero: 16 * PIECE_SCALE,
   minion: 7,
   tower: 24,
   guardian: 50,
   camp: 8,
 };
+
+/** Fields the chess sim adds to `SnapUnit`; optional here so the view also runs on older snapshots. */
+interface ChessFields {
+  piece?: string | null;
+  style?: string | null;
+  rank?: number;
+  forkPending?: boolean;
+  pawn?: boolean;
+  lane?: string | null;
+}
+type ChessUnit = SnapUnit & ChessFields;
+
+/** Which chess piece a hero unit is: its `piece`, else its `defId`, else a stable guess. */
+function pieceOf(u: ChessUnit): PieceId {
+  if (isPieceId(u.piece)) return u.piece;
+  if (isPieceId(u.defId)) return u.defId;
+  return PIECE_IDS[hash(u.defId) % PIECE_IDS.length];
+}
 
 function turn(from: number, to: number, k: number): number {
   const d = Math.atan2(Math.sin(to - from), Math.cos(to - from));
@@ -64,10 +87,16 @@ class UnitView {
   /** Ground height under the unit this frame. */
   gy = 0;
   placed = false;
+  /** Picking: set every frame the unit is drawn. */
+  live = false;
+  lift = 10;
+  isPiece = false;
+  lane: string | null = null;
+  pieceId: PieceId | null = null;
   readonly objects: Object3D[] = [];
-  hero?: HeroModel;
-  tower?: TowerModel;
-  king?: KingModel;
+  hero?: PieceModel;
+  tower?: BastionModel;
+  king?: ThroneModel;
   camp?: CampModel;
   jabber?: JabberwockModel;
   obelisk?: ObeliskModel;
@@ -78,6 +107,8 @@ class UnitView {
     readonly kind: UnitKind,
     readonly defId: string,
     readonly team: string,
+    readonly style: string | null,
+    readonly elite: boolean,
   ) {
     this.phase = (hash(`${id}`) % 628) / 100;
   }
@@ -95,6 +126,14 @@ function webgl(canvas: HTMLCanvasElement): WebGLRenderer {
   }
 }
 
+/** Dev-only hooks: fake chess fields on snapshots before the sim provides them. */
+export interface BroadcastDebug {
+  /** Called for every unit each frame, before drawing. */
+  patch?: (u: SnapUnit & ChessFields, snap: Snapshot) => void;
+  /** Called with each snapshot's units array; may push extra units. */
+  extra?: (units: SnapUnit[], snap: Snapshot) => void;
+}
+
 /** The three.js broadcast view. Render-only: reads snapshots and events, never touches the sim. */
 export class BroadcastView {
   private readonly renderer: WebGLRenderer;
@@ -105,6 +144,8 @@ export class BroadcastView {
   private readonly minions: MinionKit;
   private readonly physics: VisualPhysics;
   private readonly bars: BarBatch;
+  private readonly badges: BadgeBatch;
+  private readonly gambits: GambitFx;
   private readonly streaks: StreakPool;
   private readonly unitGroup = new Group();
   private readonly views = new Map<number, UnitView>();
@@ -120,12 +161,19 @@ export class BroadcastView {
   private devTimeScale = 1;
   private stamp = 0;
   private lastTick = -1;
+  private drawn = 0;
+  private zonesFromSnap = false;
   private cssW = 0;
   private cssH = 0;
   private barScale = 1;
+  private badgeSize = 12;
+  private readonly camRight = new Vector3();
   /** Far shots enlarge heroes and minions a little so phones can still read them. */
   private boost = 1;
+  private readonly debug: BroadcastDebug = {};
   private readonly tmp = new Vector3();
+  private readonly ray = new Vector3();
+  private readonly org = new Vector3();
   private readonly from = new Vector3();
   private readonly to = new Vector3();
   private lost = false;
@@ -184,6 +232,8 @@ export class BroadcastView {
     this.physics = new VisualPhysics(this.kit);
     this.physics.ground = (x, z) => this.arena.field.heightW(x, z);
     this.bars = new BarBatch(this.kit);
+    this.badges = new BadgeBatch(this.kit);
+    this.gambits = new GambitFx(this.kit);
     this.streaks = new StreakPool(this.kit);
     this.unitGroup.add(this.minions.group);
     this.scene.add(
@@ -191,7 +241,9 @@ export class BroadcastView {
       this.unitGroup,
       this.physics.group,
       this.streaks.group,
+      this.gambits.group,
       this.bars.group,
+      this.badges.group,
     );
     this.resize();
     if (import.meta.env.DEV) {
@@ -204,6 +256,7 @@ export class BroadcastView {
         __bvPin?: (
           p: { x: number; z: number; dist: number; elev: number; azim: number } | null,
         ) => void;
+        __bvDebug?: BroadcastDebug;
       };
       w.__bvStats = () => this.stats();
       w.__bvSettle = () => this.rig.settle();
@@ -222,6 +275,7 @@ export class BroadcastView {
         this.rig.pinned = p;
         this.rig.settle(p ?? undefined);
       };
+      w.__bvDebug = this.debug;
     }
   }
 
@@ -255,6 +309,10 @@ export class BroadcastView {
     this.lastTick = snap.tick;
     this.stamp++;
 
+    if (import.meta.env.DEV) {
+      this.debug.extra?.(snap.units, snap);
+      if (this.debug.patch) for (const u of snap.units) this.debug.patch(u, snap);
+    }
     this.byId.clear();
     for (const u of snap.units) this.byId.set(u.id, u);
     this.arena.sync(snap, this.time);
@@ -265,21 +323,42 @@ export class BroadcastView {
     const dist = this.rig.distance;
     this.kit.inkWidth.value = MathUtils.clamp(dist * 0.0032, 0.4, 2.6);
     this.barScale = MathUtils.clamp(dist / 700, 0.8, 2.4);
+    // a rank badge stays about 17 CSS px wide, whatever the zoom
+    const fov = (camera.fov * Math.PI) / 180;
+    const pxPerUnit = Math.max(1, this.cssH) / (2 * dist * Math.tan(fov / 2));
+    this.badgeSize = MathUtils.clamp(17 / pxPerUnit, 9, 48);
+    this.camRight.set(1, 0, 0).applyQuaternion(camera.quaternion);
     this.boost = MathUtils.clamp(dist / 1700, 1, 1.65);
     this.aimSun();
 
     this.handleEvents(events);
     this.bars.begin(camera);
+    this.badges.begin(camera);
     this.minions.begin();
     this.syncUnits(snap, frame.alpha, dt);
     this.minions.end();
     this.bars.end();
+    this.badges.end(this.time);
     this.syncRings(snap);
+    this.zonesFromSnap = Array.isArray(snap.zones);
+    if (snap.zones) this.gambits.setZones(snap.zones, this.half, this.zoneGround, this.time);
+    this.gambits.update(dt, this.time, this.unitPos);
     this.streaks.update(dt);
     this.physics.update(frame.dtMs);
     this.arena.update(this.time, camera.position);
     this.renderer.render(this.scene, camera);
+    this.drawn++;
   }
+
+  private readonly zoneGround = (x: number, z: number): number => this.arena.field.surfaceW(x, z);
+
+  /** Where a live unit stands in scene space (for effects that follow a unit). */
+  private readonly unitPos = (id: number, out: Vector3): boolean => {
+    const v = this.views.get(id);
+    if (!v?.live) return false;
+    out.set(v.x, v.gy, v.z);
+    return true;
+  };
 
   /**
    * Where a sim point (plus `lift` units above the ground) lands on the canvas, in CSS pixels
@@ -294,6 +373,90 @@ export class BroadcastView {
     const sy = ((1 - v.y) / 2) * h;
     const visible = v.z > -1 && v.z < 1 && sx >= 0 && sy >= 0 && sx <= w && sy <= h;
     return { x: sx, y: sy, visible };
+  }
+
+  /**
+   * The sim point under a screen position (CSS pixels from the canvas's top-left), found by
+   * marching the view ray down onto the terrain. Null when the ray misses the island.
+   */
+  pickGround(clientX: number, clientY: number): { x: number; y: number } | null {
+    const rect = this.canvas.getBoundingClientRect();
+    const w = rect.width || this.canvas.clientWidth;
+    const h = rect.height || this.canvas.clientHeight;
+    if (w <= 0 || h <= 0) return null;
+    const nx = ((clientX - rect.left) / w) * 2 - 1;
+    const ny = 1 - ((clientY - rect.top) / h) * 2;
+    if (nx < -1 || nx > 1 || ny < -1 || ny > 1) return null;
+    const cam = this.rig.camera;
+    cam.updateMatrixWorld();
+    const o = this.org.setFromMatrixPosition(cam.matrixWorld);
+    const d = this.ray.set(nx, ny, 0.5).unproject(cam).sub(o).normalize();
+    if (d.y > -1e-4) return null;
+    const field = this.arena.field;
+    const maxT = Math.min(9000, (o.y + 140) / -d.y);
+    const step = 6;
+    let prevT = 0;
+    let t = 0;
+    let found = -1;
+    for (; t <= maxT; t += step) {
+      const px = o.x + d.x * t;
+      const pz = o.z + d.z * t;
+      if (o.y + d.y * t <= field.surfaceW(px, pz)) {
+        found = t;
+        break;
+      }
+      prevT = t;
+    }
+    if (found < 0) return null;
+    let lo = prevT;
+    let hi = found;
+    for (let i = 0; i < 12; i++) {
+      const mid = (lo + hi) / 2;
+      const px = o.x + d.x * mid;
+      const pz = o.z + d.z * mid;
+      if (o.y + d.y * mid <= field.surfaceW(px, pz)) hi = mid;
+      else lo = mid;
+    }
+    const x = o.x + d.x * hi;
+    const z = o.z + d.z * hi;
+    if (Math.hypot(x, z) > ISLAND_R) return null;
+    return { x: x + this.half, y: z + this.half };
+  }
+
+  /**
+   * The id of the unit nearest a screen position, if its projected position is within about 36
+   * CSS pixels. Pieces win over pawns, structures and neutrals whenever one is in range.
+   */
+  pickUnit(clientX: number, clientY: number): number | null {
+    const rect = this.canvas.getBoundingClientRect();
+    const w = rect.width || this.canvas.clientWidth;
+    const h = rect.height || this.canvas.clientHeight;
+    if (w <= 0 || h <= 0) return null;
+    const px = clientX - rect.left;
+    const py = clientY - rect.top;
+    const cam = this.rig.camera;
+    cam.updateMatrixWorld();
+    let bestPiece = -1;
+    let bestPieceD = PICK_PX * PICK_PX;
+    let best = -1;
+    let bestD = PICK_PX * PICK_PX;
+    for (const v of this.views.values()) {
+      if (!v.live) continue;
+      const q = this.tmp.set(v.x, v.gy + v.lift, v.z).project(cam);
+      if (q.z < -1 || q.z > 1) continue;
+      const dx = ((q.x + 1) / 2) * w - px;
+      const dy = ((1 - q.y) / 2) * h - py;
+      const d2 = dx * dx + dy * dy;
+      if (v.isPiece && d2 < bestPieceD) {
+        bestPieceD = d2;
+        bestPiece = v.id;
+      } else if (d2 < bestD) {
+        bestD = d2;
+        best = v.id;
+      }
+    }
+    if (bestPiece >= 0) return bestPiece;
+    return best >= 0 ? best : null;
   }
 
   /** Keeps the shadow frustum on whatever the camera is looking at. */
@@ -326,51 +489,64 @@ export class BroadcastView {
 
   /* ------------------------------ units ------------------------------ */
 
-  private create(u: SnapUnit): UnitView {
-    const v = new UnitView(u.id, u.kind, u.defId, u.team);
+  private create(u: ChessUnit): UnitView {
+    const side = u.team === 'B' ? 'B' : 'A';
+    const v = new UnitView(
+      u.id,
+      u.kind,
+      u.defId,
+      u.team,
+      u.style ?? null,
+      u.kind === 'minion' && u.team !== 'neutral' && u.pawn === true,
+    );
     const kit = this.kit;
     const color = teamColor(u.team);
     switch (u.kind) {
       case 'hero': {
-        const def = this.content.heroById.get(u.defId);
-        if (!def) break;
-        const m = new HeroModel(kit, {
-          hue: def.sigil.hue,
-          ranged: def.attackKind === 'ranged',
-          team: u.team,
-          sigilTexture: sigilTexture(kit, u.defId, def.sigil, u.team),
-        });
+        const piece = pieceOf(u);
+        const m = new PieceModel(kit, piece, side, u.style ?? null);
         v.hero = m;
+        v.pieceId = piece;
+        v.isPiece = true;
+        v.lift = (m.height * PIECE_SCALE) / 2;
         v.objects.push(m.root, m.markers);
         break;
       }
       case 'tower':
-        v.tower = new TowerModel(kit, color);
+        v.tower = new BastionModel(kit, color, side);
+        v.lift = 24;
         v.objects.push(v.tower.root);
         break;
       case 'guardian':
-        v.king = new KingModel(kit, color);
+        v.king = new ThroneModel(kit, color, side);
+        v.lift = 40;
         v.objects.push(v.king.root);
         break;
       case 'camp':
         v.camp = new CampModel(kit, u.defId, u.maxHp > 900);
+        v.lift = 8;
         v.objects.push(v.camp.root);
         break;
       case 'minion':
+        v.lift = v.elite ? 14 : 8;
         if (u.team === 'neutral' && u.defId === 'jabberwock') {
           v.jabber = new JabberwockModel(kit, u.defId);
+          v.lift = 30;
           v.objects.push(v.jabber.root);
         } else if (u.team === 'neutral' && u.maxHp >= 2000) {
           v.camp = new CampModel(kit, u.defId, true, ONI_RED, 2.5);
+          v.lift = 20;
           v.objects.push(v.camp.root);
         }
         break;
       case 'obelisk':
         v.obelisk = new ObeliskModel(kit);
+        v.lift = 20;
         v.objects.push(v.obelisk.root);
         break;
       case 'keeper':
         v.keeper = new KeeperModel(kit);
+        v.lift = 12;
         v.objects.push(v.keeper.root);
         break;
     }
@@ -384,26 +560,45 @@ export class BroadcastView {
   }
 
   private syncUnits(snap: Snapshot, alpha: number, dt: number): void {
-    for (const u of snap.units) {
+    for (const v of this.views.values()) v.live = false;
+    for (const u of snap.units as ChessUnit[]) {
       if (!u.alive && u.kind !== 'hero') continue;
       let v = this.views.get(u.id);
-      if (v && (v.kind !== u.kind || v.defId !== u.defId || v.team !== u.team)) {
+      if (
+        v &&
+        (v.kind !== u.kind ||
+          v.defId !== u.defId ||
+          v.team !== u.team ||
+          v.style !== (u.style ?? null) ||
+          (v.hero !== undefined && v.pieceId !== pieceOf(u)))
+      ) {
         this.drop(v);
         v = undefined;
       }
       if (!v) {
         v = this.create(u);
         this.views.set(u.id, v);
+        if (v.elite && this.drawn > 0 && u.alive) this.spawnFlare(u, v);
       }
       v.stamp = this.stamp;
-      this.updateUnit(v, u, alpha, dt, snap.tick);
+      v.live = u.alive;
+      v.lane = u.lane ?? null;
+      this.updateUnit(v, u, alpha, dt);
     }
     this.stale.length = 0;
     for (const v of this.views.values()) if (v.stamp !== this.stamp) this.stale.push(v);
     for (const v of this.stale) this.drop(v);
   }
 
-  private updateUnit(v: UnitView, u: SnapUnit, alpha: number, dt: number, tick: number): void {
+  /** A pillar of light where a freshly fielded pawn steps out. */
+  private spawnFlare(u: SnapUnit, v: UnitView): void {
+    const x = u.x - this.half;
+    const z = u.y - this.half;
+    const gy = this.arena.field.heightW(x, z);
+    this.gambits.flare(x, gy, z, teamColor(v.team), 34, 1, 70);
+  }
+
+  private updateUnit(v: UnitView, u: ChessUnit, alpha: number, dt: number): void {
     const x = lerp(u.px, u.x, alpha) - this.half;
     const z = lerp(u.py, u.y, alpha) - this.half;
     if (!v.placed) {
@@ -457,26 +652,32 @@ export class BroadcastView {
         m.animate(
           { yaw: v.yaw, move: v.move, phase: v.phase, lunge, flinch: v.flinch, time },
           this.rig.camera.quaternion,
-          {
-            tick,
-            time,
-            isPlayer: u.isPlayer,
-            recalling: u.recalling,
-            curse: u.curse,
-            holy: u.holy,
-          },
         );
-        this.bars.add(x, gy + 60 * this.boost, z, 24 * k, 3.4 * k, frac, col);
+        const top = gy + (m.height * PIECE_SCALE + 6) * this.boost;
+        const bw = 26 * k;
+        const bh = 3.6 * k;
+        this.bars.add(x, top, z, bw, bh, frac, col);
         if (u.shield > 0)
           this.bars.add(
             x,
-            gy + 60 * this.boost + 4.4 * k,
+            top + bh * 1.5,
             z,
-            24 * k,
-            2 * k,
+            bw,
+            bh * 0.55,
             Math.min(1, u.shield / u.maxHp),
             SHIELD,
           );
+        const size = Math.max(bh * 3.4, this.badgeSize);
+        this.badges.add(
+          x - this.camRight.x * (bw / 2 + size * 0.62),
+          top - this.camRight.y * (bw / 2 + size * 0.62),
+          z - this.camRight.z * (bw / 2 + size * 0.62),
+          size,
+          u.rank ?? 1,
+          col,
+          u.forkPending === true,
+          time,
+        );
         break;
       }
       case 'minion': {
@@ -495,14 +696,15 @@ export class BroadcastView {
           break;
         }
         const neutral = u.team === 'neutral';
+        const elite = v.elite;
         const scale =
           (neutral ? (u.maxHp < 400 ? 1.1 : u.maxHp < 800 ? 1.5 : 2) : 1) *
-          MINION_SCALE *
+          (elite ? PAWN_SCALE : MINION_SCALE) *
           this.boost;
         const bob = Math.abs(Math.sin(v.phase)) * 1.3 * v.move * scale;
         this.minions.add(
           u.team,
-          u.range > 40,
+          elite,
           x,
           gy + bob,
           z,
@@ -511,7 +713,17 @@ export class BroadcastView {
           scale,
           gy,
         );
-        if (u.hp < u.maxHp)
+        if (elite)
+          this.bars.add(
+            x,
+            gy + 25 * scale,
+            z,
+            14 * k,
+            2.4 * k,
+            frac,
+            neutral ? PALETTE.neutral : col,
+          );
+        else if (u.hp < u.maxHp)
           this.bars.add(
             x,
             gy + 14 * scale,
@@ -525,8 +737,9 @@ export class BroadcastView {
       }
       case 'tower': {
         v.tower?.root.position.set(x, gy, z);
+        if (v.tower) v.tower.root.rotation.y = v.yaw;
         v.tower?.animate(time, lunge, frac);
-        this.bars.add(x, gy + 56, z, 28 * k, 3.6 * k, frac, col);
+        this.bars.add(x, gy + 70, z, 28 * k, 3.6 * k, frac, col);
         break;
       }
       case 'guardian': {
@@ -535,7 +748,7 @@ export class BroadcastView {
         g.root.position.set(x, gy, z);
         g.root.rotation.y = v.yaw;
         g.animate(time, lunge, frac);
-        this.bars.add(x, gy + 92, z, 52 * k, 4.6 * k, frac, col);
+        this.bars.add(x, gy + 150, z, 52 * k, 4.6 * k, frac, col);
         break;
       }
       case 'camp': {
@@ -569,6 +782,95 @@ export class BroadcastView {
     for (const e of events) this.handleEvent(e);
   }
 
+  /** Chess events the sim adds (and any it may add later): read loosely, ignore what is unknown. */
+  private handleChessEvent(type: string, p: Record<string, unknown>): void {
+    const num = (k: string): number | undefined =>
+      typeof p[k] === 'number' ? (p[k] as number) : undefined;
+    const team = p.team === 'B' ? 'B' : 'A';
+    const col = teamColor(team);
+    switch (type) {
+      case 'gambit': {
+        const card = typeof p.cardId === 'string' ? p.cardId : '';
+        const lane = typeof p.lane === 'string' ? p.lane : null;
+        const x = num('x');
+        const y = num('y');
+        const target = num('targetId');
+        const tv = target !== undefined ? this.views.get(target) : undefined;
+        // zones normally come from the snapshot; this covers a sim that only sends the event
+        if (/sanct/i.test(card) && x !== undefined && y !== undefined && !this.zonesFromSnap) {
+          const wx = x - this.half;
+          const wz = y - this.half;
+          this.gambits.zone(
+            wx,
+            this.arena.field.surfaceW(wx, wz),
+            wz,
+            '#8ff0b4',
+            64,
+            SANCTUARY_SEC,
+          );
+          break;
+        }
+        if (/fork/i.test(card) && tv) {
+          for (const v of this.views.values()) {
+            if (v.pieceId !== 'knight' || v.team !== team || !v.live) continue;
+            this.from.set(v.x, v.gy + 6, v.z);
+            this.to.set(tv.x, tv.gy + 10, tv.z);
+            this.gambits.arc(this.from, this.to, '#ffd35a', 0.55);
+            break;
+          }
+          this.gambits.flare(tv.x, tv.gy, tv.z, '#ffd35a', 34, 0.9, 50);
+          break;
+        }
+        if (tv) {
+          this.gambits.flare(tv.x, tv.gy, tv.z, '#ff6a5a', 30, 0.9, 40);
+          break;
+        }
+        if (x !== undefined && y !== undefined) {
+          const wx = x - this.half;
+          const wz = y - this.half;
+          this.gambits.flare(wx, this.arena.field.surfaceW(wx, wz), wz, col, 52, 1.1, 50);
+          break;
+        }
+        // lane or self cards: a ring under each piece the order touches
+        for (const v of this.views.values()) {
+          if (!v.isPiece || !v.live || v.team !== team) continue;
+          if (lane && v.lane && v.lane !== lane) continue;
+          this.gambits.flare(v.x, v.gy, v.z, col, 30, 0.8);
+        }
+        break;
+      }
+      case 'check': {
+        for (const v of this.views.values()) {
+          if (v.pieceId !== 'king' || v.team !== team) continue;
+          this.gambits.crown(v.id);
+          this.gambits.flare(v.x, v.gy, v.z, '#ffe08a', 44, 1.2, 60);
+        }
+        break;
+      }
+      case 'throneDown': {
+        for (const v of this.views.values()) {
+          if (v.kind !== 'guardian' || v.team !== team) continue;
+          this.gambits.flare(v.x, v.gy, v.z, '#ff6a5a', 120, 1.6, 140);
+        }
+        this.rig.kick(1);
+        break;
+      }
+      case 'checkmate': {
+        const winner = p.winner === 'B' ? 'B' : 'A';
+        for (const v of this.views.values()) {
+          if (v.team === winner || !v.live) continue;
+          if (v.pieceId === 'king') this.gambits.crown(v.id, 3);
+          if (v.pieceId === 'king' || v.kind === 'guardian')
+            this.gambits.flare(v.x, v.gy, v.z, '#ffd35a', 150, 2.2, 180);
+        }
+        this.rig.kick(1);
+        break;
+      }
+      default:
+        break;
+    }
+  }
+
   private handleEvent(e: GameEvent): void {
     const half = this.half;
     switch (e.type) {
@@ -595,7 +897,7 @@ export class BroadcastView {
         const p = e.payload;
         const x = p.x - half;
         const z = p.y - half;
-        if (p.kind === 'hero') {
+        if (p.kind === 'hero' || (p.kind as string) === 'piece') {
           const v = this.views.get(p.id);
           const killer = this.views.get(p.killer);
           if (v?.hero?.root.visible) {
@@ -631,6 +933,10 @@ export class BroadcastView {
         break;
       }
       default:
+        this.handleChessEvent(
+          e.type as string,
+          ((e as { payload?: unknown }).payload ?? {}) as Record<string, unknown>,
+        );
         break;
     }
   }
@@ -678,6 +984,8 @@ export class BroadcastView {
     }
     this.physics.clear();
     this.streaks.clear();
+    this.gambits.clear();
+    this.drawn = 0;
   }
 
   dispose(): void {

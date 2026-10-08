@@ -22,6 +22,7 @@ import { other } from './types';
 import { onCampUnitDeath } from './camps';
 import { endAllEvents, onEventUnitDeath } from './events';
 import { removeBoardClaim } from './ai/claims';
+import { addTempo } from './gambits';
 
 export function spawnWaves(ctx: Ctx): void {
   const w = ctx.t.waves;
@@ -63,6 +64,7 @@ export function tickUnitState(ctx: Ctx): void {
     const h = u.hero;
     if (h) {
       for (let k = 0; k < 4; k++) if (h.cd[k] > 0) h.cd[k]--;
+      if (h.order && h.order.untilTick <= tick) h.order = null;
       tickPeriodicTriggers(ctx, u);
       if (u.team !== 'neutral') {
         const b = ctx.world.basePos[u.team];
@@ -75,15 +77,37 @@ export function tickUnitState(ctx: Ctx): void {
   }
 }
 
+/** Respawn grows within an Act and per Act; Check (King) and Endgame lengthen it after the cap. */
 export function respawnTicks(ctx: Ctx, u: Unit): number {
   const r = ctx.t.respawn;
   const intoPhase = Math.max(0, ctx.s.tick - ctx.s.phase.startTick) / TPS;
-  const sec = Math.min(
+  let sec = Math.min(
     r.maxSec,
     (r.baseSec + r.basePerPhase * (ctx.s.phase.n - 1) + r.growthPerSec * intoPhase) *
       u.stats.respawnMult,
   );
+  if (u.hero?.defId === 'king') sec *= ctx.t.check.kingRespawnMul;
+  sec *= ctx.s.tagMult.respawn ?? 1;
   return Math.max(TPS, Math.round(sec * TPS));
+}
+
+function checkmate(ctx: Ctx, loser: PlayTeam): void {
+  if (ctx.s.phase.kind === 'end') return;
+  const winner = other(loser);
+  ctx.s.winner = winner;
+  endAllEvents(ctx);
+  ctx.s.phase = { kind: 'end', n: ctx.s.phase.n, startTick: ctx.s.tick };
+  ctx.emit('checkmate', { winner });
+  ctx.emit('matchEnd', { winner, phase: ctx.s.phase.n });
+}
+
+function kingDown(ctx: Ctx, team: PlayTeam): void {
+  if (ctx.s.throneDown[team]) {
+    checkmate(ctx, team);
+    return;
+  }
+  ctx.s.check[team] = true;
+  ctx.emit('check', { team });
 }
 
 function awardAssists(ctx: Ctx, victim: Unit, killerId: number): number[] {
@@ -158,7 +182,10 @@ function killUnit(ctx: Ctx, u: Unit): void {
         );
         fireTriggers(ctx, killerHero, 'kill', { victim: u });
       }
-      if (killerTeam) ctx.s.teams[killerTeam].kills++;
+      if (killerTeam) {
+        ctx.s.teams[killerTeam].kills++;
+        addTempo(ctx, killerTeam, ctx.t.gambits.tempoPieceKill);
+      }
       ctx.emit('death', {
         id: u.id,
         kind: 'hero',
@@ -170,6 +197,10 @@ function killUnit(ctx: Ctx, u: Unit): void {
         y: u.y,
       });
       maybeSwapLane(ctx, u);
+      if (h.defId === 'king' && u.team !== 'neutral') {
+        if (ctx.s.throneDown[u.team]) h.respawnAt = null;
+        kingDown(ctx, u.team);
+      }
       break;
     }
     case 'minion': {
@@ -177,6 +208,18 @@ function killUnit(ctx: Ctx, u: Unit): void {
         onEventUnitDeath(ctx, u, killer);
         break;
       }
+      if (u.pawn) {
+        if (killerTeam) {
+          addTempo(ctx, killerTeam, ctx.t.gambits.tempoPawnKill);
+          if (killerHero) giveGold(ctx, killerHero, u.bounty, 'pawn');
+          for (const id of ctx.s.teams[killerTeam].heroIds) {
+            const hero = ctx.unit(id);
+            if (hero) giveGold(ctx, hero, ctx.t.pawns.teamBounty, 'pawnTeam');
+          }
+        }
+        break;
+      }
+      if (killerTeam) addTempo(ctx, killerTeam, ctx.t.gambits.tempoPawnlingKill);
       if (killerHero) {
         giveGold(ctx, killerHero, u.bounty, 'lasthit');
         shareNearby(ctx, u, killerTeam, killerHero.id, ctx.t.gold.minionShare);
@@ -191,6 +234,7 @@ function killUnit(ctx: Ctx, u: Unit): void {
       const t = u.tower!;
       if (killerTeam) {
         ctx.s.teams[killerTeam].towersDown++;
+        addTempo(ctx, killerTeam, ctx.t.gambits.tempoBastion);
         for (const id of ctx.s.teams[killerTeam].heroIds) {
           const hero = ctx.unit(id);
           if (hero) giveGold(ctx, hero, ctx.t.tower.teamGold, 'tower');
@@ -209,7 +253,6 @@ function killUnit(ctx: Ctx, u: Unit): void {
       break;
     }
     case 'guardian': {
-      const winner: PlayTeam = u.team === 'neutral' ? 'A' : other(u.team);
       ctx.emit('structureDown', {
         kind: 'guardian',
         team: u.team,
@@ -219,10 +262,16 @@ function killUnit(ctx: Ctx, u: Unit): void {
         x: u.x,
         y: u.y,
       });
-      ctx.s.winner = winner;
-      endAllEvents(ctx);
-      ctx.s.phase.kind = 'end';
-      ctx.emit('matchEnd', { winner, phase: ctx.s.phase.n });
+      if (u.team === 'neutral') break;
+      ctx.s.throneDown[u.team] = true;
+      ctx.emit('throneDown', { team: u.team });
+      const king = ctx.s.teams[u.team].heroIds
+        .map((id) => ctx.unit(id))
+        .find((x) => x?.hero?.defId === 'king');
+      if (king && !king.alive) {
+        king.hero!.respawnAt = null;
+        checkmate(ctx, u.team);
+      }
       break;
     }
     default:
@@ -265,6 +314,8 @@ export function respawnHeroes(ctx: Ctx): void {
       u.hp = u.stats.maxHp;
       u.hero.respawnAt = null;
       u.hero.lastStandUsed = false;
+      u.stunUntil = undefined;
+      if (u.hero.defId === 'king') ctx.s.check[team] = false;
       u.hero.engage = 'fight';
       u.shields = [];
       u.dots = [];

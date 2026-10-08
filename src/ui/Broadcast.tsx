@@ -1,18 +1,20 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import type { GameEvent } from '../sim';
-import { Icon } from './Ornament';
+import type { GameEvent, Match } from '../sim';
 import { useSession } from './session';
 
-/** Height above the ground (sim units) where a shop pin hangs over its stall. */
-const PIN_LIFT = 46;
-/** While an overlay covers the game, the 3D view only needs an occasional refresh. */
+/** The camera follows White's King until a portrait is tapped. */
+function kingId(m: Match): number | null {
+  const ids = m.state.teams.A.heroIds;
+  return ids.find((id) => m.unitById(id)?.hero?.defId === 'king') ?? ids[0] ?? null;
+}
+
+/** While the Adjourn panel covers the game, the 3D view only needs an occasional refresh. */
 const IDLE_FRAME_MS = 1000;
 
-/** The game view: a three.js scene plus small HTML pins over the two jungle stalls. */
+/** The game view: a three.js scene. Picking calls are handed to the session for gambit aiming. */
 export function Broadcast() {
   const s = useSession();
   const ref = useRef<HTMLCanvasElement>(null);
-  const pins = useRef(new Map<string, HTMLButtonElement>());
   const [failed, setFailed] = useState<'webgl' | 'error' | null>(null);
   useEffect(() => {
     const canvas = ref.current;
@@ -32,6 +34,8 @@ export function Broadcast() {
           setFailed(noGl ? 'webgl' : 'error');
           return;
         }
+        s.view = view;
+        canvas.dataset.ready = 'true';
         const director = new Director(s.content);
         const watch = new ResizeObserver(() => view.resize());
         watch.observe(canvas);
@@ -41,10 +45,10 @@ export function Broadcast() {
         let fresh: GameEvent[] = [];
         off = s.onFrame((alpha) => {
           const m = s.match;
-          if (!m || m.state.phase.kind === 'draft') return;
+          if (!m || m.state.phase.kind === 'setup') return;
           const live = m.state.phase.kind === 'live';
           const now = performance.now();
-          if (!live && now - last < IDLE_FRAME_MS) return;
+          if ((!live || s.ui.adjourned) && now - last < IDLE_FRAME_MS) return;
           const ev = m.events;
           if (ev.length === 0 || ev[ev.length - 1].seq < seq) {
             seq = -1;
@@ -60,28 +64,17 @@ export function Broadcast() {
             alpha,
             shot,
             mode: s.ui.cam,
-            followId: s.ui.follow ?? snap.playerHeroId,
+            followId: s.ui.follow ?? kingId(m),
             dtMs: Math.min(100, now - last),
           });
           last = now;
           const caption = s.ui.cam === 'auto' && live ? shot.caption : null;
           if (caption !== s.ui.caption) s.setUi({ caption });
-          const showPins = live && !s.ui.shopOpen;
-          for (const shop of s.content.map.shops) {
-            const el = pins.current.get(shop.id);
-            if (!el) continue;
-            const p = showPins ? view.project(shop.x, shop.y, PIN_LIFT) : null;
-            if (!p || !p.visible) {
-              if (!el.hidden) el.hidden = true;
-              continue;
-            }
-            if (el.hidden) el.hidden = false;
-            el.style.transform = `translate(${Math.round(p.x)}px, ${Math.round(p.y)}px)`;
-            el.classList.toggle('queued', snap.suggest.includes(shop.id));
-          }
         });
         dispose = () => {
           watch.disconnect();
+          if (s.view === view) s.view = null;
+          delete canvas.dataset.ready;
           view.dispose();
         };
       })
@@ -99,30 +92,7 @@ export function Broadcast() {
   return (
     <>
       <canvas ref={ref} class="game-canvas" data-testid="stage" hidden={!!failed} />
-      {failed ? (
-        <StageError why={failed} />
-      ) : (
-        <div class="shop-pins">
-          {s.content.map.shops.map((shop) => (
-            <button
-              key={shop.id}
-              ref={(el) => {
-                if (el) pins.current.set(shop.id, el);
-                else pins.current.delete(shop.id);
-              }}
-              class="shop-pin"
-              hidden
-              data-testid={`shop-pin-${shop.id}`}
-              aria-label={`Suggest ${shop.name}`}
-              title="Suggest a visit: your hero goes when nothing more urgent is happening"
-              onClick={() => s.suggestShop(shop.id)}
-            >
-              <Icon name="shop" size={16} />
-              <span>{shop.name}</span>
-            </button>
-          ))}
-        </div>
-      )}
+      {failed && <StageError why={failed} />}
     </>
   );
 }

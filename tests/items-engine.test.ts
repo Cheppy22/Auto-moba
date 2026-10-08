@@ -1,20 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { Match } from '../src/sim';
+import type { Match } from '../src/sim';
 import { dealDamage, fireTriggers, tryRevive } from '../src/sim/combat';
 import { recompute } from '../src/sim/stats';
 import type { Unit } from '../src/sim';
-import { content } from './helpers';
+import { liveMatch, piece } from './helpers';
 
 function live(seed = 11): { m: Match; p: Unit; foe: Unit } {
-  const m = Match.create(content, { seed, player: { heroId: 'queen', role: 'top' } });
-  const id = m.state.playerHeroId!;
-  const offer = m.state.upgradeOffers[id];
-  if (offer) m.issue({ type: 'pickUpgrade', upgradeId: offer[0] });
-  m.issue({ type: 'refuseCurse' } as never);
-  m.issue({ type: 'setAutoBuy', on: false });
-  expect(m.issue({ type: 'startPhase' }).ok).toBe(true);
-  const p = m.unitById(id)!;
-  const foe = m.state.units.find((u) => u.kind === 'hero' && u.team === 'B')!;
+  const m = liveMatch(seed, { autoGambits: { A: false, B: false } });
+  const p = piece(m, 'A', 'queen');
+  const foe = piece(m, 'B', 'rook');
   return { m, p, foe };
 }
 
@@ -89,6 +83,8 @@ describe('item triggers', () => {
 
   it('outOfCombat regen only runs when quiet (Iron Lung)', () => {
     const { m, p } = live();
+    // Keep the enemy pieces out of it (a long-range snipe would spoil the reading).
+    for (const id of m.state.teams.B.heroIds) m.unitById(id)!.alive = false;
     equip(m, p, ['iron_lung']);
     p.x = 500;
     p.y = 500;

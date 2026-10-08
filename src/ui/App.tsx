@@ -1,8 +1,8 @@
 import { useEffect } from 'preact/hooks';
-import { Draft } from './Draft';
+import { Adjourn } from './Adjourn';
 import { Hud } from './Hud';
-import { Prep } from './Prep';
 import { Report } from './Report';
+import { Setup } from './Setup';
 import { Stage } from './Stage';
 import { Title } from './Title';
 import { useLayout } from './layout';
@@ -23,18 +23,12 @@ export function App() {
   if (!m) return <Title />;
   const kind = m.state.phase.kind;
   return (
-    <div
-      class="shell"
-      data-phase={kind}
-      data-sheet={kind === 'live' && s.ui.shopOpen ? 'open' : undefined}
-      data-testid="shell"
-    >
+    <div class="shell" data-phase={kind} data-testid="shell">
       <Stage />
-      {kind === 'draft' && <Draft />}
-      {kind === 'prep' && <Prep />}
+      {kind === 'setup' && <Setup />}
       {kind === 'live' && <Hud />}
-      {kind === 'report' && <Report scope="phase" />}
-      {kind === 'end' && <Report scope="match" />}
+      {kind === 'live' && s.ui.adjourned && <Adjourn />}
+      {kind === 'end' && <Report />}
     </div>
   );
 }

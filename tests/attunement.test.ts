@@ -1,11 +1,23 @@
 import { describe, expect, it } from 'vitest';
-import { Match } from '../src/sim';
 import { recompute } from '../src/sim/stats';
-import { content } from './helpers';
+import { content, liveMatch, piece } from './helpers';
 
 function setup(items: string[]) {
-  const m = Match.create(content, { seed: 7, player: { heroId: 'queen', role: 'top' } });
-  const p = m.unitById(m.state.playerHeroId!)!;
+  const m = liveMatch(7, { autoGambits: { A: false, B: false } });
+  const p = piece(m, 'A', 'queen');
+  p.hero!.items = [];
+  // Measure attunement alone: no style stat tilt or passives.
+  const key = `queen/${p.hero!.style}`;
+  const style = content.styleByKey.get(key)!;
+  content.styleByKey.set(key, { ...style, mods: [], passives: [] });
+  try {
+    return measure(m, p, items);
+  } finally {
+    content.styleByKey.set(key, style);
+  }
+}
+
+function measure(m: ReturnType<typeof liveMatch>, p: ReturnType<typeof piece>, items: string[]) {
   recompute(m.ctx, p);
   const base = { ...p.stats };
   p.hero!.items = items;

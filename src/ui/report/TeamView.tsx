@@ -1,10 +1,11 @@
 import { Fragment } from 'preact';
 import { useState } from 'preact/hooks';
 import type { HeroModel, Report } from '../../analysis';
+import type { LaneId, PieceId } from '../../sim';
 import { ItemIcon } from '../ItemIcon';
 import { itemCategory } from '../itemInfo';
-import { SigilIcon } from '../SigilIcon';
-import { eventLines } from '../../analysis/text';
+import { LANE_LABEL, PieceGlyph } from '../pieces';
+import { courtName, eventLines } from '../../analysis/text';
 import { mmss, n0, roleLabel } from '../format';
 import { useWidthBelow } from '../layout';
 import { useSession } from '../session';
@@ -20,10 +21,14 @@ export function Takeaways(props: { report: Report; folded: boolean }) {
   const s = useSession();
   const r = props.report;
   const nm = (h: HeroModel): string => heroName(s.content, h.def);
-  const tag = (h: HeroModel) => <b class={teamClass(h.team)}>{nm(h)}</b>;
+  const tag = (h: HeroModel) => (
+    <b class={teamClass(h.team)}>
+      {courtName(h.team)} {nm(h)}
+    </b>
+  );
   const lost = r.special.structures.filter((x) => x.kind === 'tower' && x.team === 'A');
   const took = r.special.structures.filter((x) => x.kind === 'tower' && x.team === 'B');
-  const lanes = [...new Set(lost.map((x) => x.lane))];
+  const lanes = [...new Set(lost.map((x) => LANE_LABEL[x.lane as LaneId] ?? x.lane))];
   const killer = best(r.heroes, (h) => h.kills);
   const feeder = best(r.heroes, (h) => h.deaths);
   const lead = r.teams.A.goldEarned - r.teams.B.goldEarned;
@@ -32,39 +37,31 @@ export function Takeaways(props: { report: Report; folded: boolean }) {
   const top = mine.length ? mine.reduce((a, b) => (score(b) > score(a) ? b : a)) : null;
   const low = mine.length ? mine.reduce((a, b) => (score(b) < score(a) ? b : a)) : null;
   const pts = { A: r.teams.A.pointsEarned, B: r.teams.B.pointsEarned };
-  const winner = pts.A === pts.B ? null : pts.A > pts.B ? 'A' : 'B';
-  const wt = winner ? r.teams[winner] : null;
-  const reasons = wt
-    ? (
-        [
-          [wt.kills, 'kill'],
-          [wt.towersDestroyed, 'tower'],
-          [wt.campsCleared, 'camp'],
-          [wt.obelisksClaimed, 'obelisk'],
-        ] as [number, string][]
-      )
-        .filter(([n]) => n > 0)
-        .map(([n, w]) => `${n} ${w}${n === 1 ? '' : 's'}`)
-        .join(', ')
-    : '';
-  const unit = r.scope.kind === 'match' ? 'Match' : 'Phase';
+  const lead2 = pts.A === pts.B ? null : pts.A > pts.B ? 'A' : 'B';
+  const unit = r.scope.kind === 'match' ? 'Match' : 'Act';
   const verdict = (
     <>
       <span class="tk-k">Points</span>
-      {winner && wt
-        ? `${unit} won by ${winner === 'A' ? 'you' : 'the enemy'}: +${n0(pts[winner])} points${
-            reasons ? ` (${reasons})` : ''
-          }; the other side earned ${n0(pts[winner === 'A' ? 'B' : 'A'])}.`
-        : `${unit} tied on points (${n0(pts.A)} each).`}
+      {lead2
+        ? `${unit}: ${courtName(lead2)} earned ${n0(pts[lead2])} points to ${n0(pts[lead2 === 'A' ? 'B' : 'A'])}.`
+        : `${unit}: level on points (${n0(pts.A)} each).`}
     </>
   );
+  const played = Object.entries(r.teams.A.gambitsPlayed)
+    .sort((a, b) => b[1] - a[1])
+    .map(([id, n]) => `${s.content.gambitById.get(id)?.name ?? id} ×${n}`)
+    .join(', ');
   const list = (
     <ul class="takeaways" data-testid="takeaways">
       {!props.folded && <li>{verdict}</li>}
       <li>
-        <span class="tk-k">Towers</span>
-        {lost.length === 0 ? 'You lost no towers' : `You lost ${lost.length} (${lanes.join(', ')})`}
+        <span class="tk-k">Bastions</span>
+        {lost.length === 0
+          ? 'White lost no Bastions'
+          : `White lost ${lost.length} (${lanes.join(', ')})`}
         {`; took ${took.length}.`}
+        {r.teams.A.guardianDestroyed && ' White felled the Black Throne.'}
+        {r.teams.B.guardianDestroyed && ' Black felled the White Throne.'}
       </li>
       <li>
         <span class="tk-k">Fights</span>
@@ -73,11 +70,11 @@ export function Takeaways(props: { report: Report; folded: boolean }) {
             Top killer {tag(killer)} ({killer.kills}).{' '}
           </>
         ) : (
-          'No hero kills. '
+          'No piece kills. '
         )}
         {feeder && (
           <>
-            Most deaths {tag(feeder)} ({feeder.deaths}).
+            Most falls {tag(feeder)} ({feeder.deaths}).
           </>
         )}
       </li>
@@ -88,9 +85,15 @@ export function Takeaways(props: { report: Report; folded: boolean }) {
           : `Gold ${lead > 0 ? 'lead' : 'deficit'} ${n0(Math.abs(lead))}. `}
         {top && low && top !== low && (
           <>
-            Best on your team {tag(top)}, weakest {tag(low)}.
+            Best White piece {tag(top)}, weakest {tag(low)}.
           </>
         )}
+      </li>
+      <li>
+        <span class="tk-k">Orders</span>
+        {played ? `White played ${played}. ` : 'White played no gambits. '}
+        {`Pawns fielded: White ${r.teams.A.pawnsFielded}, Black ${r.teams.B.pawnsFielded}. `}
+        {`Check: White ${r.teams.A.checks}, Black ${r.teams.B.checks}.`}
       </li>
     </ul>
   );
@@ -108,17 +111,14 @@ export function Scoreboard(props: { report: Report; items: Record<number, string
   const r = props.report;
   const narrow = useWidthBelow(500);
   const [expanded, setExpanded] = useState<number | null>(null);
-  const playerId = s.match!.state.playerHeroId;
   const open = (id: number): void => s.setUi({ reportHero: id });
   const group = (team: 'A' | 'B') => {
-    const hs = r.heroes
-      .filter((h) => h.team === team)
-      .sort((a, b) => Number(b.id === playerId) - Number(a.id === playerId));
+    const hs = r.heroes.filter((h) => h.team === team);
     const t = r.teams[team];
     return (
       <>
         <tr class={`sb-team ${team}`}>
-          <td>{team === 'A' ? 'Your team' : 'Enemy team'}</td>
+          <td>{team === 'A' ? 'White (you)' : 'Black'}</td>
           <td>
             {t.kills}/{t.deaths}/{t.assists}
           </td>
@@ -126,12 +126,11 @@ export function Scoreboard(props: { report: Report; items: Record<number, string
           {!narrow && <td>{n0(t.damageToHeroes)}</td>}
           {!narrow && (
             <td class="sb-items tiny dim">
-              {t.towersDestroyed} towers · {t.campsCleared} camps
+              {t.towersDestroyed} Bastions · {t.campsCleared} camps
             </td>
           )}
         </tr>
         {hs.map((h) => {
-          const def = s.content.heroById.get(h.def)!;
           const activate = (): void =>
             narrow ? setExpanded(expanded === h.id ? null : h.id) : open(h.id);
           const icons = (props.items[h.id] ?? []).map((id, i) => (
@@ -146,7 +145,7 @@ export function Scoreboard(props: { report: Report; items: Record<number, string
           return (
             <Fragment key={h.id}>
               <tr
-                class={`sb-row ${s.ui.reportHero === h.id ? 'sel' : ''} ${h.id === playerId ? 'you' : ''}`}
+                class={`sb-row ${s.ui.reportHero === h.id ? 'sel' : ''}`}
                 data-testid={`report-hero-${h.id}`}
                 tabIndex={0}
                 role="button"
@@ -161,10 +160,9 @@ export function Scoreboard(props: { report: Report; items: Record<number, string
               >
                 <td>
                   <span class="sb-hero">
-                    <SigilIcon spec={def.sigil} team={h.team} size={26} />
+                    <PieceGlyph piece={h.def as PieceId} team={h.team} size={26} />
                     <span>
                       {heroName(s.content, h.def)}
-                      {h.id === playerId && <b class="you-tag">you</b>}
                       <span class="dim tiny"> {roleLabel(h.role)}</span>
                     </span>
                   </span>
@@ -204,7 +202,7 @@ export function Scoreboard(props: { report: Report; items: Record<number, string
       <table class="stats scoreboard" data-testid="team-table">
         <thead>
           <tr>
-            <th>Hero</th>
+            <th>Piece</th>
             <th>K/D/A</th>
             <th>Gold</th>
             {!narrow && <th>Damage</th>}

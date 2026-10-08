@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Match } from '../src/sim';
 import type { GameEvent } from '../src/sim';
-import { content, logHash, runAi } from './helpers';
+import { content, liveMatch, logHash, runAi } from './helpers';
 
 const evEvents = (m: Match): GameEvent[] => m.events.filter((e) => e.type.startsWith('event'));
 
@@ -41,28 +41,24 @@ describe('jungle events', () => {
     for (const id of warned.keys()) expect(ended.has(id)).toBe(true);
   });
 
-  it('do not exist outside live phases and leave no event units behind', () => {
-    const m = Match.create(content, { seed: 5, player: null });
+  it('never cross an Act boundary and leave no event units behind', () => {
+    const m = liveMatch(5);
+    const act = content.tuning.phaseSeconds * content.tuning.tickRate;
     let sawEvent = false;
-    for (let guard = 0; guard < 60 && m.state.phase.kind !== 'end'; guard++) {
-      if (m.state.phase.kind === 'live') {
-        m.step(20 * 20);
-        if (m.snapshot().events.length) sawEvent = true;
-        m.step(240 * 20);
-      } else m.autoAdvance();
-      if (m.state.phase.kind !== 'live') {
-        expect(m.snapshot().events).toEqual([]);
-        expect(m.state.units.filter((u) => u.ev && u.alive)).toEqual([]);
-      }
-      if (m.state.phase.n >= 3) break;
+    for (let n = 1; n <= 3 && m.state.phase.kind === 'live'; n++) {
+      m.step(act - 1);
+      if (evEvents(m).length) sawEvent = true;
+      m.step(1);
+      if (m.state.phase.kind !== 'live') break;
+      expect(m.state.events.filter((e) => e.phase === 'active')).toEqual([]);
+      expect(m.state.units.filter((u) => u.ev && u.alive)).toEqual([]);
     }
-    expect(sawEvent || evEvents(m).length > 0).toBe(true);
+    expect(sawEvent).toBe(true);
   });
 
   it('snapshot exposes warning then active with ticksLeft', () => {
     const seen = new Set<string>();
-    const m = Match.create(content, { seed: 21, player: null });
-    m.autoAdvance();
+    const m = liveMatch(21);
     for (let i = 0; i < 240 * 20 && m.state.phase.kind === 'live'; i++) {
       m.step(1);
       for (const e of m.snapshot().events) {

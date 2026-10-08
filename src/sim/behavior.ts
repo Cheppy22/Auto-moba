@@ -1,4 +1,4 @@
-import { TPS, performAttack } from './combat';
+import { TPS, performAttack, tauntTarget } from './combat';
 import { dist } from './core/math';
 import { hpPct, isEnemy, isTargetable, type Ctx } from './ctx';
 import { matchupAt } from './ai/power';
@@ -6,6 +6,7 @@ import { retreatLanePath } from './ai/strategic';
 import { isWary } from './ai/swap';
 import { findPath, LANES } from './world/map';
 import { clearLine, confine, walkable } from './world/terrain';
+import { pieceDef } from './pieces';
 import { tickRecall } from './recall';
 import type { PlayTeam, Unit } from './types';
 
@@ -181,8 +182,7 @@ function nearestEnemy(
 function updateEngage(ctx: Ctx, u: Unit): void {
   const h = u.hero!;
   h.engageTick = ctx.s.tick;
-  const def = ctx.c.heroById.get(h.defId)!;
-  const pers = ctx.t.personalities[def.personality];
+  const pers = ctx.t.personalities[pieceDef(ctx.c, h).personality];
   const m = matchupAt(ctx, u.team as PlayTeam, u.x, u.y, u);
   const prev = h.engage;
   if (m.enemyHeroes === 0) h.engage = 'fight';
@@ -252,8 +252,7 @@ function heroBehavior(ctx: Ctx, u: Unit): void {
       tryAttack(ctx, u, t);
       return;
     }
-    const def = ctx.c.heroById.get(h.defId)!;
-    const pers = ctx.t.personalities[def.personality];
+    const pers = ctx.t.personalities[pieceDef(ctx.c, h).personality];
     const leash = ctx.t.ai.aggroRadius * pers.chase + u.stats.range;
     const allowChase = h.engage === 'fight' && dist(u.x, u.y, t.x, t.y) <= leash;
     if (allowChase) {
@@ -380,23 +379,7 @@ function guardianBehavior(ctx: Ctx, u: Unit): void {
     });
     u.dirty = true;
   }
-  if (!u.roaming) {
-    staticBehavior(ctx, u);
-    return;
-  }
-  let t = validTarget(ctx, u);
-  if (!t || (ctx.s.tick + u.id) % 6 === 0) {
-    t = nearestEnemy(ctx, u, u.stats.range + 30, (e) =>
-      e.kind === 'minion' ? 0 : e.kind === 'hero' ? 30 : 10,
-    );
-    u.targetId = t ? t.id : null;
-  }
-  if (t) {
-    if (inAttackRange(u, t)) tryAttack(ctx, u, t);
-    else stepToward(ctx, u, t.x, t.y, 1, true);
-    return;
-  }
-  followPath(ctx, u);
+  staticBehavior(ctx, u);
 }
 
 export function stepUnits(ctx: Ctx): void {
@@ -407,6 +390,17 @@ export function stepUnits(ctx: Ctx): void {
     const u = units[(start + k) % n];
     if (!u.alive) continue;
     if (u.atkCd > 0) u.atkCd--;
+    if (u.stunUntil !== undefined && u.stunUntil > ctx.s.tick) continue;
+    if (u.taunt && u.kind !== 'tower' && u.kind !== 'guardian') {
+      const by = tauntTarget(ctx, u);
+      if (by) {
+        if (u.hero) u.hero.recall = null;
+        u.targetId = by.id;
+        if (inAttackRange(u, by)) tryAttack(ctx, u, by);
+        else stepToward(ctx, u, by.x, by.y, 1, true);
+        continue;
+      }
+    }
     switch (u.kind) {
       case 'hero':
         heroBehavior(ctx, u);

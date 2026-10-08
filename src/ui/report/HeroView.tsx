@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { mostTakenType, type Fight, type HeroModel, type Report } from '../../analysis';
+import type { Content, PieceId } from '../../sim';
 import { drawReplay, replayHit, teamColor, type ReplayData } from '../../render';
-import { SigilIcon } from '../SigilIcon';
+import { PieceGlyph } from '../pieces';
 import { mmss, n0, pct, roleLabel } from '../format';
 import { useSession } from '../session';
 import { BarRow, Sparkline, heroName, itemName } from './common';
@@ -186,14 +187,14 @@ function ReplayPanel(props: {
           </b>
           <div class="tiny">
             Damage: <span class="teamA">{n0(selected.damageA)}</span> from your team,{' '}
-            <span class="teamB">{n0(selected.damageB)}</span> from the enemy. Heroes fallen:{' '}
+            <span class="teamB">{n0(selected.damageB)}</span> from the enemy. Pieces fallen:{' '}
             <span class="teamA">{selected.deathsA}</span> of yours,{' '}
             <span class="teamB">{selected.deathsB}</span> of theirs.
           </div>
           <table class="stats">
             <thead>
               <tr>
-                <th>Hero</th>
+                <th>Piece</th>
                 <th>Dealt</th>
                 <th>Taken</th>
               </tr>
@@ -234,6 +235,22 @@ function ReplayPanel(props: {
   );
 }
 
+const KILLER: Record<string, string> = {
+  camp: 'a camp monster',
+  tower: 'a Bastion',
+  guardian: 'a Throne',
+  minion: 'a pawn or pawnling',
+  none: 'the board',
+};
+
+function forkName(c: Content, h: HeroModel, rank: number, optionId: string): string {
+  for (const st of c.pieceById.get(h.def as PieceId)?.styles ?? []) {
+    const o = st.forks[String(rank) as '4' | '8']?.find((f) => f.id === optionId);
+    if (o) return o.name;
+  }
+  return optionId;
+}
+
 export function HeroView(props: {
   report: Report;
   heroId: number;
@@ -243,7 +260,7 @@ export function HeroView(props: {
   const r = props.report;
   const h = r.heroes.find((x) => x.id === props.heroId);
   if (!h) return null;
-  const def = s.content.heroById.get(h.def)!;
+  const def = s.content.pieceById.get(h.def as PieceId)!;
   const mt = mostTakenType(h);
   const badges = r.badges.filter((b) => b.heroId === h.id);
   const dealtMax = Math.max(1, ...Object.values(h.dealtBy));
@@ -256,7 +273,7 @@ export function HeroView(props: {
   return (
     <div class="col" data-testid="hero-view">
       <div class="row">
-        <SigilIcon spec={def.sigil} team={h.team} size={46} />
+        <PieceGlyph piece={h.def as PieceId} team={h.team} size={46} />
         <div class="grow">
           <h2 style={{ margin: 0 }} class={h.team === 'A' ? 'teamA' : 'teamB'}>
             {def.name}
@@ -267,7 +284,7 @@ export function HeroView(props: {
           </div>
         </div>
         <button class="btn" onClick={() => s.setUi({ reportHero: null })} data-testid="back-team">
-          Close hero
+          Close piece
         </button>
       </div>
       <div class="row wrap" style={{ gap: '6px' }}>
@@ -355,15 +372,17 @@ export function HeroView(props: {
                 {n0(p.refund)}g
               </div>
             ))}
-            {h.upgrades.map((u, i) => (
-              <div class="tiny" key={`u${i}`}>
-                <span class="dim">{mmss(u.tick)}</span> upgrade:{' '}
-                {s.content.upgradeById.get(u.upgrade)?.name ?? u.upgrade}
+            {h.ranks.map((u, i) => (
+              <div class="tiny" key={`r${i}`}>
+                <span class="dim">{mmss(u.tick)}</span> reached Rank {u.rank}
+                {u.bonus ? `: ${u.bonus}` : ''}
               </div>
             ))}
-            {h.postures.map((u, i) => (
-              <div class="tiny" key={`po${i}`}>
-                <span class="dim">{mmss(u.tick)}</span> posture set to {u.posture}
+            {h.forks.map((u, i) => (
+              <div class="tiny" key={`f${i}`}>
+                <span class="dim">{mmss(u.tick)}</span> fork at Rank {u.rank}:{' '}
+                {forkName(s.content, h, u.rank, u.optionId)}
+                {u.auto ? ' (court’s pick)' : ''}
               </div>
             ))}
             {h.curse.map((c, i) => (
@@ -381,9 +400,7 @@ export function HeroView(props: {
                   <span class="dim">{mmss(d.tick)}</span> fell to{' '}
                   {d.killerKind === 'hero'
                     ? heroName(s.content, r.heroes.find((x) => x.id === d.killer)?.def ?? '')
-                    : d.killerKind === 'camp'
-                      ? 'a camp monster'
-                      : `a ${d.killerKind}`}
+                    : (KILLER[d.killerKind] ?? `a ${d.killerKind}`)}
                   . Damage in the 6 seconds before: Blade {n0(d.mix.blade)}, Soul {n0(d.mix.soul)},
                   True {n0(d.mix.true)}.
                 </div>

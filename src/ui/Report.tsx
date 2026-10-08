@@ -3,30 +3,22 @@ import { buildReport, inputFromMatch, type Scope } from '../analysis';
 import { courtName } from '../analysis/text';
 import { HeroView } from './report/HeroView';
 import { EventLog, Scoreboard, Takeaways } from './report/TeamView';
+import { PieceGlyph } from './pieces';
 import { useLayout } from './layout';
 import { useEscape, useSession } from './session';
 
-export function Report(props: { scope: 'phase' | 'match' }) {
+/** The end screen: who won, then the match report (whole match or one Act). */
+export function Report() {
   const s = useSession();
   const m = s.match!;
   const st = m.state;
-  const current = st.phase.n;
-  const [scope, setScope] = useState<Scope>(
-    props.scope === 'match' ? { kind: 'match' } : { kind: 'phase', n: current },
-  );
+  const [scope, setScope] = useState<Scope>({ kind: 'match' });
   const [open, setOpen] = useState(false);
-  const input = useMemo(
-    () => inputFromMatch(m, s.content),
-    [m, s.content, st.phase.kind, st.phase.n],
-  );
-  const key = scope.kind === 'match' ? 'match' : `phase${scope.n}`;
-  const viewer =
-    m.state.playerHeroId !== null
-      ? (m.unitById(m.state.playerHeroId)?.team as 'A' | 'B')
-      : undefined;
-  const report = useMemo(() => buildReport(input, scope, viewer), [input, key, viewer]);
-  const whole = useMemo(() => buildReport(input, { kind: 'match' }, viewer), [input, viewer]);
-  const phases = whole.phases;
+  const input = useMemo(() => inputFromMatch(m, s.content), [m, s.content, st.phase.kind]);
+  const key = scope.kind === 'match' ? 'match' : `act${scope.n}`;
+  const report = useMemo(() => buildReport(input, scope, 'A'), [input, key]);
+  const whole = useMemo(() => buildReport(input, { kind: 'match' }, 'A'), [input]);
+  const acts = whole.phases;
   const hero = s.ui.reportHero;
   const showDetails = open || hero !== null;
   useEscape(showDetails, () => {
@@ -36,30 +28,33 @@ export function Report(props: { scope: 'phase' | 'match' }) {
   const layout = useLayout();
   const items: Record<number, string[]> = {};
   for (const h of report.heroes) items[h.id] = [...(m.unitById(h.id)?.hero?.items ?? [])];
-  const title = props.scope === 'match' ? 'Match report' : `Phase ${current} report`;
+  const win = st.winner;
   return (
     <div class="overlay" data-testid="report" style={{ alignItems: 'flex-start' }}>
-      <div class="panel col" style={{ width: 'min(1280px,100%)' }}>
-        <div class="row wrap">
-          <h2 style={{ margin: 0 }}>{title}</h2>
-          <span class="dim small grow" data-testid="courts">
-            {courtName('A')} (you) vs {courtName('B')}
-          </span>
-          {st.winner && (
-            <span class="chip gold" data-testid="winner">
-              Checkmate: the {courtName(st.winner)} wins
-            </span>
-          )}
+      <div class="panel col report-panel">
+        <div class={`verdict ${win ?? 'draw'}`} data-testid="verdict">
+          <PieceGlyph piece="king" team={win === 'B' ? 'B' : 'A'} size={40} />
+          <div class="grow">
+            <h2 data-testid="winner" style={{ margin: 0 }}>
+              {win ? `Checkmate: ${courtName(win)} wins` : 'No checkmate: the match is drawn'}
+            </h2>
+            <div class="dim small" data-testid="courts">
+              White (you) vs Black · {st.phase.n} {st.phase.n === 1 ? 'Act' : 'Acts'}
+            </div>
+          </div>
+          <button class="btn primary" data-testid="new-match" onClick={() => s.reset()}>
+            New match
+          </button>
         </div>
         <div class="row wrap">
-          {phases.map((n) => (
+          {acts.map((n) => (
             <button
               key={n}
               class={`btn small ${scope.kind === 'phase' && scope.n === n ? 'on' : ''}`}
               data-testid={`scope-${n}`}
               onClick={() => setScope({ kind: 'phase', n })}
             >
-              Phase {n}
+              Act {n}
             </button>
           ))}
           <button
@@ -69,21 +64,6 @@ export function Report(props: { scope: 'phase' | 'match' }) {
           >
             Whole match
           </button>
-          <div class="grow" />
-          {props.scope === 'phase' && (
-            <button
-              class="btn primary"
-              data-testid="continue"
-              onClick={() => s.issue({ type: 'continue' })}
-            >
-              On to phase {current + 1}
-            </button>
-          )}
-          {props.scope === 'match' && (
-            <button class="btn primary" data-testid="new-match" onClick={() => s.reset()}>
-              New match
-            </button>
-          )}
         </div>
         <div class="scroll report-scroll col">
           <Takeaways report={report} folded={layout === 'landscape'} />
@@ -102,9 +82,7 @@ export function Report(props: { scope: 'phase' | 'match' }) {
               <div class="col details-body" data-testid="details">
                 {hero === null ? (
                   <>
-                    <div class="dim small">
-                      Click a hero in the scoreboard to open their replay.
-                    </div>
+                    <div class="dim small">Click a piece in the scoreboard to open its replay.</div>
                     <EventLog report={report} />
                   </>
                 ) : (

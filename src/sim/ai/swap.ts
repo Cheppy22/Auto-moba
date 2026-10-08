@@ -1,4 +1,5 @@
 import type { Ctx } from '../ctx';
+import { assignJunglers } from '../setup';
 import type { HeroState, PlayTeam, Unit } from '../types';
 
 export function isWary(ctx: Ctx, h: HeroState): boolean {
@@ -10,14 +11,14 @@ export function isWary(ctx: Ctx, h: HeroState): boolean {
 /** A hero that keeps dying without a kill trades lanes with the teammate who is doing best elsewhere. */
 export function maybeSwapLane(ctx: Ctx, loser: Unit): void {
   const h = loser.hero;
-  if (!h || h.isPlayer || loser.team === 'neutral') return;
+  if (!h || loser.team === 'neutral') return;
   if (h.lossStreak < ctx.t.ai.swapAfterDeaths) return;
   const team = loser.team as PlayTeam;
   let best: Unit | null = null;
   let bestScore = -Infinity;
   for (const id of ctx.s.teams[team].heroIds) {
     const m = ctx.unit(id);
-    if (!m?.hero || m.id === loser.id || m.hero.isPlayer || m.hero.lane === h.lane) continue;
+    if (!m?.hero || m.id === loser.id || m.hero.lane === h.lane) continue;
     if (m.hero.lossStreak > 0) continue;
     const score = m.hero.kills + m.hero.assists * 0.5 - m.hero.deaths;
     if (score > bestScore) {
@@ -37,5 +38,6 @@ export function maybeSwapLane(ctx: Ctx, loser: Unit): void {
   b.role = role;
   h.lossStreak = 0;
   b.goal = null;
+  assignJunglers(ctx, team);
   ctx.emit('laneSwap', { a: loser.id, b: best.id });
 }

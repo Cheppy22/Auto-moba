@@ -4,6 +4,12 @@ import type { ItemDef } from '../content/schema';
 import type { Unit } from '../types';
 import { isWary } from './swap';
 import { other } from '../types';
+import { buildListOf, pieceDef } from '../pieces';
+
+/** The item build list of the piece's current build path (style lists override the piece's). */
+export function buildList(ctx: Ctx, u: Unit): string[] {
+  return buildListOf(ctx.c, u.hero!);
+}
 
 function chainIncludes(ctx: Ctx, item: ItemDef, id: string): boolean {
   for (const f of item.from) {
@@ -47,8 +53,7 @@ export interface Purchase {
 export function nextPurchase(ctx: Ctx, u: Unit, where: Where = 'here'): Purchase | null {
   const h = u.hero;
   if (!h) return null;
-  const def = ctx.c.heroById.get(h.defId)!;
-  const targets = [...def.buildList];
+  const targets = [...buildList(ctx, u)];
   const adapt = adaptTarget(ctx, u);
   if (adapt && isWary(ctx, h)) targets.unshift(adapt);
   else if (adapt && h.items.length >= 2) targets.splice(2, 0, adapt);
@@ -85,7 +90,7 @@ export function nextPurchase(ctx: Ctx, u: Unit, where: Where = 'here'): Purchase
       best = { id: it.id, price: q.price };
   }
   if (best) return best;
-  const def2 = ctx.c.heroById.get(h.defId)!;
+  const def2 = pieceDef(ctx.c, h);
   const primary = def2.stats.soulPower > def2.stats.bladeDmg * 0.8 ? 'soul' : 'mind';
   let fill: Purchase | null = null;
   for (const it of ctx.c.items) {
@@ -102,8 +107,7 @@ export function nextPurchase(ctx: Ctx, u: Unit, where: Where = 'here'): Purchase
 export function nextTarget(ctx: Ctx, u: Unit): string | null {
   const h = u.hero;
   if (!h) return null;
-  const def = ctx.c.heroById.get(h.defId)!;
-  for (const id of def.buildList) if (!satisfied(ctx, u, id)) return id;
+  for (const id of buildList(ctx, u)) if (!satisfied(ctx, u, id)) return id;
   return null;
 }
 

@@ -15,6 +15,10 @@ const flag = (name: string): boolean => process.argv.includes(`--${name}`);
 const total = arg('matches', 1000);
 const startSeed = arg('seed', 1);
 const workers = Math.max(1, Math.min(arg('workers', cpus().length), total));
+// --no-gambits-A: White never plays gambits or fields pawns (measures what the Tempo system is worth).
+const noGambitsA = flag('no-gambits-A');
+// --no-gambits-B: the same for Black (both flags = a Tempo-free control run).
+const noGambitsB = flag('no-gambits-B');
 
 async function main(): Promise<void> {
   const seeds = Array.from({ length: total }, (_, i) => startSeed + i);
@@ -27,7 +31,7 @@ async function main(): Promise<void> {
       return new Promise<void>((resolve, reject) => {
         const child = spawn(
           process.execPath,
-          ['--import', 'tsx', workerPath, JSON.stringify(mine)],
+          ['--import', 'tsx', workerPath, JSON.stringify({ seeds: mine, noGambitsA, noGambitsB })],
           {
             stdio: ['ignore', 'pipe', 'inherit'],
           },
@@ -46,11 +50,15 @@ async function main(): Promise<void> {
     }),
   );
   results.sort((a, b) => a.seed - b.seed);
-  const { md, stats } = report(results);
+  const { md, stats } = report(results, { noGambitsA, noGambitsB });
   const dir = new URL('../out/', import.meta.url);
   mkdirSync(dir, { recursive: true });
-  writeFileSync(new URL('balance.json', dir), JSON.stringify({ stats, results }, null, 1));
-  writeFileSync(new URL('balance.md', dir), md);
+  const name =
+    noGambitsA || noGambitsB
+      ? `balance-no-gambits-${noGambitsA ? 'A' : ''}${noGambitsB ? 'B' : ''}`
+      : 'balance';
+  writeFileSync(new URL(`${name}.json`, dir), JSON.stringify({ stats, results }, null, 1));
+  writeFileSync(new URL(`${name}.md`, dir), md);
   process.stdout.write(md);
   process.stderr.write(
     `\n${total} matches in ${((Date.now() - t0) / 1000).toFixed(0)} s on ${workers} workers\n`,

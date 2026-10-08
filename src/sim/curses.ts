@@ -108,12 +108,10 @@ export function evaluateCurseOffers(ctx: Ctx): void {
   ctx.s.teams[loser].curseOffers++;
   ctx.emit('curseOffered', { hero: cand.id, item: item.id, flawType: item.flawType });
   moveKeeperNear(ctx, cand);
-  if (!cand.hero!.isPlayer) {
-    const desperation = Math.max(0, (avg - candNw) / Math.max(1, avg));
-    const p = Math.min(0.95, ctx.t.ai.curseAcceptBase + desperation * 0.6);
-    if (rand(ctx.s.rng, 'ai') < p) resolveCurse(ctx, offer, true);
-    else resolveCurse(ctx, offer, false);
-  }
+  // The AI decides curses for both teams.
+  const desperation = Math.max(0, (avg - candNw) / Math.max(1, avg));
+  const p = Math.min(0.95, ctx.t.ai.curseAcceptBase + desperation * 0.6);
+  resolveCurse(ctx, offer, rand(ctx.s.rng, 'ai') < p);
 }
 
 export function pendingOffer(ctx: Ctx, heroId: number): CurseOffer | null {

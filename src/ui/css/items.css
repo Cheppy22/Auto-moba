@@ -1,0 +1,26 @@
+/* ---------- item category colors (the item color theory) ---------- */
+.cat-mind {
+  --cat-1: var(--mind-1);
+  --cat: var(--mind);
+  --cat-3: var(--mind-3);
+}
+.cat-body {
+  --cat-1: var(--body-1);
+  --cat: var(--body);
+  --cat-3: var(--body-3);
+}
+.cat-soul {
+  --cat-1: var(--soul-1);
+  --cat: var(--soul);
+  --cat-3: var(--soul-3);
+}
+.coin {
+  display: inline-block;
+  width: 0.8em;
+  height: 0.8em;
+  margin-right: 0.35em;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff1b8, var(--brass) 60%, #7a5a1c);
+  box-shadow: 0 0 0 1px #4a3a14;
+  vertical-align: -0.05em;
+}

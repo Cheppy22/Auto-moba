@@ -2,19 +2,34 @@ import type { RngState } from './core/rng';
 import type {
   DamageType,
   Disposition,
+  GambitTarget,
   LaneId,
+  Path,
+  PieceId,
   Posture,
   Role,
   StatKey,
   Stats,
 } from './content/schema';
 
-export type { DamageType, Disposition, LaneId, Posture, Role, StatKey, Stats };
+export type {
+  DamageType,
+  Disposition,
+  GambitTarget,
+  LaneId,
+  Path,
+  PieceId,
+  Posture,
+  Role,
+  StatKey,
+  Stats,
+};
 
 export type TeamId = 'A' | 'B' | 'neutral';
 export type PlayTeam = 'A' | 'B';
 export type UnitKind = 'hero' | 'minion' | 'tower' | 'guardian' | 'camp' | 'obelisk' | 'keeper';
-export type PhaseKind = 'draft' | 'prep' | 'live' | 'report' | 'end';
+/** setup (White picks styles, paths and lanes) -> live (Acts run back to back) -> end (checkmate). */
+export type PhaseKind = 'setup' | 'live' | 'end';
 
 export const other = (t: PlayTeam): PlayTeam => (t === 'A' ? 'B' : 'A');
 
@@ -52,7 +67,8 @@ export type GoalKind =
   | 'visitShop'
   | 'retreat'
   | 'recall'
-  | 'base';
+  | 'base'
+  | 'regroup';
 
 export interface Goal {
   kind: GoalKind;
@@ -69,9 +85,32 @@ export interface RecallState {
   auto: boolean;
 }
 
+/** A rank bonus (optionId null) or a fork choice applied to a piece. */
+export interface PerkRef {
+  rank: number;
+  optionId: string | null;
+}
+
+/** A standing order from a gambit: strongly preferred goal until it runs out. */
+export interface GambitOrder {
+  kind: 'push' | 'defend' | 'gather';
+  lane: LaneId | null;
+  x: number;
+  y: number;
+  targetId: number | null;
+  untilTick: number;
+}
+
 export interface HeroState {
-  defId: string;
-  isPlayer: boolean;
+  /** Piece id (also the unit's defId). */
+  defId: PieceId;
+  style: string;
+  path: Path;
+  rank: number;
+  perks: PerkRef[];
+  order: GambitOrder | null;
+  /** Siege gambit: multiplier on damage dealt to Bastions and Thrones. */
+  structMul: { value: number; untilTick: number } | null;
   slot: number;
   role: Role;
   lane: LaneId | null;
@@ -88,7 +127,6 @@ export interface HeroState {
   streak: number;
   respawnAt: number | null;
   cd: number[];
-  upgrades: string[];
   recall: RecallState | null;
   goal: Goal | null;
   goalSetTick: number;
@@ -102,11 +140,8 @@ export interface HeroState {
   engageTick: number;
   holdTicks: number;
   lastRecallTick: number;
-  suggest: string[];
   lossStreak: number;
   lastDeathTick: number;
-  autoBuy: boolean;
-  suggestEvent: number | null;
   lastStandUsed: boolean;
 }
 
@@ -202,7 +237,12 @@ export interface Unit {
   obelisk?: ObeliskState;
   ev?: EventUnitState;
   rageStage?: number;
-  roaming?: boolean;
+  /** An elite pawn fielded with Tempo (pawnlings are plain minions). */
+  pawn?: boolean;
+  /** Stunned (no moving, attacking or casting) until this tick. */
+  stunUntil?: number;
+  /** Taunted: must attack unit `by` until the tick. */
+  taunt?: { by: number; untilTick: number };
   lastDamagedTick: number;
   /** Waypoint around solid terrain while the unit walks a detour; null when it walks straight. */
   detour: { x: number; y: number; untilTick: number } | null;
@@ -263,13 +303,43 @@ export interface PhaseState {
   startTick: number;
 }
 
-export interface DraftState {
-  aiHeroes: Record<PlayTeam, string[]>;
-  playerHero: string | null;
-  playerRole: Role | null;
-  playerTeam: PlayTeam;
-  unique: boolean;
-  deferred: boolean;
+export interface SetupEntry {
+  piece: PieceId;
+  style: string;
+  path: Path;
+  lane: LaneId;
+}
+
+export interface HandSlot {
+  cardId: string | null;
+  /** Tick the held card expires (is replaced) when unplayed. */
+  expireTick: number;
+  /** Tick an empty slot is refilled; null while a card is held. */
+  refillTick: number | null;
+}
+
+export interface PendingFork {
+  heroId: number;
+  rank: 4 | 8;
+  deadlineTick: number;
+}
+
+/** Sanctuary zone: heals allies inside it every tick. */
+export interface ZoneState {
+  team: PlayTeam;
+  cardId: string;
+  x: number;
+  y: number;
+  radius: number;
+  healPctPerSec: number;
+  endTick: number;
+}
+
+/** A modifier that starts later (Queen's Gambit backlash). */
+export interface TimedMod {
+  atTick: number;
+  unitId: number;
+  mod: Modifier;
 }
 
 export interface Blackboard {
@@ -294,9 +364,17 @@ export interface MatchState {
   winner: PlayTeam | null;
   nextWaveTick: number;
   obeliskSchedule: number[];
-  playerHeroId: number | null;
-  upgradeOffers: Record<number, string[]>;
-  draft: DraftState | null;
+  /** White's chosen setup (pre-filled with the AI default) and Black's AI pick. */
+  setup: Record<PlayTeam, SetupEntry[]>;
+  autoGambits: Record<PlayTeam, boolean>;
+  autoForks: Record<PlayTeam, boolean>;
+  tempo: Record<PlayTeam, number>;
+  hands: Record<PlayTeam, HandSlot[]>;
+  forks: PendingFork[];
+  check: Record<PlayTeam, boolean>;
+  throneDown: Record<PlayTeam, boolean>;
+  zones: ZoneState[];
+  timedMods: TimedMod[];
   board: Record<PlayTeam, Blackboard>;
   tideNextTick: number;
   lastPassiveTick: number;
@@ -314,7 +392,17 @@ export interface PositionSample {
 }
 
 export interface EventPayloads {
-  matchStart: { seed: number; heroes: { id: number; team: string; def: string; role: string }[] };
+  matchStart: {
+    seed: number;
+    heroes: {
+      id: number;
+      team: string;
+      def: string;
+      role: string;
+      style: string;
+      path: string;
+    }[];
+  };
   phaseStart: { phase: number; kind: PhaseKind };
   phaseEnd: { phase: number; kind: PhaseKind };
   damage: {
@@ -350,8 +438,22 @@ export interface EventPayloads {
   gold: { id: number; amount: number; source: string };
   purchase: { id: number; item: string; price: number; consumed: string[] };
   sell: { id: number; item: string; refund: number };
-  upgradePick: { id: number; upgrade: string };
-  posture: { id: number; posture: Posture };
+  rankUp: { id: number; rank: number; bonus: string };
+  fork: { id: number; rank: number; optionId: string; auto: boolean };
+  gambit: {
+    team: PlayTeam;
+    cardId: string;
+    lane?: LaneId;
+    x?: number;
+    y?: number;
+    targetId?: number;
+  };
+  check: { team: PlayTeam };
+  throneDown: { team: PlayTeam };
+  checkmate: { winner: PlayTeam };
+  pawnFielded: { team: PlayTeam; lane: LaneId; id: number };
+  laneSet: { id: number; lane: LaneId };
+  pathSet: { id: number; path: Path };
   recall: {
     id: number;
     dest: string;
@@ -455,24 +557,12 @@ export type Recorder = {
 };
 
 export type Command =
-  | { type: 'pickHero'; heroId: string }
-  | { type: 'pickLane'; role: Role }
-  | { type: 'startMatch' }
-  | { type: 'setPosture'; posture: Posture }
-  | { type: 'recall'; dest: 'base' }
-  | { type: 'suggestShop'; shopId: string }
-  | { type: 'clearSuggest' }
-  | { type: 'setAutoBuy'; on: boolean }
-  | { type: 'suggestEvent'; eventId: number }
-  | { type: 'pickUpgrade'; upgradeId: string }
-  | { type: 'buy'; itemId: string }
-  | { type: 'sell'; itemId: string }
-  | { type: 'bid'; points: number; gold: number }
-  | { type: 'acceptCurse' }
-  | { type: 'refuseCurse' }
-  | { type: 'chooseHolyRecipient'; heroId: number }
-  | { type: 'startPhase' }
-  | { type: 'continue' };
+  | { type: 'setupTeam'; pieces: SetupEntry[] }
+  | { type: 'chooseFork'; heroId: number; optionId: string }
+  | { type: 'playGambit'; slot: number; lane?: LaneId; x?: number; y?: number; targetId?: number }
+  | { type: 'setLane'; heroId: number; lane: LaneId }
+  | { type: 'setPath'; heroId: number; path: Path }
+  | { type: 'fieldPawn'; lane: LaneId };
 
 export interface CommandResult {
   ok: boolean;
@@ -483,8 +573,12 @@ export type ReplayOp = { op: 'issue'; cmd: Command } | { op: 'step'; ticks: numb
 
 export interface MatchConfig {
   seed: number;
-  player?: { heroId: string; role: Role; team?: PlayTeam } | null;
-  draft?: { A: string[]; B: string[] };
+  /** Fix either side's setup (tests, tools). With A given the match starts live at once. */
+  setup?: { A?: SetupEntry[]; B?: SetupEntry[] };
+  /** Which teams the gambit/pawn AI plays for (Black always in the browser). Default A off, B on. */
+  autoGambits?: { A: boolean; B: boolean };
+  /** Internal (tools): forks pick at once without the player wait. Defaults to `autoGambits`. */
+  autoForks?: { A: boolean; B: boolean };
 }
 
 export interface Replay {
@@ -507,9 +601,20 @@ export interface SnapUnit {
   maxHp: number;
   shield: number;
   alive: boolean;
-  isPlayer: boolean;
+  piece: PieceId | null;
+  style: string | null;
+  path: Path | null;
+  rank: number;
+  forkPending: boolean;
+  /** Elite pawn fielded with Tempo (pawnlings are false). */
+  pawn: boolean;
+  lane: LaneId | null;
   role: Role | null;
-  posture: Posture | null;
+  /** Marked by the Check gambit (takes more damage). */
+  marked: boolean;
+  stunned: boolean;
+  /** Final melee/ranged for a piece (its style can override the piece). */
+  attackKind: 'melee' | 'ranged' | null;
   recalling: boolean;
   goal: GoalKind | null;
   slot: number;
@@ -536,11 +641,42 @@ export interface Snapshot {
   }[];
   pressure: string[];
   points: Record<PlayTeam, number>;
-  playerHeroId: number | null;
   keeper: { x: number; y: number; spot: string } | null;
-  suggest: string[];
   phaseTicksLeft: number;
   events: SnapEvent[];
+  act: number;
+  tempo: Record<PlayTeam, number>;
+  /** White's hand. */
+  hand: SnapGambit[];
+  pawns: Record<PlayTeam, { alive: number; cap: number; cost: number }>;
+  /** White's pending forks. */
+  forks: SnapFork[];
+  check: Record<PlayTeam, boolean>;
+  throneDown: Record<PlayTeam, boolean>;
+  /** Active Sanctuary zones. */
+  zones: { team: PlayTeam; x: number; y: number; radius: number; ticksLeft: number }[];
+}
+
+export interface SnapGambit {
+  slot: number;
+  cardId: string;
+  name: string;
+  desc: string;
+  cost: number;
+  target: GambitTarget;
+  piece: PieceId | null;
+  usable: boolean;
+  reason: string;
+  ticksLeft: number;
+  refillTicks: number | null;
+}
+
+export interface SnapFork {
+  heroId: number;
+  piece: PieceId;
+  rank: 4 | 8;
+  options: { id: string; name: string; desc: string }[];
+  ticksLeft: number;
 }
 
 export interface SnapEvent {
@@ -563,18 +699,4 @@ export interface SnapEvent {
   team?: PlayTeam | null;
   /** Oni slam warning area, present while the attack winds up. */
   telegraph?: { x: number; y: number; radius: number; ticksLeft: number };
-}
-
-export interface ShopEntry {
-  id: string;
-  name: string;
-  category: 'mind' | 'body' | 'soul';
-  tier: number;
-  cost: number;
-  price: number;
-  consumed: string[];
-  source: 'base' | 'keeper' | 'jungle';
-  canBuy: boolean;
-  reason: string;
-  desc: string;
 }

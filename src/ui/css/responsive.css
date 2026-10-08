@@ -8,15 +8,15 @@ html:not([data-layout='desktop']) .overlay {
   padding-right: max(6px, env(safe-area-inset-right));
   align-items: flex-start;
 }
+html:not([data-layout='desktop']) .overlay.setup {
+  padding: 0;
+}
 html:not([data-layout='desktop']) .panel {
   padding: var(--sp-3);
   box-shadow:
     inset 0 0 0 2px #110e18,
     inset 0 0 0 3px var(--rule),
     0 6px 18px rgba(0, 0, 0, 0.6);
-}
-html:not([data-layout='desktop']) .hero-grid {
-  grid-template-columns: repeat(2, 1fr);
 }
 html:not([data-layout='desktop']) .tabs {
   overflow-x: auto;
@@ -37,13 +37,11 @@ html:not([data-layout='desktop']) table.stats th,
 html:not([data-layout='desktop']) table.stats td {
   padding: 4px;
 }
-html:not([data-layout='desktop']) .prep-scroll,
 html:not([data-layout='desktop']) .report-scroll {
   max-height: calc(100dvh - 190px);
 }
-html[data-layout='landscape'] .prep-scroll,
 html[data-layout='landscape'] .report-scroll {
-  max-height: calc(100dvh - 120px);
+  max-height: calc(100dvh - 130px);
 }
 html:not([data-layout='desktop']) .panel [style*='min-width'] {
   min-width: 0 !important;
@@ -53,152 +51,252 @@ html[data-layout='portrait'] .row.wrap:has(> [style*='min-width']) {
   flex-wrap: nowrap;
   align-items: stretch !important;
 }
-
-/* draft */
-html[data-layout='portrait'] .draft {
-  grid-template-columns: 1fr;
-  grid-template-rows: none;
-  grid-template-areas: 'head' 'main' 'side' 'team' 'foot';
-  height: auto;
-  width: 100%;
-}
-html[data-layout='portrait'] .draft-team {
-  overflow: visible;
-}
-html[data-layout='portrait'] .draft-detail {
-  overflow: visible;
-}
-html[data-layout='portrait'] .hero-row {
-  grid-template-columns: repeat(3, 1fr);
-}
-html[data-layout='landscape'] .draft {
-  grid-template-columns: 170px minmax(0, 1fr) 190px;
-  height: 100%;
-  width: 100%;
-}
-html[data-layout='landscape'] .lane-map {
-  width: min(100%, 150px);
-}
-html[data-layout='landscape'] .hero-pick {
-  padding: 6px 4px;
-}
-
-/* codex */
-html:not([data-layout='desktop']) .codex-body {
-  grid-template-columns: 1fr;
-}
-html:not([data-layout='desktop']) .codex-list {
-  flex-direction: row;
-  max-height: none;
-  padding-bottom: 4px;
-}
-html:not([data-layout='desktop']) .codex-list .card {
-  flex: none;
-}
-html:not([data-layout='desktop']) .codex-detail {
-  max-height: calc(100dvh - 230px);
-}
-
-/* hud */
-html[data-layout='portrait'] .corner.tr {
-  max-width: none;
-}
-html[data-layout='portrait'] .hud-dock {
-  flex-direction: row;
-  align-items: stretch;
-  gap: 4px;
-  padding: 4px 6px calc(4px + env(safe-area-inset-bottom));
-  background: linear-gradient(to top, rgba(8, 6, 12, 0.9) 70%, rgba(8, 6, 12, 0));
-}
-html[data-layout='portrait'] .hud-dock .player-card-wrap {
-  flex: none;
-}
-html[data-layout='portrait'] .hud-dock .player-card {
-  display: grid;
-  grid-template-columns: auto auto;
-  grid-template-areas:
-    'ring pips'
-    'ring gold';
-  align-items: center;
-  gap: 1px 8px;
-  height: 100%;
-  padding: 3px 8px 3px 4px;
-}
-html[data-layout='portrait'] .hud-dock .player-card .hpring {
-  grid-area: ring;
-}
-html[data-layout='portrait'] .hud-dock .player-main {
-  display: contents;
-}
-html[data-layout='portrait'] .hud-dock .pips {
-  grid-area: pips;
-  gap: 4px;
-}
-html[data-layout='portrait'] .hud-dock .pip {
-  width: 22px;
-  height: 22px;
-  font-size: var(--fs-xs);
-}
-html[data-layout='portrait'] .hud-dock .player-sub {
-  display: none;
-}
-html[data-layout='portrait'] .hud-dock .player-gold {
-  grid-area: gold;
-  margin: 0;
-  font-size: var(--fs-md);
-}
-html[data-layout='portrait'] .hud-dock .next-item {
-  width: 22px;
-  height: 22px;
-  margin-left: 6px;
-}
-html[data-layout='portrait'] .hud-dock .controls {
-  flex: 1;
-  min-width: 0;
-  justify-content: space-between;
-}
-html[data-layout='portrait'] .hud-dock .act {
-  flex: 1;
-  min-width: 0;
-  padding: 3px 2px;
-}
-html[data-layout='portrait'] .hud-dock .card-pop {
-  width: calc(100vw - 12px);
-}
-html[data-layout='portrait'] .recalling {
-  top: -26px;
-}
-html[data-layout='portrait'] .cam-panel .btn.small {
-  min-height: 32px;
-  min-width: 0;
-  padding: 2px 9px;
-  font-size: var(--fs-xs);
-}
-html[data-layout='portrait'] .speed-seg .btn.small {
-  min-width: 36px;
-  padding: 2px 4px;
-}
-html[data-layout='portrait'] .corner.bl .roster,
-html[data-layout='portrait'] .corner.br .roster {
-  flex-direction: column;
-  padding: 3px;
-  gap: 3px;
-}
-html[data-layout='portrait'] .clock .ofuda span {
+html:not([data-layout='desktop']) .verdict h2 {
   font-size: var(--fs-lg);
 }
-html[data-layout='landscape'] .player-card {
-  padding: 4px 10px 4px 6px;
-  gap: var(--sp-2);
+html[data-layout='portrait'] .verdict {
+  flex-wrap: wrap;
 }
-html[data-layout='landscape'] .act {
-  min-width: 50px;
-  min-height: 44px;
-  padding: 3px 4px;
+
+/* ---------- portrait HUD: the default (rows on top, dock at the bottom) ---------- */
+html[data-layout='portrait'] .clock .ofuda {
+  padding: 2px 10px 3px;
+}
+html[data-layout='portrait'] .side {
+  min-width: 40px;
+}
+html[data-layout='portrait'] .setup-title p {
+  font-size: var(--fs-xs);
+}
+html[data-layout='portrait'] .piece-card .style-desc {
+  font-size: var(--fs-sm);
+}
+
+/* ---------- landscape phone: one slim row on top, hand bottom left, Tempo bottom right ---------- */
+html[data-layout='landscape'] .topbar {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 6px;
+}
+html[data-layout='landscape'] .top-main,
+html[data-layout='landscape'] .top-ctl,
+html[data-layout='desktop'] .top-main,
+html[data-layout='desktop'] .top-ctl {
+  display: contents;
+}
+html[data-layout='landscape'] .clock,
+html[data-layout='desktop'] .clock {
+  order: 1;
+  margin-right: auto;
+}
+html[data-layout='landscape'] .speed-seg,
+html[data-layout='desktop'] .speed-seg {
+  order: 2;
+}
+html[data-layout='landscape'] .cam-seg,
+html[data-layout='desktop'] .cam-seg {
+  order: 3;
+}
+html[data-layout='landscape'] .adjourn,
+html[data-layout='desktop'] .adjourn {
+  order: 4;
+  align-self: center;
 }
 html[data-layout='landscape'] .roster {
+  top: calc(56px + env(safe-area-inset-top));
+}
+html[data-layout='landscape'] .roster-cell {
+  min-height: 48px;
+  padding: 3px 2px 4px;
   gap: 3px;
-  padding: 3px;
+}
+html[data-layout='landscape'] .roster-cell .hpring {
+  --sz: 36px;
+}
+html[data-layout='landscape'] .roster-cell .hpring svg {
+  width: 22px;
+  height: 22px;
+}
+html[data-layout='landscape'] .notices {
+  top: calc(56px + env(safe-area-inset-top));
+  width: min(calc(100% - 330px), 400px);
+}
+html[data-layout='landscape'] .dock,
+html[data-layout='desktop'] .dock {
+  position: static;
+  display: block;
+}
+html[data-layout='landscape'] .dock-main,
+html[data-layout='landscape'] .dock-side,
+html[data-layout='desktop'] .dock-main,
+html[data-layout='desktop'] .dock-side {
+  position: absolute;
+  bottom: calc(6px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  pointer-events: none;
+}
+html[data-layout='landscape'] .dock-main {
+  left: calc(66px + env(safe-area-inset-left));
+  width: min(430px, calc(100% - 432px));
+}
+html[data-layout='landscape'] .dock-side {
+  right: calc(66px + env(safe-area-inset-right));
+  width: 292px;
+}
+html[data-layout='landscape'] .gcard {
+  min-height: 70px;
+  padding: 5px 6px 7px;
+}
+html[data-layout='landscape'] .gname {
+  font-size: 13px;
+}
+html[data-layout='landscape'] .fork-opt {
+  min-height: 52px;
+}
+html[data-layout='landscape'] .fork-opt span {
+  -webkit-line-clamp: 2;
+}
+html[data-layout='landscape'] .pawn-text b {
+  font-size: var(--fs-sm);
+}
+
+/* ---------- desktop ---------- */
+html[data-layout='desktop'] .topbar {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 8px;
+  top: 10px;
+  left: 14px;
+  right: 14px;
+}
+html[data-layout='desktop'] .roster {
+  top: 72px;
+}
+html[data-layout='desktop'] .roster.side-A {
+  left: 14px;
+}
+html[data-layout='desktop'] .roster.side-B {
+  right: 14px;
+}
+html[data-layout='desktop'] .roster-cell {
+  width: 58px;
+  min-height: 64px;
+  gap: 5px;
+}
+html[data-layout='desktop'] .roster-cell .hpring {
+  --sz: 46px;
+}
+html[data-layout='desktop'] .roster-cell .hpring svg {
+  width: 30px;
+  height: 30px;
+}
+html[data-layout='desktop'] .rank-pips i {
+  width: 5px;
+  height: 5px;
+}
+html[data-layout='desktop'] .notices {
+  top: 74px;
+}
+html[data-layout='desktop'] .dock-main {
+  left: 86px;
+  width: min(660px, calc(100% - 86px - 86px - 370px));
+  bottom: 14px;
+}
+html[data-layout='desktop'] .dock-side {
+  right: 86px;
+  bottom: 14px;
+  width: 350px;
+}
+html[data-layout='desktop'] .gcard {
+  min-height: 108px;
+  padding: 8px 10px 10px;
+}
+html[data-layout='desktop'] .gname {
+  font-size: var(--fs-md);
+}
+html[data-layout='desktop'] .gdesc {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+html[data-layout='desktop'] .fork-opt span {
+  -webkit-line-clamp: 4;
+}
+html[data-layout='desktop'] .setup-cards {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  align-content: start;
+  overflow-y: auto;
+}
+html[data-layout='desktop'] .laneboard {
+  max-width: 760px;
+}
+html[data-layout='desktop'] .setup-main {
+  grid-template-rows: auto auto auto;
+  align-content: center;
+  padding: 18px;
+  gap: var(--sp-4);
+}
+html[data-layout='desktop'] .setup-foot {
+  justify-content: center;
+}
+
+/* ---------- setup in landscape: board and Begin on top, cards in a sideways row ---------- */
+html[data-layout='landscape'] .setup-main {
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-areas:
+    'head foot'
+    'cards cards';
+  padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+  gap: 6px;
+}
+html[data-layout='landscape'] .setup-head {
+  grid-area: head;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+}
+html[data-layout='landscape'] .laneboard {
+  min-width: 360px;
+}
+html[data-layout='landscape'] .setup-title p {
+  display: none;
+}
+html[data-layout='landscape'] .setup-title h2 {
+  font-size: var(--fs-lg);
+}
+html[data-layout='landscape'] .lane-zone {
+  min-height: 76px;
+}
+html[data-layout='landscape'] .lane-chip,
+html[data-layout='landscape'] .lane-empty {
+  min-height: 44px;
+}
+html[data-layout='landscape'] .setup-foot {
+  grid-area: foot;
+}
+html[data-layout='landscape'] .setup-foot .begin {
+  min-width: 110px;
+}
+html[data-layout='landscape'] .setup-cards {
+  grid-area: cards;
+  flex-direction: row;
+  overflow-x: auto;
+  overflow-y: hidden;
+  align-items: stretch;
+}
+html[data-layout='landscape'] .piece-card {
+  width: 236px;
+  grid-template-rows: auto auto 1fr auto auto;
+}
+html[data-layout='landscape'] .style-desc {
+  min-height: 0;
+  font-size: var(--fs-xs);
+  overflow: hidden;
 }
 
 @media (pointer: coarse) {
@@ -206,69 +304,26 @@ html[data-layout='landscape'] .roster {
     min-height: 44px;
   }
   .btn.small {
-    min-height: 36px;
+    min-height: 40px;
     padding: 6px 10px;
-  }
-  .act {
-    min-height: 46px;
   }
   .tabs .btn {
     min-height: 40px;
   }
-  .lane-pin {
-    min-height: 34px;
-    padding: 6px 10px;
-  }
-  input[type='range'] {
-    min-height: 32px;
-  }
-  .card.clickable {
-    min-height: 44px;
-  }
 }
 
-html[data-layout='landscape'] .hero-row {
-  grid-template-columns: repeat(5, 1fr);
-  gap: 4px;
+/* landscape phones: banners stay slim so they leave the middle of the view alone */
+html[data-layout='landscape'] .banner {
+  padding: 2px 14px 3px;
 }
-html[data-layout='landscape'] .hero-pick canvas {
-  width: 40px !important;
-  height: 40px !important;
+html[data-layout='landscape'] .banner b,
+html[data-layout='landscape'] .banner.check b,
+html[data-layout='landscape'] .banner.throne b {
+  font-size: var(--fs-md);
 }
-html[data-layout='landscape'] .hero-pick .dim {
+html[data-layout='landscape'] .banner span {
   display: none;
 }
-html[data-layout='landscape'] .lane-map {
-  width: min(100%, 176px);
-}
-html[data-layout='landscape'] .lane-pin {
-  padding: 2px 5px;
-  font-size: 10px;
-}
-html[data-layout='landscape'] .draft-detail {
-  min-height: 110px;
-}
-html[data-layout='landscape'] .draft-head .dim {
-  display: none;
-}
-
-/* prep in landscape: the panel fits the screen, the content area scrolls, the detail follows you */
-html[data-layout='landscape'] .prep-panel {
-  height: calc(100dvh - 12px);
-}
-html[data-layout='landscape'] .prep-scroll {
-  flex: 1 1 0;
-  min-height: 0;
-  max-height: none;
-}
-html[data-layout='landscape'] .upg-hint,
-html[data-layout='landscape'] .upg-about {
-  display: none;
-}
-html[data-layout='landscape'] .upg-card {
-  gap: 4px;
-  padding: var(--sp-2) var(--sp-3);
-}
-html[data-layout='landscape'] .upg-take {
-  opacity: 1;
+html[data-layout='landscape'] .rankchip {
+  padding: 1px 10px;
 }

@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import type { Content, PlayTeam } from '../../sim';
+import type { Content, PieceId, PlayTeam } from '../../sim';
 import { n0 } from '../format';
 
 export const heroName = (c: Content, def: string): string =>
-  (c.heroById.get(def)?.name ?? def).split(',')[0];
+  c.pieceById.get(def as PieceId)?.name ?? def;
 
 export const itemName = (c: Content, id: string): string =>
   c.itemById.get(id)?.name ?? c.cursedById.get(id)?.name ?? c.holyById.get(id)?.name ?? id;

@@ -18,10 +18,13 @@ describe('balance tooling', () => {
     const { md, stats } = report(results);
     for (const h of [
       'Balance report',
-      'Hero win rates',
-      'Win rate by lane',
+      'Tempo: gambits and pawns',
+      'Pieces',
+      'Styles',
+      'Build paths',
+      'Lanes',
       'Items',
-      'Curses, auction, comebacks, obelisks',
+      'Curses, comebacks, obelisks',
       'Targets',
     ]) {
       expect(md).toContain(h);
@@ -30,10 +33,19 @@ describe('balance tooling', () => {
     expect(stats.matches).toBe(3);
   });
 
-  it('forces a hero draft for pairwise runs', () => {
-    const draft = { A: Array(5).fill('queen'), B: Array(5).fill('miko') };
-    const r = simulateMatch(content, 5, 10, draft);
-    expect(r.heroes.filter((h) => h.team === 'A').every((h) => h.def === 'queen')).toBe(true);
-    expect(r.heroes.filter((h) => h.team === 'B').every((h) => h.def === 'miko')).toBe(true);
+  it('can fix a setup and switch White gambits off for the baseline', () => {
+    const A = content.pieces.map((p, i) => ({
+      piece: p.id,
+      style: p.styles[2].id,
+      path: 'defense' as const,
+      lane: (['top', 'top', 'bot', 'bot', 'mid'] as const)[i],
+    }));
+    const r = simulateMatch(content, 5, { setup: { A }, noGambitsA: true });
+    const white = r.heroes.filter((h) => h.team === 'A');
+    expect(white.every((h) => h.path === 'defense')).toBe(true);
+    for (const p of content.pieces)
+      expect(white.find((h) => h.def === p.id)!.style).toBe(p.styles[2].id);
+    expect(Object.keys(r.gambits.A)).toHaveLength(0);
+    expect(r.pawns.A).toBe(0);
   });
 });

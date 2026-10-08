@@ -6,8 +6,10 @@ import {
   type ColorRepresentation,
   CylinderGeometry,
   DoubleSide,
+  DynamicDrawUsage,
   Group,
   IcosahedronGeometry,
+  InstancedBufferAttribute,
   InstancedMesh,
   Matrix4,
   Mesh,
@@ -107,6 +109,141 @@ export class BarBatch {
     this.back.instanceMatrix.needsUpdate = true;
     this.fill.instanceMatrix.needsUpdate = true;
     if (this.fill.instanceColor) this.fill.instanceColor.needsUpdate = true;
+  }
+}
+
+const BADGE_CELL = 64;
+
+/**
+ * Rank badges: a numeral 1-8 beside each piece's health bar, camera-facing, one instanced quad per
+ * badge. A sprite atlas on a canvas texture holds the eight numerals; a second instanced quad
+ * draws a pulsing gold ring behind badges whose piece has a fork waiting.
+ */
+export class BadgeBatch {
+  readonly group = new Group();
+  private readonly badges: InstancedMesh;
+  private readonly pulses: InstancedMesh;
+  private readonly cells: InstancedBufferAttribute;
+  private readonly pulseMat: MeshBasicMaterial;
+  private readonly quat = new Quaternion();
+  private n = 0;
+  private np = 0;
+
+  constructor(
+    kit: Kit,
+    private cap = 64,
+  ) {
+    const atlas = kit.texture('rank-atlas', BADGE_CELL * 8, BADGE_CELL, (g) => {
+      for (let i = 0; i < 8; i++) {
+        const cx = i * BADGE_CELL + BADGE_CELL / 2;
+        const cy = BADGE_CELL / 2;
+        g.fillStyle = '#0a0810';
+        g.beginPath();
+        g.arc(cx, cy, 29, 0, Math.PI * 2);
+        g.fill();
+        g.strokeStyle = '#ffffff';
+        g.lineWidth = 5;
+        g.beginPath();
+        g.arc(cx, cy, 27, 0, Math.PI * 2);
+        g.stroke();
+        g.fillStyle = '#ffffff';
+        g.font = 'bold 38px Georgia, "Times New Roman", serif';
+        g.textAlign = 'center';
+        g.textBaseline = 'middle';
+        g.fillText(String(i + 1), cx, cy + 2);
+      }
+    });
+    const geo = new PlaneGeometry(1, 1);
+    this.cells = new InstancedBufferAttribute(new Float32Array(cap), 1);
+    this.cells.setUsage(DynamicDrawUsage);
+    geo.setAttribute('aCell', this.cells);
+    const mat = kit.own(
+      new MeshBasicMaterial({
+        map: atlas,
+        transparent: true,
+        depthTest: false,
+        depthWrite: false,
+        fog: false,
+      }),
+    );
+    mat.onBeforeCompile = (shader) => {
+      shader.vertexShader = shader.vertexShader
+        .replace('#include <common>', '#include <common>\nattribute float aCell;')
+        .replace(
+          '#include <uv_vertex>',
+          `#include <uv_vertex>
+#ifdef USE_MAP
+  vMapUv = ( mapTransform * vec3( uv * vec2( 0.125, 1.0 ) + vec2( aCell * 0.125, 0.0 ), 1.0 ) ).xy;
+#endif`,
+        );
+    };
+    mat.customProgramCacheKey = () => 'rank-badge';
+    this.badges = new InstancedMesh(kit.own(geo), mat, cap);
+    this.badges.renderOrder = 53;
+    this.pulseMat = kit.own(
+      new MeshBasicMaterial({
+        map: kit.ringTexture(false),
+        color: '#ffd35a',
+        transparent: true,
+        depthTest: false,
+        depthWrite: false,
+        blending: AdditiveBlending,
+        fog: false,
+      }),
+    );
+    this.pulses = new InstancedMesh(
+      kit.geo('bar', () => new PlaneGeometry(1, 1)),
+      this.pulseMat,
+      cap,
+    );
+    this.pulses.renderOrder = 52;
+    for (const im of [this.badges, this.pulses]) {
+      im.frustumCulled = false;
+      im.count = 0;
+      this.group.add(im);
+    }
+    _c.set('#ffffff');
+    for (let i = 0; i < cap; i++) this.badges.setColorAt(i, _c);
+  }
+
+  begin(cam: Camera): void {
+    this.n = 0;
+    this.np = 0;
+    this.quat.copy(cam.quaternion);
+  }
+
+  /** `size` is the badge diameter in world units; `pulse` draws the fork ring behind it. */
+  add(
+    x: number,
+    y: number,
+    z: number,
+    size: number,
+    rank: number,
+    color: ColorRepresentation,
+    pulse: boolean,
+    time: number,
+  ): void {
+    if (this.n >= this.cap) return;
+    this.cells.setX(this.n, Math.max(0, Math.min(7, Math.round(rank) - 1)));
+    _m.compose(_p.set(x, y, z), this.quat, _s.set(size, size, 1));
+    this.badges.setMatrixAt(this.n, _m);
+    this.badges.setColorAt(this.n, _c.set(color));
+    this.n++;
+    if (pulse) {
+      const k = 1.5 + 0.55 * (0.5 + 0.5 * Math.sin(time * 7));
+      _m.compose(_p.set(x, y, z), this.quat, _s.set(size * k, size * k, 1));
+      this.pulses.setMatrixAt(this.np++, _m);
+    }
+  }
+
+  end(time: number): void {
+    this.badges.count = this.n;
+    this.pulses.count = this.np;
+    this.pulseMat.opacity = 0.55 + 0.45 * (0.5 + 0.5 * Math.sin(time * 7));
+    this.badges.instanceMatrix.needsUpdate = true;
+    this.pulses.instanceMatrix.needsUpdate = true;
+    this.cells.needsUpdate = true;
+    if (this.badges.instanceColor) this.badges.instanceColor.needsUpdate = true;
   }
 }
 

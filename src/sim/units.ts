@@ -1,8 +1,8 @@
 import type { Ctx } from './ctx';
-import type { DamageType, Disposition, LaneId, Posture, Role, Stats } from './content/schema';
+import type { DamageType, Disposition, LaneId, Posture, Stats } from './content/schema';
 import { laneWaypoints } from './world/map';
 import { recompute } from './stats';
-import type { HeroState, PlayTeam, Unit, UnitKind, TeamId } from './types';
+import type { HeroState, PlayTeam, SetupEntry, Unit, UnitKind, TeamId } from './types';
 
 export const DISPOSITION_POSTURE: Record<Disposition, Posture> = {
   farmer: 'farm',
@@ -56,15 +56,10 @@ export function newUnit(
   return u;
 }
 
-export function makeHero(
-  ctx: Ctx,
-  team: PlayTeam,
-  slot: number,
-  defId: string,
-  role: Role,
-  isPlayer: boolean,
-): Unit {
-  const def = ctx.c.heroById.get(defId)!;
+export function makeHero(ctx: Ctx, team: PlayTeam, slot: number, entry: SetupEntry): Unit {
+  const def = ctx.c.pieceById.get(entry.piece)!;
+  const defId = entry.piece;
+  const role = entry.lane;
   const base = ctx.world.basePos[team];
   const dir = team === 'A' ? 1 : -1;
   const ox = dir * (14 + slot * 7);
@@ -74,7 +69,12 @@ export function makeHero(
   u.lane = role;
   const hero: HeroState = {
     defId,
-    isPlayer,
+    style: entry.style,
+    path: entry.path,
+    rank: 1,
+    perks: [],
+    order: null,
+    structMul: null,
     slot,
     role,
     lane: u.lane,
@@ -91,7 +91,6 @@ export function makeHero(
     streak: 0,
     respawnAt: null,
     cd: [0, 0, 0, 0],
-    upgrades: [],
     recall: null,
     goal: null,
     goalSetTick: -999,
@@ -105,11 +104,8 @@ export function makeHero(
     engageTick: 0,
     holdTicks: 0,
     lastRecallTick: -9999,
-    suggest: [],
     lossStreak: 0,
     lastDeathTick: -9999,
-    autoBuy: true,
-    suggestEvent: null,
     lastStandUsed: false,
   };
   u.hero = hero;
@@ -162,6 +158,40 @@ export function makeMinion(
   return u;
 }
 
+/** An elite pawn fielded with Tempo: spawns at the base and marches its lane like a pawnling. */
+export function makePawn(ctx: Ctx, team: PlayTeam, lane: LaneId): Unit {
+  const p = ctx.t.pawns;
+  const g = 1 + p.scalePerAct * (Math.max(1, ctx.s.phase.n) - 1);
+  const stats: Stats = {
+    maxHp: p.hp * g,
+    hpRegen: 0,
+    armor: p.armor,
+    resist: p.resist,
+    bladeDmg: p.damage * g,
+    atkSpeed: p.atkSpeed,
+    soulPower: 0,
+    moveSpeed: p.moveSpeed,
+    cdr: 0,
+    range: p.range,
+    respawnMult: 1,
+    incomeMult: 1,
+    damageTakenMult: 1,
+  };
+  const base = ctx.world.basePos[team];
+  const u = newUnit(ctx, 'minion', team, 'pawn', base.x, base.y, stats, p.damageType);
+  u.pawn = true;
+  u.lane = lane;
+  u.bounty = p.bounty;
+  const path = laneWaypoints(ctx.world, team, lane);
+  u.path = path;
+  u.pathI = 1;
+  u.x = path[0][0];
+  u.y = path[0][1];
+  u.px = u.x;
+  u.py = u.y;
+  return u;
+}
+
 export function makeTower(ctx: Ctx, team: PlayTeam, lane: LaneId, index: 0 | 1): Unit {
   const t = ctx.t.tower;
   const pos = ctx.world.towerPos[team][lane][index];
@@ -207,7 +237,6 @@ export function makeGuardian(ctx: Ctx, team: PlayTeam): Unit {
   };
   const u = newUnit(ctx, 'guardian', team, 'guardian', pos.x, pos.y, stats, 'true');
   u.rageStage = 0;
-  u.roaming = false;
   ctx.guardians[team] = u;
   ctx.s.teams[team].guardianId = u.id;
   return u;

@@ -1,5 +1,6 @@
 import { dist } from './core/math';
 import type { Ctx } from './ctx';
+import { checkRank } from './ranks';
 import type { CommandResult, Unit } from './types';
 
 export function itemCost(ctx: Ctx, id: string): number {
@@ -21,6 +22,7 @@ export function giveGold(ctx: Ctx, u: Unit, amount: number, source: string, sile
   h.gold += real;
   h.goldEarned += real;
   if (!silent) ctx.emit('gold', { id: u.id, amount: real, source });
+  checkRank(ctx, u);
 }
 
 export function baseCatalog(ctx: Ctx): string[] {
@@ -66,7 +68,6 @@ export interface Access {
 export type Where = 'here' | 'base' | 'jungle';
 
 export function shopAccess(ctx: Ctx, u: Unit): Access {
-  if (ctx.s.phase.kind === 'prep') return { base: true, keeper: false, jungle: false };
   if (ctx.s.phase.kind !== 'live') return { base: false, keeper: false, jungle: false };
   if (!u.alive) return { base: true, keeper: false, jungle: false };
   const jungle = nearJungleShop(ctx, u);

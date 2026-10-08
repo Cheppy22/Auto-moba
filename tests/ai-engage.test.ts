@@ -1,11 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { Match } from '../src/sim';
 import { maybeSwapLane } from '../src/sim/ai/swap';
-import { content } from './helpers';
+import { content, liveMatch } from './helpers';
 
 describe('AI engagement', () => {
   it('a hero that keeps dying without a kill swaps lanes with a teammate', () => {
-    const m = Match.create(content, { seed: 7, player: null });
+    const m = liveMatch(7);
     const ids = m.state.teams.A.heroIds;
     const units = ids.map((id) => m.unitById(id)!);
     const loser = units[0];
@@ -24,18 +23,30 @@ describe('AI engagement', () => {
   it('farmers rescue allies in a winnable fight over a long match', () => {
     let joined = 0;
     for (let seed = 1; seed <= 4; seed++) {
-      const m = Match.create(content, { seed, player: null });
-      for (let g = 0; g < 40 && m.state.phase.kind !== 'end'; g++) {
-        if (m.state.phase.kind === 'live') {
-          for (let i = 0; i < 20 * 60; i += 20) {
-            m.step(20);
-            for (const u of m.state.units)
-              if (u.hero?.disposition === 'farmer' && u.hero.goal?.kind === 'joinFight') joined++;
-          }
-        } else m.autoAdvance();
-        if (m.state.tick > 20 * 60 * 6) break;
+      const m = liveMatch(seed);
+      while (m.state.phase.kind === 'live' && m.state.tick < 20 * 60 * 6) {
+        m.step(20);
+        for (const u of m.state.units)
+          if (u.hero?.disposition === 'farmer' && u.hero.goal?.kind === 'joinFight') joined++;
       }
     }
     expect(joined).toBeGreaterThan(0);
+  });
+
+  it('in a two-piece lane the farmer (the Knight first) jungles', () => {
+    const m = liveMatch(9);
+    for (const t of ['A', 'B'] as const) {
+      const units = m.state.teams[t].heroIds.map((id) => m.unitById(id)!);
+      for (const u of units) {
+        const mates = units.filter((x) => x.hero!.lane === u.hero!.lane);
+        if (u.hero!.jungler) {
+          expect(mates).toHaveLength(2);
+          expect(u.hero!.disposition).toBe('farmer');
+        }
+      }
+      const knight = units.find((u) => u.hero!.defId === 'knight')!;
+      const pair = units.filter((x) => x.hero!.lane === knight.hero!.lane);
+      if (pair.length === 2) expect(knight.hero!.jungler).toBe(true);
+    }
   });
 });

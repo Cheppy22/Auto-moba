@@ -2,21 +2,25 @@ import { stepUnits } from './behavior';
 import { initAuction } from './auction';
 import { applyCommand } from './commands';
 import type { Content } from './content/loader';
-import type { LaneId, Role } from './content/schema';
+import type { LaneId } from './content/schema';
 import { TPS } from './combat';
 import type { Ctx } from './ctx';
 import { Grid } from './core/grid';
-import { seedStreams, pick } from './core/rng';
+import { seedStreams } from './core/rng';
 import { strategicUpdate } from './ai/strategic';
 import { updateFronts } from './ai/lanes';
 import { tickEvents } from './events';
+import { cardBlock, initHands, tickGambits } from './gambits';
 import { createKeeper } from './keeper';
 import { tickObelisks } from './obelisks';
-import { enterPrep, endLive } from './phase';
+import { pawnCap, pawnsAlive } from './pawns';
+import { actTicks, enterAct, tickActClock } from './phase';
 import { tickSpiritTide } from './pressure';
-import { aiShop } from './ai/shopping';
-import { nextTarget } from './ai/shopping';
-import { itemPrice, nearBase, quote } from './shop';
+import { forkOptions, tickForks } from './ranks';
+import { attackKindOf } from './pieces';
+import { aiSetup, placeTeam, validateSetup } from './setup';
+import { aiShop, nextTarget } from './ai/shopping';
+import { nearBase } from './shop';
 import {
   passiveGold,
   processDeaths,
@@ -26,7 +30,7 @@ import {
   tickUnitState,
 } from './systems';
 import { tickCampRespawns } from './camps';
-import { makeGuardian, makeHero, makeTower } from './units';
+import { makeGuardian, makeTower } from './units';
 import { LANES, buildWorld } from './world/map';
 import type {
   Command,
@@ -40,40 +44,20 @@ import type {
   Recorder,
   Replay,
   ReplayOp,
-  ShopEntry,
+  SetupEntry,
+  SnapGambit,
   SnapUnit,
   Snapshot,
   Unit,
 } from './types';
 
-const ROLE_SLOTS: Role[] = ['top', 'top', 'bot', 'bot', 'mid'];
-
-function initialState(
-  content: Content,
-  seed: number,
-  withPlayer: boolean | null,
-  fixed?: { A: string[]; B: string[] },
-  reserved?: string,
-): MatchState {
+function initialState(content: Content, config: MatchConfig): MatchState {
+  const seed = config.seed;
   const rng = seedStreams(seed);
-  const aiHeroes: Record<PlayTeam, string[]> = { A: [], B: [] };
-  const nA = withPlayer === null ? 5 : 4;
-  let pool = content.heroes.filter((h) => h.id !== reserved);
-  const take = (): string => {
-    if (pool.length === 0) pool = content.heroes.filter((h) => h.id !== reserved);
-    const h = pick(rng, 'draft', pool);
-    pool = pool.filter((x) => x.id !== h.id);
-    return h.id;
-  };
-  const deferred = withPlayer === true && !fixed && !reserved;
-  if (!deferred) {
-    for (let i = 0; i < nA; i++) aiHeroes.A.push(take());
-    for (let i = 0; i < 5; i++) aiHeroes.B.push(take());
-  }
-  if (fixed) {
-    aiHeroes.A = fixed.A.slice(0, nA);
-    aiHeroes.B = fixed.B.slice(0, 5);
-  }
+  // Both seeded picks are always drawn (White's pre-filled default first), so a fixed setup never
+  // shifts the stream for the other side.
+  const defaultA = aiSetup(content, rng);
+  const pickB = aiSetup(content, rng);
   const team = (): MatchState['teams']['A'] => ({
     points: 0,
     unlocks: [],
@@ -86,7 +70,7 @@ function initialState(
   return {
     seed,
     tick: 0,
-    phase: { kind: 'draft', n: 0, startTick: 0 },
+    phase: { kind: 'setup', n: 0, startTick: 0 },
     units: [],
     nextId: 1,
     rng,
@@ -115,16 +99,19 @@ function initialState(
     winner: null,
     nextWaveTick: 0,
     obeliskSchedule: [],
-    playerHeroId: null,
-    upgradeOffers: {},
-    draft: {
-      aiHeroes,
-      playerHero: null,
-      playerRole: null,
-      playerTeam: 'A',
-      unique: !fixed,
-      deferred,
+    setup: { A: config.setup?.A ?? defaultA, B: config.setup?.B ?? pickB },
+    autoGambits: { A: config.autoGambits?.A ?? false, B: config.autoGambits?.B ?? true },
+    autoForks: {
+      A: config.autoForks?.A ?? config.autoGambits?.A ?? false,
+      B: true,
     },
+    tempo: { A: 0, B: 0 },
+    hands: { A: [], B: [] },
+    forks: [],
+    check: { A: false, B: false },
+    throneDown: { A: false, B: false },
+    zones: [],
+    timedMods: [],
     board: {
       A: { claims: {}, plan: { tick: -999, siege: false, lane: 'mid' } },
       B: { claims: {}, plan: { tick: -999, siege: false, lane: 'mid' } },
@@ -167,61 +154,9 @@ function buildCtx(content: Content, state: MatchState): Ctx {
   return ctx;
 }
 
-interface Placed {
-  defId: string;
-  role: Role;
-  isPlayer: boolean;
-  jungler: boolean;
-}
-
-/**
- * Two heroes hold each side lane and one holds mid. The mid slot goes to an attacker (a roamer) if
- * the team has one; side lanes are paired so a lane gets different dispositions where possible.
- * In a pair the first farmer is the jungler: the partner holds the lane while the farmer clears
- * camps.
- */
-function assignRoles(
-  ctx: Ctx,
-  heroIds: string[],
-  fixed: { id: string; role: Role } | null,
-): Placed[] {
-  const disp = (id: string): string => ctx.c.heroById.get(id)!.disposition;
-  const pool = ROLE_SLOTS.slice();
-  const lanes: Record<Role, Placed[]> = { top: [], mid: [], bot: [] };
-  if (fixed) {
-    pool.splice(pool.indexOf(fixed.role), 1);
-    lanes[fixed.role].push({ defId: fixed.id, role: fixed.role, isPlayer: true, jungler: false });
-  }
-  const rest = heroIds.slice();
-  const place = (role: Role, i: number): void => {
-    const [id] = rest.splice(i, 1);
-    pool.splice(pool.indexOf(role), 1);
-    lanes[role].push({ defId: id, role, isPlayer: false, jungler: false });
-  };
-  if (pool.includes('mid')) {
-    const i = rest.findIndex((id) => disp(id) === 'attacker');
-    place('mid', i >= 0 ? i : 0);
-  }
-  for (const role of ['top', 'bot'] as Role[]) {
-    while (pool.includes(role) && rest.length > 0) {
-      const have = new Set(lanes[role].map((p) => disp(p.defId)));
-      const i = rest.findIndex((id) => !have.has(disp(id)));
-      place(role, i >= 0 ? i : 0);
-    }
-  }
-  for (const role of ['top', 'bot'] as Role[]) {
-    const farmer =
-      lanes[role].length === 2 ? lanes[role].find((p) => disp(p.defId) === 'farmer') : undefined;
-    if (farmer) farmer.jungler = true;
-  }
-  const out = [...lanes.top, ...lanes.bot, ...lanes.mid];
-  out.sort((a, b) => ROLE_SLOTS.indexOf(a.role) - ROLE_SLOTS.indexOf(b.role));
-  return out;
-}
-
-function finalizeDraft(ctx: Ctx): void {
+function startMatch(ctx: Ctx, white: SetupEntry[]): void {
   const s = ctx.s;
-  const d = s.draft!;
+  s.setup.A = white;
   for (const team of ['A', 'B'] as PlayTeam[]) {
     for (const lane of LANES) {
       makeTower(ctx, team, lane as LaneId, 0);
@@ -230,26 +165,18 @@ function finalizeDraft(ctx: Ctx): void {
     makeGuardian(ctx, team);
   }
   createKeeper(ctx);
-  const fixed = d.playerHero && d.playerRole ? { id: d.playerHero, role: d.playerRole } : null;
-  const roster: Record<PlayTeam, Placed[]> = {
-    A: assignRoles(ctx, d.aiHeroes.A, fixed),
-    B: assignRoles(ctx, d.aiHeroes.B, null),
-  };
-  for (const team of ['A', 'B'] as PlayTeam[]) {
-    roster[team].forEach((r, slot) => {
-      const u = makeHero(ctx, team, slot, r.defId, r.role, r.isPlayer);
-      u.hero!.jungler = r.jungler;
-      if (r.isPlayer) s.playerHeroId = u.id;
-    });
-  }
+  placeTeam(ctx, 'A', s.setup.A);
+  placeTeam(ctx, 'B', s.setup.B);
   initAuction(ctx);
-  s.draft = null;
   const heroes = [...s.teams.A.heroIds, ...s.teams.B.heroIds].map((id) => {
     const u = ctx.unit(id)!;
-    return { id, team: u.team, def: u.defId, role: u.hero!.role };
+    const h = u.hero!;
+    return { id, team: u.team, def: u.defId, role: h.role, style: h.style, path: h.path };
   });
   ctx.emit('matchStart', { seed: s.seed, heroes });
-  enterPrep(ctx, 1);
+  s.tempo = { A: ctx.t.gambits.tempoStart, B: ctx.t.gambits.tempoStart };
+  initHands(ctx);
+  enterAct(ctx, 1);
 }
 
 function stepTick(ctx: Ctx): void {
@@ -266,6 +193,8 @@ function stepTick(ctx: Ctx): void {
   tickObelisks(ctx);
   tickEvents(ctx);
   tickCampRespawns(ctx);
+  tickForks(ctx);
+  tickGambits(ctx);
   const order: PlayTeam[] = Math.floor(s.tick / 20) % 2 === 0 ? ['A', 'B'] : ['B', 'A'];
   for (const team of order) {
     for (const id of s.teams[team].heroIds) {
@@ -274,7 +203,6 @@ function stepTick(ctx: Ctx): void {
       if ((s.tick + (u.hero ? u.hero.slot : id) * 3) % 20 === 0) strategicUpdate(ctx, u);
       if (
         u.hero &&
-        (!u.hero.isPlayer || u.hero.autoBuy) &&
         (s.tick + id) % 20 === 0 &&
         u.hero.gold >= ctx.t.ai.shopAtBaseGold &&
         nearBase(ctx, u)
@@ -290,8 +218,7 @@ function stepTick(ctx: Ctx): void {
   passiveGold(ctx);
   sampleAndFlush(ctx);
   s.tick++;
-  if (s.phase.kind === 'live' && s.tick - s.phase.startTick >= Math.round(ctx.t.phaseSeconds * TPS))
-    endLive(ctx);
+  tickActClock(ctx);
 }
 
 export class Match {
@@ -301,27 +228,24 @@ export class Match {
     readonly content: Content,
     readonly config: MatchConfig,
   ) {
-    const player = config.player;
-    const state = initialState(
-      content,
-      config.seed,
-      player === null ? null : true,
-      config.draft,
-      player?.heroId,
-    );
-    this.ctx = buildCtx(content, state);
+    this.ctx = buildCtx(content, initialState(content, config));
   }
 
+  /** With `config.setup.A` the match starts live at once; otherwise it waits for `setupTeam`. */
   static create(content: Content, config: MatchConfig): Match {
     const m = new Match(content, config);
-    if (config.player) {
-      m.ctx.s.draft!.playerHero = config.player.heroId;
-      m.ctx.s.draft!.playerRole = config.player.role;
-      finalizeDraft(m.ctx);
-    } else if (config.player === null) {
-      finalizeDraft(m.ctx);
+    for (const side of [config.setup?.A, config.setup?.B]) {
+      if (side === undefined) continue;
+      const err = validateSetup(content, side);
+      if (err) throw new Error(`Invalid setup: ${err}`);
     }
+    if (config.setup?.A) startMatch(m.ctx, m.ctx.s.setup.A);
     return m;
+  }
+
+  /** White's pre-filled setup (the AI default), for the setup board and headless runs. */
+  defaultSetup(): SetupEntry[] {
+    return this.ctx.s.setup.A.map((e) => ({ ...e }));
   }
 
   get state(): MatchState {
@@ -338,7 +262,7 @@ export class Match {
 
   issue(cmd: Command): CommandResult {
     this.ops.push({ op: 'issue', cmd });
-    return applyCommand(this.ctx, cmd, finalizeDraft);
+    return applyCommand(this.ctx, cmd, startMatch);
   }
 
   step(ticks = 1): number {
@@ -356,23 +280,13 @@ export class Match {
     return n;
   }
 
-  autoAdvance(): CommandResult {
-    const k = this.ctx.s.phase.kind;
-    if (k === 'prep') return this.issue({ type: 'startPhase' });
-    if (k === 'report') return this.issue({ type: 'continue' });
-    return { ok: false, reason: 'nothing to advance' };
-  }
-
+  /** Runs to checkmate (or the Act limit). A match still in setup starts with White's default. */
   runToEnd(maxPhases = 12): void {
-    for (let guard = 0; guard < maxPhases * 4; guard++) {
-      const s = this.ctx.s;
-      if (s.phase.kind === 'end') return;
-      if (s.phase.kind === 'live') this.step(Math.round(this.ctx.t.phaseSeconds * TPS) + 5);
-      else {
-        const r = this.autoAdvance();
-        if (!r.ok) return;
-      }
-      if (this.ctx.s.phase.n > maxPhases && this.ctx.s.phase.kind !== 'live') return;
+    if (this.ctx.s.phase.kind === 'setup')
+      this.issue({ type: 'setupTeam', pieces: this.defaultSetup() });
+    const act = actTicks(this.ctx);
+    while (this.ctx.s.phase.kind === 'live' && this.ctx.s.phase.n <= maxPhases) {
+      if (this.step(act) === 0) break;
     }
   }
 
@@ -398,9 +312,11 @@ export class Match {
 
   snapshot(): Snapshot {
     const s = this.ctx.s;
+    const c = this.content;
     const units: SnapUnit[] = [];
     let keeper: Snapshot['keeper'] = null;
     const need = this.ctx.t.obelisk.claimSec * TPS;
+    const forkIds = new Set(s.forks.map((f) => f.heroId));
     for (const u of s.units) {
       if (!u.alive && !u.hero) continue;
       if (u.kind === 'keeper') keeper = { x: u.x, y: u.y, spot: s.keeper.spot };
@@ -410,8 +326,8 @@ export class Match {
       let holy = false;
       if (h) {
         for (const id of h.items) {
-          if (this.content.cursedById.has(id)) curse = true;
-          if (this.content.holyById.has(id)) holy = true;
+          if (c.cursedById.has(id)) curse = true;
+          if (c.holyById.has(id)) holy = true;
         }
       }
       units.push({
@@ -427,9 +343,17 @@ export class Match {
         maxHp: u.stats.maxHp,
         shield,
         alive: u.alive,
-        isPlayer: !!h?.isPlayer,
+        piece: h ? h.defId : null,
+        style: h ? h.style : null,
+        path: h ? h.path : null,
+        rank: h ? h.rank : 0,
+        forkPending: forkIds.has(u.id),
+        pawn: !!u.pawn,
+        lane: h ? h.lane : u.lane,
         role: h ? h.role : null,
-        posture: h ? h.posture : null,
+        marked: u.mods.some((m) => m.id === 'gambit:check'),
+        stunned: u.stunUntil !== undefined && u.stunUntil > s.tick,
+        attackKind: h ? attackKindOf(c, h) : null,
         recalling: !!h?.recall,
         goal: h?.goal ? h.goal.kind : null,
         slot: h ? h.slot : 0,
@@ -441,26 +365,40 @@ export class Match {
         flash: u.atkCd >= Math.max(1, Math.round(TPS / Math.max(0.2, u.stats.atkSpeed))) - 2,
       });
     }
-    const phaseTicks = Math.round(this.ctx.t.phaseSeconds * TPS);
+    const live = s.phase.kind === 'live';
+    const hand: SnapGambit[] = s.hands.A.map((slot, i) => {
+      const def = slot.cardId !== null ? c.gambitById.get(slot.cardId) : undefined;
+      const block = def ? cardBlock(this.ctx, 'A', i) : 'refilling';
+      return {
+        slot: i,
+        cardId: def ? def.id : '',
+        name: def ? def.name : '',
+        desc: def ? def.desc : '',
+        cost: def ? def.cost : 0,
+        target: def ? def.target : 'none',
+        piece: def ? def.piece : null,
+        usable: live && block === '',
+        reason: live ? block : 'match not live',
+        ticksLeft: def ? Math.max(0, slot.expireTick - s.tick) : 0,
+        refillTicks: slot.refillTick !== null ? Math.max(0, slot.refillTick - s.tick) : null,
+      };
+    });
+    const cap = live ? pawnCap(this.ctx) : this.ctx.t.pawns.capBase;
     return {
       tick: s.tick,
       phase: { ...s.phase },
       winner: s.winner,
       units,
       slots: s.slots.map((sl) => {
-        const d = this.content.map.slots.find((x) => x.id === sl.id)!;
+        const d = c.map.slots.find((x) => x.id === sl.id)!;
         return { id: sl.id, open: sl.open, biomeId: sl.biomeId, x: d.x, y: d.y, radius: d.radius };
       }),
       pressure: s.pressure.slice(),
       points: { A: s.teams.A.points, B: s.teams.B.points },
-      playerHeroId: s.playerHeroId,
       keeper,
-      suggest:
-        (s.playerHeroId !== null ? this.ctx.unit(s.playerHeroId)?.hero?.suggest : undefined) ?? [],
-      phaseTicksLeft:
-        s.phase.kind === 'live' ? Math.max(0, phaseTicks - (s.tick - s.phase.startTick)) : 0,
+      phaseTicksLeft: live ? Math.max(0, actTicks(this.ctx) - (s.tick - s.phase.startTick)) : 0,
       events: s.events.map((e) => {
-        const def = this.content.eventById.get(e.defId)!;
+        const def = c.eventById.get(e.defId)!;
         return {
           id: `${e.defId}#${e.id}`,
           kind: e.defId,
@@ -486,44 +424,45 @@ export class Match {
             : {}),
         };
       }),
+      act: s.phase.n,
+      tempo: { A: Math.floor(s.tempo.A), B: Math.floor(s.tempo.B) },
+      hand,
+      pawns: {
+        A: { alive: pawnsAlive(this.ctx, 'A'), cap, cost: this.ctx.t.pawns.cost },
+        B: { alive: pawnsAlive(this.ctx, 'B'), cap, cost: this.ctx.t.pawns.cost },
+      },
+      forks: s.forks
+        .filter((f) => this.ctx.unit(f.heroId)?.team === 'A')
+        .map((f) => {
+          const u = this.ctx.unit(f.heroId)!;
+          return {
+            heroId: f.heroId,
+            piece: u.hero!.defId,
+            rank: f.rank,
+            options: forkOptions(this.ctx, u, f.rank).map((o) => ({
+              id: o.id,
+              name: o.name,
+              desc: o.desc,
+            })),
+            ticksLeft: Math.max(0, f.deadlineTick - s.tick),
+          };
+        }),
+      check: { ...s.check },
+      throneDown: { ...s.throneDown },
+      zones: s.zones.map((z) => ({
+        team: z.team,
+        x: z.x,
+        y: z.y,
+        radius: z.radius,
+        ticksLeft: Math.max(0, z.endTick - s.tick),
+      })),
     };
   }
 
-  shopList(): ShopEntry[] {
-    const s = this.ctx.s;
-    const p = s.playerHeroId !== null ? this.ctx.unit(s.playerHeroId) : undefined;
-    if (!p || !p.hero || p.team === 'neutral') return [];
-    const out: ShopEntry[] = [];
-    for (const it of this.content.items) {
-      const inKeeper = s.keeper.stock.includes(it.id);
-      const pr = itemPrice(this.ctx, p, it.id)!;
-      const q = quote(this.ctx, p, it.id);
-      const canBuy = !('error' in q) && p.hero.gold >= q.price;
-      let reason = '';
-      if ('error' in q) reason = q.error;
-      else if (!canBuy) reason = 'not enough gold';
-      out.push({
-        id: it.id,
-        name: it.name,
-        category: it.category,
-        tier: it.tier,
-        cost: it.cost,
-        price: pr.price,
-        consumed: pr.consumed,
-        source: it.tier <= 2 ? 'base' : inKeeper ? 'keeper' : 'jungle',
-        canBuy,
-        reason,
-        desc: it.desc,
-      });
-    }
-    return out;
-  }
-
-  /** Build-list item the player's hero should buy next (for the shop's Recommended tag). */
-  recommendedItem(): string | null {
-    const id = this.ctx.s.playerHeroId;
-    const u = id !== null ? this.ctx.unit(id) : undefined;
-    return u ? nextTarget(this.ctx, u) : null;
+  /** The build-path item a piece buys next (the Armory's "next buy"). */
+  nextBuy(heroId: number): string | null {
+    const u = this.ctx.unit(heroId);
+    return u?.hero ? nextTarget(this.ctx, u) : null;
   }
 
   unitById(id: number): Unit | undefined {

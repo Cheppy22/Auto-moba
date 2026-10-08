@@ -18,7 +18,7 @@ export function initAuction(ctx: Ctx): void {
 export function auctionOpen(ctx: Ctx): boolean {
   return (
     ctx.t.auction.enabled &&
-    ctx.s.phase.kind === 'prep' &&
+    ctx.s.phase.kind === 'live' &&
     ctx.s.phase.n <= 3 &&
     !ctx.s.auction.resolved
   );
@@ -56,8 +56,7 @@ export function aiBids(ctx: Ctx, team: PlayTeam): void {
   let richest: Unit | null = null;
   for (const id of ctx.s.teams[team].heroIds) {
     const u = ctx.unit(id);
-    if (u && u.hero && !u.hero.isPlayer && (!richest || u.hero.gold > richest.hero!.gold))
-      richest = u;
+    if (u && u.hero && (!richest || u.hero.gold > richest.hero!.gold)) richest = u;
   }
   const gold = richest
     ? Math.floor(richest.hero!.gold * ctx.t.ai.bidGoldFraction * (frac >= 1 ? 1.5 : 0.5))
@@ -116,11 +115,6 @@ export function resolveAuction(ctx: Ctx): void {
   for (const [hid, g] of Object.entries(a.bids[loser].goldBy)) {
     const u = ctx.unit(Number(hid));
     if (u && u.hero) u.hero.gold += Math.round(g * ctx.t.auction.loserRefund);
-  }
-  const playerTeam = ctx.s.playerHeroId !== null ? ctx.unit(ctx.s.playerHeroId)?.team : null;
-  if (playerTeam === winner) {
-    a.awaitingRecipient = true;
-    return;
   }
   awardHoly(ctx, bestRecipient(ctx, winner));
 }

@@ -20,8 +20,11 @@ export * from './text';
 export interface RosterEntry {
   id: number;
   team: PlayTeam;
+  /** Piece id (king, queen, rook, bishop, knight). */
   def: string;
   role: string;
+  style: string;
+  path: string;
 }
 
 export interface AnalysisInput {
@@ -43,7 +46,7 @@ export function inputFromMatch(m: Match, c: Content): AnalysisInput {
     fightGapSec: c.tuning.fight.clusterGapSec,
     fightRadius: c.tuning.fight.clusterRadius,
     badges: c.badges,
-    playerTeam: m.config.player?.team ?? 'A',
+    playerTeam: 'A',
   };
 }
 
@@ -89,8 +92,8 @@ export interface HeroModel {
   goldSeries: { tick: number; total: number }[];
   purchases: Purchase[];
   sells: { tick: number; item: string; refund: number }[];
-  upgrades: { tick: number; upgrade: string }[];
-  postures: { tick: number; posture: string }[];
+  ranks: { tick: number; rank: number; bonus: string }[];
+  forks: { tick: number; rank: number; optionId: string; auto: boolean }[];
   recalls: { tick: number; dest: string; stage: string }[];
   deathRecords: DeathRecord[];
   distance: number;
@@ -114,6 +117,9 @@ export interface TeamModel {
   pointsEarned: number;
   pointsSpent: number;
   heroDeathsByCause: Record<string, number>;
+  gambitsPlayed: Record<string, number>;
+  pawnsFielded: number;
+  checks: number;
 }
 
 export interface SpecialFacts {
@@ -183,8 +189,8 @@ function newHero(r: RosterEntry): HeroModel {
     goldSeries: [],
     purchases: [],
     sells: [],
-    upgrades: [],
-    postures: [],
+    ranks: [],
+    forks: [],
     recalls: [],
     deathRecords: [],
     distance: 0,
@@ -210,6 +216,9 @@ function newTeam(team: PlayTeam): TeamModel {
     pointsEarned: 0,
     pointsSpent: 0,
     heroDeathsByCause: {},
+    gambitsPlayed: {},
+    pawnsFielded: 0,
+    checks: 0,
   };
 }
 
@@ -239,15 +248,10 @@ function windowFor(events: GameEvent[], scope: Scope): Window {
   const w = { ...full };
   let foundStart = false;
   for (const e of events) {
-    if (e.type === 'phaseStart' && e.payload.phase === scope.n && e.payload.kind === 'prep') {
+    if (e.type === 'phaseStart' && e.payload.phase === scope.n) {
       w.seqFrom = e.seq;
-      foundStart = true;
-    } else if (
-      e.type === 'phaseStart' &&
-      e.payload.phase === scope.n &&
-      e.payload.kind === 'live'
-    ) {
       w.tickFrom = e.tick;
+      foundStart = true;
     } else if (e.type === 'phaseEnd' && e.payload.phase === scope.n) {
       w.seqTo = e.seq;
       w.tickTo = e.tick;
@@ -268,6 +272,8 @@ export function buildReport(input: AnalysisInput, scope: Scope, viewer?: PlayTea
         team: h.team as PlayTeam,
         def: h.def,
         role: h.role,
+        style: h.style,
+        path: h.path,
       }))
     : [];
   const heroes = new Map<number, HeroModel>();
@@ -392,11 +398,29 @@ export function buildReport(input: AnalysisInput, scope: Scope, viewer?: PlayTea
           .get(e.payload.id)
           ?.sells.push({ tick: e.tick, item: e.payload.item, refund: e.payload.refund });
         break;
-      case 'upgradePick':
-        heroes.get(e.payload.id)?.upgrades.push({ tick: e.tick, upgrade: e.payload.upgrade });
+      case 'rankUp':
+        heroes
+          .get(e.payload.id)
+          ?.ranks.push({ tick: e.tick, rank: e.payload.rank, bonus: e.payload.bonus });
         break;
-      case 'posture':
-        heroes.get(e.payload.id)?.postures.push({ tick: e.tick, posture: e.payload.posture });
+      case 'fork':
+        heroes.get(e.payload.id)?.forks.push({
+          tick: e.tick,
+          rank: e.payload.rank,
+          optionId: e.payload.optionId,
+          auto: e.payload.auto,
+        });
+        break;
+      case 'gambit': {
+        const g = teams[e.payload.team].gambitsPlayed;
+        g[e.payload.cardId] = (g[e.payload.cardId] ?? 0) + 1;
+        break;
+      }
+      case 'pawnFielded':
+        teams[e.payload.team].pawnsFielded++;
+        break;
+      case 'check':
+        teams[e.payload.team].checks++;
         break;
       case 'recall':
         heroes
