@@ -2,6 +2,10 @@
 
 Newest first. One entry per change: what changed, why, and any measured effect. How the game works _now_ is in [SOURCE_OF_TRUTH.md](SOURCE_OF_TRUTH.md); this file is history. Commit ids are on branch `test-product`.
 
+## 2026-10-08
+
+- **Second test site** at `/v2/`. The Pages workflow now builds `test-product` at the root and `test-product-2` (the chess experiment) under `/v2/`; a push to either branch redeploys both. If the v2 build fails, the main site still deploys. Why: Cheppy wants to play the experimental branch in a browser.
+
 ## 2026-10-07
 
 - **3D island and mobile shop** (in progress, committed for testing). Why: Cheppy asked for a physical 3D map as the default and a shop that stops covering the phone screen.

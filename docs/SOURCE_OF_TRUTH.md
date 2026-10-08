@@ -27,7 +27,7 @@
   - Push with `git push -u origin test-product`, retrying on network errors.
   - End commit messages with the attribution lines from the latest system reminder.
 - **Models:** the session stays on Opus, which designs, writes specs, reviews and integrates. It delegates through subagents: Sonnet builds features, and Haiku does mechanical bulk work (renames, sweeps, formatting), which is always reviewed before commit. Say which agent and model did each piece.
-- **Publishing:** GitHub Pages deploys from `test-product`. The Pages source must be set to "GitHub Actions". Site: https://cheppy22.github.io/Auto-moba/.
+- **Publishing:** GitHub Pages deploys from `test-product`. The Pages source must be set to "GitHub Actions". Site: https://cheppy22.github.io/Auto-moba/. The experimental branch `test-product-2` (chess variant) is built to https://cheppy22.github.io/Auto-moba/v2/ by the same workflow, which must stay identical on both branches.
 - **Run it:** see [README.md](../README.md). `npm run check` runs typecheck, lint, prettier and unit tests; `npx playwright test` runs the browser tests.
 
 ## Identity

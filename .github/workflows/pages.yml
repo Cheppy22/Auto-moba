@@ -1,32 +1,64 @@
 name: pages
+# One site, two builds: test-product at the root, test-product-2 under /v2/.
+# Keep this file identical on both branches.
 on:
   push:
-    branches: [test-product]
+    branches: [test-product, test-product-2]
   workflow_dispatch:
 permissions:
   contents: read
   pages: write
   id-token: write
-concurrency:
-  group: pages
-  cancel-in-progress: true
+  actions: write
 jobs:
-  deploy:
+  relay:
+    # Pages deploys from test-product only, so a push to test-product-2 asks it to rebuild both.
+    if: github.ref == 'refs/heads/test-product-2'
     runs-on: ubuntu-latest
+    steps:
+      - run: gh workflow run pages.yml --ref test-product --repo "$GITHUB_REPOSITORY"
+        env:
+          GH_TOKEN: ${{ github.token }}
+  deploy:
+    if: github.ref == 'refs/heads/test-product'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: pages
+      cancel-in-progress: true
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          path: main
+      - uses: actions/checkout@v4
+        with:
+          ref: test-product-2
+          path: v2
+        continue-on-error: true
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-      - run: npm ci
-      - run: npm run build
+      - name: Build main
+        working-directory: main
+        run: npm ci && npm run build
+      - name: Build v2
+        id: v2
+        working-directory: v2
+        continue-on-error: true
+        run: npm ci && npm run build
+      - name: Assemble site
+        run: |
+          mkdir -p site
+          cp -r main/dist/. site/
+          if [ "${{ steps.v2.outcome }}" = "success" ]; then
+            mkdir -p site/v2
+            cp -r v2/dist/. site/v2/
+          fi
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: dist
+          path: site
       - id: deployment
         uses: actions/deploy-pages@v4
