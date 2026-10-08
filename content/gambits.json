@@ -1,0 +1,138 @@
+{
+  "gambits": [
+    {
+      "id": "advance",
+      "name": "Advance",
+      "desc": "Pieces, pawns and pawnlings in that lane push; +10% move speed for 20 s.",
+      "cost": 15,
+      "target": "lane",
+      "piece": null,
+      "weight": 3,
+      "durationSec": 20,
+      "params": {
+        "moveSpeedMul": 1.1
+      }
+    },
+    {
+      "id": "hold_the_file",
+      "name": "Hold the File",
+      "desc": "Pieces in that lane defend; +15% armor and resist for 20 s.",
+      "cost": 20,
+      "target": "lane",
+      "piece": null,
+      "weight": 3,
+      "durationSec": 20,
+      "params": {
+        "armorMul": 1.15,
+        "resistMul": 1.15
+      }
+    },
+    {
+      "id": "regroup",
+      "name": "Regroup",
+      "desc": "Every living piece gathers at the point for 15 s.",
+      "cost": 25,
+      "target": "point",
+      "piece": null,
+      "weight": 2,
+      "durationSec": 15,
+      "params": {
+        "radius": 180
+      }
+    },
+    {
+      "id": "pawn_storm",
+      "name": "Pawn Storm",
+      "desc": "That lane's pawns and pawnlings deal +50% damage and move 50% faster for 15 s.",
+      "cost": 30,
+      "target": "lane",
+      "piece": null,
+      "weight": 2,
+      "durationSec": 15,
+      "params": {
+        "damageMul": 1.5,
+        "moveSpeedMul": 1.5
+      }
+    },
+    {
+      "id": "check",
+      "name": "Check",
+      "desc": "Marks an enemy piece: it takes 20% more damage for 8 s, visible to all.",
+      "cost": 30,
+      "target": "enemy",
+      "piece": null,
+      "weight": 2,
+      "durationSec": 8,
+      "params": {
+        "damageTakenMul": 1.2
+      }
+    },
+    {
+      "id": "castle",
+      "name": "Castle",
+      "desc": "King and Rook swap places instantly.",
+      "cost": 20,
+      "target": "none",
+      "piece": "king",
+      "weight": 1.5,
+      "durationSec": 0,
+      "params": {}
+    },
+    {
+      "id": "queens_gambit",
+      "name": "Queen's Gambit",
+      "desc": "Queen deals +40% damage for 12 s, then -20% for 6 s.",
+      "cost": 40,
+      "target": "none",
+      "piece": "queen",
+      "weight": 1.5,
+      "durationSec": 12,
+      "params": {
+        "damageMul": 1.4,
+        "afterMul": 0.8,
+        "afterSec": 6
+      }
+    },
+    {
+      "id": "siege",
+      "name": "Siege",
+      "desc": "Rook and its lane focus a Bastion or Throne; +30% structure damage for 10 s.",
+      "cost": 35,
+      "target": "enemy",
+      "piece": "rook",
+      "weight": 1.5,
+      "durationSec": 10,
+      "params": {
+        "structureMul": 1.3
+      }
+    },
+    {
+      "id": "sanctuary",
+      "name": "Sanctuary",
+      "desc": "A zone that heals allies 4% max health per second for 6 s.",
+      "cost": 35,
+      "target": "point",
+      "piece": "bishop",
+      "weight": 1.5,
+      "durationSec": 6,
+      "params": {
+        "healPctPerSec": 0.04,
+        "radius": 150
+      }
+    },
+    {
+      "id": "fork",
+      "name": "Fork",
+      "desc": "Knight leaps to an enemy piece within reach and stuns it for 1 s.",
+      "cost": 45,
+      "target": "enemy",
+      "piece": "knight",
+      "weight": 1.5,
+      "durationSec": 1,
+      "params": {
+        "reach": 500,
+        "stunSec": 1
+      }
+    }
+  ]
+}

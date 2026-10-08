@@ -1,0 +1,912 @@
+{
+  "id": "bishop",
+  "name": "Bishop",
+  "title": "The Diagonal",
+  "attackKind": "ranged",
+  "disposition": "farmer",
+  "personality": "cautious",
+  "playstyle": "A Soul caster with long, narrow reach: beams that hit one piece far away, small blasts at range. Heals the wounded. Keep her behind the line.",
+  "stats": {
+    "maxHp": 880,
+    "hpRegen": 2.5,
+    "armor": 18,
+    "resist": 30,
+    "bladeDmg": 34,
+    "atkSpeed": 0.85,
+    "soulPower": 54,
+    "moveSpeed": 45,
+    "cdr": 0,
+    "range": 110
+  },
+  "autoSoulScale": 0.3,
+  "abilities": [
+    {
+      "id": "diagonal_beam",
+      "name": "Diagonal Beam",
+      "cooldownSec": 6,
+      "range": 175,
+      "radius": 0,
+      "target": "enemy",
+      "effects": [
+        {
+          "type": "damage",
+          "dmgType": "soul",
+          "base": 40,
+          "bladeScale": 0,
+          "soulScale": 0.65
+        }
+      ],
+      "condition": {},
+      "desc": "A long beam at one enemy up to 175 away: 40 + 65% Soul damage."
+    },
+    {
+      "id": "blessing",
+      "name": "Blessing",
+      "cooldownSec": 12,
+      "range": 180,
+      "radius": 0,
+      "target": "lowestAlly",
+      "effects": [
+        {
+          "type": "heal",
+          "base": 50,
+          "bladeScale": 0,
+          "soulScale": 0.55
+        }
+      ],
+      "condition": {
+        "allyHpBelow": 0.75
+      },
+      "desc": "Heals the most wounded piece within 180 (when below 75% health) for 50 + 55% Soul."
+    },
+    {
+      "id": "censure",
+      "name": "Censure",
+      "cooldownSec": 14,
+      "range": 170,
+      "radius": 50,
+      "target": "enemyBurst",
+      "effects": [
+        {
+          "type": "damage",
+          "dmgType": "soul",
+          "base": 30,
+          "bladeScale": 0,
+          "soulScale": 0.35
+        },
+        {
+          "type": "statMod",
+          "stat": "moveSpeed",
+          "kind": "mul",
+          "value": 0.6,
+          "durationSec": 2
+        }
+      ],
+      "condition": {
+        "heroTargetOnly": true
+      },
+      "desc": "A narrow blast on an enemy piece up to 170 away: everything within 50 of it takes 30 + 35% Soul damage and is slowed 40% for 2s."
+    }
+  ],
+  "passives": [
+    {
+      "on": "lowHp",
+      "hpBelow": 0.4,
+      "cooldownSec": 30,
+      "target": "self",
+      "effects": [
+        {
+          "type": "shield",
+          "base": 60,
+          "bladeScale": 0,
+          "soulScale": 0.6,
+          "durationSec": 3
+        }
+      ],
+      "desc": "Mitre: dropping below 40% health raises a 60 + 60% Soul shield for 3s (30s)."
+    }
+  ],
+  "styles": [
+    {
+      "id": "light",
+      "name": "Light",
+      "desc": "The healer. Keeps the court standing with big group heals, a regeneration halo and small heals that never stop.",
+      "ability": {
+        "id": "radiance",
+        "name": "Radiance",
+        "cooldownSec": 24,
+        "range": 0,
+        "radius": 200,
+        "target": "allyArea",
+        "effects": [
+          {
+            "type": "heal",
+            "base": 70,
+            "bladeScale": 0,
+            "soulScale": 0.7
+          },
+          {
+            "type": "shield",
+            "base": 30,
+            "bladeScale": 0,
+            "soulScale": 0.3,
+            "durationSec": 3
+          }
+        ],
+        "condition": {
+          "allyHpBelow": 0.6
+        },
+        "desc": "When a piece within 200 is below 60% health, heals every piece there for 70 + 70% Soul and shields them for 30 + 30% Soul for 3s."
+      },
+      "mods": [
+        {
+          "stat": "soulPower",
+          "kind": "add",
+          "value": 10
+        },
+        {
+          "stat": "cdr",
+          "kind": "add",
+          "value": 0.08
+        },
+        {
+          "stat": "resist",
+          "kind": "add",
+          "value": 4
+        },
+        {
+          "stat": "bladeDmg",
+          "kind": "mul",
+          "value": 0.9
+        }
+      ],
+      "passives": [
+        {
+          "on": "periodic",
+          "everySec": 1,
+          "target": "self",
+          "effects": [
+            {
+              "type": "aura",
+              "radius": 160,
+              "target": "ally",
+              "stat": "hpRegen",
+              "kind": "add",
+              "value": 4
+            }
+          ],
+          "desc": "Halo: allied pieces and pawns within 160 regenerate +4 health per second."
+        },
+        {
+          "on": "periodic",
+          "everySec": 6,
+          "target": "allyArea",
+          "radius": 150,
+          "effects": [
+            {
+              "type": "heal",
+              "base": 10,
+              "bladeScale": 0,
+              "soulScale": 0.12
+            }
+          ],
+          "desc": "Grace: every 6s, allied pieces within 150 heal 10 + 12% Soul."
+        }
+      ],
+      "ranks": {
+        "2": {
+          "name": "Devotion",
+          "desc": "Blessing heals 20% more.",
+          "ability": 1,
+          "powerMul": 1.2
+        },
+        "3": {
+          "name": "Choir",
+          "desc": "Radiance covers 15% more ground.",
+          "ability": 3,
+          "radiusMul": 1.15
+        },
+        "5": {
+          "name": "Litany",
+          "desc": "Blessing recharges 20% faster.",
+          "ability": 1,
+          "cooldownMul": 0.8
+        },
+        "6": {
+          "name": "Benediction",
+          "desc": "Radiance heals 20% more.",
+          "ability": 3,
+          "powerMul": 1.2
+        },
+        "7": {
+          "name": "Saint",
+          "desc": "+10% Soul power and +5% max health.",
+          "mods": [
+            {
+              "stat": "soulPower",
+              "kind": "mul",
+              "value": 1.1
+            },
+            {
+              "stat": "maxHp",
+              "kind": "mul",
+              "value": 1.05
+            }
+          ]
+        }
+      },
+      "forks": {
+        "4": [
+          {
+            "id": "light_long",
+            "name": "Long Blessing",
+            "desc": "Blessing reaches 30% farther. Heal across the lane from safety.",
+            "ability": 1,
+            "rangeMul": 1.3,
+            "cooldownMul": 1
+          },
+          {
+            "id": "light_ward",
+            "name": "Penitent Ward",
+            "desc": "When a piece hits her, allies within 160 gain a 40 + 40% Soul shield for 3s (12s). Prevent instead of cure. Also +10 resist, +6% max health.",
+            "triggers": [
+              {
+                "on": "damaged",
+                "vs": "hero",
+                "cooldownSec": 12,
+                "target": "allyArea",
+                "radius": 160,
+                "effects": [
+                  {
+                    "type": "shield",
+                    "base": 40,
+                    "bladeScale": 0,
+                    "soulScale": 0.4,
+                    "durationSec": 3
+                  }
+                ],
+                "desc": "Penitent Ward: when a piece hits her, allies within 160 gain a 40 + 40% Soul shield for 3s (12s)."
+              }
+            ],
+            "mods": [
+              {
+                "stat": "resist",
+                "kind": "add",
+                "value": 10
+              },
+              {
+                "stat": "maxHp",
+                "kind": "mul",
+                "value": 1.06
+              }
+            ]
+          }
+        ],
+        "8": [
+          {
+            "id": "light_miracle",
+            "name": "Miracle",
+            "desc": "Radiance recharges 15% faster.",
+            "ability": 3,
+            "cooldownMul": 0.85
+          },
+          {
+            "id": "light_wrath",
+            "name": "Wrath of Heaven",
+            "desc": "Every 5s the nearest enemy piece within 250 takes 25 + 40% Soul damage. Some of the light burns. Also +15% Soul power.",
+            "triggers": [
+              {
+                "on": "periodic",
+                "everySec": 5,
+                "target": "nearestEnemyHero",
+                "radius": 250,
+                "effects": [
+                  {
+                    "type": "damage",
+                    "dmgType": "soul",
+                    "base": 25,
+                    "bladeScale": 0,
+                    "soulScale": 0.4
+                  }
+                ],
+                "desc": "Wrath of Heaven: every 5s, the nearest enemy piece within 250 takes 25 + 40% Soul damage."
+              }
+            ],
+            "mods": [
+              {
+                "stat": "soulPower",
+                "kind": "mul",
+                "value": 1.15
+              }
+            ]
+          }
+        ]
+      },
+      "paths": {
+        "offense": [
+          "wanderer_boots",
+          "seance_prism",
+          "pocket_reliquary",
+          "eternal_wick",
+          "wishgranters_receipt",
+          "cabinet_of_wishes"
+        ],
+        "defense": [
+          "wanderer_boots",
+          "pocket_reliquary",
+          "menders_ledger",
+          "furnished_pocket_dimension",
+          "ward_bell_cuirass",
+          "pocket_vault_shell"
+        ],
+        "utility": [
+          "wanderer_boots",
+          "shuttered_door",
+          "pocket_reliquary",
+          "furnished_pocket_dimension",
+          "seance_prism",
+          "eternal_wick"
+        ]
+      }
+    },
+    {
+      "id": "shadow",
+      "name": "Shadow",
+      "desc": "Damage over time from the far diagonal. Everything she touches keeps burning; kills bring her curses back sooner.",
+      "ability": {
+        "id": "black_diagonal",
+        "name": "Black Diagonal",
+        "cooldownSec": 15,
+        "range": 220,
+        "radius": 60,
+        "target": "enemyBurst",
+        "effects": [
+          {
+            "type": "dot",
+            "dmgType": "soul",
+            "base": 18,
+            "bladeScale": 0,
+            "soulScale": 0.3,
+            "durationSec": 5
+          },
+          {
+            "type": "statMod",
+            "stat": "resist",
+            "kind": "add",
+            "value": -10,
+            "durationSec": 5
+          }
+        ],
+        "condition": {
+          "minEnemies": 1
+        },
+        "desc": "Curses a spot up to 220 away: enemies within 60 burn for 18 + 30% Soul damage per second for 5s and lose 10 resist."
+      },
+      "mods": [
+        {
+          "stat": "soulPower",
+          "kind": "add",
+          "value": 20
+        },
+        {
+          "stat": "range",
+          "kind": "add",
+          "value": 20
+        },
+        {
+          "stat": "maxHp",
+          "kind": "mul",
+          "value": 0.95
+        },
+        {
+          "stat": "cdr",
+          "kind": "add",
+          "value": 0.04
+        }
+      ],
+      "passives": [
+        {
+          "on": "hit",
+          "vs": "hero",
+          "target": "victim",
+          "effects": [
+            {
+              "type": "dot",
+              "dmgType": "soul",
+              "base": 6,
+              "bladeScale": 0,
+              "soulScale": 0.12,
+              "durationSec": 4
+            }
+          ],
+          "desc": "Creeping Night: her attacks on a piece leave a 6 + 12% Soul per second burn for 4s."
+        },
+        {
+          "on": "kill",
+          "vs": "hero",
+          "custom": "cooldownTick",
+          "param": 4,
+          "target": "self",
+          "effects": [],
+          "desc": "Nightfall: each enemy piece she kills cuts her cooldowns by 4s."
+        }
+      ],
+      "ranks": {
+        "2": {
+          "name": "Deeper Dark",
+          "desc": "Black Diagonal burns 20% harder.",
+          "ability": 3,
+          "powerMul": 1.2
+        },
+        "3": {
+          "name": "Long Shadow",
+          "desc": "+10 attack range.",
+          "mods": [
+            {
+              "stat": "range",
+              "kind": "add",
+              "value": 10
+            }
+          ]
+        },
+        "5": {
+          "name": "Eclipse",
+          "desc": "Diagonal Beam hits 25% harder.",
+          "ability": 0,
+          "powerMul": 1.25
+        },
+        "6": {
+          "name": "Night Tide",
+          "desc": "Black Diagonal covers 25% more ground.",
+          "ability": 3,
+          "radiusMul": 1.25
+        },
+        "7": {
+          "name": "Void",
+          "desc": "+12% Soul power.",
+          "mods": [
+            {
+              "stat": "soulPower",
+              "kind": "mul",
+              "value": 1.12
+            }
+          ]
+        }
+      },
+      "forks": {
+        "4": [
+          {
+            "id": "shadow_plague",
+            "name": "Plague",
+            "desc": "Black Diagonal covers 25% more ground. Curse the whole fight.",
+            "ability": 3,
+            "radiusMul": 1.25
+          },
+          {
+            "id": "shadow_wither",
+            "name": "Wither",
+            "desc": "Her attacks on a piece cut its Blade damage by 15% for 3s (4s). Cripple the carry. Also +6% max health, +8 resist.",
+            "triggers": [
+              {
+                "on": "hit",
+                "vs": "hero",
+                "cooldownSec": 4,
+                "target": "victim",
+                "effects": [
+                  {
+                    "type": "statMod",
+                    "stat": "bladeDmg",
+                    "kind": "mul",
+                    "value": 0.85,
+                    "durationSec": 3
+                  }
+                ],
+                "desc": "Wither: her hits on a piece cut its Blade damage 15% for 3s (4s)."
+              }
+            ],
+            "mods": [
+              {
+                "stat": "maxHp",
+                "kind": "mul",
+                "value": 1.06
+              },
+              {
+                "stat": "resist",
+                "kind": "add",
+                "value": 8
+              }
+            ]
+          }
+        ],
+        "8": [
+          {
+            "id": "shadow_endless",
+            "name": "Unending Night",
+            "desc": "Black Diagonal recharges 15% faster.",
+            "ability": 3,
+            "cooldownMul": 0.85
+          },
+          {
+            "id": "shadow_harvest",
+            "name": "Soul Harvest",
+            "desc": "Every kill heals her 3% max health and grants +3 Soul power for 60s (up to 10 times). Also +15% Soul power.",
+            "triggers": [
+              {
+                "on": "kill",
+                "target": "self",
+                "effects": [
+                  {
+                    "type": "heal",
+                    "maxHpPct": 0.03
+                  },
+                  {
+                    "type": "statMod",
+                    "stat": "soulPower",
+                    "kind": "add",
+                    "value": 3,
+                    "durationSec": 60,
+                    "maxStacks": 10
+                  }
+                ],
+                "desc": "Soul Harvest: every kill heals 3% max health and grants +3 Soul power for 60s, up to 10 times."
+              }
+            ],
+            "mods": [
+              {
+                "stat": "soulPower",
+                "kind": "mul",
+                "value": 1.15
+              }
+            ]
+          }
+        ]
+      },
+      "paths": {
+        "offense": [
+          "wanderer_boots",
+          "wishgranters_receipt",
+          "seance_prism",
+          "eternal_wick",
+          "pocket_reliquary",
+          "cabinet_of_wishes"
+        ],
+        "defense": [
+          "wanderer_boots",
+          "seance_prism",
+          "ward_bell_cuirass",
+          "eternal_wick",
+          "menders_ledger",
+          "pocket_vault_shell"
+        ],
+        "utility": [
+          "wanderer_boots",
+          "shuttered_door",
+          "seance_prism",
+          "eternal_wick",
+          "windstep_geta",
+          "cabinet_of_wishes"
+        ]
+      }
+    },
+    {
+      "id": "zealot",
+      "name": "Zealot",
+      "desc": "A battle priest who wades into melee. Every blow she lands heals the pieces around her.",
+      "ability": {
+        "id": "crusade",
+        "name": "Crusade",
+        "cooldownSec": 22,
+        "range": 0,
+        "radius": 130,
+        "target": "self",
+        "effects": [
+          {
+            "type": "statMod",
+            "stat": "atkSpeed",
+            "kind": "mul",
+            "value": 1.35,
+            "durationSec": 6
+          },
+          {
+            "type": "statMod",
+            "stat": "damageTakenMult",
+            "kind": "mul",
+            "value": 0.85,
+            "durationSec": 6
+          }
+        ],
+        "condition": {
+          "minEnemyHeroes": 1
+        },
+        "desc": "With an enemy piece within 130, she attacks 35% faster and takes 15% less damage for 6s."
+      },
+      "mods": [
+        {
+          "stat": "range",
+          "kind": "add",
+          "value": -76
+        },
+        {
+          "stat": "maxHp",
+          "kind": "add",
+          "value": 300
+        },
+        {
+          "stat": "armor",
+          "kind": "add",
+          "value": 14
+        },
+        {
+          "stat": "resist",
+          "kind": "add",
+          "value": 4
+        },
+        {
+          "stat": "bladeDmg",
+          "kind": "add",
+          "value": 22
+        },
+        {
+          "stat": "soulPower",
+          "kind": "mul",
+          "value": 0.8
+        },
+        {
+          "stat": "moveSpeed",
+          "kind": "add",
+          "value": 3
+        }
+      ],
+      "passives": [
+        {
+          "on": "hit",
+          "cooldownSec": 1,
+          "target": "allyArea",
+          "radius": 150,
+          "effects": [
+            {
+              "type": "heal",
+              "base": 5,
+              "bladeScale": 0.05,
+              "soulScale": 0.08
+            }
+          ],
+          "desc": "Penance: each hit (at most once a second) heals allied pieces within 150, her included, for 5 + 5% Blade + 8% Soul."
+        },
+        {
+          "on": "lowHp",
+          "hpBelow": 0.35,
+          "cooldownSec": 60,
+          "target": "self",
+          "effects": [
+            {
+              "type": "heal",
+              "maxHpPct": 0.15
+            }
+          ],
+          "desc": "Fervor: dropping below 35% health heals her 15% max health (60s)."
+        }
+      ],
+      "ranks": {
+        "2": {
+          "name": "Mace",
+          "desc": "+6 Blade damage.",
+          "mods": [
+            {
+              "stat": "bladeDmg",
+              "kind": "add",
+              "value": 6
+            }
+          ]
+        },
+        "3": {
+          "name": "Litany of Wrath",
+          "desc": "Crusade recharges 15% faster.",
+          "ability": 3,
+          "cooldownMul": 0.85
+        },
+        "5": {
+          "name": "Holy Fire",
+          "desc": "Diagonal Beam hits 30% harder.",
+          "ability": 0,
+          "powerMul": 1.3
+        },
+        "6": {
+          "name": "Iron Faith",
+          "desc": "+8 armor.",
+          "mods": [
+            {
+              "stat": "armor",
+              "kind": "add",
+              "value": 8
+            }
+          ]
+        },
+        "7": {
+          "name": "Inquisitor",
+          "desc": "+0.1 attack speed.",
+          "mods": [
+            {
+              "stat": "atkSpeed",
+              "kind": "add",
+              "value": 0.1
+            }
+          ]
+        }
+      },
+      "forks": {
+        "4": [
+          {
+            "id": "zealot_sermon",
+            "name": "Sermon",
+            "desc": "Every 6s, allied pieces within 150 heal 15 + 20% Soul. More priest. Also +5% max health.",
+            "triggers": [
+              {
+                "on": "periodic",
+                "everySec": 6,
+                "target": "allyArea",
+                "radius": 150,
+                "effects": [
+                  {
+                    "type": "heal",
+                    "base": 15,
+                    "bladeScale": 0,
+                    "soulScale": 0.2
+                  }
+                ],
+                "desc": "Sermon: every 6s, allied pieces within 150 heal 15 + 20% Soul."
+              }
+            ],
+            "mods": [
+              {
+                "stat": "maxHp",
+                "kind": "mul",
+                "value": 1.05
+              }
+            ]
+          },
+          {
+            "id": "zealot_smite",
+            "name": "Smite",
+            "desc": "Every 3rd hit deals 15 + 35% Soul bonus damage. More battle. Also +5% Blade damage.",
+            "triggers": [
+              {
+                "on": "hit",
+                "everyNth": 3,
+                "target": "victim",
+                "effects": [
+                  {
+                    "type": "damage",
+                    "dmgType": "soul",
+                    "base": 15,
+                    "bladeScale": 0,
+                    "soulScale": 0.35
+                  }
+                ],
+                "desc": "Smite: every 3rd hit deals 15 + 35% Soul bonus damage."
+              }
+            ],
+            "mods": [
+              {
+                "stat": "bladeDmg",
+                "kind": "mul",
+                "value": 1.05
+              }
+            ]
+          }
+        ],
+        "8": [
+          {
+            "id": "zealot_vow",
+            "name": "Crusader's Vow",
+            "desc": "Each enemy piece she kills heals allies within 200 for 10% max health. Also +6% Soul power.",
+            "triggers": [
+              {
+                "on": "kill",
+                "vs": "hero",
+                "target": "allyArea",
+                "radius": 200,
+                "effects": [
+                  {
+                    "type": "heal",
+                    "maxHpPct": 0.1
+                  }
+                ],
+                "desc": "Crusader's Vow: her piece kills heal allies within 200 for 10% max health."
+              }
+            ],
+            "mods": [
+              {
+                "stat": "soulPower",
+                "kind": "mul",
+                "value": 1.06
+              }
+            ]
+          },
+          {
+            "id": "zealot_unbowed",
+            "name": "Unbowed",
+            "desc": "Below 30% health she takes 50% less damage for 3s (50s). Also +6 armor.",
+            "triggers": [
+              {
+                "on": "lowHp",
+                "hpBelow": 0.3,
+                "cooldownSec": 50,
+                "target": "self",
+                "effects": [
+                  {
+                    "type": "statMod",
+                    "stat": "damageTakenMult",
+                    "kind": "mul",
+                    "value": 0.5,
+                    "durationSec": 3
+                  }
+                ],
+                "desc": "Unbowed: below 30% health, takes 50% less damage for 3s (50s)."
+              }
+            ],
+            "mods": [
+              {
+                "stat": "armor",
+                "kind": "add",
+                "value": 6
+              }
+            ]
+          }
+        ]
+      },
+      "paths": {
+        "offense": [
+          "wanderer_boots",
+          "cogged_edge",
+          "seance_prism",
+          "soot_reaver",
+          "bloodletter_hook",
+          "eternal_wick"
+        ],
+        "defense": [
+          "wanderer_boots",
+          "boiler_heart",
+          "pocket_reliquary",
+          "furnace_bastion",
+          "menders_ledger",
+          "furnished_pocket_dimension"
+        ],
+        "utility": [
+          "wanderer_boots",
+          "pocket_reliquary",
+          "cogged_edge",
+          "furnished_pocket_dimension",
+          "shuttered_door",
+          "soot_reaver"
+        ]
+      }
+    }
+  ],
+  "paths": {
+    "offense": [
+      "wanderer_boots",
+      "seance_prism",
+      "pocket_reliquary",
+      "eternal_wick",
+      "wishgranters_receipt",
+      "cabinet_of_wishes"
+    ],
+    "defense": [
+      "wanderer_boots",
+      "pocket_reliquary",
+      "menders_ledger",
+      "furnished_pocket_dimension",
+      "ward_bell_cuirass",
+      "pocket_vault_shell"
+    ],
+    "utility": [
+      "wanderer_boots",
+      "shuttered_door",
+      "pocket_reliquary",
+      "furnished_pocket_dimension",
+      "seance_prism",
+      "eternal_wick"
+    ]
+  }
+}

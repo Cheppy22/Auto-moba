@@ -1,0 +1,911 @@
+{
+  "id": "queen",
+  "name": "Queen",
+  "title": "The Carry",
+  "attackKind": "ranged",
+  "disposition": "attacker",
+  "personality": "opportunist",
+  "playstyle": "Fragile early and the strongest piece late. Long dashes in any direction let her strike and slip away. Feed her gold and protect her until Rank 5.",
+  "stats": {
+    "maxHp": 860,
+    "hpRegen": 2,
+    "armor": 20,
+    "resist": 20,
+    "bladeDmg": 56,
+    "atkSpeed": 0.95,
+    "soulPower": 36,
+    "moveSpeed": 52,
+    "cdr": 0,
+    "range": 80
+  },
+  "autoSoulScale": 0.15,
+  "abilities": [
+    {
+      "id": "royal_lunge",
+      "name": "Royal Lunge",
+      "cooldownSec": 8,
+      "range": 150,
+      "radius": 0,
+      "target": "enemy",
+      "effects": [
+        {
+          "type": "dash",
+          "distance": 90,
+          "toward": "target"
+        },
+        {
+          "type": "damage",
+          "dmgType": "blade",
+          "base": 30,
+          "bladeScale": 0.7,
+          "soulScale": 0.25
+        }
+      ],
+      "condition": {},
+      "desc": "Dashes 90 to an enemy and strikes for 30 + 70% Blade + 25% Soul damage."
+    },
+    {
+      "id": "sweeping_decree",
+      "name": "Sweeping Decree",
+      "cooldownSec": 10,
+      "range": 140,
+      "radius": 70,
+      "target": "enemyBurst",
+      "effects": [
+        {
+          "type": "damage",
+          "dmgType": "soul",
+          "base": 35,
+          "bladeScale": 0.25,
+          "soulScale": 0.55
+        }
+      ],
+      "condition": {
+        "minEnemies": 1
+      },
+      "desc": "Blasts enemies within 70 of a target up to 140 away for 35 + 25% Blade + 55% Soul damage."
+    },
+    {
+      "id": "withdraw",
+      "name": "Withdraw",
+      "cooldownSec": 14,
+      "range": 90,
+      "radius": 0,
+      "target": "enemy",
+      "effects": [
+        {
+          "type": "dash",
+          "distance": 100,
+          "toward": "away"
+        },
+        {
+          "type": "statMod",
+          "stat": "moveSpeed",
+          "kind": "mul",
+          "value": 0.7,
+          "durationSec": 2
+        }
+      ],
+      "condition": {
+        "selfHpBelow": 0.6
+      },
+      "desc": "Below 60% health, dashes 100 away from a close enemy and slows it 30% for 2s."
+    }
+  ],
+  "passives": [
+    {
+      "on": "damaged",
+      "vs": "hero",
+      "hpBelow": 0.5,
+      "cooldownSec": 14,
+      "target": "attacker",
+      "effects": [
+        {
+          "type": "dash",
+          "distance": 80,
+          "toward": "away"
+        }
+      ],
+      "desc": "Any Direction: when a piece hits her below 50% health, she dashes 80 away from it (14s)."
+    }
+  ],
+  "styles": [
+    {
+      "id": "regent",
+      "name": "Regent",
+      "desc": "An area mage who rules the battlefield from range. Every wave she clears brings her spells back sooner.",
+      "ability": {
+        "id": "decree_of_ruin",
+        "name": "Decree of Ruin",
+        "cooldownSec": 20,
+        "range": 170,
+        "radius": 110,
+        "target": "enemyBurst",
+        "effects": [
+          {
+            "type": "damage",
+            "dmgType": "soul",
+            "base": 75,
+            "bladeScale": 0,
+            "soulScale": 0.9
+          },
+          {
+            "type": "statMod",
+            "stat": "resist",
+            "kind": "add",
+            "value": -12,
+            "durationSec": 4
+          }
+        ],
+        "condition": {
+          "minEnemies": 2
+        },
+        "desc": "Calls ruin on a spot up to 170 away: enemies within 110 take 75 + 90% Soul damage and lose 12 resist for 4s. Needs 2 enemies."
+      },
+      "mods": [
+        {
+          "stat": "soulPower",
+          "kind": "add",
+          "value": 26
+        },
+        {
+          "stat": "range",
+          "kind": "add",
+          "value": 25
+        },
+        {
+          "stat": "bladeDmg",
+          "kind": "mul",
+          "value": 0.85
+        },
+        {
+          "stat": "cdr",
+          "kind": "add",
+          "value": 0.05
+        }
+      ],
+      "passives": [
+        {
+          "on": "kill",
+          "custom": "cooldownTick",
+          "param": 0.5,
+          "target": "self",
+          "effects": [],
+          "desc": "Mandate: every kill (pawnlings and camps too) cuts her cooldowns by 0.5s."
+        }
+      ],
+      "ranks": {
+        "2": {
+          "name": "Wider Decree",
+          "desc": "Decree of Ruin covers 15% more ground.",
+          "ability": 3,
+          "radiusMul": 1.15
+        },
+        "3": {
+          "name": "Royal Library",
+          "desc": "+10% Soul power.",
+          "mods": [
+            {
+              "stat": "soulPower",
+              "kind": "mul",
+              "value": 1.1
+            }
+          ]
+        },
+        "5": {
+          "name": "Edict",
+          "desc": "Sweeping Decree hits 30% harder and 20% wider.",
+          "ability": 1,
+          "powerMul": 1.3,
+          "radiusMul": 1.2
+        },
+        "6": {
+          "name": "Swift Edicts",
+          "desc": "Decree of Ruin recharges 15% faster.",
+          "ability": 3,
+          "cooldownMul": 0.85
+        },
+        "7": {
+          "name": "Absolute Rule",
+          "desc": "+12% Soul power.",
+          "mods": [
+            {
+              "stat": "soulPower",
+              "kind": "mul",
+              "value": 1.12
+            }
+          ]
+        }
+      },
+      "forks": {
+        "4": [
+          {
+            "id": "regent_throne",
+            "name": "Distant Throne",
+            "desc": "Decree of Ruin reaches 35% farther and her attacks +15 range. Safer, from the back. Also +5% max health.",
+            "ability": 3,
+            "rangeMul": 1.35,
+            "mods": [
+              {
+                "stat": "range",
+                "kind": "add",
+                "value": 15
+              },
+              {
+                "stat": "maxHp",
+                "kind": "mul",
+                "value": 1.05
+              }
+            ]
+          },
+          {
+            "id": "regent_cataclysm",
+            "name": "Cataclysm",
+            "desc": "Decree of Ruin hits 25% harder and 10% wider. More damage, same danger.",
+            "ability": 3,
+            "powerMul": 1.25,
+            "radiusMul": 1.1
+          }
+        ],
+        "8": [
+          {
+            "id": "regent_endless",
+            "name": "Ruin Without End",
+            "desc": "Each enemy piece she kills cuts her cooldowns by 8s. Chain picks. Also +6% Soul power.",
+            "triggers": [
+              {
+                "on": "kill",
+                "vs": "hero",
+                "custom": "cooldownTick",
+                "param": 8,
+                "target": "self",
+                "effects": [],
+                "desc": "Ruin Without End: piece kills cut her cooldowns by 8s."
+              }
+            ],
+            "mods": [
+              {
+                "stat": "soulPower",
+                "kind": "mul",
+                "value": 1.06
+              }
+            ]
+          },
+          {
+            "id": "regent_ashes",
+            "name": "Queen of Ashes",
+            "desc": "Every 4s in combat, enemies within 160 take 20 + 30% Soul damage. Constant burn, but she has to stand closer. Also +6 armor, +6 resist.",
+            "triggers": [
+              {
+                "on": "periodic",
+                "everySec": 4,
+                "custom": "inCombat",
+                "param": 4,
+                "target": "enemyArea",
+                "radius": 160,
+                "effects": [
+                  {
+                    "type": "damage",
+                    "dmgType": "soul",
+                    "base": 20,
+                    "bladeScale": 0,
+                    "soulScale": 0.3
+                  }
+                ],
+                "desc": "Queen of Ashes: every 4s in combat, enemies within 160 take 20 + 30% Soul damage."
+              }
+            ],
+            "mods": [
+              {
+                "stat": "armor",
+                "kind": "add",
+                "value": 6
+              },
+              {
+                "stat": "resist",
+                "kind": "add",
+                "value": 6
+              }
+            ]
+          }
+        ]
+      },
+      "paths": {
+        "offense": [
+          "wanderer_boots",
+          "seance_prism",
+          "wishgranters_receipt",
+          "eternal_wick",
+          "pocket_reliquary",
+          "cabinet_of_wishes"
+        ],
+        "defense": [
+          "wanderer_boots",
+          "pocket_reliquary",
+          "ward_bell_cuirass",
+          "furnished_pocket_dimension",
+          "seance_prism",
+          "pocket_vault_shell"
+        ],
+        "utility": [
+          "wanderer_boots",
+          "shuttered_door",
+          "seance_prism",
+          "eternal_wick",
+          "pocket_reliquary",
+          "furnished_pocket_dimension"
+        ]
+      }
+    },
+    {
+      "id": "duelist",
+      "name": "Duelist",
+      "desc": "Puts the crown down and picks up a sword: a melee carry who locks onto one piece and gets faster and deadlier the longer the duel lasts.",
+      "ability": {
+        "id": "en_garde",
+        "name": "En Garde",
+        "cooldownSec": 18,
+        "range": 130,
+        "radius": 0,
+        "target": "enemy",
+        "effects": [
+          {
+            "type": "dash",
+            "distance": 90,
+            "toward": "target"
+          },
+          {
+            "type": "damage",
+            "dmgType": "blade",
+            "base": 50,
+            "bladeScale": 1,
+            "soulScale": 0
+          },
+          {
+            "type": "statMod",
+            "stat": "armor",
+            "kind": "mul",
+            "value": 0.8,
+            "durationSec": 5
+          }
+        ],
+        "condition": {
+          "heroTargetOnly": true
+        },
+        "desc": "Lunges 90 at an enemy piece, cuts for 50 + 100% Blade damage and cuts its armor by 20% for 5s."
+      },
+      "mods": [
+        {
+          "stat": "range",
+          "kind": "add",
+          "value": -56
+        },
+        {
+          "stat": "maxHp",
+          "kind": "add",
+          "value": 220
+        },
+        {
+          "stat": "armor",
+          "kind": "add",
+          "value": 10
+        },
+        {
+          "stat": "resist",
+          "kind": "add",
+          "value": 6
+        },
+        {
+          "stat": "bladeDmg",
+          "kind": "mul",
+          "value": 1.12
+        },
+        {
+          "stat": "atkSpeed",
+          "kind": "add",
+          "value": 0.1
+        },
+        {
+          "stat": "soulPower",
+          "kind": "mul",
+          "value": 0.6
+        }
+      ],
+      "passives": [
+        {
+          "on": "hit",
+          "vs": "hero",
+          "target": "self",
+          "effects": [
+            {
+              "type": "statMod",
+              "stat": "bladeDmg",
+              "kind": "mul",
+              "value": 1.03,
+              "durationSec": 4,
+              "maxStacks": 6
+            }
+          ],
+          "desc": "Crescendo: each hit on a piece grants +3% Blade damage for 4s, up to 6 times."
+        },
+        {
+          "on": "damaged",
+          "vs": "hero",
+          "cooldownSec": 8,
+          "target": "self",
+          "effects": [
+            {
+              "type": "shield",
+              "base": 40,
+              "bladeScale": 0.5,
+              "soulScale": 0,
+              "durationSec": 2
+            }
+          ],
+          "desc": "Parry: when a piece hits her, she gains a 40 + 50% Blade shield for 2s (8s)."
+        }
+      ],
+      "ranks": {
+        "2": {
+          "name": "Footwork",
+          "desc": "+4 move speed.",
+          "mods": [
+            {
+              "stat": "moveSpeed",
+              "kind": "add",
+              "value": 4
+            }
+          ]
+        },
+        "3": {
+          "name": "Sharpened",
+          "desc": "En Garde hits 20% harder.",
+          "ability": 3,
+          "powerMul": 1.2
+        },
+        "5": {
+          "name": "Quick Lunge",
+          "desc": "Royal Lunge recharges 20% faster.",
+          "ability": 0,
+          "cooldownMul": 0.8
+        },
+        "6": {
+          "name": "Riposte",
+          "desc": "+8 armor.",
+          "mods": [
+            {
+              "stat": "armor",
+              "kind": "add",
+              "value": 8
+            }
+          ]
+        },
+        "7": {
+          "name": "Blade Royal",
+          "desc": "+12% Blade damage.",
+          "mods": [
+            {
+              "stat": "bladeDmg",
+              "kind": "mul",
+              "value": 1.12
+            }
+          ]
+        }
+      },
+      "forks": {
+        "4": [
+          {
+            "id": "duelist_fleche",
+            "name": "Flèche",
+            "desc": "En Garde reaches 30% farther: she picks her duel from across the fight.",
+            "ability": 3,
+            "rangeMul": 1.3,
+            "cooldownMul": 1
+          },
+          {
+            "id": "duelist_breath",
+            "name": "Second Breath",
+            "desc": "Heals for 12% of her attack damage: she wins the long duels instead. Also +150 max health, +5 armor.",
+            "triggers": [
+              {
+                "on": "hit",
+                "target": "self",
+                "effects": [
+                  {
+                    "type": "heal",
+                    "fractionOfDamage": 0.12
+                  }
+                ],
+                "desc": "Second Breath: heals for 12% of attack damage."
+              }
+            ],
+            "mods": [
+              {
+                "stat": "maxHp",
+                "kind": "add",
+                "value": 150
+              },
+              {
+                "stat": "armor",
+                "kind": "add",
+                "value": 5
+              }
+            ]
+          }
+        ],
+        "8": [
+          {
+            "id": "duelist_cuts",
+            "name": "Thousand Cuts",
+            "desc": "Every 4th hit deals 50% Blade as true damage. Tanks melt. Also +4% Blade damage.",
+            "triggers": [
+              {
+                "on": "hit",
+                "everyNth": 4,
+                "target": "victim",
+                "effects": [
+                  {
+                    "type": "damage",
+                    "dmgType": "true",
+                    "base": 0,
+                    "bladeScale": 0.5,
+                    "soulScale": 0
+                  }
+                ],
+                "desc": "Thousand Cuts: every 4th hit deals 50% Blade as true damage."
+              }
+            ],
+            "mods": [
+              {
+                "stat": "bladeDmg",
+                "kind": "mul",
+                "value": 1.04
+              }
+            ]
+          },
+          {
+            "id": "duelist_untouchable",
+            "name": "Untouchable",
+            "desc": "Below 35% health she takes 50% less damage for 3s (45s). Also +4 armor.",
+            "triggers": [
+              {
+                "on": "lowHp",
+                "hpBelow": 0.35,
+                "cooldownSec": 45,
+                "target": "self",
+                "effects": [
+                  {
+                    "type": "statMod",
+                    "stat": "damageTakenMult",
+                    "kind": "mul",
+                    "value": 0.5,
+                    "durationSec": 3
+                  }
+                ],
+                "desc": "Untouchable: below 35% health, takes 50% less damage for 3s (45s)."
+              }
+            ],
+            "mods": [
+              {
+                "stat": "armor",
+                "kind": "add",
+                "value": 4
+              }
+            ]
+          }
+        ]
+      },
+      "paths": {
+        "offense": [
+          "wanderer_boots",
+          "duelists_form",
+          "cogged_edge",
+          "vorpal_blade",
+          "bloodletter_hook",
+          "soot_reaver"
+        ],
+        "defense": [
+          "wanderer_boots",
+          "duelists_form",
+          "boiler_heart",
+          "vorpal_blade",
+          "ward_bell_cuirass",
+          "undying_larder"
+        ],
+        "utility": [
+          "wanderer_boots",
+          "windstep_geta",
+          "duelists_form",
+          "seance_prism",
+          "vorpal_blade",
+          "hundred_hand_ledger"
+        ]
+      }
+    },
+    {
+      "id": "huntress",
+      "name": "Huntress",
+      "desc": "A sniper with the longest reach on the board. Picks off pieces from far away and moves on to the next one after every kill.",
+      "ability": {
+        "id": "long_shot",
+        "name": "Long Shot",
+        "cooldownSec": 16,
+        "range": 280,
+        "radius": 0,
+        "target": "enemy",
+        "effects": [
+          {
+            "type": "damage",
+            "dmgType": "blade",
+            "base": 60,
+            "bladeScale": 1.1,
+            "soulScale": 0
+          },
+          {
+            "type": "statMod",
+            "stat": "moveSpeed",
+            "kind": "mul",
+            "value": 0.7,
+            "durationSec": 2
+          }
+        ],
+        "condition": {
+          "heroTargetOnly": true
+        },
+        "desc": "Shoots an enemy piece up to 280 away for 60 + 110% Blade damage and slows it 30% for 2s."
+      },
+      "mods": [
+        {
+          "stat": "range",
+          "kind": "add",
+          "value": 55
+        },
+        {
+          "stat": "bladeDmg",
+          "kind": "mul",
+          "value": 1.06
+        },
+        {
+          "stat": "atkSpeed",
+          "kind": "add",
+          "value": -0.05
+        },
+        {
+          "stat": "maxHp",
+          "kind": "mul",
+          "value": 0.92
+        },
+        {
+          "stat": "moveSpeed",
+          "kind": "add",
+          "value": -2
+        }
+      ],
+      "passives": [
+        {
+          "on": "hit",
+          "vs": "hero",
+          "everyNth": 4,
+          "target": "victim",
+          "effects": [
+            {
+              "type": "damage",
+              "dmgType": "true",
+              "base": 10,
+              "bladeScale": 0.3,
+              "soulScale": 0
+            }
+          ],
+          "desc": "Quarry: every 4th hit on a piece adds 10 + 30% Blade true damage."
+        },
+        {
+          "on": "kill",
+          "vs": "hero",
+          "custom": "cooldownTick",
+          "param": 5,
+          "target": "self",
+          "effects": [
+            {
+              "type": "statMod",
+              "stat": "moveSpeed",
+              "kind": "add",
+              "value": 25,
+              "durationSec": 4
+            }
+          ],
+          "desc": "Next Target: each piece she kills cuts her cooldowns by 5s and grants +25 move speed for 4s."
+        }
+      ],
+      "ranks": {
+        "2": {
+          "name": "Keen Eye",
+          "desc": "+10 attack range.",
+          "mods": [
+            {
+              "stat": "range",
+              "kind": "add",
+              "value": 10
+            }
+          ]
+        },
+        "3": {
+          "name": "Barbed Arrow",
+          "desc": "Long Shot hits 20% harder.",
+          "ability": 3,
+          "powerMul": 1.2
+        },
+        "5": {
+          "name": "Quick Draw",
+          "desc": "+0.1 attack speed.",
+          "mods": [
+            {
+              "stat": "atkSpeed",
+              "kind": "add",
+              "value": 0.1
+            }
+          ]
+        },
+        "6": {
+          "name": "Patience",
+          "desc": "Long Shot recharges 15% faster.",
+          "ability": 3,
+          "cooldownMul": 0.85
+        },
+        "7": {
+          "name": "Apex",
+          "desc": "+12% Blade damage.",
+          "mods": [
+            {
+              "stat": "bladeDmg",
+              "kind": "mul",
+              "value": 1.12
+            }
+          ]
+        }
+      },
+      "forks": {
+        "4": [
+          {
+            "id": "huntress_eagle",
+            "name": "Eagle Eye",
+            "desc": "Long Shot reaches 25% farther and her attacks +20 range. Also +6% Blade damage.",
+            "ability": 3,
+            "rangeMul": 1.25,
+            "mods": [
+              {
+                "stat": "range",
+                "kind": "add",
+                "value": 20
+              },
+              {
+                "stat": "bladeDmg",
+                "kind": "mul",
+                "value": 1.06
+              }
+            ]
+          },
+          {
+            "id": "huntress_feet",
+            "name": "Light Feet",
+            "desc": "Withdraw recharges 25% faster: she kites instead of out-ranging. Also +4% max health.",
+            "ability": 2,
+            "cooldownMul": 0.75,
+            "mods": [
+              {
+                "stat": "maxHp",
+                "kind": "mul",
+                "value": 1.04
+              }
+            ]
+          }
+        ],
+        "8": [
+          {
+            "id": "huntress_kill",
+            "name": "Kill Shot",
+            "desc": "Hits on a piece below 12% health execute it. Also +4% Blade damage.",
+            "triggers": [
+              {
+                "on": "hit",
+                "target": "victim",
+                "custom": "execute",
+                "param": 0.12,
+                "effects": [],
+                "desc": "Kill Shot: hits on a piece below 12% health execute it."
+              }
+            ],
+            "mods": [
+              {
+                "stat": "bladeDmg",
+                "kind": "mul",
+                "value": 1.04
+              }
+            ]
+          },
+          {
+            "id": "huntress_split",
+            "name": "Split Shot",
+            "desc": "Every 3rd attack also hits every enemy within 160 of her for 40% Blade. Wave clear and team fights. Also +3 move speed.",
+            "triggers": [
+              {
+                "on": "hit",
+                "everyNth": 3,
+                "target": "enemyArea",
+                "radius": 160,
+                "effects": [
+                  {
+                    "type": "damage",
+                    "dmgType": "blade",
+                    "base": 0,
+                    "bladeScale": 0.4,
+                    "soulScale": 0
+                  }
+                ],
+                "desc": "Split Shot: every 3rd attack hits every enemy within 160 for 40% Blade."
+              }
+            ],
+            "mods": [
+              {
+                "stat": "moveSpeed",
+                "kind": "add",
+                "value": 3
+              }
+            ]
+          }
+        ]
+      },
+      "paths": {
+        "offense": [
+          "wanderer_boots",
+          "cogged_edge",
+          "duelists_form",
+          "soot_reaver",
+          "windstep_geta",
+          "vorpal_blade"
+        ],
+        "defense": [
+          "wanderer_boots",
+          "cogged_edge",
+          "menders_ledger",
+          "soot_reaver",
+          "ward_bell_cuirass",
+          "pocket_vault_shell"
+        ],
+        "utility": [
+          "wanderer_boots",
+          "windstep_geta",
+          "bloodletter_hook",
+          "shuttered_door",
+          "hundred_hand_ledger",
+          "eternal_wick"
+        ]
+      }
+    }
+  ],
+  "paths": {
+    "offense": [
+      "wanderer_boots",
+      "cogged_edge",
+      "duelists_form",
+      "soot_reaver",
+      "windstep_geta",
+      "vorpal_blade"
+    ],
+    "defense": [
+      "wanderer_boots",
+      "cogged_edge",
+      "menders_ledger",
+      "soot_reaver",
+      "ward_bell_cuirass",
+      "pocket_vault_shell"
+    ],
+    "utility": [
+      "wanderer_boots",
+      "windstep_geta",
+      "bloodletter_hook",
+      "shuttered_door",
+      "hundred_hand_ledger",
+      "eternal_wick"
+    ]
+  }
+}

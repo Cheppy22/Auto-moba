@@ -1,0 +1,998 @@
+{
+  "id": "rook",
+  "name": "Rook",
+  "title": "The Tower",
+  "attackKind": "melee",
+  "disposition": "defender",
+  "personality": "steadfast",
+  "playstyle": "A walking tower. Holds a lane, soaks damage and breaks structures. Charges in straight lines; pair him with the King to Castle.",
+  "stats": {
+    "maxHp": 1700,
+    "hpRegen": 3.5,
+    "armor": 40,
+    "resist": 26,
+    "bladeDmg": 68,
+    "atkSpeed": 0.8,
+    "soulPower": 0,
+    "moveSpeed": 45,
+    "cdr": 0,
+    "range": 26
+  },
+  "autoSoulScale": 0,
+  "abilities": [
+    {
+      "id": "file_charge",
+      "name": "File Charge",
+      "cooldownSec": 11,
+      "range": 150,
+      "radius": 0,
+      "target": "enemy",
+      "effects": [
+        {
+          "type": "dash",
+          "distance": 120,
+          "toward": "target"
+        },
+        {
+          "type": "damage",
+          "dmgType": "blade",
+          "base": 30,
+          "bladeScale": 0.6,
+          "soulScale": 0
+        },
+        {
+          "type": "statMod",
+          "stat": "moveSpeed",
+          "kind": "mul",
+          "value": 0.6,
+          "durationSec": 1.5
+        }
+      ],
+      "condition": {},
+      "desc": "Charges 120 in a straight line at an enemy, hitting for 30 + 60% Blade damage and slowing it 40% for 1.5s."
+    },
+    {
+      "id": "stone_skin",
+      "name": "Stone Skin",
+      "cooldownSec": 15,
+      "range": 0,
+      "radius": 120,
+      "target": "self",
+      "effects": [
+        {
+          "type": "shield",
+          "base": 100,
+          "bladeScale": 0.8,
+          "soulScale": 0,
+          "durationSec": 4
+        }
+      ],
+      "condition": {
+        "minEnemyHeroes": 1
+      },
+      "desc": "With an enemy piece within 120, turns to stone: a 100 + 80% Blade shield for 4s."
+    },
+    {
+      "id": "rampart_slam",
+      "name": "Rampart Slam",
+      "cooldownSec": 12,
+      "range": 0,
+      "radius": 95,
+      "target": "enemyArea",
+      "effects": [
+        {
+          "type": "damage",
+          "dmgType": "blade",
+          "base": 40,
+          "bladeScale": 0.5,
+          "soulScale": 0
+        }
+      ],
+      "condition": {
+        "minEnemies": 2
+      },
+      "desc": "Slams the ground: every enemy within 95 takes 40 + 50% Blade damage. Needs 2 enemies."
+    }
+  ],
+  "passives": [
+    {
+      "on": "hit",
+      "vs": "other",
+      "everyNth": 3,
+      "target": "victim",
+      "effects": [
+        {
+          "type": "damage",
+          "dmgType": "blade",
+          "base": 0,
+          "bladeScale": 0.4,
+          "soulScale": 0
+        }
+      ],
+      "desc": "Masonry: every 3rd hit on a pawnling, camp or structure deals 40% Blade bonus damage."
+    }
+  ],
+  "styles": [
+    {
+      "id": "bastion",
+      "name": "Bastion",
+      "desc": "A wall. Enemies near him hit softer and move slower, anyone who strikes him gets stuck, and his lane does not fall.",
+      "ability": {
+        "id": "hold_the_line",
+        "name": "Hold the Line",
+        "cooldownSec": 20,
+        "range": 0,
+        "radius": 150,
+        "target": "enemyArea",
+        "effects": [
+          {
+            "type": "damage",
+            "dmgType": "blade",
+            "base": 25,
+            "bladeScale": 0.4,
+            "soulScale": 0
+          },
+          {
+            "type": "statMod",
+            "stat": "bladeDmg",
+            "kind": "mul",
+            "value": 0.8,
+            "durationSec": 4
+          },
+          {
+            "type": "statMod",
+            "stat": "moveSpeed",
+            "kind": "mul",
+            "value": 0.6,
+            "durationSec": 2.5
+          }
+        ],
+        "condition": {
+          "minEnemyHeroes": 1
+        },
+        "desc": "With an enemy piece within 150, every enemy there takes 25 + 40% Blade damage, deals 20% less Blade damage for 4s and is slowed 40% for 2.5s."
+      },
+      "mods": [
+        {
+          "stat": "maxHp",
+          "kind": "mul",
+          "value": 1.12
+        },
+        {
+          "stat": "armor",
+          "kind": "add",
+          "value": 10
+        },
+        {
+          "stat": "resist",
+          "kind": "add",
+          "value": 8
+        },
+        {
+          "stat": "bladeDmg",
+          "kind": "mul",
+          "value": 0.85
+        },
+        {
+          "stat": "moveSpeed",
+          "kind": "add",
+          "value": -2
+        }
+      ],
+      "passives": [
+        {
+          "on": "periodic",
+          "everySec": 1,
+          "target": "self",
+          "effects": [
+            {
+              "type": "aura",
+              "radius": 150,
+              "target": "ally",
+              "stat": "resist",
+              "kind": "add",
+              "value": 10
+            }
+          ],
+          "desc": "Unbreachable: allied pieces and pawns within 150 gain +10 resist."
+        },
+        {
+          "on": "damaged",
+          "vs": "hero",
+          "cooldownSec": 2,
+          "target": "attacker",
+          "effects": [
+            {
+              "type": "statMod",
+              "stat": "moveSpeed",
+              "kind": "mul",
+              "value": 0.85,
+              "durationSec": 1.5
+            }
+          ],
+          "desc": "Gatehouse: a piece that hits him is slowed 15% for 1.5s (2s)."
+        }
+      ],
+      "ranks": {
+        "2": {
+          "name": "Thick Walls",
+          "desc": "+6 armor.",
+          "mods": [
+            {
+              "stat": "armor",
+              "kind": "add",
+              "value": 6
+            }
+          ]
+        },
+        "3": {
+          "name": "Mortar",
+          "desc": "Stone Skin shields 30% more.",
+          "ability": 1,
+          "powerMul": 1.3
+        },
+        "5": {
+          "name": "Long Wall",
+          "desc": "Hold the Line covers 20% more ground.",
+          "ability": 3,
+          "radiusMul": 1.2
+        },
+        "6": {
+          "name": "Keep",
+          "desc": "+8% max health.",
+          "mods": [
+            {
+              "stat": "maxHp",
+              "kind": "mul",
+              "value": 1.08
+            }
+          ]
+        },
+        "7": {
+          "name": "Watchtower",
+          "desc": "Hold the Line recharges 15% faster.",
+          "ability": 3,
+          "cooldownMul": 0.85
+        }
+      },
+      "forks": {
+        "4": [
+          {
+            "id": "bastion_curtain",
+            "name": "Curtain Wall",
+            "desc": "When a piece hits him, allies within 160 gain a 60 + 40% Blade shield for 3s (12s). He protects others. Also +5 resist.",
+            "triggers": [
+              {
+                "on": "damaged",
+                "vs": "hero",
+                "cooldownSec": 12,
+                "target": "allyArea",
+                "radius": 160,
+                "effects": [
+                  {
+                    "type": "shield",
+                    "base": 60,
+                    "bladeScale": 0.4,
+                    "soulScale": 0,
+                    "durationSec": 3
+                  }
+                ],
+                "desc": "Curtain Wall: when a piece hits him, allies within 160 gain a 60 + 40% Blade shield for 3s (12s)."
+              }
+            ],
+            "mods": [
+              {
+                "stat": "resist",
+                "kind": "add",
+                "value": 5
+              }
+            ]
+          },
+          {
+            "id": "bastion_spikes",
+            "name": "Spiked Walls",
+            "desc": "Anything that hits him takes 20 + 25% Blade damage (1s). He punishes instead. Also +4% Blade damage.",
+            "triggers": [
+              {
+                "on": "damaged",
+                "cooldownSec": 1,
+                "target": "attacker",
+                "effects": [
+                  {
+                    "type": "damage",
+                    "dmgType": "blade",
+                    "base": 20,
+                    "bladeScale": 0.25,
+                    "soulScale": 0
+                  }
+                ],
+                "desc": "Spiked Walls: attackers take 20 + 25% Blade damage (1s)."
+              }
+            ],
+            "mods": [
+              {
+                "stat": "bladeDmg",
+                "kind": "mul",
+                "value": 1.04
+              }
+            ]
+          }
+        ],
+        "8": [
+          {
+            "id": "bastion_immovable",
+            "name": "Immovable",
+            "desc": "Below 40% health he takes 50% less damage for 4s (60s). Also +8% max health, +6 armor.",
+            "triggers": [
+              {
+                "on": "lowHp",
+                "hpBelow": 0.4,
+                "cooldownSec": 60,
+                "target": "self",
+                "effects": [
+                  {
+                    "type": "statMod",
+                    "stat": "damageTakenMult",
+                    "kind": "mul",
+                    "value": 0.5,
+                    "durationSec": 4
+                  }
+                ],
+                "desc": "Immovable: below 40% health, takes 50% less damage for 4s (60s)."
+              }
+            ],
+            "mods": [
+              {
+                "stat": "maxHp",
+                "kind": "mul",
+                "value": 1.08
+              },
+              {
+                "stat": "armor",
+                "kind": "add",
+                "value": 6
+              }
+            ]
+          },
+          {
+            "id": "bastion_keep",
+            "name": "Great Keep",
+            "desc": "Hold the Line covers 25% more ground.",
+            "ability": 3,
+            "radiusMul": 1.25,
+            "cooldownMul": 1
+          }
+        ]
+      },
+      "paths": {
+        "offense": [
+          "wanderer_boots",
+          "cogged_edge",
+          "boiler_heart",
+          "soot_reaver",
+          "bloodletter_hook",
+          "furnace_bastion"
+        ],
+        "defense": [
+          "wanderer_boots",
+          "boiler_heart",
+          "ward_bell_cuirass",
+          "furnace_bastion",
+          "menders_ledger",
+          "pocket_vault_shell"
+        ],
+        "utility": [
+          "wanderer_boots",
+          "ward_bell_cuirass",
+          "shuttered_door",
+          "pocket_vault_shell",
+          "pocket_reliquary",
+          "furnished_pocket_dimension"
+        ]
+      }
+    },
+    {
+      "id": "ram",
+      "name": "Battering Ram",
+      "desc": "Built to knock down Bastions and the Throne. Strips the armor of everything around him, structures included, and splinters waves.",
+      "ability": {
+        "id": "ram",
+        "name": "Ram",
+        "cooldownSec": 18,
+        "range": 0,
+        "radius": 130,
+        "target": "self",
+        "effects": [
+          {
+            "type": "statMod",
+            "stat": "atkSpeed",
+            "kind": "mul",
+            "value": 1.4,
+            "durationSec": 6
+          },
+          {
+            "type": "statMod",
+            "stat": "bladeDmg",
+            "kind": "mul",
+            "value": 1.15,
+            "durationSec": 6
+          }
+        ],
+        "condition": {
+          "minEnemies": 1
+        },
+        "desc": "With any enemy within 130, lowers his head: +40% attack speed and +15% Blade damage for 6s."
+      },
+      "mods": [
+        {
+          "stat": "bladeDmg",
+          "kind": "mul",
+          "value": 1.15
+        },
+        {
+          "stat": "atkSpeed",
+          "kind": "add",
+          "value": 0.1
+        },
+        {
+          "stat": "maxHp",
+          "kind": "mul",
+          "value": 0.95
+        },
+        {
+          "stat": "armor",
+          "kind": "add",
+          "value": -4
+        }
+      ],
+      "passives": [
+        {
+          "on": "periodic",
+          "everySec": 1,
+          "target": "self",
+          "effects": [
+            {
+              "type": "aura",
+              "radius": 140,
+              "target": "enemy",
+              "stat": "armor",
+              "kind": "add",
+              "value": -15
+            }
+          ],
+          "desc": "Sapper: enemies within 140, Bastions and the Throne included, lose 15 armor."
+        },
+        {
+          "on": "hit",
+          "vs": "other",
+          "target": "victim",
+          "effects": [
+            {
+              "type": "damage",
+              "dmgType": "blade",
+              "base": 10,
+              "bladeScale": 0.15,
+              "soulScale": 0
+            }
+          ],
+          "desc": "Splinter: hits on pawnlings, camps and structures deal 10 + 15% Blade bonus damage."
+        }
+      ],
+      "ranks": {
+        "2": {
+          "name": "Iron Head",
+          "desc": "+6 Blade damage.",
+          "mods": [
+            {
+              "stat": "bladeDmg",
+              "kind": "add",
+              "value": 6
+            }
+          ]
+        },
+        "3": {
+          "name": "Momentum",
+          "desc": "File Charge recharges 20% faster.",
+          "ability": 0,
+          "cooldownMul": 0.8
+        },
+        "5": {
+          "name": "Relentless",
+          "desc": "Ram recharges 15% faster.",
+          "ability": 3,
+          "cooldownMul": 0.85
+        },
+        "6": {
+          "name": "Reinforced Frame",
+          "desc": "+8% max health.",
+          "mods": [
+            {
+              "stat": "maxHp",
+              "kind": "mul",
+              "value": 1.08
+            }
+          ]
+        },
+        "7": {
+          "name": "Breaker",
+          "desc": "+0.1 attack speed.",
+          "mods": [
+            {
+              "stat": "atkSpeed",
+              "kind": "add",
+              "value": 0.1
+            }
+          ]
+        }
+      },
+      "forks": {
+        "4": [
+          {
+            "id": "ram_demolisher",
+            "name": "Demolisher",
+            "desc": "Every 4th hit on a non-piece deals 80% Blade bonus damage. Bastions fall faster. Also +0.04 attack speed.",
+            "triggers": [
+              {
+                "on": "hit",
+                "vs": "other",
+                "everyNth": 4,
+                "target": "victim",
+                "effects": [
+                  {
+                    "type": "damage",
+                    "dmgType": "blade",
+                    "base": 0,
+                    "bladeScale": 0.8,
+                    "soulScale": 0
+                  }
+                ],
+                "desc": "Demolisher: every 4th hit on a pawnling, camp or structure deals 80% Blade bonus damage."
+              }
+            ],
+            "mods": [
+              {
+                "stat": "atkSpeed",
+                "kind": "add",
+                "value": 0.04
+              }
+            ]
+          },
+          {
+            "id": "ram_grit",
+            "name": "Pusher's Grit",
+            "desc": "Every pawnling or camp he kills heals him 2% max health. He can stay in a lane alone. Also +1 health regeneration.",
+            "triggers": [
+              {
+                "on": "kill",
+                "vs": "other",
+                "target": "self",
+                "effects": [
+                  {
+                    "type": "heal",
+                    "maxHpPct": 0.02
+                  }
+                ],
+                "desc": "Pusher's Grit: non-piece kills heal 2% max health."
+              }
+            ],
+            "mods": [
+              {
+                "stat": "hpRegen",
+                "kind": "add",
+                "value": 1
+              }
+            ]
+          }
+        ],
+        "8": [
+          {
+            "id": "ram_breach",
+            "name": "Breach",
+            "desc": "Enemies within 140, structures included, also lose 15 resist: the whole team sieges with him. Also +2 move speed.",
+            "triggers": [
+              {
+                "on": "periodic",
+                "everySec": 1,
+                "target": "self",
+                "effects": [
+                  {
+                    "type": "aura",
+                    "radius": 140,
+                    "target": "enemy",
+                    "stat": "resist",
+                    "kind": "add",
+                    "value": -15
+                  }
+                ],
+                "desc": "Breach: enemies within 140, structures included, lose 15 resist."
+              }
+            ],
+            "mods": [
+              {
+                "stat": "moveSpeed",
+                "kind": "add",
+                "value": 2
+              }
+            ]
+          },
+          {
+            "id": "ram_lone",
+            "name": "Lone Siege",
+            "desc": "After 3s out of combat he regenerates 2% max health per second. Split push forever. Also +4% max health.",
+            "triggers": [
+              {
+                "on": "periodic",
+                "everySec": 1,
+                "custom": "outOfCombat",
+                "param": 3,
+                "target": "self",
+                "effects": [
+                  {
+                    "type": "heal",
+                    "maxHpPct": 0.02
+                  }
+                ],
+                "desc": "Lone Siege: after 3s out of combat, regenerates 2% max health per second."
+              }
+            ],
+            "mods": [
+              {
+                "stat": "maxHp",
+                "kind": "mul",
+                "value": 1.04
+              }
+            ]
+          }
+        ]
+      },
+      "paths": {
+        "offense": [
+          "wanderer_boots",
+          "cogged_edge",
+          "bloodletter_hook",
+          "soot_reaver",
+          "duelists_form",
+          "hundred_hand_ledger"
+        ],
+        "defense": [
+          "wanderer_boots",
+          "cogged_edge",
+          "boiler_heart",
+          "soot_reaver",
+          "menders_ledger",
+          "furnace_bastion"
+        ],
+        "utility": [
+          "wanderer_boots",
+          "cogged_edge",
+          "shuttered_door",
+          "soot_reaver",
+          "windstep_geta",
+          "hundred_hand_ledger"
+        ]
+      }
+    },
+    {
+      "id": "vanguard",
+      "name": "Vanguard",
+      "desc": "Starts the fight. Crashes into an enemy piece from far away, staggers it, and the team that follows him hits harder.",
+      "ability": {
+        "id": "breakthrough",
+        "name": "Breakthrough",
+        "cooldownSec": 24,
+        "range": 240,
+        "radius": 0,
+        "target": "enemy",
+        "effects": [
+          {
+            "type": "dash",
+            "distance": 190,
+            "toward": "target"
+          },
+          {
+            "type": "damage",
+            "dmgType": "blade",
+            "base": 50,
+            "bladeScale": 0.7,
+            "soulScale": 0
+          },
+          {
+            "type": "statMod",
+            "stat": "moveSpeed",
+            "kind": "mul",
+            "value": 0.1,
+            "durationSec": 1
+          },
+          {
+            "type": "statMod",
+            "stat": "atkSpeed",
+            "kind": "mul",
+            "value": 0.1,
+            "durationSec": 1
+          }
+        ],
+        "condition": {
+          "heroTargetOnly": true
+        },
+        "desc": "Charges 190 at an enemy piece up to 240 away, hits for 50 + 70% Blade damage and staggers it (nearly stopped, barely attacking) for 1s."
+      },
+      "mods": [
+        {
+          "stat": "moveSpeed",
+          "kind": "add",
+          "value": 6
+        },
+        {
+          "stat": "armor",
+          "kind": "add",
+          "value": 4
+        },
+        {
+          "stat": "resist",
+          "kind": "add",
+          "value": 4
+        },
+        {
+          "stat": "hpRegen",
+          "kind": "add",
+          "value": 1
+        }
+      ],
+      "passives": [
+        {
+          "on": "hit",
+          "vs": "hero",
+          "cooldownSec": 10,
+          "target": "allyArea",
+          "radius": 170,
+          "effects": [
+            {
+              "type": "statMod",
+              "stat": "bladeDmg",
+              "kind": "mul",
+              "value": 1.1,
+              "durationSec": 4
+            }
+          ],
+          "desc": "Follow Me: his hit on a piece gives allies within 170 +10% Blade damage for 4s (10s)."
+        },
+        {
+          "on": "periodic",
+          "everySec": 1,
+          "custom": "outOfCombat",
+          "param": 3,
+          "target": "self",
+          "effects": [
+            {
+              "type": "statMod",
+              "stat": "moveSpeed",
+              "kind": "add",
+              "value": 15,
+              "durationSec": 1.5
+            }
+          ],
+          "desc": "Momentum: after 3s out of combat, +15 move speed."
+        }
+      ],
+      "ranks": {
+        "2": {
+          "name": "Spurred",
+          "desc": "+4 move speed.",
+          "mods": [
+            {
+              "stat": "moveSpeed",
+              "kind": "add",
+              "value": 4
+            }
+          ]
+        },
+        "3": {
+          "name": "Heavy Impact",
+          "desc": "Breakthrough hits 25% harder.",
+          "ability": 3,
+          "powerMul": 1.25
+        },
+        "5": {
+          "name": "Shock Troops",
+          "desc": "Rampart Slam covers 25% more ground.",
+          "ability": 2,
+          "radiusMul": 1.25
+        },
+        "6": {
+          "name": "Vanguard's Plate",
+          "desc": "+8 armor and +4 resist.",
+          "mods": [
+            {
+              "stat": "armor",
+              "kind": "add",
+              "value": 8
+            },
+            {
+              "stat": "resist",
+              "kind": "add",
+              "value": 4
+            }
+          ]
+        },
+        "7": {
+          "name": "First In",
+          "desc": "Breakthrough recharges 15% faster.",
+          "ability": 3,
+          "cooldownMul": 0.85
+        }
+      },
+      "forks": {
+        "4": [
+          {
+            "id": "vanguard_lance",
+            "name": "Lance Line",
+            "desc": "Breakthrough reaches 30% farther. He picks fights from further away.",
+            "ability": 3,
+            "rangeMul": 1.3
+          },
+          {
+            "id": "vanguard_holdfast",
+            "name": "Hold Fast",
+            "desc": "His hits on a piece give him a 60 + 50% Blade shield for 2s (8s). He survives what he starts. Also +6 armor, +100 max health.",
+            "triggers": [
+              {
+                "on": "hit",
+                "vs": "hero",
+                "cooldownSec": 8,
+                "target": "self",
+                "effects": [
+                  {
+                    "type": "shield",
+                    "base": 60,
+                    "bladeScale": 0.5,
+                    "soulScale": 0,
+                    "durationSec": 2
+                  }
+                ],
+                "desc": "Hold Fast: hits on a piece grant a 60 + 50% Blade shield for 2s (8s)."
+              }
+            ],
+            "mods": [
+              {
+                "stat": "armor",
+                "kind": "add",
+                "value": 6
+              },
+              {
+                "stat": "maxHp",
+                "kind": "add",
+                "value": 100
+              }
+            ]
+          }
+        ],
+        "8": [
+          {
+            "id": "vanguard_shockwave",
+            "name": "Shockwave",
+            "desc": "Every 5th hit on a piece shakes every enemy within 110: 40% Blade damage and 30% slow for 1.5s. Also +4% Blade damage.",
+            "triggers": [
+              {
+                "on": "hit",
+                "vs": "hero",
+                "everyNth": 5,
+                "target": "enemyArea",
+                "radius": 110,
+                "effects": [
+                  {
+                    "type": "damage",
+                    "dmgType": "blade",
+                    "base": 0,
+                    "bladeScale": 0.4,
+                    "soulScale": 0
+                  },
+                  {
+                    "type": "statMod",
+                    "stat": "moveSpeed",
+                    "kind": "mul",
+                    "value": 0.7,
+                    "durationSec": 1.5
+                  }
+                ],
+                "desc": "Shockwave: every 5th hit on a piece hits every enemy within 110 for 40% Blade and slows 30% for 1.5s."
+              }
+            ],
+            "mods": [
+              {
+                "stat": "bladeDmg",
+                "kind": "mul",
+                "value": 1.04
+              }
+            ]
+          },
+          {
+            "id": "vanguard_spearhead",
+            "name": "Spearhead",
+            "desc": "Each enemy piece he kills gives allies within 200 +15% attack speed for 4s and heals them 5% max health. Also +1.5 health regeneration.",
+            "triggers": [
+              {
+                "on": "kill",
+                "vs": "hero",
+                "target": "allyArea",
+                "radius": 200,
+                "effects": [
+                  {
+                    "type": "statMod",
+                    "stat": "atkSpeed",
+                    "kind": "mul",
+                    "value": 1.15,
+                    "durationSec": 4
+                  },
+                  {
+                    "type": "heal",
+                    "maxHpPct": 0.05
+                  }
+                ],
+                "desc": "Spearhead: his piece kills give allies within 200 +15% attack speed for 4s and heal 5% max health."
+              }
+            ],
+            "mods": [
+              {
+                "stat": "hpRegen",
+                "kind": "add",
+                "value": 1.5
+              }
+            ]
+          }
+        ]
+      },
+      "paths": {
+        "offense": [
+          "wanderer_boots",
+          "duelists_form",
+          "boiler_heart",
+          "vorpal_blade",
+          "cogged_edge",
+          "soot_reaver"
+        ],
+        "defense": [
+          "wanderer_boots",
+          "ward_bell_cuirass",
+          "boiler_heart",
+          "pocket_vault_shell",
+          "menders_ledger",
+          "furnace_bastion"
+        ],
+        "utility": [
+          "wanderer_boots",
+          "windstep_geta",
+          "ward_bell_cuirass",
+          "shuttered_door",
+          "pocket_vault_shell",
+          "furnished_pocket_dimension"
+        ]
+      }
+    }
+  ],
+  "paths": {
+    "offense": [
+      "wanderer_boots",
+      "cogged_edge",
+      "boiler_heart",
+      "soot_reaver",
+      "bloodletter_hook",
+      "furnace_bastion"
+    ],
+    "defense": [
+      "wanderer_boots",
+      "boiler_heart",
+      "ward_bell_cuirass",
+      "furnace_bastion",
+      "menders_ledger",
+      "pocket_vault_shell"
+    ],
+    "utility": [
+      "wanderer_boots",
+      "ward_bell_cuirass",
+      "shuttered_door",
+      "pocket_vault_shell",
+      "pocket_reliquary",
+      "furnished_pocket_dimension"
+    ]
+  }
+}

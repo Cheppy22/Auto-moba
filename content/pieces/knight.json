@@ -1,0 +1,925 @@
+{
+  "id": "knight",
+  "name": "Knight",
+  "title": "The Leaper",
+  "attackKind": "melee",
+  "disposition": "farmer",
+  "personality": "opportunist",
+  "playstyle": "The roamer and jungler. Leaps onto targets, clears camps fast and turns up where the enemy is weakest. Burst, then get out.",
+  "stats": {
+    "maxHp": 1020,
+    "hpRegen": 2.5,
+    "armor": 26,
+    "resist": 20,
+    "bladeDmg": 66,
+    "atkSpeed": 1,
+    "soulPower": 0,
+    "moveSpeed": 54,
+    "cdr": 0,
+    "range": 24
+  },
+  "autoSoulScale": 0,
+  "abilities": [
+    {
+      "id": "l_leap",
+      "name": "L-Leap",
+      "cooldownSec": 9,
+      "range": 160,
+      "radius": 0,
+      "target": "enemy",
+      "effects": [
+        {
+          "type": "dash",
+          "distance": 130,
+          "toward": "target"
+        },
+        {
+          "type": "damage",
+          "dmgType": "blade",
+          "base": 35,
+          "bladeScale": 0.8,
+          "soulScale": 0
+        }
+      ],
+      "condition": {},
+      "desc": "Leaps 130 onto an enemy and strikes for 35 + 80% Blade damage."
+    },
+    {
+      "id": "trample",
+      "name": "Trample",
+      "cooldownSec": 10,
+      "range": 0,
+      "radius": 85,
+      "target": "enemyArea",
+      "effects": [
+        {
+          "type": "damage",
+          "dmgType": "blade",
+          "base": 30,
+          "bladeScale": 0.6,
+          "soulScale": 0
+        }
+      ],
+      "condition": {
+        "minEnemies": 2
+      },
+      "desc": "Rears and tramples every enemy within 85 for 30 + 60% Blade damage. Needs 2 enemies."
+    },
+    {
+      "id": "spur_away",
+      "name": "Spur Away",
+      "cooldownSec": 15,
+      "range": 80,
+      "radius": 0,
+      "target": "enemy",
+      "effects": [
+        {
+          "type": "dash",
+          "distance": 120,
+          "toward": "away"
+        },
+        {
+          "type": "statMod",
+          "stat": "moveSpeed",
+          "kind": "mul",
+          "value": 0.6,
+          "durationSec": 2
+        }
+      ],
+      "condition": {
+        "selfHpBelow": 0.45
+      },
+      "desc": "Below 45% health, spurs 120 away from a close enemy and slows it 40% for 2s."
+    }
+  ],
+  "passives": [
+    {
+      "on": "hit",
+      "vs": "other",
+      "target": "victim",
+      "effects": [
+        {
+          "type": "damage",
+          "dmgType": "blade",
+          "base": 6,
+          "bladeScale": 0.15,
+          "soulScale": 0
+        }
+      ],
+      "desc": "Outrider: hits on pawnlings, camps and structures deal 6 + 15% Blade bonus damage."
+    }
+  ],
+  "styles": [
+    {
+      "id": "lancer",
+      "name": "Lancer",
+      "desc": "The assassin. A huge lance charge onto the most exposed piece; every kill readies the next charge.",
+      "ability": {
+        "id": "lance_through",
+        "name": "Lance Through",
+        "cooldownSec": 18,
+        "range": 230,
+        "radius": 0,
+        "target": "enemy",
+        "effects": [
+          {
+            "type": "dash",
+            "distance": 200,
+            "toward": "target"
+          },
+          {
+            "type": "damage",
+            "dmgType": "blade",
+            "base": 70,
+            "bladeScale": 1.2,
+            "soulScale": 0
+          }
+        ],
+        "condition": {
+          "heroTargetOnly": true
+        },
+        "desc": "Charges 200 at an enemy piece up to 230 away and runs it through for 70 + 120% Blade damage."
+      },
+      "mods": [
+        {
+          "stat": "bladeDmg",
+          "kind": "mul",
+          "value": 1.12
+        },
+        {
+          "stat": "atkSpeed",
+          "kind": "add",
+          "value": 0.05
+        },
+        {
+          "stat": "maxHp",
+          "kind": "mul",
+          "value": 0.92
+        },
+        {
+          "stat": "armor",
+          "kind": "add",
+          "value": -4
+        }
+      ],
+      "passives": [
+        {
+          "on": "kill",
+          "vs": "hero",
+          "custom": "cooldownTick",
+          "param": 10,
+          "target": "self",
+          "effects": [
+            {
+              "type": "heal",
+              "maxHpPct": 0.1
+            }
+          ],
+          "desc": "Coup de Grâce: each enemy piece he kills cuts his cooldowns by 10s and heals him 10% max health."
+        },
+        {
+          "on": "hit",
+          "vs": "hero",
+          "cooldownSec": 8,
+          "target": "victim",
+          "effects": [
+            {
+              "type": "damage",
+              "dmgType": "true",
+              "base": 20,
+              "bladeScale": 0.25,
+              "soulScale": 0
+            }
+          ],
+          "desc": "Couched Lance: his first hit on a piece every 8s adds 20 + 25% Blade true damage."
+        }
+      ],
+      "ranks": {
+        "2": {
+          "name": "Sharp Lance",
+          "desc": "Lance Through hits 15% harder.",
+          "ability": 3,
+          "powerMul": 1.15
+        },
+        "3": {
+          "name": "Swift Steed",
+          "desc": "+4 move speed.",
+          "mods": [
+            {
+              "stat": "moveSpeed",
+              "kind": "add",
+              "value": 4
+            }
+          ]
+        },
+        "5": {
+          "name": "Long Leap",
+          "desc": "L-Leap reaches 25% farther.",
+          "ability": 0,
+          "rangeMul": 1.25
+        },
+        "6": {
+          "name": "Champion",
+          "desc": "+8% Blade damage.",
+          "mods": [
+            {
+              "stat": "bladeDmg",
+              "kind": "mul",
+              "value": 1.08
+            }
+          ]
+        },
+        "7": {
+          "name": "Repeat Charge",
+          "desc": "Lance Through recharges 15% faster.",
+          "ability": 3,
+          "cooldownMul": 0.85
+        }
+      },
+      "forks": {
+        "4": [
+          {
+            "id": "lancer_deep",
+            "name": "Deep Strike",
+            "desc": "Lance Through reaches 30% farther: past the front line to the back.",
+            "ability": 3,
+            "rangeMul": 1.3
+          },
+          {
+            "id": "lancer_plate",
+            "name": "Jousting Plate",
+            "desc": "+12 armor and +10% max health: survive the landing.",
+            "mods": [
+              {
+                "stat": "armor",
+                "kind": "add",
+                "value": 12
+              },
+              {
+                "stat": "maxHp",
+                "kind": "mul",
+                "value": 1.1
+              }
+            ]
+          }
+        ],
+        "8": [
+          {
+            "id": "lancer_skewer",
+            "name": "Skewer",
+            "desc": "Lance Through hits 20% harder.",
+            "ability": 3,
+            "powerMul": 1.2
+          },
+          {
+            "id": "lancer_breakaway",
+            "name": "Breakaway",
+            "desc": "When a piece hits him below 40% health he leaps 120 away from it (16s). Also +8% max health, +8 armor.",
+            "triggers": [
+              {
+                "on": "damaged",
+                "vs": "hero",
+                "hpBelow": 0.4,
+                "cooldownSec": 16,
+                "target": "attacker",
+                "effects": [
+                  {
+                    "type": "dash",
+                    "distance": 120,
+                    "toward": "away"
+                  }
+                ],
+                "desc": "Breakaway: when a piece hits him below 40% health, he leaps 120 away from it (16s)."
+              }
+            ],
+            "mods": [
+              {
+                "stat": "maxHp",
+                "kind": "mul",
+                "value": 1.08
+              },
+              {
+                "stat": "armor",
+                "kind": "add",
+                "value": 8
+              }
+            ]
+          }
+        ]
+      },
+      "paths": {
+        "offense": [
+          "wanderer_boots",
+          "duelists_form",
+          "bloodletter_hook",
+          "vorpal_blade",
+          "cogged_edge",
+          "hundred_hand_ledger"
+        ],
+        "defense": [
+          "wanderer_boots",
+          "duelists_form",
+          "ward_bell_cuirass",
+          "vorpal_blade",
+          "menders_ledger",
+          "pocket_vault_shell"
+        ],
+        "utility": [
+          "wanderer_boots",
+          "windstep_geta",
+          "seance_prism",
+          "vorpal_blade",
+          "shuttered_door",
+          "eternal_wick"
+        ]
+      }
+    },
+    {
+      "id": "errant",
+      "name": "Errant",
+      "desc": "A wandering knight. Clears the jungle fastest, moves fastest out of combat and knocks down undefended Bastions while the enemy looks elsewhere.",
+      "ability": {
+        "id": "questing_blow",
+        "name": "Questing Blow",
+        "cooldownSec": 11,
+        "range": 0,
+        "radius": 110,
+        "target": "enemyArea",
+        "effects": [
+          {
+            "type": "damage",
+            "dmgType": "blade",
+            "base": 45,
+            "bladeScale": 0.8,
+            "soulScale": 0
+          }
+        ],
+        "condition": {
+          "minEnemies": 1
+        },
+        "desc": "Sweeps every enemy within 110 for 45 + 80% Blade damage. Used on camps and waves as often as on pieces."
+      },
+      "mods": [
+        {
+          "stat": "moveSpeed",
+          "kind": "add",
+          "value": 6
+        },
+        {
+          "stat": "hpRegen",
+          "kind": "add",
+          "value": 2
+        },
+        {
+          "stat": "bladeDmg",
+          "kind": "mul",
+          "value": 1.05
+        },
+        {
+          "stat": "maxHp",
+          "kind": "mul",
+          "value": 1.05
+        }
+      ],
+      "passives": [
+        {
+          "on": "hit",
+          "vs": "other",
+          "target": "victim",
+          "effects": [
+            {
+              "type": "damage",
+              "dmgType": "blade",
+              "base": 0,
+              "bladeScale": 0.25,
+              "soulScale": 0
+            }
+          ],
+          "desc": "Forager: hits on pawnlings, camps and structures deal a further 25% Blade bonus damage."
+        },
+        {
+          "on": "periodic",
+          "everySec": 1,
+          "custom": "outOfCombat",
+          "param": 3,
+          "target": "self",
+          "effects": [
+            {
+              "type": "statMod",
+              "stat": "moveSpeed",
+              "kind": "add",
+              "value": 20,
+              "durationSec": 1.5
+            }
+          ],
+          "desc": "Wanderlust: after 3s out of combat, +20 move speed."
+        }
+      ],
+      "ranks": {
+        "2": {
+          "name": "Trail Rations",
+          "desc": "Every pawnling or camp he kills heals him 2% max health.",
+          "triggers": [
+            {
+              "on": "kill",
+              "vs": "other",
+              "target": "self",
+              "effects": [
+                {
+                  "type": "heal",
+                  "maxHpPct": 0.02
+                }
+              ],
+              "desc": "Trail Rations: non-piece kills heal 2% max health."
+            }
+          ]
+        },
+        "3": {
+          "name": "Wide Sweep",
+          "desc": "Questing Blow covers 15% more ground.",
+          "ability": 3,
+          "radiusMul": 1.15
+        },
+        "5": {
+          "name": "Long Road",
+          "desc": "+5 move speed.",
+          "mods": [
+            {
+              "stat": "moveSpeed",
+              "kind": "add",
+              "value": 5
+            }
+          ]
+        },
+        "6": {
+          "name": "Questing Blade",
+          "desc": "Questing Blow hits 20% harder.",
+          "ability": 3,
+          "powerMul": 1.2
+        },
+        "7": {
+          "name": "Knight of the Wilds",
+          "desc": "+8% max health and +5% Blade damage.",
+          "mods": [
+            {
+              "stat": "maxHp",
+              "kind": "mul",
+              "value": 1.08
+            },
+            {
+              "stat": "bladeDmg",
+              "kind": "mul",
+              "value": 1.05
+            }
+          ]
+        }
+      },
+      "forks": {
+        "4": [
+          {
+            "id": "errant_raider",
+            "name": "Raider",
+            "desc": "Every 4th hit on a non-piece deals 60% Blade bonus damage. Split push. Also +3 move speed.",
+            "triggers": [
+              {
+                "on": "hit",
+                "vs": "other",
+                "everyNth": 4,
+                "target": "victim",
+                "effects": [
+                  {
+                    "type": "damage",
+                    "dmgType": "blade",
+                    "base": 0,
+                    "bladeScale": 0.6,
+                    "soulScale": 0
+                  }
+                ],
+                "desc": "Raider: every 4th hit on a pawnling, camp or structure deals 60% Blade bonus damage."
+              }
+            ],
+            "mods": [
+              {
+                "stat": "moveSpeed",
+                "kind": "add",
+                "value": 3
+              }
+            ]
+          },
+          {
+            "id": "errant_ambusher",
+            "name": "Ambusher",
+            "desc": "His first hit on a piece every 10s deals 30 + 60% Blade bonus damage and slows 30% for 1.5s. Gank from the jungle. Also +5% Blade damage.",
+            "triggers": [
+              {
+                "on": "hit",
+                "vs": "hero",
+                "cooldownSec": 10,
+                "target": "victim",
+                "effects": [
+                  {
+                    "type": "damage",
+                    "dmgType": "blade",
+                    "base": 30,
+                    "bladeScale": 0.6,
+                    "soulScale": 0
+                  },
+                  {
+                    "type": "statMod",
+                    "stat": "moveSpeed",
+                    "kind": "mul",
+                    "value": 0.7,
+                    "durationSec": 1.5
+                  }
+                ],
+                "desc": "Ambusher: first hit on a piece every 10s deals 30 + 60% Blade and slows 30% for 1.5s."
+              }
+            ],
+            "mods": [
+              {
+                "stat": "bladeDmg",
+                "kind": "mul",
+                "value": 1.05
+              }
+            ]
+          }
+        ],
+        "8": [
+          {
+            "id": "errant_siegebreaker",
+            "name": "Siegebreaker",
+            "desc": "Enemies within 120, structures included, lose 10 armor. Also +2 move speed.",
+            "triggers": [
+              {
+                "on": "periodic",
+                "everySec": 1,
+                "target": "self",
+                "effects": [
+                  {
+                    "type": "aura",
+                    "radius": 120,
+                    "target": "enemy",
+                    "stat": "armor",
+                    "kind": "add",
+                    "value": -10
+                  }
+                ],
+                "desc": "Siegebreaker: enemies within 120, structures included, lose 10 armor."
+              }
+            ],
+            "mods": [
+              {
+                "stat": "moveSpeed",
+                "kind": "add",
+                "value": 2
+              }
+            ]
+          },
+          {
+            "id": "errant_hunter",
+            "name": "Hunter of Pieces",
+            "desc": "Each enemy piece he kills cuts his cooldowns by 6s and heals 10% max health. Also +4% max health.",
+            "triggers": [
+              {
+                "on": "kill",
+                "vs": "hero",
+                "custom": "cooldownTick",
+                "param": 6,
+                "target": "self",
+                "effects": [
+                  {
+                    "type": "heal",
+                    "maxHpPct": 0.1
+                  }
+                ],
+                "desc": "Hunter of Pieces: piece kills cut his cooldowns by 6s and heal 10% max health."
+              }
+            ],
+            "mods": [
+              {
+                "stat": "maxHp",
+                "kind": "mul",
+                "value": 1.04
+              }
+            ]
+          }
+        ]
+      },
+      "paths": {
+        "offense": [
+          "wanderer_boots",
+          "cogged_edge",
+          "bloodletter_hook",
+          "soot_reaver",
+          "duelists_form",
+          "vorpal_blade"
+        ],
+        "defense": [
+          "wanderer_boots",
+          "bloodletter_hook",
+          "boiler_heart",
+          "furnace_bastion",
+          "cogged_edge",
+          "undying_larder"
+        ],
+        "utility": [
+          "wanderer_boots",
+          "windstep_geta",
+          "cogged_edge",
+          "soot_reaver",
+          "shuttered_door",
+          "eternal_wick"
+        ]
+      }
+    },
+    {
+      "id": "paladin",
+      "name": "Paladin",
+      "desc": "A protector. Leaps to the most wounded ally and shields it, and weakens whoever he hits.",
+      "ability": {
+        "id": "gallant_leap",
+        "name": "Gallant Leap",
+        "cooldownSec": 18,
+        "range": 260,
+        "radius": 0,
+        "target": "lowestAlly",
+        "effects": [
+          {
+            "type": "dash",
+            "distance": 200,
+            "toward": "target"
+          },
+          {
+            "type": "shield",
+            "base": 110,
+            "bladeScale": 0.8,
+            "soulScale": 0,
+            "durationSec": 3
+          }
+        ],
+        "condition": {
+          "allyHpBelow": 0.55
+        },
+        "desc": "When an allied piece within 260 drops below 55% health, leaps 200 to the most wounded one and shields it for 110 + 80% Blade for 3s."
+      },
+      "mods": [
+        {
+          "stat": "maxHp",
+          "kind": "mul",
+          "value": 1.15
+        },
+        {
+          "stat": "armor",
+          "kind": "add",
+          "value": 8
+        },
+        {
+          "stat": "resist",
+          "kind": "add",
+          "value": 8
+        },
+        {
+          "stat": "bladeDmg",
+          "kind": "mul",
+          "value": 0.9
+        },
+        {
+          "stat": "moveSpeed",
+          "kind": "add",
+          "value": -2
+        }
+      ],
+      "passives": [
+        {
+          "on": "hit",
+          "vs": "hero",
+          "cooldownSec": 6,
+          "target": "victim",
+          "effects": [
+            {
+              "type": "statMod",
+              "stat": "bladeDmg",
+              "kind": "mul",
+              "value": 0.8,
+              "durationSec": 3
+            }
+          ],
+          "desc": "Rebuke: his hit on a piece cuts its Blade damage by 20% for 3s (6s)."
+        },
+        {
+          "on": "periodic",
+          "everySec": 1,
+          "target": "self",
+          "effects": [
+            {
+              "type": "aura",
+              "radius": 130,
+              "target": "ally",
+              "stat": "damageTakenMult",
+              "kind": "mul",
+              "value": 0.95
+            }
+          ],
+          "desc": "Oath: allied pieces and pawns within 130 take 5% less damage."
+        }
+      ],
+      "ranks": {
+        "2": {
+          "name": "Steadfast",
+          "desc": "+6 armor.",
+          "mods": [
+            {
+              "stat": "armor",
+              "kind": "add",
+              "value": 6
+            }
+          ]
+        },
+        "3": {
+          "name": "Swift Rescue",
+          "desc": "Gallant Leap recharges 10% faster and reaches 10% farther.",
+          "ability": 3,
+          "cooldownMul": 0.9,
+          "rangeMul": 1.1
+        },
+        "5": {
+          "name": "Holy Shield",
+          "desc": "Gallant Leap shields 25% more.",
+          "ability": 3,
+          "powerMul": 1.25
+        },
+        "6": {
+          "name": "Warhorse",
+          "desc": "+4 move speed.",
+          "mods": [
+            {
+              "stat": "moveSpeed",
+              "kind": "add",
+              "value": 4
+            }
+          ]
+        },
+        "7": {
+          "name": "Bulwark of Faith",
+          "desc": "+8% max health.",
+          "mods": [
+            {
+              "stat": "maxHp",
+              "kind": "mul",
+              "value": 1.08
+            }
+          ]
+        }
+      },
+      "forks": {
+        "4": [
+          {
+            "id": "paladin_far",
+            "name": "Far Rescue",
+            "desc": "Gallant Leap reaches 30% farther: he covers more of the map.",
+            "ability": 3,
+            "rangeMul": 1.3
+          },
+          {
+            "id": "paladin_hands",
+            "name": "Lay on Hands",
+            "desc": "Every 6s, allied pieces within 140 heal 15 + 20% Blade. Steady sustain where he stands. Also +8% max health, +2 health regeneration.",
+            "triggers": [
+              {
+                "on": "periodic",
+                "everySec": 6,
+                "target": "allyArea",
+                "radius": 140,
+                "effects": [
+                  {
+                    "type": "heal",
+                    "base": 15,
+                    "bladeScale": 0.2,
+                    "soulScale": 0
+                  }
+                ],
+                "desc": "Lay on Hands: every 6s, allies within 140 heal 15 + 20% Blade."
+              }
+            ],
+            "mods": [
+              {
+                "stat": "maxHp",
+                "kind": "mul",
+                "value": 1.08
+              },
+              {
+                "stat": "hpRegen",
+                "kind": "add",
+                "value": 2
+              }
+            ]
+          }
+        ],
+        "8": [
+          {
+            "id": "paladin_intercept",
+            "name": "Intercept",
+            "desc": "A piece that hits him is staggered for 1s (8s). Also +8 armor, +8 resist.",
+            "triggers": [
+              {
+                "on": "damaged",
+                "vs": "hero",
+                "cooldownSec": 8,
+                "target": "attacker",
+                "effects": [
+                  {
+                    "type": "statMod",
+                    "stat": "moveSpeed",
+                    "kind": "mul",
+                    "value": 0.1,
+                    "durationSec": 1
+                  },
+                  {
+                    "type": "statMod",
+                    "stat": "atkSpeed",
+                    "kind": "mul",
+                    "value": 0.1,
+                    "durationSec": 1
+                  }
+                ],
+                "desc": "Intercept: a piece that hits him is staggered for 1s (8s)."
+              }
+            ],
+            "mods": [
+              {
+                "stat": "armor",
+                "kind": "add",
+                "value": 8
+              },
+              {
+                "stat": "resist",
+                "kind": "add",
+                "value": 8
+              }
+            ]
+          },
+          {
+            "id": "paladin_aegis",
+            "name": "Aegis Knight",
+            "desc": "Gallant Leap shields 20% more.",
+            "ability": 3,
+            "powerMul": 1.2,
+            "cooldownMul": 1
+          }
+        ]
+      },
+      "paths": {
+        "offense": [
+          "wanderer_boots",
+          "cogged_edge",
+          "ward_bell_cuirass",
+          "soot_reaver",
+          "duelists_form",
+          "vorpal_blade"
+        ],
+        "defense": [
+          "wanderer_boots",
+          "ward_bell_cuirass",
+          "menders_ledger",
+          "pocket_vault_shell",
+          "boiler_heart",
+          "furnace_bastion"
+        ],
+        "utility": [
+          "wanderer_boots",
+          "ward_bell_cuirass",
+          "pocket_reliquary",
+          "furnished_pocket_dimension",
+          "shuttered_door",
+          "pocket_vault_shell"
+        ]
+      }
+    }
+  ],
+  "paths": {
+    "offense": [
+      "wanderer_boots",
+      "duelists_form",
+      "bloodletter_hook",
+      "vorpal_blade",
+      "cogged_edge",
+      "hundred_hand_ledger"
+    ],
+    "defense": [
+      "wanderer_boots",
+      "duelists_form",
+      "ward_bell_cuirass",
+      "vorpal_blade",
+      "menders_ledger",
+      "pocket_vault_shell"
+    ],
+    "utility": [
+      "wanderer_boots",
+      "windstep_geta",
+      "seance_prism",
+      "vorpal_blade",
+      "shuttered_door",
+      "eternal_wick"
+    ]
+  }
+}
