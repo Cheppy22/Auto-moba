@@ -168,16 +168,6 @@ html[data-layout='portrait'] .hud-dock .card-pop {
 html[data-layout='portrait'] .recalling {
   top: -26px;
 }
-html[data-layout='portrait'] .cam-panel .btn.small {
-  min-height: 32px;
-  min-width: 0;
-  padding: 2px 9px;
-  font-size: var(--fs-xs);
-}
-html[data-layout='portrait'] .speed-seg .btn.small {
-  min-width: 36px;
-  padding: 2px 4px;
-}
 html[data-layout='portrait'] .corner.bl .roster,
 html[data-layout='portrait'] .corner.br .roster {
   flex-direction: column;

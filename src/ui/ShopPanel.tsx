@@ -56,14 +56,15 @@ function ItemDesc({ desc }: { desc: string }) {
   return (
     <div data-testid="item-desc" title={plainText(desc)}>
       {stats && (
-        <div>
+        <span class="detail-stats">
           <RichText text={stats} />
-        </div>
+        </span>
       )}
+      {stats && rule && ' '}
       {rule && (
-        <div class="detail-rule">
+        <span class="detail-rule">
           <RichText text={rule} />
-        </div>
+        </span>
       )}
     </div>
   );
@@ -165,6 +166,24 @@ function CloseGlyph() {
 
 const sentence = (t: string): string => (t ? t[0].toUpperCase() + t.slice(1) : t);
 
+/** The sim's reason a purchase is refused, as a short label. */
+function reasonLabel(e: ShopEntry, gold: number): string {
+  switch (e.reason) {
+    case 'not enough gold':
+      return `Not enough gold (${n0(e.price - gold)} short)`;
+    case JUNGLE_ONLY:
+      return 'Jungle stalls only';
+    case NO_SHOP:
+      return 'Shop at base or a jungle stall';
+    case 'no free slot':
+      return 'Slots full';
+    case 'not in catalog':
+      return 'Not sold here';
+    default:
+      return sentence(e.reason);
+  }
+}
+
 export function ShopPanel({ onClose }: { onClose?: () => void }) {
   const s = useSession();
   const m = s.match!;
@@ -179,6 +198,7 @@ export function ShopPanel({ onClose }: { onClose?: () => void }) {
   const [picked, setSel] = useState<{ kind: 'shop' | 'owned'; id: string } | null>(null);
   const sel = picked ?? (first ? { kind: 'shop' as const, id: first.id } : null);
   const [confirming, setConfirming] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const live = m.state.phase.kind === 'live';
   const tier3 = entries.filter((e) => e.tier === 3);
   const atStall = tier3.some((e) => e.reason !== JUNGLE_ONLY);
@@ -195,6 +215,7 @@ export function ShopPanel({ onClose }: { onClose?: () => void }) {
   const pick = (next: { kind: 'shop' | 'owned'; id: string } | null): void => {
     setSel(next);
     setConfirming(false);
+    setExpanded(false);
   };
 
   const selEntry = sel?.kind === 'shop' ? byId.get(sel.id) : undefined;
@@ -205,29 +226,94 @@ export function ShopPanel({ onClose }: { onClose?: () => void }) {
     if (s.suggestShop(shopId) && !queued) onClose?.();
   };
 
+  const toggleMore = (): void => setExpanded((v) => !v);
+  const desc = (text: string) => (
+    <div
+      class="strip-desc"
+      role="button"
+      tabIndex={0}
+      aria-expanded={expanded}
+      aria-label="Item text, tap to show more or less"
+      data-testid="strip-desc"
+      onClick={toggleMore}
+      onKeyDown={(ev) => {
+        if (ev.key === 'Enter' || ev.key === ' ') {
+          ev.preventDefault();
+          toggleMore();
+        }
+      }}
+    >
+      <ItemDesc desc={text} />
+    </div>
+  );
+
+  /** Stall and recall actions, only when they help the player reach a place where the item is sold. */
+  const reachActions = (e: ShopEntry) => {
+    const stallOnly = e.reason === JUNGLE_ONLY;
+    if (!live || !p.alive || e.canBuy || !(stallOnly || e.reason === NO_SHOP)) return null;
+    const stalls = s.content.map.shops
+      .map((shop) => ({ shop, d: Math.hypot(shop.x - p.x, shop.y - p.y) }))
+      .sort((x, y) => x.d - y.d);
+    const near = stalls[0];
+    if (!near) return null;
+    const queued = p.hero!.suggest.includes(near.shop.id);
+    const secs = Math.round(near.d / p.stats.moveSpeed);
+    const recalling = !!p.hero!.recall;
+    return (
+      <div class="strip-send" data-testid="strip-send">
+        {!stallOnly && (
+          <button
+            class="btn small"
+            data-testid="recall-from-shop"
+            disabled={recalling}
+            onClick={() => {
+              if (s.issue({ type: 'recall', dest: 'base' }).ok) onClose?.();
+            }}
+          >
+            {recalling ? 'Recalling…' : 'Recall to base'}
+          </button>
+        )}
+        <button
+          class={`btn small ${queued ? 'on' : ''}`}
+          data-testid={`send-${near.shop.id}`}
+          aria-pressed={queued}
+          onClick={() => sendTo(near.shop.id)}
+        >
+          {queued ? `Going to ${near.shop.name}` : `${near.shop.name} · ~${secs}s`}
+        </button>
+      </div>
+    );
+  };
+
   const strip = () => {
     if (selEntry) {
       const def = s.content.itemById.get(selEntry.id)!;
       const builtFrom = def.from;
       const buildsInto = s.content.items.filter((x) => x.from.includes(def.id));
       const saved = selEntry.cost - selEntry.price;
-      const needsStall =
-        live && !selEntry.canBuy && [JUNGLE_ONLY, NO_SHOP].includes(selEntry.reason);
+      const blocked = !selEntry.canBuy && selEntry.reason;
+      const actions = reachActions(selEntry);
       return (
-        <div class="strip-body" data-testid="item-detail">
+        <div class={`strip-body ${expanded ? 'expanded' : ''}`} data-testid="item-detail">
           <div class={`strip-top cat-${def.category}`}>
             <span class="detail-icon">
-              <ItemIcon id={def.id} size={24} />
+              <ItemIcon id={def.id} size={22} />
             </span>
             <div class="strip-title">
               <div class="detail-name">{def.name}</div>
-              <div class="dim tiny strip-meta">
-                {def.category} · tier {def.tier}
-                {selEntry.source === 'keeper' ? ' · Keeper stock' : ''}
-                {selEntry.source === 'jungle' ? ' · jungle stalls only' : ''}
-                {selEntry.id === recommended ? ' · recommended' : ''}
-                {saved > 0 ? ` · parts worth ${n0(saved)}g used` : ''}
-              </div>
+              {blocked ? (
+                <div class="strip-reason" data-testid="buy-reason">
+                  {reasonLabel(selEntry, p.hero!.gold)}
+                </div>
+              ) : (
+                <div class="dim tiny strip-meta">
+                  {def.category} · tier {def.tier}
+                  {selEntry.source === 'keeper' ? ' · Keeper stock' : ''}
+                  {selEntry.source === 'jungle' ? ' · jungle stalls only' : ''}
+                  {selEntry.id === recommended ? ' · recommended' : ''}
+                  {saved > 0 ? ` · parts worth ${n0(saved)}g used` : ''}
+                </div>
+              )}
             </div>
             {!confirming ? (
               <button
@@ -257,63 +343,36 @@ export function ShopPanel({ onClose }: { onClose?: () => void }) {
               </div>
             )}
           </div>
-          <div class="strip-desc">
-            <ItemDesc desc={def.desc} />
-          </div>
-          {!selEntry.canBuy && selEntry.reason && !needsStall && (
-            <div class="strip-reason" data-testid="buy-reason">
-              {sentence(selEntry.reason)}
+          {desc(def.desc)}
+          {actions}
+          {(builtFrom.length > 0 || buildsInto.length > 0) && (
+            <div
+              class="tiny strip-foot"
+              title={`${builtFrom.length ? `Built from ${builtFrom.map(nameOf).join(', ')}. ` : ''}${
+                buildsInto.length ? `Builds into ${buildsInto.map((x) => x.name).join(', ')}.` : ''
+              }`}
+            >
+              {builtFrom.length > 0 && (
+                <span>
+                  <span class="dim">Built from </span>
+                  {builtFrom.map((id, i) => (
+                    <span key={id} class={owned.includes(id) ? 'good' : ''}>
+                      {i > 0 ? ', ' : ''}
+                      {nameOf(id)}
+                      {owned.includes(id) ? ' (owned)' : ''}
+                    </span>
+                  ))}
+                </span>
+              )}
+              {buildsInto.length > 0 && (
+                <span>
+                  {builtFrom.length > 0 ? ' · ' : ''}
+                  <span class="dim">Into </span>
+                  {buildsInto.map((x) => x.name).join(', ')}
+                </span>
+              )}
             </div>
           )}
-          {needsStall && (
-            <div class="strip-send">
-              {s.content.map.shops.map((shop) => {
-                const queued = p.hero!.suggest.includes(shop.id);
-                return (
-                  <button
-                    key={shop.id}
-                    class={`btn small ${queued ? 'on' : ''}`}
-                    data-testid={`send-${shop.id}`}
-                    aria-pressed={queued}
-                    onClick={() => sendTo(shop.id)}
-                  >
-                    {queued ? `Sending you to ${shop.name}` : `Send me to ${shop.name}`}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-          {(builtFrom.length > 0 || buildsInto.length > 0) &&
-            (selEntry.canBuy || !selEntry.reason || needsStall) && (
-              <div
-                class="tiny strip-foot"
-                title={`${builtFrom.length ? `Built from ${builtFrom.map(nameOf).join(', ')}. ` : ''}${
-                  buildsInto.length
-                    ? `Builds into ${buildsInto.map((x) => x.name).join(', ')}.`
-                    : ''
-                }`}
-              >
-                {builtFrom.length > 0 && (
-                  <span>
-                    <span class="dim">Built from </span>
-                    {builtFrom.map((id, i) => (
-                      <span key={id} class={owned.includes(id) ? 'good' : ''}>
-                        {i > 0 ? ', ' : ''}
-                        {nameOf(id)}
-                        {owned.includes(id) ? ' (owned)' : ''}
-                      </span>
-                    ))}
-                  </span>
-                )}
-                {buildsInto.length > 0 && (
-                  <span>
-                    {builtFrom.length > 0 ? ' · ' : ''}
-                    <span class="dim">Into </span>
-                    {buildsInto.map((x) => x.name).join(', ')}
-                  </span>
-                )}
-              </div>
-            )}
         </div>
       );
     }
@@ -323,14 +382,14 @@ export function ShopPanel({ onClose }: { onClose?: () => void }) {
       const holy = s.content.holyById.get(selOwned);
       const refund = def ? Math.round(def.cost * s.content.tuning.shop.sellRefund) : 0;
       return (
-        <div class="strip-body" data-testid="item-detail">
+        <div class={`strip-body ${expanded ? 'expanded' : ''}`} data-testid="item-detail">
           <div class={`strip-top cat-${itemCategory(s.content, selOwned)}`}>
             <span class="detail-icon">
-              <ItemIcon id={selOwned} size={24} />
+              <ItemIcon id={selOwned} size={22} />
             </span>
             <div class="strip-title">
               <div class="detail-name">{nameOf(selOwned)}</div>
-              <div class="dim tiny strip-meta">yours</div>
+              <div class="dim tiny strip-meta">yours{!def ? ' · cannot be sold' : ''}</div>
             </div>
             {def &&
               (!confirming ? (
@@ -359,10 +418,7 @@ export function ShopPanel({ onClose }: { onClose?: () => void }) {
                 </div>
               ))}
           </div>
-          <div class="strip-desc">
-            <ItemDesc desc={def?.desc ?? (cursed ? cursed.boonText : holy ? holy.desc : '')} />
-          </div>
-          {!def && <div class="dim tiny">This cannot be sold.</div>}
+          {desc(def?.desc ?? (cursed ? cursed.boonText : holy ? holy.desc : ''))}
         </div>
       );
     }

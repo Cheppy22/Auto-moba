@@ -218,6 +218,127 @@ function CamControls() {
   );
 }
 
+/** Portrait top-right: pause, a speed menu and a camera menu in one slim row. */
+function PhoneControls() {
+  const s = useSession();
+  const [open, setOpen] = useState<'speed' | 'cam' | null>(null);
+  const wrap = useRef<HTMLDivElement>(null);
+  const lastRun = useRef<Speed>(1);
+  if (s.ui.speed !== 0) lastRun.current = s.ui.speed;
+  useEscape(open !== null, () => setOpen(null));
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: PointerEvent): void => {
+      if (!wrap.current?.contains(e.target as Node)) setOpen(null);
+    };
+    document.addEventListener('pointerdown', onDown);
+    return () => document.removeEventListener('pointerdown', onDown);
+  }, [open]);
+  const paused = s.ui.speed === 0;
+  const cam = CAMS.find((c) => c.id === s.ui.cam) ?? CAMS[0];
+  return (
+    <div class="glass phone-ctl" ref={wrap}>
+      <button
+        class={`btn small ${paused ? 'on' : ''}`}
+        data-testid="speed-0"
+        aria-label={paused ? 'Resume' : 'Pause'}
+        aria-pressed={paused}
+        onClick={() => {
+          setOpen(null);
+          s.setUi({ speed: paused ? lastRun.current : 0 });
+        }}
+      >
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true">
+          {paused ? (
+            <path d="M3 1l8 5-8 5z" />
+          ) : (
+            <>
+              <rect x="2" y="1" width="3" height="10" rx="0.5" />
+              <rect x="7" y="1" width="3" height="10" rx="0.5" />
+            </>
+          )}
+        </svg>
+      </button>
+      <div class="phone-menu">
+        <button
+          class={`btn small ${open === 'speed' ? 'on' : ''}`}
+          data-testid="speed-menu"
+          aria-haspopup="true"
+          aria-expanded={open === 'speed'}
+          aria-label={`Speed ${lastRun.current} times`}
+          onClick={() => setOpen(open === 'speed' ? null : 'speed')}
+        >
+          <span class={paused ? 'dim' : ''}>{lastRun.current}x</span>
+          <i class="caret" aria-hidden="true" />
+        </button>
+        {open === 'speed' && (
+          <div class="glass phone-pop" role="group" aria-label="Speed">
+            {([1, 2, 4, 8] as Speed[]).map((v) => (
+              <button
+                key={v}
+                class={`btn small ${s.ui.speed === v ? 'on' : ''}`}
+                data-testid={`speed-${v}`}
+                aria-label={`${v} times speed`}
+                onClick={() => {
+                  s.setUi({ speed: v });
+                  setOpen(null);
+                }}
+              >
+                {v}x
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+      <div class="phone-menu">
+        <button
+          class={`btn small ${open === 'cam' ? 'on' : ''}`}
+          data-testid="cam-menu"
+          aria-haspopup="true"
+          aria-expanded={open === 'cam'}
+          aria-label={`Camera: ${cam.label}`}
+          onClick={() => setOpen(open === 'cam' ? null : 'cam')}
+        >
+          <svg
+            width="15"
+            height="15"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M3 8h4l2-3h6l2 3h4v11H3z" />
+            <circle cx="12" cy="13" r="3.5" />
+          </svg>
+          <span>{cam.label}</span>
+          <i class="caret" aria-hidden="true" />
+        </button>
+        {open === 'cam' && (
+          <div class="glass phone-pop" role="group" aria-label="Camera">
+            {CAMS.map((c) => (
+              <button
+                key={c.id}
+                class={`btn small ${s.ui.cam === c.id ? 'on' : ''}`}
+                data-testid={`cam-${c.id}`}
+                title={c.tip}
+                onClick={() => {
+                  s.setUi({ cam: c.id, follow: c.id === 'follow' ? s.ui.follow : null });
+                  setOpen(null);
+                }}
+              >
+                {c.label}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function Caption() {
   const s = useSession();
   const text = s.ui.caption;
@@ -472,7 +593,7 @@ export function Hud() {
   const speed = (
     <div class="glass speed-panel">
       <SpeedControls />
-      {layout !== 'portrait' && <CamControls />}
+      <CamControls />
     </div>
   );
 
@@ -482,13 +603,12 @@ export function Hud() {
         <div class="map-zone">
           <div class="corner tl">
             {score}
-            <div class="glass speed-panel cam-panel">
-              <CamControls />
-            </div>
             {suggestChip}
             {chips}
           </div>
-          <div class="corner tr">{speed}</div>
+          <div class="corner tr">
+            <PhoneControls />
+          </div>
           <div class="corner bl">
             <Roster team="A" />
           </div>

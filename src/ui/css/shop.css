@@ -87,7 +87,7 @@ html[data-layout='portrait'] .sheet {
   left: 0;
   right: 0;
   bottom: 0;
-  height: min(55dvh, 520px);
+  height: min(58dvh, 560px);
   padding-bottom: calc(8px + env(safe-area-inset-bottom));
   border-radius: 16px 16px 0 0;
   border-bottom: 0;
@@ -159,7 +159,7 @@ html[data-layout='desktop'] .sheet-paused {
 
 /* the game view shrinks to the part the sheet leaves free, so nothing important hides behind it */
 html[data-layout='portrait'] .shell[data-sheet] .stage {
-  bottom: min(55dvh, 520px);
+  bottom: min(58dvh, 560px);
 }
 html[data-layout='landscape'] .shell[data-sheet] .stage {
   right: min(54vw, 480px);
@@ -513,7 +513,7 @@ html[data-layout='desktop'] .shell[data-sheet] .stage {
 .shop-strip {
   flex: none;
   margin: 0 -2px;
-  padding: 8px 2px 0;
+  padding: 6px 2px 0;
   border-top: 1px solid var(--brass-dim);
 }
 .strip-body {
@@ -533,8 +533,8 @@ html[data-layout='desktop'] .shell[data-sheet] .stage {
   flex: none;
   display: grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
   border: 1px solid var(--cat);
   border-radius: 50%;
   color: var(--cat);
@@ -549,18 +549,27 @@ html[data-layout='desktop'] .shell[data-sheet] .stage {
   text-overflow: ellipsis;
   font-family: var(--font-display);
   font-size: var(--fs-md);
+  line-height: 1.2;
   letter-spacing: 0.04em;
   color: #f3e9d0;
 }
-.strip-meta {
+.strip-meta,
+.strip-reason {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+  line-height: 1.25;
+}
+.strip-meta {
   text-transform: capitalize;
+}
+.strip-reason {
+  font-size: var(--fs-xs);
+  color: #f0a597;
 }
 .strip-act {
   flex: none;
-  min-width: 104px;
+  min-width: 96px;
   min-height: 44px;
   white-space: nowrap;
 }
@@ -583,6 +592,7 @@ html[data-layout='desktop'] .shell[data-sheet] .stage {
   padding: 0;
 }
 .strip-desc {
+  position: relative;
   max-height: 5.6em;
   overflow-y: auto;
   font-size: 12.5px;
@@ -590,21 +600,21 @@ html[data-layout='desktop'] .shell[data-sheet] .stage {
   overscroll-behavior: contain;
 }
 .detail-rule {
+  display: block;
   margin-top: 2px;
-}
-.strip-reason {
-  font-size: var(--fs-xs);
-  color: #f0a597;
 }
 .strip-send {
   display: flex;
-  flex-wrap: wrap;
   gap: 6px;
 }
 .strip-send .btn {
-  flex: 1 1 150px;
+  flex: 1 1 0;
+  min-width: 0;
   min-height: 40px;
   padding: 4px 8px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   font-size: var(--fs-xs);
 }
 .strip-foot {
@@ -616,7 +626,57 @@ html[data-layout='desktop'] .shell[data-sheet] .stage {
   padding: var(--sp-3) 0;
 }
 
-/* phones */
+/* phones: the strip is two lines tall; tap the text to read all of it */
+html:not([data-layout='desktop']) .strip-desc {
+  max-height: none;
+  overflow: visible;
+  padding-right: 16px;
+  cursor: pointer;
+}
+html:not([data-layout='desktop']) .strip-desc > div {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+html:not([data-layout='desktop']) .strip-desc .detail-rule {
+  display: inline;
+  margin: 0;
+}
+html:not([data-layout='desktop']) .strip-desc::after {
+  content: '';
+  position: absolute;
+  right: 3px;
+  bottom: 5px;
+  width: 6px;
+  height: 6px;
+  border-right: 1.5px solid var(--dim);
+  border-bottom: 1.5px solid var(--dim);
+  rotate: 45deg;
+}
+html:not([data-layout='desktop']) .strip-body.expanded .strip-desc {
+  max-height: 9em;
+  overflow-y: auto;
+}
+html:not([data-layout='desktop']) .strip-body.expanded .strip-desc > div {
+  display: block;
+  overflow: visible;
+}
+html:not([data-layout='desktop']) .strip-body.expanded .strip-desc .detail-rule {
+  display: block;
+  margin-top: 2px;
+}
+html:not([data-layout='desktop']) .strip-body.expanded .strip-desc::after {
+  rotate: 225deg;
+  bottom: 2px;
+}
+html:not([data-layout='desktop']) .strip-foot {
+  display: none;
+}
+html:not([data-layout='desktop']) .strip-body.expanded .strip-foot {
+  display: block;
+  white-space: normal;
+}
 html[data-layout='portrait'] .attune-line,
 html[data-layout='landscape'] .attune-line {
   -webkit-line-clamp: 1;
@@ -637,12 +697,6 @@ html[data-layout='landscape'] .shop-tiles > .attune,
 html[data-layout='landscape'] .shop-tiles > .chip {
   order: 9;
 }
-html[data-layout='landscape'] .strip-foot {
-  display: none;
-}
-html[data-layout='landscape'] .strip-desc {
-  max-height: 2.7em;
-}
 html[data-layout='landscape'] .cat-tabs .btn,
 html[data-layout='landscape'] .shop-x {
   min-height: 36px;
@@ -650,9 +704,6 @@ html[data-layout='landscape'] .shop-x {
 html[data-layout='landscape'] .shop-x {
   width: 36px;
   height: 36px;
-}
-html[data-layout='landscape'] .strip-meta {
-  display: none;
 }
 
 /* between phases: the same panel inside the prep screen */
@@ -705,15 +756,27 @@ html[data-layout='landscape'] .prep-scroll .strip-confirm {
 html[data-layout='landscape'] .prep-scroll .strip-confirm .btn:first-child {
   flex: 1;
 }
-html[data-layout='landscape'] .prep-scroll .strip-meta {
-  display: block;
-}
 html[data-layout='landscape'] .prep-scroll .strip-desc {
-  max-height: none;
+  padding-right: 0;
+  cursor: default;
+}
+html[data-layout='landscape'] .prep-scroll .strip-desc::after {
+  display: none;
+}
+html[data-layout='landscape'] .prep-scroll .strip-desc > div {
+  display: block;
+  overflow: visible;
+}
+html[data-layout='landscape'] .prep-scroll .strip-desc .detail-rule {
+  display: block;
+  margin-top: 2px;
 }
 html[data-layout='landscape'] .prep-scroll .strip-foot {
   display: block;
   white-space: normal;
+}
+html[data-layout='landscape'] .prep-scroll .strip-send {
+  flex-direction: column;
 }
 html[data-layout='portrait'] .prep-scroll .shop {
   height: calc(100dvh - 190px);
