@@ -291,3 +291,12 @@ h3.teamB {
 .verdict h2 {
   font-size: var(--fs-xl);
 }
+
+.build-stamp {
+  margin: 4px 0 2px;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--brass, #c9a45c);
+  opacity: 0.9;
+}

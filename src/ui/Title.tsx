@@ -35,6 +35,9 @@ export function Title() {
           ))}
         </div>
         <h1 class="wordmark">Auto-MOBA</h1>
+        <div class="build-stamp" data-testid="build-stamp">
+          Chess variant · build {__BUILD_ID__}
+        </div>
         <div class="subtitle">Every wish is paid for. Every move is a gambit.</div>
         <p class="title-copy">
           Lead the White court against Black across a living chessboard. Your King, Queen, Rook,

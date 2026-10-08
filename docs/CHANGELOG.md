@@ -4,6 +4,7 @@ Newest first. One entry per change: what changed, why, and any measured effect. 
 
 ## 2026-10-08
 
+- **Build stamp on the chess title screen** ("Chess variant · build <commit>") and the tab title "Auto-MOBA · Chess". Why: the old and chess title screens both mention a chessboard, so Cheppy couldn't tell which build the browser was showing.
 - **Chess variant playable** (branch `test-product-2`, spec [CHESS.md](CHESS.md), pieces [PIECES.md](PIECES.md)). Why: Cheppy's experimental twist.
   - Sim: five pieces per side (King, Queen, Rook, Bishop, Knight) with 3 styles each, build paths, automatic Ranks 1–8 with forks at 4 and 8, pawnlings (old minion waves) plus pawns fielded with Tempo, a random hand of gambits, Bastions and Thrones, Check and Checkmate. No player character; the 14 heroes are removed. Engine additions: stun, taunt, Knight leaps over terrain, per-style attack kind and build paths, and a fix for ally-targeted skills never casting.
   - Interface: setup board, live HUD with gambit hand, Tempo, Field Pawn and fork cards, Adjourn panel with the read-only Armory, Checkmate screen. Phone, landscape and desktop.
