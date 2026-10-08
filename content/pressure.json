@@ -18,7 +18,7 @@
     },
     {
       "id": "keeper_debts",
-      "name": "The Keeper Calls In Debts",
+      "name": "The Cheshire Keeper Calls In Debts",
       "fromPhase": 6,
       "desc": "Cursed items double in both power and flaw.",
       "tagMult": { "curse": 2 },
@@ -26,9 +26,9 @@
     },
     {
       "id": "restless_guardians",
-      "name": "Restless Guardians",
+      "name": "The Kings Wake",
       "fromPhase": 7,
-      "desc": "Both guardians leave their bases and fight in the lanes.",
+      "desc": "Both Kings leave their bases and fight in the lanes.",
       "tagMult": {},
       "rules": ["roamingGuardians"]
     }

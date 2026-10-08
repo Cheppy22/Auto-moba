@@ -26,6 +26,7 @@ export function matchupAt(
   x: number,
   y: number,
   self: Unit | null,
+  joining: Unit | null = null,
 ): Matchup {
   const ai = ctx.t.ai;
   let aEhp = 0;
@@ -53,6 +54,11 @@ export function matchupAt(
       eDps += unitDps(u) * (u.kind === 'minion' ? 0.5 : 1);
       if (u.kind === 'hero') enemyHeroes++;
     }
+  }
+  if (joining && joining.alive && dist(x, y, joining.x, joining.y) > ai.allyRadius) {
+    aEhp += unitEhp(joining);
+    aDps += unitDps(joining);
+    allyHeroes++;
   }
   if (eEhp <= 0 || eDps <= 0) return { ratio: 9, allyHeroes, enemyHeroes };
   const ratio = (aEhp * aDps) / Math.max(1, eEhp * eDps);

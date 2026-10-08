@@ -1,0 +1,70 @@
+{
+  "upgrades": [
+    {
+      "id": "catrina_u1",
+      "hero": "catrina",
+      "name": "Sweet Skull",
+      "ability": 0,
+      "cooldownMul": 1,
+      "powerMul": 1.3,
+      "rangeMul": 1,
+      "radiusMul": 1,
+      "desc": "Sugar Skull deals 30% more"
+    },
+    {
+      "id": "catrina_u2",
+      "hero": "catrina",
+      "name": "Quick Seed",
+      "ability": 1,
+      "cooldownMul": 0.8,
+      "powerMul": 1,
+      "rangeMul": 1,
+      "radiusMul": 1,
+      "desc": "Marigold Snare cools down 20% faster"
+    },
+    {
+      "id": "catrina_u3",
+      "hero": "catrina",
+      "name": "Wide Bloom",
+      "ability": 1,
+      "cooldownMul": 1,
+      "powerMul": 1.2,
+      "rangeMul": 1,
+      "radiusMul": 1.3,
+      "desc": "Marigold Snare is stronger and wider"
+    },
+    {
+      "id": "catrina_u4",
+      "hero": "catrina",
+      "name": "Tall Candles",
+      "ability": 2,
+      "cooldownMul": 0.85,
+      "powerMul": 1.2,
+      "rangeMul": 1,
+      "radiusMul": 1.3,
+      "desc": "Ofrenda Fence is stronger, wider and faster"
+    },
+    {
+      "id": "catrina_u5",
+      "hero": "catrina",
+      "name": "Grand Fiesta",
+      "ability": 3,
+      "cooldownMul": 0.8,
+      "powerMul": 1.2,
+      "rangeMul": 1,
+      "radiusMul": 1,
+      "desc": "Dance of the Dead is stronger and recharges faster"
+    },
+    {
+      "id": "catrina_u6",
+      "hero": "catrina",
+      "name": "Long Table",
+      "ability": 1,
+      "cooldownMul": 1,
+      "powerMul": 1,
+      "rangeMul": 1.3,
+      "radiusMul": 1,
+      "desc": "Marigold Snare reaches 30% farther"
+    }
+  ]
+}

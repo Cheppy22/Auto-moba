@@ -9,12 +9,14 @@ import { Grid } from './core/grid';
 import { seedStreams, pick } from './core/rng';
 import { strategicUpdate } from './ai/strategic';
 import { updateFronts } from './ai/lanes';
+import { tickEvents } from './events';
 import { createKeeper } from './keeper';
 import { tickObelisks } from './obelisks';
 import { enterPrep, endLive } from './phase';
 import { tickSpiritTide } from './pressure';
 import { aiShop } from './ai/shopping';
-import { baseCatalog, nearBase, quote } from './shop';
+import { nextTarget } from './ai/shopping';
+import { itemPrice, nearBase, quote } from './shop';
 import {
   passiveGold,
   processDeaths,
@@ -44,19 +46,30 @@ import type {
   Unit,
 } from './types';
 
-const ROLE_SLOTS: Role[] = ['top', 'mid', 'bot', 'bot', 'jungle'];
+const ROLE_SLOTS: Role[] = ['top', 'top', 'bot', 'bot', 'mid'];
 
 function initialState(
   content: Content,
   seed: number,
   withPlayer: boolean | null,
   fixed?: { A: string[]; B: string[] },
+  reserved?: string,
 ): MatchState {
   const rng = seedStreams(seed);
   const aiHeroes: Record<PlayTeam, string[]> = { A: [], B: [] };
   const nA = withPlayer === null ? 5 : 4;
-  for (let i = 0; i < nA; i++) aiHeroes.A.push(pick(rng, 'draft', content.heroes).id);
-  for (let i = 0; i < 5; i++) aiHeroes.B.push(pick(rng, 'draft', content.heroes).id);
+  let pool = content.heroes.filter((h) => h.id !== reserved);
+  const take = (): string => {
+    if (pool.length === 0) pool = content.heroes.filter((h) => h.id !== reserved);
+    const h = pick(rng, 'draft', pool);
+    pool = pool.filter((x) => x.id !== h.id);
+    return h.id;
+  };
+  const deferred = withPlayer === true && !fixed && !reserved;
+  if (!deferred) {
+    for (let i = 0; i < nA; i++) aiHeroes.A.push(take());
+    for (let i = 0; i < 5; i++) aiHeroes.B.push(take());
+  }
   if (fixed) {
     aiHeroes.A = fixed.A.slice(0, nA);
     aiHeroes.B = fixed.B.slice(0, 5);
@@ -109,6 +122,8 @@ function initialState(
       playerHero: null,
       playerRole: null,
       playerTeam: 'A',
+      unique: !fixed,
+      deferred,
     },
     board: {
       A: { claims: {}, plan: { tick: -999, siege: false, lane: 'mid' } },
@@ -116,6 +131,9 @@ function initialState(
     },
     tideNextTick: 0,
     lastPassiveTick: 0,
+    events: [],
+    eventSchedule: [],
+    nextEventId: 1,
   };
 }
 
@@ -127,6 +145,7 @@ function buildCtx(content: Content, state: MatchState): Ctx {
     c: content,
     t: content.tuning,
     world,
+    open: new Set(state.slots.filter((x) => x.open).map((x) => x.id)),
     rec,
     idx: new Map(),
     grid: new Grid<Unit>(content.map.size, 100),
@@ -148,31 +167,54 @@ function buildCtx(content: Content, state: MatchState): Ctx {
   return ctx;
 }
 
+interface Placed {
+  defId: string;
+  role: Role;
+  isPlayer: boolean;
+  jungler: boolean;
+}
+
+/**
+ * Two heroes hold each side lane and one holds mid. The mid slot goes to an attacker (a roamer) if
+ * the team has one; side lanes are paired so a lane gets different dispositions where possible.
+ * In a pair the first farmer is the jungler: the partner holds the lane while the farmer clears
+ * camps.
+ */
 function assignRoles(
   ctx: Ctx,
   heroIds: string[],
   fixed: { id: string; role: Role } | null,
-): { defId: string; role: Role; isPlayer: boolean }[] {
+): Placed[] {
+  const disp = (id: string): string => ctx.c.heroById.get(id)!.disposition;
   const pool = ROLE_SLOTS.slice();
-  const out: { defId: string; role: Role; isPlayer: boolean; order: number }[] = [];
+  const lanes: Record<Role, Placed[]> = { top: [], mid: [], bot: [] };
   if (fixed) {
     pool.splice(pool.indexOf(fixed.role), 1);
-    out.push({ defId: fixed.id, role: fixed.role, isPlayer: true, order: -1 });
+    lanes[fixed.role].push({ defId: fixed.id, role: fixed.role, isPlayer: true, jungler: false });
   }
-  const pending = heroIds.map((defId, order) => ({ defId, order }));
-  const unplaced: typeof pending = [];
-  for (const p of pending) {
-    const pref = ctx.c.heroById.get(p.defId)!.preferredRole;
-    const i = pool.indexOf(pref);
-    if (i >= 0) {
-      pool.splice(i, 1);
-      out.push({ defId: p.defId, role: pref, isPlayer: false, order: p.order });
-    } else unplaced.push(p);
+  const rest = heroIds.slice();
+  const place = (role: Role, i: number): void => {
+    const [id] = rest.splice(i, 1);
+    pool.splice(pool.indexOf(role), 1);
+    lanes[role].push({ defId: id, role, isPlayer: false, jungler: false });
+  };
+  if (pool.includes('mid')) {
+    const i = rest.findIndex((id) => disp(id) === 'attacker');
+    place('mid', i >= 0 ? i : 0);
   }
-  for (const p of unplaced) {
-    const role = pool.shift()!;
-    out.push({ defId: p.defId, role, isPlayer: false, order: p.order });
+  for (const role of ['top', 'bot'] as Role[]) {
+    while (pool.includes(role) && rest.length > 0) {
+      const have = new Set(lanes[role].map((p) => disp(p.defId)));
+      const i = rest.findIndex((id) => !have.has(disp(id)));
+      place(role, i >= 0 ? i : 0);
+    }
   }
+  for (const role of ['top', 'bot'] as Role[]) {
+    const farmer =
+      lanes[role].length === 2 ? lanes[role].find((p) => disp(p.defId) === 'farmer') : undefined;
+    if (farmer) farmer.jungler = true;
+  }
+  const out = [...lanes.top, ...lanes.bot, ...lanes.mid];
   out.sort((a, b) => ROLE_SLOTS.indexOf(a.role) - ROLE_SLOTS.indexOf(b.role));
   return out;
 }
@@ -189,13 +231,14 @@ function finalizeDraft(ctx: Ctx): void {
   }
   createKeeper(ctx);
   const fixed = d.playerHero && d.playerRole ? { id: d.playerHero, role: d.playerRole } : null;
-  const roster: Record<PlayTeam, { defId: string; role: Role; isPlayer: boolean }[]> = {
+  const roster: Record<PlayTeam, Placed[]> = {
     A: assignRoles(ctx, d.aiHeroes.A, fixed),
     B: assignRoles(ctx, d.aiHeroes.B, null),
   };
   for (const team of ['A', 'B'] as PlayTeam[]) {
     roster[team].forEach((r, slot) => {
       const u = makeHero(ctx, team, slot, r.defId, r.role, r.isPlayer);
+      u.hero!.jungler = r.jungler;
       if (r.isPlayer) s.playerHeroId = u.id;
     });
   }
@@ -221,16 +264,17 @@ function stepTick(ctx: Ctx): void {
   spawnWaves(ctx);
   tickSpiritTide(ctx);
   tickObelisks(ctx);
+  tickEvents(ctx);
   tickCampRespawns(ctx);
   const order: PlayTeam[] = Math.floor(s.tick / 20) % 2 === 0 ? ['A', 'B'] : ['B', 'A'];
   for (const team of order) {
     for (const id of s.teams[team].heroIds) {
       const u = ctx.unit(id);
       if (!u || !u.alive) continue;
-      if ((s.tick + id * 3) % 20 === 0) strategicUpdate(ctx, u);
+      if ((s.tick + (u.hero ? u.hero.slot : id) * 3) % 20 === 0) strategicUpdate(ctx, u);
       if (
         u.hero &&
-        !u.hero.isPlayer &&
+        (!u.hero.isPlayer || u.hero.autoBuy) &&
         (s.tick + id) % 20 === 0 &&
         u.hero.gold >= ctx.t.ai.shopAtBaseGold &&
         nearBase(ctx, u)
@@ -258,7 +302,13 @@ export class Match {
     readonly config: MatchConfig,
   ) {
     const player = config.player;
-    const state = initialState(content, config.seed, player === null ? null : true, config.draft);
+    const state = initialState(
+      content,
+      config.seed,
+      player === null ? null : true,
+      config.draft,
+      player?.heroId,
+    );
     this.ctx = buildCtx(content, state);
   }
 
@@ -405,8 +455,37 @@ export class Match {
       points: { A: s.teams.A.points, B: s.teams.B.points },
       playerHeroId: s.playerHeroId,
       keeper,
+      suggest:
+        (s.playerHeroId !== null ? this.ctx.unit(s.playerHeroId)?.hero?.suggest : undefined) ?? [],
       phaseTicksLeft:
         s.phase.kind === 'live' ? Math.max(0, phaseTicks - (s.tick - s.phase.startTick)) : 0,
+      events: s.events.map((e) => {
+        const def = this.content.eventById.get(e.defId)!;
+        return {
+          id: `${e.defId}#${e.id}`,
+          kind: e.defId,
+          type: e.kind,
+          name: def.name,
+          slot: e.slot,
+          x: e.x,
+          y: e.y,
+          radius: e.radius,
+          phase: e.phase,
+          ticksLeft: Math.max(0, (e.phase === 'warning' ? e.warnEndTick : e.endTick) - s.tick),
+          progress: e.progress,
+          team: e.kind === 'parade' ? e.target : e.holder,
+          ...(e.tele
+            ? {
+                telegraph: {
+                  x: e.tele.x,
+                  y: e.tele.y,
+                  radius: def.telegraph?.radius ?? 0,
+                  ticksLeft: Math.max(0, e.tele.endTick - s.tick),
+                },
+              }
+            : {}),
+        };
+      }),
     };
   }
 
@@ -414,22 +493,10 @@ export class Match {
     const s = this.ctx.s;
     const p = s.playerHeroId !== null ? this.ctx.unit(s.playerHeroId) : undefined;
     if (!p || !p.hero || p.team === 'neutral') return [];
-    const base = new Set(baseCatalog(this.ctx, p.team));
     const out: ShopEntry[] = [];
     for (const it of this.content.items) {
-      const inBase = base.has(it.id);
       const inKeeper = s.keeper.stock.includes(it.id);
-      const owned = p.hero.items.slice();
-      const consumed: string[] = [];
-      let discount = 0;
-      for (const comp of it.from) {
-        const i = owned.indexOf(comp);
-        if (i >= 0) {
-          owned.splice(i, 1);
-          consumed.push(comp);
-          discount += this.content.itemById.get(comp)?.cost ?? 0;
-        }
-      }
+      const pr = itemPrice(this.ctx, p, it.id)!;
       const q = quote(this.ctx, p, it.id);
       const canBuy = !('error' in q) && p.hero.gold >= q.price;
       let reason = '';
@@ -441,15 +508,22 @@ export class Match {
         category: it.category,
         tier: it.tier,
         cost: it.cost,
-        price: Math.max(0, it.cost - discount),
-        consumed,
-        source: inBase ? 'base' : inKeeper ? 'keeper' : 'locked',
+        price: pr.price,
+        consumed: pr.consumed,
+        source: it.tier <= 2 ? 'base' : inKeeper ? 'keeper' : 'jungle',
         canBuy,
         reason,
         desc: it.desc,
       });
     }
     return out;
+  }
+
+  /** Build-list item the player's hero should buy next (for the shop's Recommended tag). */
+  recommendedItem(): string | null {
+    const id = this.ctx.s.playerHeroId;
+    const u = id !== null ? this.ctx.unit(id) : undefined;
+    return u ? nextTarget(this.ctx, u) : null;
   }
 
   unitById(id: number): Unit | undefined {

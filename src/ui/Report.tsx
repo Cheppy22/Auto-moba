@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'preact/hooks';
 import { buildReport, inputFromMatch, type Scope } from '../analysis';
+import { courtName } from '../analysis/text';
 import { HeroView } from './report/HeroView';
-import { TeamView } from './report/TeamView';
-import { useSession } from './session';
+import { EventLog, Scoreboard, Takeaways } from './report/TeamView';
+import { useLayout } from './layout';
+import { useEscape, useSession } from './session';
 
 export function Report(props: { scope: 'phase' | 'match' }) {
   const s = useSession();
@@ -12,7 +14,7 @@ export function Report(props: { scope: 'phase' | 'match' }) {
   const [scope, setScope] = useState<Scope>(
     props.scope === 'match' ? { kind: 'match' } : { kind: 'phase', n: current },
   );
-  const [skip, setSkip] = useState(false);
+  const [open, setOpen] = useState(false);
   const input = useMemo(
     () => inputFromMatch(m, s.content),
     [m, s.content, st.phase.kind, st.phase.n],
@@ -26,22 +28,28 @@ export function Report(props: { scope: 'phase' | 'match' }) {
   const whole = useMemo(() => buildReport(input, { kind: 'match' }, viewer), [input, viewer]);
   const phases = whole.phases;
   const hero = s.ui.reportHero;
+  const showDetails = open || hero !== null;
+  useEscape(showDetails, () => {
+    setOpen(false);
+    s.setUi({ reportHero: null });
+  });
+  const layout = useLayout();
+  const items: Record<number, string[]> = {};
+  for (const h of report.heroes) items[h.id] = [...(m.unitById(h.id)?.hero?.items ?? [])];
   const title = props.scope === 'match' ? 'Match report' : `Phase ${current} report`;
   return (
     <div class="overlay" data-testid="report" style={{ alignItems: 'flex-start' }}>
       <div class="panel col" style={{ width: 'min(1280px,100%)' }}>
         <div class="row wrap">
-          <h2 class="grow" style={{ margin: 0 }}>
-            {title}
-          </h2>
+          <h2 style={{ margin: 0 }}>{title}</h2>
+          <span class="dim small grow" data-testid="courts">
+            {courtName('A')} (you) vs {courtName('B')}
+          </span>
           {st.winner && (
             <span class="chip gold" data-testid="winner">
-              Team {st.winner} destroyed the enemy guardian
+              Checkmate: the {courtName(st.winner)} wins
             </span>
           )}
-          <button class={`btn small ${skip ? 'on' : ''}`} onClick={() => setSkip(!skip)}>
-            Skip animation
-          </button>
         </div>
         <div class="row wrap">
           {phases.map((n) => (
@@ -77,12 +85,34 @@ export function Report(props: { scope: 'phase' | 'match' }) {
             </button>
           )}
         </div>
-        <div class="scroll" style={{ maxHeight: 'calc(100vh - 150px)' }}>
-          {hero === null ? (
-            <TeamView report={report} skip={skip} />
-          ) : (
-            <HeroView report={report} heroId={hero} biomes={whole.special.biomes} />
-          )}
+        <div class="scroll report-scroll col">
+          <Takeaways report={report} folded={layout === 'landscape'} />
+          <Scoreboard report={report} items={items} />
+          <section class="details">
+            <button
+              class="btn details-toggle"
+              data-testid="details-toggle"
+              aria-expanded={showDetails}
+              onClick={() => setOpen(!showDetails)}
+            >
+              <span aria-hidden="true">{showDetails ? '▾' : '▸'}</span> Details
+              <span class="dim small"> replay, paths, charts and events</span>
+            </button>
+            {showDetails && (
+              <div class="col details-body" data-testid="details">
+                {hero === null ? (
+                  <>
+                    <div class="dim small">
+                      Click a hero in the scoreboard to open their replay.
+                    </div>
+                    <EventLog report={report} />
+                  </>
+                ) : (
+                  <HeroView report={report} heroId={hero} biomes={whole.special.biomes} />
+                )}
+              </div>
+            )}
+          </section>
         </div>
       </div>
     </div>

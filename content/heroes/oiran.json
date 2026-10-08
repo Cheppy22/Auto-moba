@@ -1,0 +1,148 @@
+{
+  "id": "oiran",
+  "name": "Yugiri, the Lacquer Courtesan",
+  "title": "Spirit of the lantern-lit quarter",
+  "era": "Heian",
+  "attackKind": "melee",
+  "playstyle": "A fragile assassin that leaps onto a single enemy hero and deletes them. Pick off the weakest or most exposed target, then slip away; she is weak if caught.",
+  "stats": {
+    "maxHp": 1130.24,
+    "hpRegen": 2,
+    "armor": 16,
+    "resist": 16,
+    "bladeDmg": 149.61,
+    "atkSpeed": 1.05,
+    "soulPower": 0.0,
+    "moveSpeed": 54,
+    "cdr": 0,
+    "range": 22
+  },
+  "abilities": [
+    {
+      "id": "petal_step",
+      "name": "Petal Step",
+      "cooldownSec": 9,
+      "range": 110,
+      "target": "enemy",
+      "effects": [
+        {
+          "type": "dash",
+          "distance": 80,
+          "toward": "target"
+        },
+        {
+          "type": "damage",
+          "dmgType": "blade",
+          "base": 40,
+          "bladeScale": 0.7
+        }
+      ],
+      "condition": {
+        "heroTargetOnly": true
+      },
+      "desc": "Leaps up to 80 to an enemy hero and cuts for 40 + 70% Blade damage."
+    },
+    {
+      "id": "hairpin_flurry",
+      "name": "Hairpin Flurry",
+      "cooldownSec": 11,
+      "range": 40,
+      "target": "enemy",
+      "effects": [
+        {
+          "type": "damage",
+          "dmgType": "blade",
+          "base": 60,
+          "bladeScale": 1
+        },
+        {
+          "type": "dot",
+          "dmgType": "blade",
+          "base": 14,
+          "bladeScale": 0.15,
+          "durationSec": 3
+        }
+      ],
+      "desc": "Stabs one enemy for 60 + 100% Blade damage and makes it bleed for 14 + 15% Blade per second for 3s."
+    },
+    {
+      "id": "fan_dance",
+      "name": "Fan Dance",
+      "cooldownSec": 16,
+      "range": 50,
+      "target": "enemy",
+      "effects": [
+        {
+          "type": "dash",
+          "distance": 70,
+          "toward": "away"
+        },
+        {
+          "type": "statMod",
+          "stat": "moveSpeed",
+          "kind": "mul",
+          "value": 1.3,
+          "durationSec": 3
+        }
+      ],
+      "condition": {
+        "selfHpBelow": 0.5
+      },
+      "desc": "When below half health, hops 70 away from the enemy and runs 30% faster for 3s."
+    },
+    {
+      "id": "crimson_curtain",
+      "name": "Crimson Curtain",
+      "cooldownSec": 40,
+      "range": 90,
+      "target": "enemy",
+      "effects": [
+        {
+          "type": "dash",
+          "distance": 60,
+          "toward": "target"
+        },
+        {
+          "type": "damage",
+          "dmgType": "blade",
+          "base": 150,
+          "bladeScale": 1.6
+        }
+      ],
+      "condition": {
+        "heroTargetOnly": true
+      },
+      "desc": "The finishing blow: dashes onto an enemy hero and deals 150 + 160% Blade damage."
+    }
+  ],
+  "passives": [
+    {
+      "on": "kill",
+      "target": "self",
+      "effects": [
+        {
+          "type": "heal",
+          "maxHpPct": 0.12
+        }
+      ],
+      "desc": "Every kill restores 12% of her max health."
+    }
+  ],
+  "personality": "opportunist",
+  "buildList": [
+    "rusted_cleaver",
+    "leech_fang",
+    "cogged_edge",
+    "piston_gauntlet",
+    "wanderer_boots",
+    "soot_reaver"
+  ],
+  "sigil": {
+    "hue": 345,
+    "rings": 2,
+    "spokes": 5,
+    "glyph": "petal"
+  },
+  "blurb": "A courtesan whose lacquered smile outlived the quarter that made her.",
+  "disposition": "attacker"
+}

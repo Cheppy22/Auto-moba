@@ -3,16 +3,16 @@
   "name": "Kagura, the Bell-Keeper",
   "title": "Shrine maiden of the drowned shrine",
   "era": "Heian",
-  "preferredRole": "bot",
   "attackKind": "ranged",
+  "playstyle": "A ranged healer-mage that keeps allies topped up and slows enemy heroes. Stay behind your team and keep your bell ready for the wounded.",
   "stats": {
-    "maxHp": 950,
+    "maxHp": 961.86,
     "hpRegen": 2.5,
     "armor": 18,
     "resist": 30,
-    "bladeDmg": 36,
+    "bladeDmg": 36.71,
     "atkSpeed": 0.9,
-    "soulPower": 55,
+    "soulPower": 53.91,
     "moveSpeed": 45,
     "cdr": 0,
     "range": 95
@@ -32,7 +32,7 @@
           "soulScale": 0.7
         }
       ],
-      "desc": "A folded charm that burns on contact."
+      "desc": "Burns one enemy for 45 + 70% Soul damage."
     },
     {
       "id": "purifying_bell",
@@ -50,7 +50,7 @@
       "condition": {
         "allyHpBelow": 0.8
       },
-      "desc": "A chime that mends allies nearby."
+      "desc": "Heals nearby allies for 60 + 70% Soul power when one is hurt."
     },
     {
       "id": "binding_rope",
@@ -76,7 +76,7 @@
       "condition": {
         "heroTargetOnly": true
       },
-      "desc": "A sacred rope that slows a hero."
+      "desc": "Hits an enemy hero for 30 + 30% Soul damage and slows it by 50% for 2.5s."
     },
     {
       "id": "thousand_cranes",
@@ -88,7 +88,7 @@
         {
           "type": "shield",
           "base": 150,
-          "soulScale": 1.0,
+          "soulScale": 1,
           "durationSec": 5
         },
         {
@@ -100,11 +100,10 @@
       "condition": {
         "allyHpBelow": 0.55
       },
-      "desc": "Paper cranes shield and mend the wounded."
+      "desc": "Shields nearby allies for 150 + 100% Soul power for 5s and heals 90 + 70% Soul power. Used when someone is under 55% health."
     }
   ],
   "passives": [],
-  "defaultPosture": "defend",
   "personality": "cautious",
   "buildList": [
     "candle_stub",
@@ -121,5 +120,6 @@
     "glyph": "crane"
   },
   "blurb": "She keeps the shrine bell that calms drowned spirits.",
-  "autoSoulScale": 0.3
+  "autoSoulScale": 0.3,
+  "disposition": "defender"
 }

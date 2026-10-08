@@ -1,0 +1,102 @@
+{
+  "id": "teaparty",
+  "name": "Tea Party Glade",
+  "era": "Looking-Glass",
+  "palette": {
+    "ground": "#2a2018",
+    "accent": "#c98a4a",
+    "glow": "#f3d29a"
+  },
+  "camps": [
+    {
+      "dx": -30,
+      "dy": -30
+    },
+    {
+      "dx": 45,
+      "dy": 0
+    },
+    {
+      "dx": -10,
+      "dy": 45
+    }
+  ],
+  "campTypes": [
+    {
+      "id": "dormice",
+      "name": "Dormice",
+      "hp": 350,
+      "damage": 24,
+      "armor": 6,
+      "range": 20,
+      "count": 2,
+      "gold": 35,
+      "points": 1
+    },
+    {
+      "id": "march_hare",
+      "name": "March Hare",
+      "hp": 850,
+      "damage": 44,
+      "armor": 20,
+      "resist": 15,
+      "range": 30,
+      "count": 1,
+      "gold": 85,
+      "points": 2,
+      "buff": {
+        "stat": "atkSpeed",
+        "kind": "add",
+        "value": 0.15,
+        "durationSec": 60
+      }
+    },
+    {
+      "id": "stopped_clock",
+      "name": "The Stopped Clock",
+      "hp": 1450,
+      "damage": 66,
+      "armor": 25,
+      "resist": 25,
+      "range": 25,
+      "count": 1,
+      "gold": 150,
+      "points": 3
+    }
+  ],
+  "campTable": [
+    {
+      "phaseMin": 1,
+      "phaseMax": 2,
+      "types": [
+        {
+          "id": "dormice",
+          "weight": 3
+        },
+        {
+          "id": "march_hare",
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "phaseMin": 3,
+      "phaseMax": 99,
+      "types": [
+        {
+          "id": "march_hare",
+          "weight": 2
+        },
+        {
+          "id": "stopped_clock",
+          "weight": 1
+        },
+        {
+          "id": "dormice",
+          "weight": 1
+        }
+      ]
+    }
+  ],
+  "blurb": "A long table laid for tea that never ends. Camps here quicken your hands."
+}

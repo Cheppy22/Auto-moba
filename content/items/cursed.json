@@ -3,7 +3,7 @@
     {
       "id": "hungry_mask",
       "name": "The Hungry Mask",
-      "category": "blade",
+      "category": "mind",
       "boons": [
         {
           "stat": "bladeDmg",
@@ -16,12 +16,12 @@
           "value": 1.25
         }
       ],
-      "boonText": "+90% Blade damage, +25% attack speed",
+      "boonText": "{m|+90% Blade damage}, {m|+25% attack speed}",
       "flawType": "Hunger",
       "flaws": [
         {
           "id": "starve",
-          "text": "Lose 3% max health per second while out of combat",
+          "text": "{r|The price}: {p|Lose 3% max health per second} while out of combat",
           "triggers": [
             {
               "on": "periodic",
@@ -33,7 +33,7 @@
         },
         {
           "id": "hollow",
-          "text": "Regeneration halved and max health reduced by 15%",
+          "text": "{r|The price}: {p|Regeneration halved} and {p|max health −15%}",
           "mods": [
             {
               "stat": "hpRegen",
@@ -49,7 +49,7 @@
         },
         {
           "id": "gnaw",
-          "text": "Take 25% more damage",
+          "text": "{r|The price}: {p|Take 25% more damage}",
           "mods": [
             {
               "stat": "damageTakenMult",
@@ -64,7 +64,7 @@
     {
       "id": "borrowed_years",
       "name": "Borrowed Years",
-      "category": "flesh",
+      "category": "body",
       "boons": [
         {
           "stat": "atkSpeed",
@@ -82,12 +82,12 @@
           "value": 320
         }
       ],
-      "boonText": "+55% attack speed, +25% move speed, +320 health",
+      "boonText": "{m|+55% attack speed}, {m|+25% move speed}, {b|+320 health}",
       "flawType": "Debt",
       "flaws": [
         {
           "id": "slow_return",
-          "text": "Respawn time doubled",
+          "text": "{r|The price}: {p|Respawn time doubled}",
           "mods": [
             {
               "stat": "respawnMult",
@@ -98,7 +98,7 @@
         },
         {
           "id": "thin_purse",
-          "text": "Gold income reduced by 30%",
+          "text": "{r|The price}: {p|Gold income −30%}",
           "mods": [
             {
               "stat": "incomeMult",
@@ -109,7 +109,7 @@
         },
         {
           "id": "brittle",
-          "text": "Armor reduced by 40%",
+          "text": "{r|The price}: {p|Armor −40%}",
           "mods": [
             {
               "stat": "armor",
@@ -139,12 +139,12 @@
           "param": 0.6
         }
       ],
-      "boonText": "+75 Soul power; revive once at 60% health",
+      "boonText": "{s|+75 Soul power}; {r|revive once} at {b|60% health}",
       "flawType": "Burden",
       "flaws": [
         {
           "id": "heavy_water",
-          "text": "Resist reduced by 35%",
+          "text": "{r|The price}: {p|Resist −35%}",
           "mods": [
             {
               "stat": "resist",
@@ -155,7 +155,7 @@
         },
         {
           "id": "slow_flame",
-          "text": "Cooldowns 30% slower",
+          "text": "{r|The price}: {p|Cooldowns 30% slower}",
           "mods": [
             {
               "stat": "cdr",
@@ -166,7 +166,7 @@
         },
         {
           "id": "dragging",
-          "text": "Move speed reduced by 22%",
+          "text": "{r|The price}: {p|Move speed −22%}",
           "mods": [
             {
               "stat": "moveSpeed",
@@ -181,7 +181,7 @@
     {
       "id": "pact_of_ash",
       "name": "Pact of Ash",
-      "category": "blade",
+      "category": "mind",
       "boons": [
         {
           "stat": "bladeDmg",
@@ -199,12 +199,12 @@
           "value": 1.35
         }
       ],
-      "boonText": "+55% Blade and Soul power, +35% health",
+      "boonText": "{m|+55% Blade} and {s|+55% Soul power}, {b|+35% health}",
       "flawType": "Price",
       "flaws": [
         {
           "id": "ashen_skin",
-          "text": "Armor and resist reduced by 40%",
+          "text": "{r|The price}: {p|Armor and resist −40%}",
           "mods": [
             {
               "stat": "armor",
@@ -220,7 +220,7 @@
         },
         {
           "id": "open_wound",
-          "text": "Take 30% more damage",
+          "text": "{r|The price}: {p|Take 30% more damage}",
           "mods": [
             {
               "stat": "damageTakenMult",
@@ -231,7 +231,7 @@
         },
         {
           "id": "burning_pact",
-          "text": "Lose 3% max health per second while out of combat",
+          "text": "{r|The price}: {p|Lose 3% max health per second} while out of combat",
           "triggers": [
             {
               "on": "periodic",
@@ -243,6 +243,72 @@
         }
       ],
       "desc": "Ask for a great deal, and ash is the change."
+    },
+    {
+      "id": "drink_me",
+      "name": "Drink Me",
+      "category": "mind",
+      "boons": [
+        {
+          "stat": "moveSpeed",
+          "kind": "mul",
+          "value": 1.2
+        },
+        {
+          "stat": "atkSpeed",
+          "kind": "mul",
+          "value": 1.15
+        }
+      ],
+      "boonText": "{m|+20% move speed}, {m|+15% attack speed}",
+      "flawType": "Shrinking",
+      "flaws": [
+        {
+          "id": "shrunk",
+          "text": "{r|The price}: {p|Max health −15%}",
+          "mods": [
+            {
+              "stat": "maxHp",
+              "kind": "mul",
+              "value": 0.85
+            }
+          ]
+        }
+      ],
+      "desc": "A little bottle, and a little less of you."
+    },
+    {
+      "id": "eat_me",
+      "name": "Eat Me",
+      "category": "body",
+      "boons": [
+        {
+          "stat": "maxHp",
+          "kind": "mul",
+          "value": 1.25
+        },
+        {
+          "stat": "armor",
+          "kind": "add",
+          "value": 10
+        }
+      ],
+      "boonText": "{b|+25% max health}, {b|+10 armor}",
+      "flawType": "Growing",
+      "flaws": [
+        {
+          "id": "outgrown",
+          "text": "{r|The price}: {p|Move speed −15%}",
+          "mods": [
+            {
+              "stat": "moveSpeed",
+              "kind": "mul",
+              "value": 0.85
+            }
+          ]
+        }
+      ],
+      "desc": "A small cake, and a great deal more of you."
     }
   ]
 }

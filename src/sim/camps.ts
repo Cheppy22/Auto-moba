@@ -96,6 +96,7 @@ export function openSlotsForPhase(ctx: Ctx): void {
     for (let i = 0; i < spots; i++) types.push(rollType(ctx, biome));
     group.forEach((sl, gi) => {
       sl.open = true;
+      ctx.open.add(sl.id);
       sl.biomeId = biome.id;
       sl.mirrored = gi % 2 === 1;
       sl.types = types.slice();

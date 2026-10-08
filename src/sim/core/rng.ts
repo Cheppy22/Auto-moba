@@ -1,4 +1,4 @@
-export const STREAMS = ['mapgen', 'ai', 'combat', 'loot', 'keeper', 'draft'] as const;
+export const STREAMS = ['mapgen', 'ai', 'combat', 'loot', 'keeper', 'draft', 'events'] as const;
 export type StreamName = (typeof STREAMS)[number];
 export type RngState = Record<StreamName, number>;
 

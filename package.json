@@ -17,16 +17,19 @@
     "e2e": "playwright test",
     "sim": "tsx tools/run-match.ts",
     "balance": "tsx tools/balance.ts",
-    "balance:pairwise": "tsx tools/pairwise.ts"
+    "balance:pairwise": "tsx tools/pairwise.ts",
+    "diagnose": "tsx tools/diagnose.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.63.0",
     "@preact/preset-vite": "^2.10.6",
     "@types/node": "^26.6.4",
+    "@types/three": "^0.186.0",
     "eslint": "^10.12.0",
     "preact": "^11.0.0",
     "prettier": "^3.9.9",
+    "three": "^0.186.1",
     "tsx": "^4.23.15",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.71.1",

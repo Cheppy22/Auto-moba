@@ -1,0 +1,154 @@
+# Build notes (handoff for review)
+
+> **Archived.** The living game description is [SOURCE_OF_TRUTH.md](../SOURCE_OF_TRUTH.md) and history is in [CHANGELOG.md](../CHANGELOG.md). Kept for the original deviation and risk lists.
+
+All six milestones of [ARCHITECTURE.md](../ARCHITECTURE.md) are built on branch `claude/architecture-docs` in one unattended session. This file is for the reviewer: what exists, where it deviates from the plan, what is weak, and where to look first. Numbers below were measured, not estimated.
+
+## Status
+
+| Check                                                                                            | Result                                                                                                          |
+| ------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
+| `npm run check` (typecheck, lint with layer boundaries, prettier, 68 unit and integration tests) | passes                                                                                                          |
+| `npm run build`                                                                                  | passes (264 KB JS, 81 KB gzip)                                                                                  |
+| `npm run e2e` (Playwright, Chromium)                                                             | passes; covers draft, upgrade, shop buy, auction bid, a full phase, report, hero view, replay scrub, next phase |
+| 1,000 headless matches (`docs/BALANCE_REPORT.md`)                                                | every hero within 40-60% (46.9-55.7%), median 13.1 min, 0.05 ms per tick, 0.9 s per match                       |
+| Determinism                                                                                      | same seed gives an identical event-log hash; replay export reproduces a match exactly                           |
+
+Size: `src/sim` 5.2k lines, `src/analysis` 0.8k, `src/render` 0.7k, `src/ui` 2.1k, `tools` 0.5k, `tests` 1.0k, `content` 2.1k lines of JSON. Commits are one per milestone (M4 and M5 code landed inside the M1 commit; their tests are the M4+M5 commit).
+
+## Run it
+
+See [README.md](../README.md). The game is `npm run dev`. To see a mid-phase screen quickly in a browser console: `__session.match.step(2400); __session.notify()`.
+
+## Deviations from the architecture doc
+
+Things that differ from what ARCHITECTURE.md says. None change a locked design decision unless marked **design**.
+
+1. **No projectiles, no collision.** Attacks and abilities resolve instantly; units may overlap. The doc listed projectiles as an entity and a collision pass in the tick order.
+2. **Abilities never target structures.** Heroes damage towers and guardians only with auto-attacks. Keeps casts from being wasted on buildings.
+3. **No XP or levels, as designed.** Hero growth is `phaseStatGrowth` (8% max health, Blade damage and Soul power per phase) plus items and the 3+ upgrade picks. **design**: the doc never said how heroes grow in-phase; this is my reading.
+4. **Biome slots open in mirrored pairs by reflection, not rotation.** Phase 1: the two centre slots. Phase 2: `tla` and `tlb`. Phase 3: `bra` and `brb`. The first draft paired by rotation, which gave one team a jungle beside the two-hero bottom lane; mirror matches (identical drafts both sides) then showed team A winning 42.7%. After the fix it is 49.3% over 600 matches. `tests/symmetry.test.ts` guards the geometry.
+5. **Shop access.** Between phases every hero can buy the base catalog and the Keeper's stock. During a phase: base catalog at base, Keeper stock only near the Keeper. Tier-3 items are available only from Keeper stock or an obelisk unlock. **design**: the doc did not say whether tier 3 was in the base shop.
+6. **Curses start at phase 2** (`curse.minPhase`), because net worth is equal at the start. When an offer is made the Keeper moves to the keeper spot nearest the offered hero.
+7. **AI bids before it shops**, so it sets gold aside. Found by a test where the losing side had spent its gold first.
+8. **Upgrade picks continue after phase 3** until a hero's pool of 6 is empty (the doc only required picks before phases 1-3).
+9. **Unit iteration order rotates each tick and units with a lethal hit pending still act that tick.** Without this the first unit in the array always won simultaneous kills (first-mover bias toward team A).
+10. **M6 "tuning in content/ only" was not honored.** The pass found real bugs and AI gaps, so it changed code. Details under "What the balance pass found" below. All changes are in the M6 commit.
+11. **CI** has an `e2e` job that installs Chromium through Playwright. It has not run on GitHub; only locally against the preinstalled browser.
+
+## Rules from the doc that are only partly kept
+
+- **"Numbers live in content, not code."** Mostly kept (`content/tuning.json` has about 150 numbers). Still in code: `TPS = 20` (guarded by a test against `tuning.tickRate`), assist window 160 ticks, camp move speed 40, hero spawn offsets, the navigation start slack, and every weight inside `src/sim/ai/strategic.ts` and `behavior.ts` (scoring constants such as 0.8 farm base, 0.2 push base, 2.6 urgent base defense). Only posture tables, personalities and siege parameters are data.
+- **Custom behavior registry capped at 5.** Two entries are used (`outOfCombatDrain`, `reviveOnce`; revive is handled in the death step, not through the registry call).
+- **Reports state facts, never conclusions.** Badge labels and report text were written that way and a test bans judgement words in badge labels. Free text elsewhere in `src/ui/report/` is not machine-checked; skim it.
+
+## How the AI works (short)
+
+Every hero re-plans once per second (`src/sim/ai/strategic.ts`): it scores goals (farm lane, push tower, defend, clear camp, join fight, take obelisk, retreat) as base consideration times a posture weight, with +0.12 for the current goal. Posture is a weight table; personality changes retreat threshold, fight threshold (`Lanchester ratio` of local health times damage), chase distance and risk. Every tick (`behavior.ts`) it picks targets, attacks, or follows its path.
+
+What I added beyond the plan, because without it matches stalled or were decided by accident:
+
+- **Team siege plan**: when the team has 4+ heroes alive, at least as many as the enemy, and healthy, all heroes converge on the enemy lane with the fewest towers (or the guardian once exposed). They stage 260 units out until two heroes gather, a wave arrives, or 25 s pass.
+- **Base defense**: threats near the guardian (radius 640) pull defenders at high priority and suppress sieges; defenders are limited by claims per structure; minion pressure counts as a threat only in the hero's own lane.
+- **Ranged standoff**: ranged heroes stand just inside their own range of a tower and, if they outrange it, take no tower damage.
+- **Hold patience**: a hero that waits in "hold" gets more willing to fight over time.
+- **Lane discipline** (measured with `tools/lane-share.ts`; before the pass mid carried 89% of hero damage and 66% of hero time): (1) lane-bound goals (farm, push, siege staging, retreat) are routed _along the lane polyline_ (`lanePath` in `ai/lanes.ts`) instead of the shortest nav-graph path, which cut every rotation and every retreat through the mid diagonal and the centre jungle; the guardian is approached down the siege lane. Retreating down the own lane also stopped most "hero dies on the mid line while fleeing" kills. (2) The siege lane is chosen by fewest enemy towers, then by how many of the team's heroes are assigned to it, with a sticky bonus (`ai.siegeAssignedBonus`, `siegeMidPenalty`, `siegeLaneStick`). The pick is bistable: a `siegeMidPenalty` of 0.2 gives mid about 22% of hero damage, 0 gives about 36%. (3) Join-fight only within `ai.joinFightRadius` (450), and a tower in another lane is defended only if it is within `ai.defendOffLaneRadius` (600) of the hero (jungle heroes and the hero's own lane are unrestricted). (4) The team that leads the mid wave alternates by wave (`waves.midLeadUnits`), so the minion clash point drifts instead of sitting on the exact centre. Longer side-lane sieges made matches about 1 minute slower, so `minions.structureMul` went from 1.0 to 1.4 and `structureMulPerPhase` from 0.9 to 1.2, and the siege waits shorter (`siegeAfterTick` 1500, `siegeWaitTicks` 300).
+
+## Jungle events (timed, data-driven)
+
+Four timed events live in `content/events/jungle.json` (schema `EventDefSchema` in `src/sim/content/schema.ts`; schedule numbers in `tuning.events`; logic in `src/sim/events.ts`). Each live phase `scheduleEvents` rolls `perPhase` events from the `events` RNG stream (a new stream, so no other stream moves), spaced `gapSec` apart starting `firstSec` after the phase goes live. An event is announced (`eventWarning`, snapshot `events[].phase = 'warning'`) `warnSec` (10 s) before it appears, becomes `active` (`eventStart`), and ends with `eventEnd` (reason `cleared`, `claimed`, `expired`, `arrived` or `phaseEnd`). `endLive` removes every event and its units, so nothing crosses a phase.
+
+| Event (id)                              | Mechanic                                                                                                                                                               | Reward                                                                        |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Fox Wedding (`fox_wedding`)             | Procession of 4 lantern spirits and a bride walks a nav route between two open slots. Ignored by lane minions and towers; fights back only for 4 s after being struck. | Gold per bearer to the killer, points from the bride (2).                     |
+| Hundred-Demon Parade (`hundred_demons`) | 7 neutral demons march from the middle of a side lane to one base (random lane and target team), attacking everyone; they dissolve at the time limit.                  | Team with more hero kills (at least 3) gets 3 points and 100 gold per hero.   |
+| Wishing Well (`wishing_well`)           | Appears on a slot on the symmetry axis. A team with a hero in range and no enemy hero near for 8 s claims it (contested: no progress).                                 | Timed team buff (+10% blade and soul power, 90 s) and 1 point.                |
+| Hungry Oni (`hungry_oni`)               | Elite neutral with 4200 HP at an axis slot, with a telegraphed ground slam (`eventTelegraph`, 1.6 s windup) every 7 s. Leaves after 100 s.                             | 150 gold to every hero of the killing team, 150 more to the killer, 4 points. |
+
+Fairness: single-site events (well, oni) only use slots with x = y (equidistant from both bases); the procession route and the parade lane and target are drawn from the RNG, so they are fair in expectation, not in any single match. Event units are `minion` units with team `neutral` and a `unit.ev` state, so existing renderers draw them like Spirit Tide minions (their `defId` is the event unit id). AI: a hero scores a `contestEvent` goal (`ai/strategic.ts`) only when its lane has no defend candidate, its team is not on a siege, HP is above 60%, no more than 4 enemy points are on the site and the event is inside `aiRadius`; the score falls off with distance, so only nearby heroes leave their lane, and `aiMax` (2) heroes per team per event are allowed through the existing board claims. Snapshot fields: `events[]` (`id`, `kind`, `type`, `name`, `slot`, `x`, `y`, `radius`, `phase`, `ticksLeft`, `progress`, `team`, `telegraph`). Event kills and rewards are in the log as `eventKill` and `eventReward`.
+
+## What the balance pass found (read this)
+
+- **Friendly fire bug**: area abilities that choose a centre enemy (`enemyBurst`) were selecting the caster's allies as targets. It made the Hollow Cartographer look 30% win rate for hours; scaling its stats did nothing, which is what exposed it. Fixed in `combat.ts`; `tests/special.test.ts` now has a regression test that fails without the fix.
+- **Team asymmetry** from the biome pairing (deviation 4) and the iteration-order bias (deviation 9).
+- **Report windows**: a phase's PREP actions (AI purchases, bids, upgrade picks) were emitted before the phase-start marker, so they fell outside every phase report. `phaseStart(prep)` is now the first event of a phase, and `tests/analysis.test.ts` checks that phase slices add up to the whole match for purchases and picks.
+- **Pathfinding**: heroes oscillated at the start node and never left base (found from a screenshot). Fixed by starting the search from every near node.
+- **Pacing**: the game stalled around the towers. Fixes in data: structure HP and minion damage against structures that grows each phase (`minions.structureMulPerPhase`), and in AI: the siege plan.
+- **Curses**: with the first boon values, accepting a curse changed the comeback rate by +1 point (31.8% off, 32.8% on, 500 matches each). With the committed, stronger boons it is +6.6 points (38.4%). Roughly 2 standard errors; treat as a first read.
+- Distribution of match length is bimodal: about 43% end by minute 12, then a long tail of stalemates that end between minutes 13-25 (about 3% reach the Restless Guardians in phase 7).
+
+## Known weaknesses and risks
+
+| Area       | Issue                                                                                                                                                                                                                                                                                                                                                                                       |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Balance    | Duplicates of one hero are allowed (4-hero pool, 5 slots). Five Hollow Cartographers beat every other five-stack (71-79%). The no-duplicates rule fixes this with 11 heroes.                                                                                                                                                                                                                |
+| Balance    | The holy item is very strong (holder's team wins 69-83%). That figure is confounded because the team that wins the auction is usually ahead; I did not run an A/B test.                                                                                                                                                                                                                     |
+| Balance    | Hollow Cartographer is the strongest hero in random drafts (55.7%); smelter and revenant are lowest (47%). All are inside the band; the spread is not small.                                                                                                                                                                                                                                |
+| AI         | No kiting, no vision or wards, simple recall logic. Heroes wander across lanes to defend. Matches look plausible but not smart.                                                                                                                                                                                                                                                             |
+| Engagement | The in-phase decision space is still thin (posture and recall). The doc names this as the first question the prototype must answer (E2). I could not answer it unattended.                                                                                                                                                                                                                  |
+| UI         | Phone layouts (portrait, landscape, touch targets) added on test-product. The map view is rotated 45 degrees (your base at the bottom) in `src/render/view.ts`; the sim keeps its original coordinates, so lane ids `top`/`bot` now appear on the left/right. No keyboard shortcuts, no audio, colors not audited for accessibility. No download button for replay export (the API exists). |
+| UI         | No Keeper or lore text anywhere; the Keeper is a gold marker and a tab.                                                                                                                                                                                                                                                                                                                     |
+| Tests      | No test that the enemy's sealed bid stays hidden in the report before resolution; the e2e covers one happy path; AI behavior is tested only through match outcomes, not unit by unit.                                                                                                                                                                                                       |
+| Perf       | About 40,000 events per 12-minute match kept in memory; fine, but the UI re-renders the whole HUD at about 8 Hz while a phase runs.                                                                                                                                                                                                                                                         |
+
+## Where to look first
+
+1. `src/sim/ai/strategic.ts` and `src/sim/behavior.ts`: largest block of heuristics and most of what moves outcomes. Constants are inline.
+2. `src/sim/phase.ts`, `src/sim/commands.ts`: every rule the player can trip (what blocks `startPhase`, what is legal when).
+3. `src/sim/curses.ts` and `src/sim/auction.ts`: sealed bids, refunds, who gets offered a curse.
+4. `src/analysis/index.ts`: report numbers; the tests tie them to the event log, but window boundaries (PREP of phase N through the end of LIVE N) deserve a second look.
+5. Determinism hazards: any new `Map` or `Object.entries` iteration in `src/sim` must have a stable order; lint bans `Math.random`, `Date.now` and platform globals there.
+6. `docs/BALANCE_REPORT.md` for current numbers and `tools/` for how to reproduce them.
+
+## Not done
+
+Meta-progression, lane identity, "The Core" mode, lore, multiple AI difficulties, audio, mobile layout, save and load, a human focus group. The design shelved the first four on purpose.
+
+## Draft, map and item flavor changes (test-product)
+
+- **One hero per match.** The random draft takes heroes without replacement (A and B together), and the player's own pick is excluded from the AI picks. `pickHero` rejects a hero already on a team unless the draft is a fixed one (`MatchConfig.draft`, used by mirror tests, which may repeat heroes). The draft screen only lists heroes still free.
+- **Rounded map.** The side lanes have arcs (radius 240) instead of right-angle corners; port positions on them were recomputed to keep each gate where it was. The ground is a circle (radius 612 world units) and the view is the same 45 degree rotation. Mid lane is unchanged.
+- **Mind** is the technique and weapon category (melee and physical power). Four Mind items were added (Whetstone Drill, Kata Scroll, Duelist's Form, The Single Cut). Attunement tiers have titles (Drilled/Adept/Master, Hardened/Steeled/Unbroken, Stirred/Awakened/Ascendant).
+
+## Jungle shops, suggestions, curse notices
+
+- **Keeper teleport removed.** Recall only goes home (`recall` command `dest: 'base'`, 3 s). The Keeper is reached on foot; its tier-3 stock and curse offers are unchanged.
+- **Two jungle shops** (`content/map.json` `shops`: Western Stall at (190, 480), Northern Stall at (480, 190), a mirrored pair, each linked to the side lane and mid lane by gate trails). A hero within `shop.jungleRadius` of a stall can buy the base catalog, as at base. Both teams use them: AI heroes with at least `ai.shopTripGold` and a purchase to make walk to a stall within `ai.shopTripRadius` instead of recalling.
+- **Suggestion queue.** Clicking a stall on the map sends `suggestShop` (toggle, up to 3, `clearSuggest` clears). The hero gets a `visitShop` goal scored `ai.suggestScore` (1.5): above farming, camps and events, below retreating and urgent base defense, so it is a suggestion, never a command. On arrival the shop opens (the match pauses while it is open).
+- **Cursed item notices.** `Session.syncNotices` turns each `curseAccepted` event into a banner (item, hero, boon, price), a ring burst and a "Cursed" tag on the hero, and a red screen pulse for your own hero. Cursed heroes carry a pulsing aura for the rest of the match. Curses are accepted in prep, so notices are queued and shown when the phase goes live.
+- **Team A bias (resolved).** The old ~45% team A rate came from stale paths, see the next section.
+
+## Early game and dispositions
+
+- **Passive early game, root causes.** (1) `setGoal` kept a hero's old path whenever the goal moved less than 40 units between re-plans, so a goal creeping forward with the minion front never refreshed the path and heroes stood at the stale path end (measured 50% idle in the first minute). It now compares against the path's last waypoint. (2) A single enemy hero farming in a jungle slot equidistant from both bases (inside the guardian threat radius of 640) made both teams' lane heroes freeze at their guardian; `ai.guardianThreatRadius` is now 400. After the fix, idle time in the first two minutes is 11-18% (was 33-57%), fighting 17-50%, first hero death at about 28 s, and team A's win rate is 50% (it was 45%).
+- **Pace.** Faster contact shortened matches to 10 min, so tower HP is 3000 and guardian HP 6800 (median 11.9 min).
+- **Dispositions replace preferred lanes.** Each hero is a `farmer`, `attacker` or `defender` (`content/heroes/*.json`); `preferredRole` and `defaultPosture` are gone. A disposition maps to a posture weight table (`farm`, `push`, `defend`). Lanes: two heroes hold the left lane, two the right, one holds mid (given to an attacker, so mid is a roamer); a pair gets different dispositions where possible, and the first farmer in a pair is its jungler (clears camps while the partner holds the lane). Attackers also hunt enemy heroes they can beat within `ai.huntRadius`, except heroes standing in mid when they are not the mid hero. The draft no longer has a jungle lane and shows dispositions instead of "usually plays".
+
+## AI engagement, shops and tier 3 (diagnosis pass)
+
+- `npm run diagnose -- 40 51000` measures engagement by disposition, healing, rescues, feeding and tier-3 buys. Before the pass farmers skipped 100% of swing fights, 72% of winnable ganks drew no help, and 36% of heroes owned a tier-3 item.
+- Rescue: a hero now counts itself in the fight (`matchupAt(..., joining)`), reach is `rescueRadius` 900, joiners get a `commitBonus` so cautious heroes do not stall on arrival, and healers walk toward hurt allies. Rescues into mid from other lanes are discounted.
+- Healing: heroes recall or retreat below `healSafeHp` when no enemy is close; fights are entered more carefully when hurt (`hpFactor`); the hold-patience boldness is capped (`holdBraveCap`).
+- Feeding: `isWary` (two deaths without a kill within 90 s, or deaths minus kills >= 3) stops hunts, halves pushes, favours farming and defence and buys a counter item. Three deaths in a row swaps lanes with the best teammate (`ai/swap.ts`, event `laneSwap`).
+- Shops: the second jungle shop is now `shop_e` (810,520), diagonal to `shop_w`. Tier 3 is sold only at jungle shops (and by the Keeper); an obelisk unlock gives a 25% discount (`shop.unlockDiscount`). AI plans trips for tier-3 purchases (`tier3TripRadius`).
+- The auction is switched off (`auction.enabled: false`); code and tests remain.
+- Open: a few heroes (oiran, revenant, smelter, ronin) still die 8+ times per match; this is mostly durability balance rather than AI.
+
+## Tower tuning
+
+- Reported: four heroes took both towers of a lane within 15 s. Measured peak: one tower could lose ~580 hp/s and two same-lane towers fell inside 15 s in 2 of 30 matches.
+- Towers: hp 3600 (inner x1.25), damage 100, heroes deal x0.5 to towers and guardians (`tower.heroDamageMul`), and any tower or guardian can lose at most 9% of max hp per second (`tower.maxHpPerSec`). Now no same-lane double fall inside 15 s in 30 matches; fastest outer fall about 11 s, inner about 14 s.
+- Cost: median match length rose from ~12 to ~14.8 min (p90 20.6).
+
+## Playtest 1 fixes
+
+- All items in `docs/PLAYTEST.md` are implemented, except: the jungle-event prompt does not pause the match, roster icons on phones are only shrunk (not moved to the corner bands), and the report takeaways fold only in landscape.
+- Sim: player hero uses auto-buy (`HeroState.autoBuy`, command `setAutoBuy`), heal and shop recalls (`RecallState.auto`; the shop auto-opens only on player-started recalls), shopping while dead (base catalog), no keeper stock in prep, `suggestEvent` command, comeback bounty (`gold.comebackBounty`, also fixed the kill-streak bounty reading a zeroed streak), deferred draft (`draft.deferred`, `pickDeferred`): the player picks from all 14 heroes first, then the AI fills both teams.
+- Hands-off player team win rate went from 14% to 36–50% (28 matches, noisy).
+- Balance after this pass (800 matches, seeds 29000+): hero win rates 44–59%, Team A 50.1%, median 15.8 min. Not fully converged: smelter and rickshaw run high, warden and cosmonaut low.
+
+## Item sheet v2
+
+- All 36 items rewritten to `docs/ITEMS.md`: at most two stat mods plus one named rule; tier 3 items are Relics. Descriptions use the color markup (`{m|}` mind, `{b|}` body, `{s|}` soul, `{t|}` true, `{g|}` gold, `{p|}` price, `{r|}` rule word), rendered by `src/ui/richtext.tsx`. Cursed and holy texts use it too.
+- Engine: trigger options `vs`, `ofType`, `everyNth`, `hpBelow` on any trigger, statMod `maxStacks`, target `nearestEnemyHero`, and customs that can run effects afterwards (custom returns true).
+- Balance after the rewrite (800 matches): hero win rates 44.5-54.8%, Team A 52.4%, median 16.0 min.

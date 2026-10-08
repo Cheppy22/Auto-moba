@@ -1,7 +1,15 @@
 import type { RngState } from './core/rng';
-import type { DamageType, LaneId, Posture, Role, StatKey, Stats } from './content/schema';
+import type {
+  DamageType,
+  Disposition,
+  LaneId,
+  Posture,
+  Role,
+  StatKey,
+  Stats,
+} from './content/schema';
 
-export type { DamageType, LaneId, Posture, Role, StatKey, Stats };
+export type { DamageType, Disposition, LaneId, Posture, Role, StatKey, Stats };
 
 export type TeamId = 'A' | 'B' | 'neutral';
 export type PlayTeam = 'A' | 'B';
@@ -40,6 +48,8 @@ export type GoalKind =
   | 'clearCamp'
   | 'joinFight'
   | 'takeObelisk'
+  | 'contestEvent'
+  | 'visitShop'
   | 'retreat'
   | 'recall'
   | 'base';
@@ -55,7 +65,8 @@ export interface Goal {
 export interface RecallState {
   startTick: number;
   endTick: number;
-  dest: 'base' | 'keeper';
+  dest: 'base';
+  auto: boolean;
 }
 
 export interface HeroState {
@@ -65,6 +76,8 @@ export interface HeroState {
   role: Role;
   lane: LaneId | null;
   posture: Posture;
+  disposition: Disposition;
+  jungler: boolean;
   items: string[];
   flaws: Record<string, string>;
   gold: number;
@@ -89,6 +102,12 @@ export interface HeroState {
   engageTick: number;
   holdTicks: number;
   lastRecallTick: number;
+  suggest: string[];
+  lossStreak: number;
+  lastDeathTick: number;
+  autoBuy: boolean;
+  suggestEvent: number | null;
+  lastStandUsed: boolean;
 }
 
 export interface CampState {
@@ -104,6 +123,45 @@ export interface ObeliskState {
   nodeId: string;
   claim: Record<PlayTeam, number>;
   expireTick: number;
+}
+
+export interface EventUnitState {
+  eventId: number;
+  unitDef: string;
+  mode: 'passive' | 'march' | 'boss';
+  /** Ignored by lane minions and towers (only heroes fight it). */
+  ghost: boolean;
+  homeX: number;
+  homeY: number;
+}
+
+export interface EventInst {
+  id: number;
+  defId: string;
+  kind: 'procession' | 'parade' | 'well' | 'oni';
+  slot: string;
+  x: number;
+  y: number;
+  radius: number;
+  phase: 'warning' | 'active';
+  warnEndTick: number;
+  endTick: number;
+  unitIds: number[];
+  total: number;
+  progress: number;
+  holder: PlayTeam | null;
+  claim: Record<PlayTeam, number>;
+  kills: Record<PlayTeam, number>;
+  route: [number, number][];
+  lane: LaneId | null;
+  target: PlayTeam | null;
+  slamNext: number;
+  tele: { x: number; y: number; endTick: number } | null;
+}
+
+export interface EventScheduleEntry {
+  tick: number;
+  defId: string;
 }
 
 export interface TowerState {
@@ -135,15 +193,19 @@ export interface Unit {
   path: [number, number][];
   pathI: number;
   lane: LaneId | null;
+  structWindow?: { tick: number; taken: number };
   pendingKill: { killerId: number } | null;
   bounty: number;
   hero?: HeroState;
   tower?: TowerState;
   camp?: CampState;
   obelisk?: ObeliskState;
+  ev?: EventUnitState;
   rageStage?: number;
   roaming?: boolean;
   lastDamagedTick: number;
+  /** Waypoint around solid terrain while the unit walks a detour; null when it walks straight. */
+  detour: { x: number; y: number; untilTick: number } | null;
 }
 
 export interface TeamState {
@@ -206,6 +268,8 @@ export interface DraftState {
   playerHero: string | null;
   playerRole: Role | null;
   playerTeam: PlayTeam;
+  unique: boolean;
+  deferred: boolean;
 }
 
 export interface Blackboard {
@@ -236,6 +300,9 @@ export interface MatchState {
   board: Record<PlayTeam, Blackboard>;
   tideNextTick: number;
   lastPassiveTick: number;
+  events: EventInst[];
+  eventSchedule: EventScheduleEntry[];
+  nextEventId: number;
 }
 
 export interface PositionSample {
@@ -285,7 +352,12 @@ export interface EventPayloads {
   sell: { id: number; item: string; refund: number };
   upgradePick: { id: number; upgrade: string };
   posture: { id: number; posture: Posture };
-  recall: { id: number; dest: string; stage: 'start' | 'done' | 'interrupted' };
+  recall: {
+    id: number;
+    dest: string;
+    stage: 'start' | 'done' | 'interrupted';
+    auto?: boolean;
+  };
   structureDown: {
     kind: UnitKind;
     team: TeamId;
@@ -319,13 +391,55 @@ export interface EventPayloads {
     goldB: number;
   };
   curseOffered: { hero: number; item: string; flawType: string };
+  shopVisit: { id: number; shop: string };
   curseAccepted: { hero: number; item: string; flaw: string };
   curseRefused: { hero: number; item: string };
   pressure: { event: string; name: string };
+  laneSwap: { a: number; b: number };
   keeperMoved: { spot: string; x: number; y: number; stock: string[] };
   commandRejected: { cmd: string; reason: string };
   matchEnd: { winner: PlayTeam | null; phase: number };
   teamPoints: { team: PlayTeam; amount: number; source: string };
+  eventWarning: {
+    id: number;
+    def: string;
+    kind: string;
+    name: string;
+    slot: string;
+    x: number;
+    y: number;
+    radius: number;
+    inTicks: number;
+    lane: string;
+    target: string;
+  };
+  eventStart: { id: number; def: string; kind: string; slot: string; x: number; y: number };
+  eventKill: {
+    id: number;
+    def: string;
+    unitDef: string;
+    unit: number;
+    team: TeamId;
+    killer: number;
+    gold: number;
+    points: number;
+  };
+  eventReward: {
+    id: number;
+    def: string;
+    team: PlayTeam;
+    gold: number;
+    points: number;
+    buff: string;
+    source: string;
+  };
+  eventTelegraph: { id: number; x: number; y: number; radius: number; ticks: number };
+  eventEnd: {
+    id: number;
+    def: string;
+    reason: 'cleared' | 'claimed' | 'expired' | 'arrived' | 'phaseEnd';
+    winner: PlayTeam | null;
+  };
 }
 
 export type EventType = keyof EventPayloads;
@@ -345,7 +459,11 @@ export type Command =
   | { type: 'pickLane'; role: Role }
   | { type: 'startMatch' }
   | { type: 'setPosture'; posture: Posture }
-  | { type: 'recall'; dest: 'base' | 'keeper' }
+  | { type: 'recall'; dest: 'base' }
+  | { type: 'suggestShop'; shopId: string }
+  | { type: 'clearSuggest' }
+  | { type: 'setAutoBuy'; on: boolean }
+  | { type: 'suggestEvent'; eventId: number }
   | { type: 'pickUpgrade'; upgradeId: string }
   | { type: 'buy'; itemId: string }
   | { type: 'sell'; itemId: string }
@@ -420,18 +538,42 @@ export interface Snapshot {
   points: Record<PlayTeam, number>;
   playerHeroId: number | null;
   keeper: { x: number; y: number; spot: string } | null;
+  suggest: string[];
   phaseTicksLeft: number;
+  events: SnapEvent[];
+}
+
+export interface SnapEvent {
+  /** Unique per occurrence, e.g. "wishing_well#3". */
+  id: string;
+  /** Content id of the event definition (fox_wedding, hundred_demons, wishing_well, hungry_oni). */
+  kind: string;
+  /** Mechanic family: procession, parade, well or oni. */
+  type: string;
+  name: string;
+  slot: string;
+  x: number;
+  y: number;
+  radius: number;
+  phase: 'warning' | 'active';
+  ticksLeft: number;
+  /** 0..1: route walked (procession), demons cleared (parade), hold claim (well), damage dealt (oni). */
+  progress?: number;
+  /** Well: team currently ahead on the claim. Parade: team it marches toward. */
+  team?: PlayTeam | null;
+  /** Oni slam warning area, present while the attack winds up. */
+  telegraph?: { x: number; y: number; radius: number; ticksLeft: number };
 }
 
 export interface ShopEntry {
   id: string;
   name: string;
-  category: 'blade' | 'flesh' | 'soul';
+  category: 'mind' | 'body' | 'soul';
   tier: number;
   cost: number;
   price: number;
   consumed: string[];
-  source: 'base' | 'keeper' | 'locked';
+  source: 'base' | 'keeper' | 'jungle';
   canBuy: boolean;
   reason: string;
   desc: string;

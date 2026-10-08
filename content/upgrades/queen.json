@@ -1,0 +1,70 @@
+{
+  "upgrades": [
+    {
+      "id": "queen_u1",
+      "hero": "queen",
+      "name": "Stiff Flamingo",
+      "ability": 0,
+      "cooldownMul": 1,
+      "powerMul": 1.3,
+      "rangeMul": 1,
+      "radiusMul": 1,
+      "desc": "Flamingo Mallet deals 30% more"
+    },
+    {
+      "id": "queen_u2",
+      "hero": "queen",
+      "name": "Quick Swing",
+      "ability": 0,
+      "cooldownMul": 0.8,
+      "powerMul": 1,
+      "rangeMul": 1,
+      "radiusMul": 1,
+      "desc": "Flamingo Mallet cools down 20% faster"
+    },
+    {
+      "id": "queen_u3",
+      "hero": "queen",
+      "name": "Deeper Deck",
+      "ability": 1,
+      "cooldownMul": 0.85,
+      "powerMul": 1.3,
+      "rangeMul": 1,
+      "radiusMul": 1,
+      "desc": "Card Guard is 30% stronger and 15% faster"
+    },
+    {
+      "id": "queen_u4",
+      "hero": "queen",
+      "name": "Louder Verdict",
+      "ability": 2,
+      "cooldownMul": 1,
+      "powerMul": 1.2,
+      "rangeMul": 1,
+      "radiusMul": 1.3,
+      "desc": "Off With Their Heads! hits harder and wider"
+    },
+    {
+      "id": "queen_u5",
+      "hero": "queen",
+      "name": "Short Fuse",
+      "ability": 3,
+      "cooldownMul": 0.8,
+      "powerMul": 1.2,
+      "rangeMul": 1,
+      "radiusMul": 1,
+      "desc": "Royal Temper is stronger and recharges faster"
+    },
+    {
+      "id": "queen_u6",
+      "hero": "queen",
+      "name": "Tall Flamingo",
+      "ability": 0,
+      "cooldownMul": 1,
+      "powerMul": 1,
+      "rangeMul": 1.3,
+      "radiusMul": 1,
+      "desc": "Flamingo Mallet reaches 30% farther"
+    }
+  ]
+}

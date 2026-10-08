@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildReport, inputFromMatch, mostTakenType } from '../src/analysis';
 import { Match } from '../src/sim';
 import { content, runAi } from './helpers';
@@ -70,8 +70,14 @@ describe('analysis', () => {
 });
 
 describe('sealed auction in reports', () => {
+  beforeAll(() => {
+    content.tuning.auction.enabled = true;
+  });
+  afterAll(() => {
+    content.tuning.auction.enabled = false;
+  });
   it('hides the other side bids until the auction resolves', () => {
-    const live = Match.create(content, { seed: 81, player: { heroId: 'smelter', role: 'top' } });
+    const live = Match.create(content, { seed: 81, player: { heroId: 'queen', role: 'top' } });
     const id = live.state.playerHeroId!;
     live.unitById(id)!.hero!.gold = 800;
     live.issue({ type: 'bid', points: 0, gold: 300 });
@@ -88,5 +94,22 @@ describe('sealed auction in reports', () => {
     expect(hasBids(seen, 'A')).toBe(true);
     expect(hasBids(seen, 'B')).toBe(false);
     expect(seen.teams.B.pointsSpent).toBe(0);
+  });
+});
+
+describe('plain-language event text', () => {
+  it('rewrites lanes, teams, slots and obelisk rewards', async () => {
+    const { laneName, teamLabel, slotName, obeliskRewardText, structureText } =
+      await import('../src/analysis');
+    expect(laneName('bot')).toBe('Right');
+    expect(teamLabel('A')).toBe('your team');
+    expect(teamLabel('B')).toBe('the enemy');
+    expect(slotName('tlc')).toBe('left jungle');
+    const text = obeliskRewardText('unlock:hundred_hand_ledger', 0, content);
+    expect(text).toMatch(/^25% off .+ at the jungle stalls$/);
+    expect(text).not.toContain('hundred_hand_ledger');
+    expect(
+      structureText({ tick: 0, kind: 'tower', team: 'B', lane: 'bot', index: 0, killer: 1 }),
+    ).toBe('Enemy outer tower (Right lane) fell');
   });
 });

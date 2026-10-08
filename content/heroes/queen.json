@@ -1,0 +1,135 @@
+{
+  "id": "queen",
+  "name": "The Queen of Hearts",
+  "title": "Sovereign of the Card Court",
+  "era": "Looking-Glass",
+  "attackKind": "melee",
+  "playstyle": "A sturdy melee fighter that runs at the enemy and hits hard while soaking damage. Good at the front of a lane; let her temper loose when a hero fight starts.",
+  "stats": {
+    "maxHp": 1540.83,
+    "hpRegen": 3,
+    "armor": 32,
+    "resist": 18,
+    "bladeDmg": 78.26,
+    "atkSpeed": 0.85,
+    "soulPower": 0.0,
+    "moveSpeed": 46,
+    "cdr": 0,
+    "range": 22
+  },
+  "abilities": [
+    {
+      "id": "slag_strike",
+      "name": "Flamingo Mallet",
+      "cooldownSec": 7,
+      "range": 45,
+      "target": "enemy",
+      "effects": [
+        {
+          "type": "damage",
+          "dmgType": "blade",
+          "base": 40,
+          "bladeScale": 0.8
+        },
+        {
+          "type": "statMod",
+          "stat": "moveSpeed",
+          "kind": "mul",
+          "value": 0.7,
+          "durationSec": 2
+        }
+      ],
+      "desc": "Swings a flamingo at one enemy for 40 + 80% Blade damage and slows it by 30% for 2s."
+    },
+    {
+      "id": "bellows_shield",
+      "name": "Card Guard",
+      "cooldownSec": 14,
+      "radius": 120,
+      "target": "self",
+      "effects": [
+        {
+          "type": "shield",
+          "base": 120,
+          "bladeScale": 0.5,
+          "durationSec": 4
+        }
+      ],
+      "condition": {
+        "minEnemies": 1
+      },
+      "desc": "Calls the card guard to shield herself for 120 + 50% Blade damage for 4s when an enemy is near."
+    },
+    {
+      "id": "furnace_roar",
+      "name": "Off With Their Heads!",
+      "cooldownSec": 18,
+      "radius": 95,
+      "target": "enemyArea",
+      "effects": [
+        {
+          "type": "damage",
+          "dmgType": "blade",
+          "base": 55,
+          "bladeScale": 0.5
+        },
+        {
+          "type": "statMod",
+          "stat": "armor",
+          "kind": "mul",
+          "value": 0.8,
+          "durationSec": 4
+        }
+      ],
+      "condition": {
+        "minEnemies": 2
+      },
+      "desc": "Screams at all enemies within 95 for 55 + 50% Blade damage and cuts their armor by 20% for 4s. Needs 2 enemies."
+    },
+    {
+      "id": "molten_ritual",
+      "name": "Royal Temper",
+      "cooldownSec": 50,
+      "radius": 130,
+      "target": "self",
+      "effects": [
+        {
+          "type": "statMod",
+          "stat": "bladeDmg",
+          "kind": "mul",
+          "value": 1.35,
+          "durationSec": 8
+        },
+        {
+          "type": "statMod",
+          "stat": "atkSpeed",
+          "kind": "mul",
+          "value": 1.25,
+          "durationSec": 8
+        }
+      ],
+      "condition": {
+        "minEnemyHeroes": 1
+      },
+      "desc": "Flies into a rage: gains 35% Blade damage and 25% attack speed for 8s when an enemy hero is near."
+    }
+  ],
+  "passives": [],
+  "personality": "reckless",
+  "buildList": [
+    "rusted_cleaver",
+    "iron_lung",
+    "riveted_plate",
+    "boiler_heart",
+    "piston_gauntlet",
+    "cogged_edge"
+  ],
+  "sigil": {
+    "hue": 10,
+    "rings": 3,
+    "spokes": 8,
+    "glyph": "heart"
+  },
+  "blurb": "A playing-card queen with one answer to every difficulty.",
+  "disposition": "attacker"
+}

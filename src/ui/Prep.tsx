@@ -1,7 +1,11 @@
 import { useState } from 'preact/hooks';
 import { ShopPanel } from './ShopPanel';
-import { n0 } from './format';
+import { keeperPlace, n0 } from './format';
+import { RichText } from './richtext';
 import { useSession } from './session';
+import { upgradeChanges } from './upgrades';
+
+const UNSPENT_GOLD = 800;
 
 function Upgrades() {
   const s = useSession();
@@ -24,142 +28,48 @@ function Upgrades() {
     );
   }
   const def = s.content.heroById.get(p.defId)!;
+  const n = offer.length;
   return (
     <div class="col">
-      <div class="dim small">Choose one tweak to an ability. It lasts the whole match.</div>
-      <div class="hero-grid">
-        {offer.map((uid) => {
+      <div class="dim small upg-hint">
+        Choose one tweak to an ability. It lasts the whole match.
+      </div>
+      <div class="hand" data-count={n}>
+        {offer.map((uid, i) => {
           const u = s.content.upgradeById.get(uid)!;
+          const ab = def.abilities[u.ability];
+          const changes = upgradeChanges(ab, u);
+          const mid = (n - 1) / 2;
           return (
-            <div class="card col" key={uid}>
-              <b>{u.name}</b>
-              <div class="tiny dim">Ability: {def.abilities[u.ability].name}</div>
-              <div class="small">{u.desc}</div>
-              <button
-                class="btn primary"
-                data-testid={`upgrade-${uid}`}
-                onClick={() => s.issue({ type: 'pickUpgrade', upgradeId: uid })}
-              >
-                Choose
-              </button>
-            </div>
+            <button
+              type="button"
+              class="upg-card"
+              key={uid}
+              data-testid={`upgrade-${uid}`}
+              style={{ '--rot': `${(i - mid) * 5}deg`, '--drop': `${Math.abs(i - mid) * 7}px` }}
+              onClick={() => s.issue({ type: 'pickUpgrade', upgradeId: uid })}
+            >
+              <span class="upg-head">
+                <i class="upg-num" aria-hidden="true">
+                  {u.ability + 1}
+                </i>
+                <span class="upg-ability">{ab.name}</span>
+              </span>
+              <span class="upg-name">{u.name}</span>
+              <span class="upg-rule" aria-hidden="true" />
+              <span class="upg-desc">{u.desc}</span>
+              {changes.length > 0 && (
+                <span class="upg-changes">
+                  {changes.map((c) => (
+                    <b key={c}>{c}</b>
+                  ))}
+                </span>
+              )}
+              <span class="upg-about">{ab.desc}</span>
+              <span class="upg-take">Take this</span>
+            </button>
           );
         })}
-      </div>
-    </div>
-  );
-}
-
-function Auction() {
-  const s = useSession();
-  const m = s.match!;
-  const a = m.state.auction;
-  const p = m.unitById(m.state.playerHeroId!)!;
-  const team = p.team as 'A' | 'B';
-  const holy = s.content.holyById.get(a.holyId)!;
-  const [points, setPoints] = useState(0);
-  const [gold, setGold] = useState(0);
-  const mine = a.bids[team];
-  const teamPoints = m.state.teams[team].points;
-  if (a.awaitingRecipient) {
-    return (
-      <div class="col">
-        <h3>Your team won the holy item</h3>
-        <div class="card col">
-          <b>{holy.name}</b>
-          <div class="small">{holy.desc}</div>
-        </div>
-        <div class="dim small">Choose who carries it.</div>
-        <div class="row wrap">
-          {m.state.teams[team].heroIds.map((id) => {
-            const u = m.unitById(id)!;
-            return (
-              <button
-                class="btn"
-                key={id}
-                data-testid={`recipient-${id}`}
-                onClick={() => s.issue({ type: 'chooseHolyRecipient', heroId: id })}
-              >
-                {s.content.heroById.get(u.defId)!.name.split(',')[0]} ({u.hero!.role})
-              </button>
-            );
-          })}
-        </div>
-      </div>
-    );
-  }
-  if (a.resolved) {
-    return (
-      <div class="col">
-        <div class="card col">
-          <b>{holy.name}</b>
-          <div class="small">{holy.desc}</div>
-          <div class="dim small">
-            Won by team {a.winner}. Bids were sealed: yours was {mine.points} points and {mine.gold}{' '}
-            gold.
-          </div>
-        </div>
-      </div>
-    );
-  }
-  return (
-    <div class="col">
-      <div class="card col">
-        <b>The Holy Item</b>
-        <div class="small">{holy.hint}</div>
-        <div class="dim tiny">
-          One holy item is awarded at the start of phase 3 to the highest sealed bid. Bids from
-          earlier phases add up. Team points count for {s.content.tuning.auction.pointRate}× gold.
-          The losing side gets {Math.round(s.content.tuning.auction.loserRefund * 100)}% of its gold
-          back; spent points are gone.
-        </div>
-      </div>
-      <div class="row wrap">
-        <span class="chip">
-          Team points: <b>{teamPoints}</b>
-        </span>
-        <span class="chip gold">Your gold: {n0(p.hero!.gold)}</span>
-        <span class="chip">
-          Your bids so far: {mine.points} pts, {mine.gold}g
-        </span>
-      </div>
-      <div class="row wrap">
-        <label class="row small">
-          Points
-          <input
-            type="number"
-            min={0}
-            max={teamPoints}
-            value={points}
-            onInput={(e) => setPoints(Number((e.target as HTMLInputElement).value))}
-            data-testid="bid-points"
-          />
-        </label>
-        <label class="row small">
-          Gold
-          <input
-            type="number"
-            min={0}
-            max={p.hero!.gold}
-            step={50}
-            value={gold}
-            onInput={(e) => setGold(Number((e.target as HTMLInputElement).value))}
-            data-testid="bid-gold"
-          />
-        </label>
-        <button
-          class="btn primary"
-          data-testid="bid"
-          onClick={() => {
-            const r = s.issue({ type: 'bid', points, gold });
-            if (r.ok) {
-              setPoints(0);
-              setGold(0);
-            }
-          }}
-        >
-          Place sealed bid
-        </button>
       </div>
     </div>
   );
@@ -175,14 +85,18 @@ function Curse() {
   return (
     <div class="col">
       <div class="dim small">
-        The Keeper found you. You are far behind, and the Keeper makes an offer. Take the gift, or
-        refuse it. The exact price stays hidden until you accept, and it never leaves.
+        The Cheshire Keeper found you. You are far behind, and the Keeper makes an offer. Take the
+        gift, or refuse it. The exact price stays hidden until you accept, and it never leaves.
       </div>
-      <div class="card col" style={{ borderColor: '#7a2a3a' }}>
+      <div class="card col" style={{ borderColor: '#7a2a22' }}>
         <b>{item.name}</b>
-        <div class="small">{item.desc}</div>
+        <div class="small">
+          <RichText text={item.desc} />
+        </div>
         <div class="row wrap">
-          <span class="chip good">Boon: {item.boonText}</span>
+          <span class="chip good">
+            Boon: <RichText text={item.boonText} />
+          </span>
           <span class="chip bad">Price: a flaw of type {item.flawType}</span>
         </div>
         <div class="row">
@@ -211,23 +125,27 @@ export function Prep() {
   const m = s.match!;
   const st = m.state;
   const id = st.playerHeroId!;
+  const hero = m.unitById(id)!.hero!;
   const upgradePending = (st.upgradeOffers[id]?.length ?? 0) > 0;
   const cursePending = st.curseOffers.some((o) => o.heroId === id && !o.resolved);
   const hasCurse = st.curseOffers.some((o) => o.heroId === id);
-  const auctionVisible = st.phase.n <= 3 || st.auction.awaitingRecipient;
-  const auctionPending = st.auction.awaitingRecipient;
   const tabs = [
     { id: 'upgrade', label: 'Upgrade', pending: upgradePending },
-    { id: 'shop', label: 'Shop', pending: false },
-    ...(auctionVisible ? [{ id: 'auction', label: 'Holy auction', pending: auctionPending }] : []),
-    ...(hasCurse ? [{ id: 'curse', label: "Keeper's offer", pending: cursePending }] : []),
-  ] as { id: 'upgrade' | 'shop' | 'auction' | 'curse'; label: string; pending: boolean }[];
+    { id: 'shop', label: `Shop · ${n0(hero.gold)}g`, pending: false },
+    ...(hasCurse ? [{ id: 'curse', label: "Cheshire Keeper's offer", pending: cursePending }] : []),
+  ] as { id: 'upgrade' | 'shop' | 'curse'; label: string; pending: boolean }[];
   const tab = tabs.some((t) => t.id === s.ui.prepTab) ? s.ui.prepTab : 'upgrade';
-  const keeperSpot = st.keeper.spot.replace('k_', '');
-  const stock = st.keeper.stock.map((x) => s.content.itemById.get(x)?.name ?? x);
+  const keeperSpot = keeperPlace(st.keeper.spot);
+  const slots = s.content.tuning.shop.slots;
+  const [asking, setAsking] = useState(false);
+  const start = (): void => {
+    const unspent = hero.gold >= UNSPENT_GOLD && hero.items.length < slots;
+    if (unspent && !upgradePending && !asking) setAsking(true);
+    else s.issue({ type: 'startPhase' });
+  };
   return (
     <div class="overlay" data-testid="prep">
-      <div class="panel col" style={{ width: 'min(1100px,100%)', maxHeight: '100%' }}>
+      <div class="panel col prep-panel" style={{ width: 'min(1100px,100%)', maxHeight: '100%' }}>
         <div class="row wrap">
           <h2 class="grow">Before phase {st.phase.n}</h2>
           {st.pressure.map((p) => (
@@ -235,9 +153,7 @@ export function Prep() {
               {s.content.pressure.find((x) => x.id === p)?.name}
             </span>
           ))}
-          <span class="chip">
-            Keeper near {keeperSpot}: {stock.join(', ')}
-          </span>
+          <span class="chip">Cheshire Keeper roams near {keeperSpot} next phase</span>
         </div>
         <div class="tabs">
           {tabs.map((t) => (
@@ -252,23 +168,42 @@ export function Prep() {
             </button>
           ))}
         </div>
-        <div class="scroll" style={{ maxHeight: '60vh' }}>
+        <div class="scroll prep-scroll">
           {tab === 'upgrade' && <Upgrades />}
           {tab === 'shop' && <ShopPanel />}
-          {tab === 'auction' && <Auction />}
           {tab === 'curse' && <Curse />}
         </div>
         <div class="row">
           <div class="grow small" style={{ color: 'var(--bad)' }}>
             {s.ui.toast ?? ''}
           </div>
-          <button
-            class="btn primary"
-            data-testid="start-phase"
-            onClick={() => s.issue({ type: 'startPhase' })}
-          >
-            Start phase {st.phase.n}
-          </button>
+          {asking && (
+            <div class="row wrap unspent" data-testid="unspent-prompt">
+              <span>You have {n0(hero.gold)}g unspent. Shop first?</span>
+              <button
+                class="btn small primary"
+                data-testid="unspent-shop"
+                onClick={() => {
+                  setAsking(false);
+                  s.setUi({ prepTab: 'shop' });
+                }}
+              >
+                Shop
+              </button>
+              <button
+                class="btn small"
+                data-testid="unspent-start"
+                onClick={() => s.issue({ type: 'startPhase' })}
+              >
+                Start anyway
+              </button>
+            </div>
+          )}
+          {!asking && (
+            <button class="btn primary" data-testid="start-phase" onClick={start}>
+              Start phase {st.phase.n}
+            </button>
+          )}
         </div>
       </div>
     </div>

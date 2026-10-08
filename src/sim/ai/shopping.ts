@@ -1,7 +1,8 @@
 import type { Ctx } from '../ctx';
-import { buyItem, quote } from '../shop';
+import { buyItem, quote, type Where } from '../shop';
 import type { ItemDef } from '../content/schema';
 import type { Unit } from '../types';
+import { isWary } from './swap';
 import { other } from '../types';
 
 function chainIncludes(ctx: Ctx, item: ItemDef, id: string): boolean {
@@ -43,46 +44,67 @@ export interface Purchase {
   price: number;
 }
 
-export function nextPurchase(ctx: Ctx, u: Unit, ignoreAccess = false): Purchase | null {
+export function nextPurchase(ctx: Ctx, u: Unit, where: Where = 'here'): Purchase | null {
   const h = u.hero;
   if (!h) return null;
   const def = ctx.c.heroById.get(h.defId)!;
   const targets = [...def.buildList];
   const adapt = adaptTarget(ctx, u);
-  if (adapt && h.items.length >= 2) targets.splice(2, 0, adapt);
+  if (adapt && isWary(ctx, h)) targets.unshift(adapt);
+  else if (adapt && h.items.length >= 2) targets.splice(2, 0, adapt);
+  let saveForJungle = false;
   for (const id of targets) {
     if (satisfied(ctx, u, id)) continue;
     const item = ctx.c.itemById.get(id);
     if (!item) continue;
-    const q = quote(ctx, u, id, ignoreAccess);
+    const q = quote(ctx, u, id, where);
     if (!('error' in q) && q.price <= h.gold) return { id, price: q.price };
+    let reachable = !('error' in q);
     for (const comp of item.from) {
       if (satisfied(ctx, u, comp)) continue;
-      const cq = quote(ctx, u, comp, ignoreAccess);
-      if (!('error' in cq) && cq.price <= h.gold) return { id: comp, price: cq.price };
+      const cq = quote(ctx, u, comp, where);
+      if ('error' in cq) continue;
+      reachable = true;
+      if (cq.price <= h.gold) return { id: comp, price: cq.price };
     }
-    return null;
+    // Save up for a target that can be bought; skip one the shop cannot offer right now
+    // (a tier 3 item that is neither unlocked nor in the keeper's stock) so gold is not hoarded.
+    if (reachable) return null;
+    if (item.tier === 3 && where !== 'jungle') {
+      saveForJungle = true;
+      break;
+    }
   }
+  if (saveForJungle) return null;
   let best: Purchase | null = null;
   for (const it of ctx.c.items) {
     if (it.tier < 3) continue;
     if (!it.from.some((f) => h.items.includes(f))) continue;
-    const q = quote(ctx, u, it.id, ignoreAccess);
+    const q = quote(ctx, u, it.id, where);
     if (!('error' in q) && q.price <= h.gold && (!best || q.price > best.price))
       best = { id: it.id, price: q.price };
   }
   if (best) return best;
   const def2 = ctx.c.heroById.get(h.defId)!;
-  const primary = def2.stats.soulPower > def2.stats.bladeDmg * 0.8 ? 'soul' : 'blade';
+  const primary = def2.stats.soulPower > def2.stats.bladeDmg * 0.8 ? 'soul' : 'mind';
   let fill: Purchase | null = null;
   for (const it of ctx.c.items) {
-    if (it.tier !== 2 || (it.category !== primary && it.category !== 'flesh')) continue;
+    if (it.tier !== 2 || (it.category !== primary && it.category !== 'body')) continue;
     if (satisfied(ctx, u, it.id)) continue;
-    const q = quote(ctx, u, it.id, ignoreAccess);
+    const q = quote(ctx, u, it.id, where);
     if (!('error' in q) && q.price <= h.gold && (!fill || q.price > fill.price))
       fill = { id: it.id, price: q.price };
   }
   return fill;
+}
+
+/** The next build-list item the hero still lacks, whether or not it is affordable. */
+export function nextTarget(ctx: Ctx, u: Unit): string | null {
+  const h = u.hero;
+  if (!h) return null;
+  const def = ctx.c.heroById.get(h.defId)!;
+  for (const id of def.buildList) if (!satisfied(ctx, u, id)) return id;
+  return null;
 }
 
 export function aiShop(ctx: Ctx, u: Unit): void {

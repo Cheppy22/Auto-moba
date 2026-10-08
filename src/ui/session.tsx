@@ -1,10 +1,26 @@
 import { createContext } from 'preact';
-import { useContext, useEffect, useState } from 'preact/hooks';
+import { useContext, useEffect, useRef, useState } from 'preact/hooks';
 import { Match, type Command, type CommandResult, type Content, type MatchConfig } from '../sim';
+import type { CamMode } from '../render/broadcast/types';
+import { roleLabel } from './format';
+import { plainText } from './richtext';
 
-export type Speed = 0 | 1 | 2 | 4;
+export type Speed = 0 | 1 | 2 | 4 | 8;
+
+export interface Notice {
+  id: number;
+  heroId: number;
+  team: 'A' | 'B';
+  title: string;
+  detail: string;
+  startTick: number;
+  own: boolean;
+}
+
+export const NOTICE_TICKS = 200;
 
 export interface UiState {
+  notices: Notice[];
   speed: Speed;
   reportHero: number | null;
   reportScope: 'phase' | 'match';
@@ -12,9 +28,14 @@ export interface UiState {
   prepTab: 'upgrade' | 'shop' | 'auction' | 'curse';
   shopOpen: boolean;
   toast: string | null;
+  info: string | null;
+  cam: CamMode;
+  follow: number | null;
+  caption: string | null;
 }
 
 const freshUi = (): UiState => ({
+  notices: [],
   speed: 1,
   reportHero: null,
   reportScope: 'phase',
@@ -22,6 +43,10 @@ const freshUi = (): UiState => ({
   prepTab: 'upgrade',
   shopOpen: false,
   toast: null,
+  info: null,
+  cam: 'auto',
+  follow: null,
+  caption: null,
 });
 
 export class Session {
@@ -29,6 +54,11 @@ export class Session {
   ui: UiState = freshUi();
   version = 0;
   alpha = 1;
+  private curseSeq = -1;
+  private pendingCurses: { hero: number; item: string; flaw: string }[] = [];
+  private noticeId = 0;
+  private infoTimer = 0;
+  private escapes: (() => void)[] = [];
   private listeners = new Set<() => void>();
   private frameListeners = new Set<(alpha: number) => void>();
 
@@ -59,10 +89,97 @@ export class Session {
     this.notify();
   }
 
+  flash(message: string, ms = 4000): void {
+    window.clearTimeout(this.infoTimer);
+    this.setUi({ info: message });
+    this.infoTimer = window.setTimeout(() => this.setUi({ info: null }), ms);
+  }
+
+  /** Tapping your own portrait: the camera follows your hero. */
+  flashHalo(): void {
+    const id = this.match?.state.playerHeroId;
+    if (id != null) this.setUi({ cam: 'follow', follow: id });
+  }
+
+  /** Queue (or unqueue) a jungle shop as a suggestion and say how far away it is. */
+  suggestShop(shopId: string): boolean {
+    const m = this.match;
+    const shop = this.content.map.shops.find((x) => x.id === shopId);
+    if (!m || !shop) return false;
+    const queued = m.snapshot().suggest.includes(shopId);
+    if (!this.issue({ type: 'suggestShop', shopId }).ok) return false;
+    const hero = m.state.playerHeroId != null ? m.unitById(m.state.playerHeroId) : undefined;
+    if (queued || !hero) return true;
+    const secs = Math.round(Math.hypot(shop.x - hero.x, shop.y - hero.y) / hero.stats.moveSpeed);
+    const lane = hero.lane ? ` and leaves the ${roleLabel(hero.lane)}` : '';
+    this.flash(`${shop.name}: ~${secs}s away${lane}`);
+    return true;
+  }
+
+  pushEscape(close: () => void): () => void {
+    this.escapes.push(close);
+    return () => {
+      this.escapes = this.escapes.filter((fn) => fn !== close);
+    };
+  }
+
+  closeTopOverlay(): void {
+    this.escapes[this.escapes.length - 1]?.();
+  }
+
+  syncNotices(): void {
+    const m = this.match;
+    if (!m) return;
+    const ev = m.events;
+    if (ev.length === 0 || ev[ev.length - 1].seq < this.curseSeq) {
+      this.curseSeq = -1;
+      this.pendingCurses = [];
+    }
+    for (let i = ev.length - 1; i >= 0 && ev[i].seq > this.curseSeq; i--) {
+      const e = ev[i];
+      if (e.type === 'curseAccepted') this.pendingCurses.unshift(e.payload);
+    }
+    if (ev.length) this.curseSeq = ev[ev.length - 1].seq;
+    const tick = m.state.tick;
+    let notices = this.ui.notices;
+    let changed = false;
+    if (m.state.phase.kind === 'live' && this.pendingCurses.length > 0) {
+      const fresh: Notice[] = this.pendingCurses.flatMap((c, i) => {
+        const u = m.unitById(c.hero);
+        if (!u || u.team === 'neutral') return [];
+        const hero = this.content.heroById.get(u.defId);
+        const item = this.content.cursedById.get(c.item);
+        const flaw = item?.flaws.find((f) => f.id === c.flaw);
+        return [
+          {
+            id: ++this.noticeId,
+            heroId: u.id,
+            team: u.team,
+            title: item?.name ?? c.item,
+            detail: `${hero?.name.split(',')[0] ?? 'A hero'} took a cursed bargain. ${plainText(item?.boonText ?? '')}${flaw ? ` Price: ${plainText(flaw.text).replace(/^The price: /, '')}.` : ''}`,
+            startTick: tick + i * 12,
+            own: u.hero?.isPlayer ?? false,
+          },
+        ];
+      });
+      this.pendingCurses = [];
+      notices = [...notices, ...fresh];
+      changed = true;
+    }
+    const alive = notices.filter((n) => tick < n.startTick + NOTICE_TICKS);
+    if (alive.length !== notices.length) changed = true;
+    if (changed) {
+      this.ui = { ...this.ui, notices: alive };
+      this.notify();
+    }
+  }
+
   newMatch(config?: Partial<MatchConfig>): void {
     const seed = config?.seed ?? Math.floor(Math.random() * 1e9);
     this.match = Match.create(this.content, { seed, ...config });
-    this.ui = freshUi();
+    this.curseSeq = -1;
+    this.pendingCurses = [];
+    this.ui = { ...freshUi(), cam: this.ui.cam };
     this.notify();
   }
 
@@ -86,6 +203,13 @@ export class Session {
     this.ui = freshUi();
     this.notify();
   }
+}
+
+export function useEscape(active: boolean, close: () => void): void {
+  const s = useSession();
+  const latest = useRef(close);
+  latest.current = close;
+  useEffect(() => (active ? s.pushEscape(() => latest.current()) : undefined), [s, active]);
 }
 
 export const SessionContext = createContext<Session | null>(null);
