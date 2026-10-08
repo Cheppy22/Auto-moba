@@ -4,19 +4,19 @@ An experimental twist on Auto-MOBA. **On this branch this file overrides [SOURCE
 
 ## Owner decisions (Cheppy, 2026-10-08)
 
-| Question                  | Decision                                                                                          |
-| ------------------------- | ------------------------------------------------------------------------------------------------- |
-| Theme                     | Chess. Two teams, **White** (team A, the player, bottom) and **Black** (team B, AI, top).         |
-| Roster                    | Five pieces per team, one of each: **King, Queen, Rook, Bishop, Knight**. The 14 heroes are cut.  |
-| Player character          | **None.** The whole team is the player. All ten pieces are AI-driven.                             |
-| Lane minions              | Replaced by **pawns**: 3 per side lane, 2 in Mid (8 per team). Pawns never promote.               |
-| King death ends the game? | No. See Check and Checkmate.                                                                      |
-| Lane towers               | Renamed **Bastions**.                                                                             |
-| First move                | Both sides start at the same instant.                                                             |
-| Between-phase screens     | Cut. The match runs continuously ("Doctrine and Gambits" below).                                  |
-| Level-ups                 | Automatic **Ranks 1–8**, plus two **fork** choices (Rank 4 and 8). Rank is easy to read on units. |
-| Gambits                   | A **random hand** of orders, for replayability.                                                   |
-| Jungle shops              | Stay.                                                                                             |
+| Question                  | Decision                                                                                                                                                       |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Theme                     | Chess. Two teams, **White** (team A, the player, bottom) and **Black** (team B, AI, top).                                                                      |
+| Roster                    | Five pieces per team, one of each: **King, Queen, Rook, Bishop, Knight**. The 14 heroes are cut.                                                               |
+| Player character          | **None.** The whole team is the player. All ten pieces are AI-driven.                                                                                          |
+| Lane minions              | Stay, renamed **pawnlings** (the old minion waves). **Pawns** are elite units you buy with Tempo: up to 8 on the field in the early game. Pawns never promote. |
+| King death ends the game? | No. See Check and Checkmate.                                                                                                                                   |
+| Lane towers               | Renamed **Bastions**.                                                                                                                                          |
+| First move                | Both sides start at the same instant.                                                                                                                          |
+| Between-phase screens     | Cut. The match runs continuously ("Doctrine and Gambits" below).                                                                                               |
+| Level-ups                 | Automatic **Ranks 1–8**, plus two **fork** choices (Rank 4 and 8). Rank is easy to read on units.                                                              |
+| Gambits                   | A **random hand** of orders, for replayability.                                                                                                                |
+| Jungle shops              | Stay.                                                                                                                                                          |
 
 ## Match flow
 
@@ -48,12 +48,15 @@ Both teams field the same five pieces, so balance lives in roles, styles, paths 
 - **Forks at Rank 4 and 8:** two options from the style. White's forks wait **10 s** (`ranks.forkSec`) for the player without pausing; then the AI's pick applies. Black's forks are picked by the AI at once. Pending forks queue; several can be open at once.
 - **Readability:** every piece shows its rank as a numeral badge on its health bar (and pips 1–8 on the roster); a pending fork makes the badge pulse.
 
-## Pawns
+## Pawnlings and pawns
 
-- Each team owns 8 pawns: 3 in Left, 3 in Right, 2 in Mid. They spawn at the base at match start and march their lane, fighting what they meet (current minion behavior).
-- A dead pawn respawns at its base after `pawns.respawnSec` (+ `pawns.respawnPerActSec` per Act) and walks back out. Pawns scale per Act. **No promotion.**
-- Minion waves are removed. Neutral units (Spirit Tide, jungle events) stay.
-- Pawn kills pay more gold than a minion did (fewer of them); tune so piece gold income stays close to today's.
+- **Pawnlings** are the old lane minions under a new name: waves spawn and march every lane exactly as minion waves did (same tuning). They're the lane's steady fodder and gold. Neutral units (Spirit Tide, jungle events) stay.
+- **Pawns** are elite foot soldiers the team **fields with Tempo** (`pawns.cost`, default 15). Fielding one is a permanent button next to the gambit hand, not a card: pick a lane, the pawn spawns at the base and marches it, fighting like a tougher pawnling (about 3× a pawnling's health and damage, scaling per Act).
+- **Cap:** at most **8 living pawns** per team in the early game (Acts 1–3). From Act 4 the cap rises by 2 per Act (10, 12, …) — owner may veto this.
+- A dead pawn is gone; field another. No respawn and **no promotion**.
+- Tempo now pays for both pawns and gambits; that trade-off is the point. Teams start with `gambits.tempoStart` (enough for about 2 pawns).
+- Black's AI fields pawns too (and both teams in headless runs with `autoGambits`).
+- Pawn kills pay a small bounty to the killer's team; pawnling bounties stay as minion bounties were.
 
 ## Structures, Check and Checkmate
 
@@ -67,7 +70,7 @@ Both teams field the same five pieces, so balance lives in roles, styles, paths 
 
 ## Gambits
 
-- Each team has **Tempo** 0–100 (`gambits.tempo`): +1 per second, + per piece kill, + per Bastion, small + per pawn kill.
+- Each team has **Tempo** 0–100 (`gambits.tempo`): +1 per second, + per piece kill, + per Bastion, small + per pawn kill. Spent on gambits and on fielding pawns.
 - Each team holds a **hand of 3** cards drawn from its deck with the seeded `gambit` random stream. The deck holds the universal cards plus the signature card of each **living** piece (a held card whose piece is dead is unusable until it respawns).
 - A played card is replaced after `gambits.refillSec` (6 s). An unplayed card expires after `gambits.expireSec` (40 s) and is replaced, so the hand keeps changing.
 - **Black plays gambits with an AI heuristic.** In headless runs both teams use it (`MatchConfig.autoGambits`). In the browser White's gambits come only from the player.
@@ -91,7 +94,7 @@ Both teams field the same five pieces, so balance lives in roles, styles, paths 
 Mobile first (portrait 390×844, landscape 844×390, desktop). The 3D island stays; the HUD sits in the corners.
 
 - **Setup board:** five piece cards (style picker, path toggle) and three lane slots to drop them in. One "Begin" button.
-- **Live HUD:** Act clock and score (top); White's roster with rank pips, health and lane (left column); Black's roster (right); **gambit hand + Tempo meter** (bottom); **fork cards** stacked above the hand with a 10 s ring; **Adjourn** button (top right, next to speed). Camera Auto / Follow (tap a roster portrait) / Free.
+- **Live HUD:** Act clock and score (top); White's roster with rank pips, health and lane (left column); Black's roster (right); **gambit hand + Tempo meter + Field Pawn button** (pawn count / cap; tap, then pick Left / Mid / Right) (bottom); **fork cards** stacked above the hand with a 10 s ring; **Adjourn** button (top right, next to speed). Camera Auto / Follow (tap a roster portrait) / Free.
 - **Gambit targeting:** tap a card. Lane cards show three big Left / Mid / Right buttons; point and enemy cards are aimed by tapping the 3D view (ground pick or piece pick); a Cancel chip backs out.
 - **Adjourn panel:** paused. Lanes (move pieces between lanes), paths, the **Armory** (each piece's items and next buy, read-only), mini scoreboard. Resume.
 - **End screen:** "Checkmate: White wins" (or Black) and the existing report.
@@ -100,11 +103,11 @@ Mobile first (portrait 390×844, landscape 844×390, desktop). The 3D island sta
 ## Look
 
 - White (ivory, pearl, brass) vs Black (ebony, obsidian, silver). The island ground becomes a chessboard: ivory and ebony tile halves, raised roads, the bases as throne daises. Jungle biomes and events stay as they are.
-- Pieces are characters shaped like chess pieces (crowned King, Queen with a coronet, tower-bodied Rook, mitred Bishop, horse-headed Knight), each with a style accent. Pawns are small pawn soldiers.
+- Pieces are characters shaped like chess pieces (crowned King, Queen with a coronet, tower-bodied Rook, mitred Bishop, horse-headed Knight), each with a style accent. Pawns are armoured pawn soldiers; pawnlings are smaller, simpler pawn figures.
 
 ## Removed on this branch
 
-The 14 heroes and their upgrades; draft and lane pick; the player hero and every player-only rule (auto-buy toggle, recall, Farm toggle, suggestions, event Send/Ignore, the curse prompt); between-phase report, upgrade and shop screens; minion waves; roaming guardians (The Kings Wake); the holy auction code stays switched off.
+The 14 heroes and their upgrades; draft and lane pick; the player hero and every player-only rule (auto-buy toggle, recall, Farm toggle, suggestions, event Send/Ignore, the curse prompt); between-phase report, upgrade and shop screens; roaming guardians (The Kings Wake); the holy auction code stays switched off.
 
 ## Balance targets
 
@@ -126,6 +129,7 @@ type Path = 'offense' | 'defense' | 'utility';
 | { type: 'playGambit'; slot: number; lane?: LaneId; x?: number; y?: number; targetId?: number }
 | { type: 'setLane'; heroId: number; lane: LaneId }   // live or adjourned
 | { type: 'setPath'; heroId: number; path: Path }
+| { type: 'fieldPawn'; lane: LaneId }                 // costs pawns.cost Tempo; respects the cap
 
 // MatchConfig
 { seed: number; setup?: { A?: SetupEntry[]; B?: SetupEntry[] }; autoGambits?: { A: boolean; B: boolean } }
@@ -133,6 +137,7 @@ type Path = 'offense' | 'defense' | 'utility';
 // Snapshot additions
 SnapUnit: piece: PieceId | null; style: string | null; path: Path | null; rank: number; forkPending: boolean; pawn: boolean; lane: LaneId | null;
 Snapshot: act: number; tempo: Record<PlayTeam, number>; hand: SnapGambit[];   // White's hand
+          pawns: Record<PlayTeam, { alive: number; cap: number; cost: number }>;
           forks: SnapFork[];                                                    // White's pending forks
           check: Record<PlayTeam, boolean>; throneDown: Record<PlayTeam, boolean>;
 SnapGambit { slot; cardId; name; desc; cost; target: 'lane' | 'point' | 'enemy' | 'none'; piece: PieceId | null; usable; reason; ticksLeft; refillTicks: number | null }
