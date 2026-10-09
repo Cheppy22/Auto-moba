@@ -40,6 +40,8 @@ const SHIELD = '#a9d0e0';
 const LOW_HP = 0.3;
 const LOW_HP_RED = '#ff5a48';
 const SUN_OFFSET = new Vector3(-380, 760, 520);
+/** The dark behind the board: warm ebony rather than violet-black. */
+const VOID = '#16120e';
 /** Seconds a Sanctuary zone ring lasts. */
 const SANCTUARY_SEC = 6;
 /** Taps within this many CSS pixels of a unit pick it. */
@@ -203,15 +205,16 @@ export class BroadcastView {
     this.shadows = !coarse && Math.min(window.innerWidth, window.innerHeight) >= 640;
     const r = this.renderer;
     r.setPixelRatio(Math.min(1.5, window.devicePixelRatio || 1));
-    r.setClearColor(PALETTE.bg);
+    r.setClearColor(VOID);
     r.shadowMap.enabled = this.shadows;
     canvas.addEventListener('webglcontextlost', this.onLost);
     canvas.addEventListener('webglcontextrestored', this.onRestored);
 
-    this.scene.background = new Color(PALETTE.bg);
-    this.scene.fog = new FogExp2('#0d0b16', 0.00013);
-    const sky = new HemisphereLight('#8f86d2', '#2a2038', 0.75);
-    const sun = new DirectionalLight('#ffe2b8', 3.1);
+    this.scene.background = new Color(VOID);
+    this.scene.fog = new FogExp2(VOID, 0.00013);
+    // late-afternoon garden light: a warm sun, a soft cream sky and a faint cool fill
+    const sky = new HemisphereLight('#e6dcc2', '#42382e', 0.85);
+    const sun = new DirectionalLight('#ffe2b8', 2.55);
     sun.position.copy(SUN_OFFSET);
     sun.castShadow = this.shadows;
     sun.shadow.mapSize.set(2048, 2048);
@@ -225,7 +228,7 @@ export class BroadcastView {
     cam.far = 1800 * (content.map.size / 1000);
     sun.shadow.bias = -0.0004;
     sun.shadow.normalBias = 0.7;
-    const rim = new DirectionalLight('#7a64d8', 0.9);
+    const rim = new DirectionalLight('#9aa8c4', 0.45);
     rim.position.set(520, 300, -600);
     this.sun = sun;
     this.scene.add(sky, sun, sun.target, rim);
@@ -346,7 +349,7 @@ export class BroadcastView {
 
     this.handleEvents(events);
     this.bars.begin(camera);
-    this.badges.begin(camera);
+    this.badges.begin(camera, this.cssW, this.cssH, unitPx);
     this.minions.begin();
     this.syncUnits(snap, frame.alpha, dt);
     this.minions.end();
@@ -685,18 +688,21 @@ export class BroadcastView {
         const es = this.emblemSize;
         const r = this.camRight;
         const dr = bw / 2 + bh * 0.4 + rs * 0.5;
-        this.badges.add(
-          x - r.x * dr,
-          top - r.y * dr,
-          z - r.z * dr,
+        const de = dr + rs * 0.42 + es * 0.5;
+        this.badges.piece(
+          x,
+          top,
+          z,
+          r,
+          dr,
+          de,
           rs,
+          es,
           u.rank ?? 1,
           col,
           u.forkPending === true,
-          time,
+          v.style,
         );
-        const de = dr + rs * 0.42 + es * 0.5;
-        this.badges.emblem(x - r.x * de, top - r.y * de, z - r.z * de, es, v.style);
         break;
       }
       case 'minion': {

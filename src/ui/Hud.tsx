@@ -87,7 +87,7 @@ function TopBar(props: { snap: Snapshot; held: boolean }) {
     <div class="topbar">
       <div class="clock" data-testid="score">
         <Side team="A" snap={snap} />
-        <div class="ofuda" data-held={props.held}>
+        <div class="clockface" data-held={props.held}>
           <b data-testid="phase">Act {snap.act}</b>
           <span data-testid="clock">{mmss(snap.phaseTicksLeft)}</span>
         </div>

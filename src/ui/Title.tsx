@@ -1,5 +1,4 @@
 import { useState } from 'preact/hooks';
-import { Butterfly, RitualRing, Seal } from './Ornament';
 import { PieceGlyph, PIECE_ORDER } from './pieces';
 import { useSession } from './session';
 
@@ -12,33 +11,20 @@ export function Title() {
   };
   return (
     <div class="overlay title" data-testid="title">
-      <div class="title-art" aria-hidden="true">
-        <RitualRing class="title-ring" />
-        <RitualRing class="title-ring slow" />
-        {[
-          ['8%', '0s', 1.2],
-          ['24%', '6s', 0.8],
-          ['47%', '11s', 1.5],
-          ['68%', '3s', 0.9],
-          ['86%', '15s', 1.1],
-        ].map(([x, d, sc]) => (
-          <span class="drift" key={x} style={{ '--x': x, '--d': d, '--s': sc }}>
-            <Butterfly size={26} />
-          </span>
-        ))}
-      </div>
+      <div class="title-art" aria-hidden="true" />
       <div class="title-wrap">
-        <Seal />
         <div class="title-pieces" aria-hidden="true">
           {PIECE_ORDER.map((p) => (
-            <PieceGlyph key={p} piece={p} team="A" size={30} />
+            <span class="title-tile" key={p}>
+              <PieceGlyph piece={p} team="A" size={34} />
+            </span>
           ))}
         </div>
         <h1 class="wordmark">Auto-MOBA</h1>
         <div class="build-stamp" data-testid="build-stamp">
           Chess variant · build {__BUILD_ID__}
         </div>
-        <div class="subtitle">Every wish is paid for. Every move is a gambit.</div>
+        <div class="subtitle">Every piece fights. Every move is yours.</div>
         <p class="title-copy">
           Lead the White court against Black across a living chessboard. Your King, Queen, Rook,
           Bishop and Knight fight on their own. You choose their styles and lanes, then play

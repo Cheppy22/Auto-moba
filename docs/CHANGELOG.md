@@ -4,6 +4,10 @@ Newest first. One entry per change: what changed, why, and any measured effect. 
 
 ## 2026-10-09
 
+- **The Grand Board: chess look pass** (branch `test-product-2`, direction in [CHESS.md](CHESS.md) "Look"). Why: Cheppy found the game unpolished and still dressed in the old spirit-shop and Wonderland theme.
+  - Interface: new palette (ebony, walnut, mahogany, ivory, bone, brass; baize green for selected; slate for Black; clock red only for danger). Checkerboard title screen with a new tagline, ivory primary buttons, chess-clock Act timer, brass Tempo meter. Seal stamp, butterflies, ritual rings and the old font removed.
+  - 3D board: stone chessboard ground, marble lanes with brass borders (no coloured stripes), castle bases, sunken checkered courts for jungle clearings, iron gates and light mist on sealed clearings (no domes), a stone canal with bridges, a formal garden (hedges, chess topiary, balustrades, cypress) replacing forest and mushrooms, warmer lighting. Piece badges stack instead of piling up.
+  - Measured: draw calls −4.5% (desktop) and −10% (phone) at the wide shot. No gameplay change.
 - **Wider lanes, bigger map, soft collision** (branch `test-product-2`). Why: Cheppy found lanes too narrow to spectate; pieces were passing through each other.
   - Map scaled ×1.3 (size 1300); lane half-width 40 → 72. Map-scale distances in tuning and AI scaled by the same factor.
   - Soft collision (`src/sim/collision.ts`): units push apart by body size and mass (pieces > pawns > pawnlings); structures don't move. Deterministic. Tests in `tests/collision.test.ts`.

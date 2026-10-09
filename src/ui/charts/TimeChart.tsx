@@ -45,7 +45,7 @@ export interface TimeChartProps {
 export function MarkerShape(props: { m: Marker; x: number; y: number; size?: number }) {
   const { m, x, y } = props;
   const s = props.size ?? 5.5;
-  const common = { fill: m.color, stroke: '#14111d', 'stroke-width': 1.5 };
+  const common = { fill: m.color, stroke: '#14110e', 'stroke-width': 1.5 };
   if (m.shape === 'diamond')
     return (
       <path

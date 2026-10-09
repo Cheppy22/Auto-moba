@@ -155,7 +155,7 @@ export function ReplayPanel(props: { data: ReportData; id: number; active: boole
               style={{
                 left: at(f.startTick),
                 width: `max(8px, ${((f.endTick - f.startTick) / span) * 100}%)`,
-                background: fightId === f.id ? '#ffffff' : 'rgba(224,169,62,0.7)',
+                background: fightId === f.id ? '#ffffff' : 'rgba(224, 169, 62, 0.7)',
                 top: '4px',
                 bottom: '18px',
               }}
@@ -198,7 +198,7 @@ export function ReplayPanel(props: { data: ReportData; id: number; active: boole
         </div>
         <div class="row wrap tiny dim">
           <span>
-            <span style={{ color: 'rgba(255,170,90,0.9)' }}>■</span> fights
+            <span style={{ color: 'rgba(255, 170, 90, 0.9)' }}>■</span> fights
           </span>
           <span>
             <span class="gold">■</span> purchases

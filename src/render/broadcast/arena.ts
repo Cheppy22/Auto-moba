@@ -6,40 +6,25 @@ import {
   Color,
   ConeGeometry,
   CylinderGeometry,
-  DoubleSide,
   Float32BufferAttribute,
   Group,
   IcosahedronGeometry,
-  InstancedMesh,
   LatheGeometry,
   Matrix4,
   Mesh,
   MeshBasicMaterial,
-  PlaneGeometry,
   Points,
   PointsMaterial,
   Quaternion,
   SphereGeometry,
   Sprite,
-  TorusGeometry,
   Vector2,
   Vector3,
 } from 'three';
 import { type Content, shapeDist, type Snapshot } from '../../sim';
 import { PALETTE, teamColor } from '../theme';
-import {
-  type Bit,
-  BRASS,
-  hash,
-  type Kit,
-  LACQUER,
-  PAPER,
-  put,
-  rand01,
-  STONE,
-  STONE_DARK,
-} from './kit';
-import { ofudaTexture, Scenery } from './scenery';
+import { type Bit, BRASS, hash, type Kit, put, rand01 } from './kit';
+import { Scenery } from './scenery';
 import { type TerrainField, TerrainView } from './terrain';
 import { Veils } from './veil';
 import { River } from './water';
@@ -132,8 +117,6 @@ export class Arena {
   private stars: Points;
   private motes: Points;
   private moteBase: Float32Array;
-  private ofuda: InstancedMesh;
-  private ofudaSpots: { x: number; y: number; z: number; yaw: number }[] = [];
   private rocks: { mesh: Mesh; base: Vector3; speed: number; spin: number }[] = [];
   private seals: Mesh[] = [];
   private river: River;
@@ -160,8 +143,6 @@ export class Arena {
     this.group.add(this.slotGroup);
     this.buildBases();
     this.buildShops();
-    this.buildRim();
-    this.ofuda = this.buildOfuda();
     this.buildRocks();
     this.stars = this.buildStars();
     const m = this.buildMotes();
@@ -200,207 +181,78 @@ export class Arena {
     return { ports, cx: def.x, cy: def.y, r: def.radius };
   }
 
-  private paintSlot(
-    biomeId: string | null,
-    R: number,
+  /**
+   * A clearing's floor: a sunken court laid in the board's own squares (so the grid carries on
+   * across it), a shaded rim, and a low stone wall with a gap at each gate path. Open courts take
+   * a hint of their biome; sealed ones are dim and plain under the mist.
+   */
+  private paintCourt(
+    slot: Snapshot['slots'][number],
     pal: { ground: string; accent: string; glow: string } | null,
+    gaps: number[],
   ): HTMLCanvasElement {
     const [c, g] = canvas(512);
-    const k = 256 / (R * 1.3);
+    const pad = this.content.map.walk.slotPad;
+    const Rw = slot.radius + pad;
+    const k = 256 / (slot.radius * 1.3);
     const cx = 256;
-    if (!pal) {
-      // uncharted: a dim ink floor with a keyhole seal, half lost under the mist
-      const gr = g.createRadialGradient(cx, cx, 0, cx, cx, R * k * 1.05);
-      gr.addColorStop(0, 'rgba(30,22,52,0.72)');
-      gr.addColorStop(0.85, 'rgba(22,16,38,0.66)');
-      gr.addColorStop(1, 'rgba(22,16,38,0)');
-      g.fillStyle = gr;
-      g.beginPath();
-      g.arc(cx, cx, R * k * 1.05, 0, TAU);
-      g.fill();
-      g.strokeStyle = 'rgba(176,150,232,0.26)';
-      g.lineWidth = 3;
-      g.setLineDash([12, 18]);
-      g.beginPath();
-      g.arc(cx, cx, R * k * 0.92, 0, TAU);
-      g.stroke();
-      g.setLineDash([]);
-      g.lineWidth = 2;
-      g.strokeStyle = 'rgba(176,150,232,0.2)';
-      g.beginPath();
-      g.arc(cx, cx, R * k * 0.5, 0, TAU);
-      g.stroke();
-      for (let i = 0; i < 8; i++) {
-        const a = (i / 8) * TAU + Math.PI / 8;
-        g.beginPath();
-        g.moveTo(cx + Math.cos(a) * R * k * 0.54, cx + Math.sin(a) * R * k * 0.54);
-        g.lineTo(cx + Math.cos(a) * R * k * 0.86, cx + Math.sin(a) * R * k * 0.86);
-        g.stroke();
-      }
-      const kr = R * k * 0.16;
-      g.fillStyle = 'rgba(186,160,240,0.26)';
-      g.beginPath();
-      g.arc(cx, cx - kr * 0.5, kr, 0, TAU);
-      g.moveTo(cx - kr * 0.55, cx - kr * 0.2);
-      g.lineTo(cx + kr * 0.55, cx - kr * 0.2);
-      g.lineTo(cx + kr * 0.9, cx + kr * 1.9);
-      g.lineTo(cx - kr * 0.9, cx + kr * 1.9);
-      g.closePath();
-      g.fill();
-      return c;
-    }
-    const gr = g.createRadialGradient(cx, cx, R * 0.1 * k, cx, cx, R * 1.3 * k);
-    gr.addColorStop(0, pal.accent + 'aa');
-    gr.addColorStop(0.6, pal.ground + 'cc');
-    gr.addColorStop(1, 'rgba(0,0,0,0)');
-    g.fillStyle = gr;
-    g.fillRect(0, 0, 512, 512);
+    const TILE = this.field.ws.tile;
+    const mix = (a: string, b: string, t: number): string =>
+      new Color(a).lerp(new Color(b), t).getStyle();
+    const light = pal ? mix('#d2c6a2', pal.glow, 0.06) : '#aaa391';
+    const dark = pal ? mix('#4d424a', pal.accent, 0.07) : '#5d5860';
     g.save();
     g.beginPath();
-    g.arc(cx, cx, R * 0.98 * k, 0, TAU);
+    g.arc(cx, cx, Rw * k - 1, 0, TAU);
     g.clip();
-    let seed = hash(biomeId ?? '') + Math.round(R);
-    const rnd = (): number => rand01(seed++);
+    const x0 = slot.x - cx / k;
+    const y0 = slot.y - cx / k;
+    const x1 = slot.x + cx / k;
+    const y1 = slot.y + cx / k;
+    for (let j = Math.floor(y0 / TILE); j * TILE < y1; j++)
+      for (let i = Math.floor(x0 / TILE); i * TILE < x1; i++) {
+        g.fillStyle = (i + j) % 2 === 0 ? light : dark;
+        g.fillRect((i * TILE - x0) * k, (j * TILE - y0) * k, TILE * k + 0.6, TILE * k + 0.6);
+      }
+    // a thin brass inlay ring, then the shade where the floor drops below the wall
+    g.strokeStyle = 'rgba(201,163,90,0.7)';
     g.lineWidth = 2;
-    if (biomeId === 'shrine') {
-      for (let i = 1; i <= 5; i++) {
-        g.strokeStyle = pal.glow + (i % 2 ? '3c' : '24');
-        g.beginPath();
-        g.arc(cx, cx, R * k * (0.2 + i * 0.16), 0, TAU);
-        g.stroke();
-      }
-      g.fillStyle = pal.glow + '44';
-      for (let i = 0; i < 12; i++) {
-        const a = rnd() * TAU;
-        const r = 0.2 + rnd() * 0.65;
-        g.beginPath();
-        g.ellipse(cx + Math.cos(a) * R * k * r, cx + Math.sin(a) * R * k * r, 12, 7, 0.3, 0, TAU);
-        g.fill();
-      }
-    } else if (biomeId === 'foundry') {
-      g.strokeStyle = pal.glow + '48';
-      g.lineWidth = 4;
-      g.setLineDash([14, 10]);
-      for (const f of [0.45, 0.72]) {
-        g.beginPath();
-        g.arc(cx, cx, R * k * f, 0, TAU);
-        g.stroke();
-      }
-      g.setLineDash([]);
-      g.fillStyle = pal.glow + '88';
-      for (let i = 0; i < 40; i++) {
-        const a = rnd() * TAU;
-        const r = rnd() * 0.9;
-        const sz = 1.5 + rnd() * 3.5;
-        g.fillRect(cx + Math.cos(a) * R * k * r, cx + Math.sin(a) * R * k * r, sz, sz);
-      }
-    } else if (biomeId === 'teaparty') {
-      // a clock face on the ground, stopped at six, with tea rings and crumbs
-      g.strokeStyle = pal.glow + '40';
-      g.lineWidth = 3;
-      g.beginPath();
-      g.arc(cx, cx, R * k * 0.8, 0, TAU);
-      g.stroke();
-      for (let i = 0; i < 12; i++) {
-        const a = (i / 12) * TAU;
-        const f = i % 3 === 0 ? 0.68 : 0.74;
-        g.beginPath();
-        g.moveTo(cx + Math.cos(a) * R * k * f, cx + Math.sin(a) * R * k * f);
-        g.lineTo(cx + Math.cos(a) * R * k * 0.8, cx + Math.sin(a) * R * k * 0.8);
-        g.stroke();
-      }
-      g.lineWidth = 4;
-      g.strokeStyle = pal.glow + '55';
-      g.beginPath();
-      g.moveTo(cx, cx - R * k * 0.5);
-      g.lineTo(cx, cx);
-      g.lineTo(cx, cx + R * k * 0.34);
-      g.stroke();
-      g.lineWidth = 2;
-      for (let i = 0; i < 9; i++) {
-        const a = rnd() * TAU;
-        const r = 0.2 + rnd() * 0.65;
-        g.strokeStyle = pal.glow + '30';
-        g.beginPath();
-        g.arc(cx + Math.cos(a) * R * k * r, cx + Math.sin(a) * R * k * r, 7 + rnd() * 5, 0, TAU);
-        g.stroke();
-      }
-    } else if (biomeId === 'roses') {
-      // fallen petals, painted red, on a faint diamond lattice
-      g.strokeStyle = pal.glow + '24';
-      g.lineWidth = 2;
-      for (let i = -4; i <= 4; i++) {
-        g.beginPath();
-        g.moveTo(cx + i * R * k * 0.3 - R * k, cx - R * k);
-        g.lineTo(cx + i * R * k * 0.3 + R * k, cx + R * k);
-        g.moveTo(cx + i * R * k * 0.3 + R * k, cx - R * k);
-        g.lineTo(cx + i * R * k * 0.3 - R * k, cx + R * k);
-        g.stroke();
-      }
-      for (let i = 0; i < 46; i++) {
-        const a = rnd() * TAU;
-        const r = rnd() * 0.92;
-        g.fillStyle = i % 5 === 0 ? pal.glow + '66' : pal.accent + '88';
-        g.beginPath();
-        g.ellipse(
-          cx + Math.cos(a) * R * k * r,
-          cx + Math.sin(a) * R * k * r,
-          6 + rnd() * 3,
-          3.4,
-          rnd() * 3,
-          0,
-          TAU,
-        );
-        g.fill();
-      }
-    } else if (biomeId === 'station') {
-      g.strokeStyle = pal.glow + '48';
-      g.lineWidth = 3;
-      for (const off of [-0.14, 0.14]) {
-        g.beginPath();
-        g.moveTo(cx - R * k, cx + off * R * k * 2);
-        g.lineTo(cx + R * k, cx + off * R * k * 2);
-        g.stroke();
-      }
-      g.strokeStyle = pal.glow + '30';
-      for (let i = -6; i <= 6; i++) {
-        g.beginPath();
-        g.moveTo(cx + (i / 6) * R * k * 0.95, cx - R * k * 0.2);
-        g.lineTo(cx + (i / 6) * R * k * 0.95, cx + R * k * 0.2);
-        g.stroke();
-      }
-    } else {
-      // unknown biome id: soft rings and specks in its own glow colour
-      g.strokeStyle = pal.glow + '30';
-      g.lineWidth = 2;
-      for (const f of [0.35, 0.65]) {
-        g.beginPath();
-        g.arc(cx, cx, R * k * f, 0, TAU);
-        g.stroke();
-      }
-      g.fillStyle = pal.glow + '50';
-      for (let i = 0; i < 24; i++) {
-        const a = rnd() * TAU;
-        const r = 0.15 + rnd() * 0.75;
-        g.fillRect(cx + Math.cos(a) * R * k * r, cx + Math.sin(a) * R * k * r, 3, 3);
-      }
+    g.beginPath();
+    g.arc(cx, cx, Rw * k * 0.9, 0, TAU);
+    g.stroke();
+    const shade = g.createRadialGradient(cx, cx, Rw * k * 0.74, cx, cx, Rw * k);
+    shade.addColorStop(0, 'rgba(24,16,8,0)');
+    shade.addColorStop(1, 'rgba(24,16,8,0.5)');
+    g.fillStyle = shade;
+    g.fillRect(0, 0, 512, 512);
+    if (!pal) {
+      g.fillStyle = 'rgba(70,64,60,0.22)';
+      g.fillRect(0, 0, 512, 512);
     }
     g.restore();
-    g.strokeStyle = pal.glow + '99';
-    g.lineWidth = 3;
-    g.beginPath();
-    g.arc(cx, cx, R * k, 0, TAU);
-    g.stroke();
-    g.strokeStyle = pal.glow + '44';
-    g.beginPath();
-    g.arc(cx, cx, R * k * 1.12, 0, TAU);
-    g.stroke();
-    g.fillStyle = pal.glow + 'aa';
-    for (let i = 0; i < 12; i++) {
-      const a = (i / 12) * TAU;
-      g.beginPath();
-      g.arc(cx + Math.cos(a) * R * k * 1.06, cx + Math.sin(a) * R * k * 1.06, 3.2, 0, TAU);
-      g.fill();
+    // the wall's coping, broken at each gate path
+    const open = Math.asin(Math.min(0.95, (this.content.map.walk.port - 3) / Rw));
+    const sorted = [...gaps].sort((a, b) => a - b);
+    const arcs: [number, number][] = [];
+    if (!sorted.length) arcs.push([0, TAU]);
+    else
+      sorted.forEach((a, i) => {
+        const next = i + 1 < sorted.length ? sorted[i + 1] : sorted[0] + TAU;
+        arcs.push([a + open, next - open]);
+      });
+    g.lineCap = 'butt';
+    for (const [w, col, r] of [
+      [10, 'rgba(30,22,14,0.55)', Rw * k + 1],
+      [7, '#cfc6ae', Rw * k],
+      [2.5, '#efe8d6', Rw * k - 1.5],
+    ] as const) {
+      g.strokeStyle = col;
+      g.lineWidth = w;
+      for (const [s0, s1] of arcs) {
+        g.beginPath();
+        g.arc(cx, cx, r, s0, s1);
+        g.stroke();
+      }
     }
     return c;
   }
@@ -420,230 +272,64 @@ export class Arena {
     });
   }
 
-  private toriiBits(trim: string): Bit[] {
-    const bits: Bit[] = [
-      { geo: new BoxGeometry(33, 2.4, 3.6), color: '#3a1a20', at: [0, 22.4, 0] },
-      { geo: new BoxGeometry(25, 1.5, 2), color: '#3a1a20', at: [0, 17.4, 0] },
-      { geo: new BoxGeometry(34.5, 0.9, 4), color: trim, at: [0, 24, 0] },
-    ];
-    for (const s of [-1, 1])
-      bits.push({
-        geo: new CylinderGeometry(1.35, 1.7, 21, 8),
-        color: '#3a1a20',
-        at: [s * 11.5, 10.5, 0],
-      });
-    return bits;
-  }
-
-  private propBits(
-    kind: string,
+  /** A marble lamp post and a flowering urn: the two things a court is dressed with. */
+  private courtProp(
+    kind: 'lamp' | 'urn',
     x: number,
     z: number,
     seed: number,
   ): { solid: Bit[]; glow: Bit[] } {
     const solid: Bit[] = [];
     const glow: Bit[] = [];
-    const yaw = seed * 3;
-    if (kind === 'lantern') {
+    const marble = '#e2dac6';
+    if (kind === 'lamp') {
       solid.push(
-        { geo: new CylinderGeometry(3, 3.6, 2, 6), color: STONE, at: [0, 1, 0] },
-        { geo: new CylinderGeometry(1, 1.3, 7, 6), color: STONE, at: [0, 5.5, 0] },
-        { geo: new BoxGeometry(3.6, 3.2, 3.6), color: STONE_DARK, at: [0, 10.1, 0] },
+        { geo: new CylinderGeometry(3, 3.6, 2, 6), color: '#cdc5b0', at: [0, 1, 0] },
+        { geo: new CylinderGeometry(0.9, 1.3, 9, 6), color: '#35383a', at: [0, 6.5, 0] },
+        { geo: new BoxGeometry(3.8, 3.4, 3.8), color: '#35383a', at: [0, 12.2, 0] },
         {
-          geo: new ConeGeometry(3.8, 2.6, 4).rotateY(Math.PI / 4),
-          color: STONE_DARK,
-          at: [0, 13, 0],
+          geo: new ConeGeometry(3.4, 2.6, 4).rotateY(Math.PI / 4),
+          color: '#cdc5b0',
+          at: [0, 15.2, 0],
         },
       );
-      glow.push({ geo: new SphereGeometry(1.6, 8, 6), color: WHITE, at: [0, 10.1, 0] });
-    } else if (kind === 'slag') {
-      const s = 3 + (seed % 1) * 3;
-      solid.push({
-        geo: new SphereGeometry(1, 5, 4),
-        color: '#2a1f1c',
-        at: [0, s * 0.5, 0],
-        scale: [s, s * 0.8, s],
-      });
-      glow.push({ geo: new SphereGeometry(1.1, 8, 6), color: WHITE, at: [0, s * 0.95, 0] });
-    } else if (kind === 'teacup') {
-      const china = seed % 2 > 1 ? BRASS : PAPER;
+      glow.push({ geo: new SphereGeometry(1.6, 8, 6), color: WHITE, at: [0, 12.2, 0] });
+    } else {
       solid.push(
-        { geo: new CylinderGeometry(4.6, 4.2, 0.9, 12), color: china, at: [0, 0.45, 0] },
         {
           geo: new LatheGeometry(
             [
-              [0.01, 0.9],
-              [2.4, 0.9],
-              [3.5, 3.4],
-              [4, 6.6],
-              [3.4, 6.7],
-              [0.01, 5.4],
+              [0.01, 0],
+              [3.2, 0],
+              [3.4, 1.2],
+              [2.2, 3.2],
+              [3.6, 6.4],
+              [4.2, 7.8],
+              [3.4, 7.9],
+              [0.01, 7],
             ].map(([r, y]) => new Vector2(r, y)),
-            12,
+            8,
           ),
-          color: china,
+          color: marble,
         },
         {
-          geo: new TorusGeometry(1.6, 0.5, 5, 10),
-          color: china,
-          at: [4.3, 4.2, 0],
+          geo: new SphereGeometry(1, 7, 5),
+          color: '#3a6040',
+          at: [0, 8.2, 0],
+          scale: [4.2, 2.6, 4.2],
         },
       );
       glow.push({
-        geo: new SphereGeometry(3, 10, 6),
+        geo: new SphereGeometry(1.1, 6, 4),
         color: WHITE,
-        at: [0, 5.8, 0],
-        scale: [1, 0.12, 1],
+        at: [Math.cos(seed * 5) * 1.6, 10.2, Math.sin(seed * 5) * 1.6],
       });
-    } else if (kind === 'rose') {
-      solid.push({
-        geo: new SphereGeometry(1, 8, 6),
-        color: '#22402c',
-        at: [0, 3.4, 0],
-        scale: [6.6, 4.4, 6.2],
-      });
-      for (let i = 0; i < 6; i++) {
-        const a = seed * 5 + i * 1.9;
-        solid.push({
-          geo: new SphereGeometry(1.35, 7, 5),
-          color: i % 4 === 3 ? '#f1e6d6' : '#c0404e',
-          at: [Math.cos(a) * 4.6, 4.6 + (i % 3) * 1.3, Math.sin(a) * 4.2],
-        });
-      }
-    } else if (kind === 'hoop') {
-      solid.push(
-        {
-          geo: new TorusGeometry(5.2, 0.6, 6, 14, Math.PI),
-          color: PAPER,
-        },
-        { geo: new SphereGeometry(1.7, 8, 6), color: '#c0404e', at: [7.5, 1.7, 5] },
-      );
-    } else {
-      solid.push(
-        { geo: new BoxGeometry(9, 1.2, 2.2), color: '#3a2f48', at: [0, 0.6, 0] },
-        { geo: new CylinderGeometry(0.5, 0.5, 4, 5), color: '#2c2538', at: [0, 2, 0] },
-      );
-      glow.push({ geo: new SphereGeometry(1.2, 8, 6), color: WHITE, at: [0, 4, 0] });
     }
     const y = this.field.heightW(x, z);
     return {
-      solid: this.placed(solid, x, z, yaw, y),
-      glow: this.placed(glow, x, z, yaw, y),
+      solid: this.placed(solid, x, z, seed * 3, y),
+      glow: this.placed(glow, x, z, seed * 3, y),
     };
-  }
-
-  /** Slot-local angle pointing as far as possible from every gate. */
-  private quietAngle(gaps: number[]): number {
-    let best = 0;
-    let bestD = -1;
-    for (let i = 0; i < 36; i++) {
-      const a = (i / 36) * TAU;
-      let d = Infinity;
-      for (const g of gaps) d = Math.min(d, Math.abs(Math.atan2(Math.sin(a - g), Math.cos(a - g))));
-      if (d > bestD) {
-        bestD = d;
-        best = a;
-      }
-    }
-    return best;
-  }
-
-  /** The long tea table (local +x runs along it), mismatched chairs, a teapot and a stopped clock. */
-  private teaTableBits(R: number): { solid: Bit[]; glow: Bit[] } {
-    const L = Math.min(R * 0.95, 82);
-    const solid: Bit[] = [
-      { geo: new BoxGeometry(L, 1.4, 9), color: '#4a3626', at: [0, 9, 0] },
-      { geo: new BoxGeometry(L + 1.6, 0.6, 10.4), color: '#e9dfc9', at: [0, 9.9, 0] },
-    ];
-    for (const x of [-1, 1])
-      for (const z of [-1, 1])
-        solid.push({
-          geo: new CylinderGeometry(0.9, 0.9, 9, 6),
-          color: LACQUER,
-          at: [x * (L / 2 - 3), 4.5, z * 3.4],
-        });
-    const glow: Bit[] = [];
-    const cols = [BRASS, PAPER, '#b9a0e6', '#c0404e'];
-    for (let i = -4; i <= 4; i++) {
-      if (i === 0) continue;
-      const x = (i / 4.6) * (L / 2);
-      const z = i % 2 ? 2.6 : -2.6;
-      solid.push(
-        { geo: new CylinderGeometry(1.9, 1.7, 0.3, 8), color: cols[(i + 4) % 4], at: [x, 10.4, z] },
-        { geo: new CylinderGeometry(1.3, 0.9, 1.6, 8), color: cols[(i + 4) % 4], at: [x, 11.3, z] },
-      );
-      glow.push({
-        geo: new SphereGeometry(0.9, 6, 4),
-        color: WHITE,
-        at: [x, 12.2, z],
-        scale: [1, 0.2, 1],
-      });
-    }
-    solid.push(
-      {
-        geo: new SphereGeometry(2.8, 10, 8),
-        color: '#e9dfc9',
-        at: [0, 13.2, 0],
-        scale: [1, 0.85, 1],
-      },
-      { geo: new ConeGeometry(0.7, 3.2, 5), color: '#e9dfc9', at: [3.1, 14, 0], rot: [0, 0, -1.2] },
-      { geo: new SphereGeometry(0.6, 6, 4), color: BRASS, at: [0, 16, 0] },
-    );
-    for (const x of [-0.28, 0.26])
-      for (const z of [-1, 1])
-        solid.push(
-          {
-            geo: new BoxGeometry(5, 1, 5),
-            color: x < 0 ? '#5a4430' : '#3a2f48',
-            at: [x * L, 4.6, z * 8.6],
-          },
-          {
-            geo: new BoxGeometry(5, 7, 0.8),
-            color: x < 0 ? '#5a4430' : '#3a2f48',
-            at: [x * L, 8.6, z * 10.8],
-          },
-        );
-    const cx = L / 2 + 10;
-    solid.push(
-      { geo: new CylinderGeometry(1.1, 1.5, 13, 6), color: LACQUER, at: [cx, 6.5, 0] },
-      {
-        geo: new CylinderGeometry(7.4, 7.4, 1.6, 24).rotateX(Math.PI / 2),
-        color: PAPER,
-        at: [cx, 20, 0],
-      },
-      { geo: new TorusGeometry(7.4, 0.9, 6, 24), color: BRASS, at: [cx, 20, 0.2] },
-      { geo: new BoxGeometry(0.7, 5.4, 0.5), color: '#0b0a0f', at: [cx, 22.7, 1.1] },
-      { geo: new BoxGeometry(0.9, 3.8, 0.5), color: '#0b0a0f', at: [cx, 18.1, 1.1] },
-      { geo: new SphereGeometry(0.9, 6, 4), color: BRASS, at: [cx, 20, 1.2] },
-    );
-    for (let i = 0; i < 12; i++) {
-      const a = (i / 12) * TAU;
-      solid.push({
-        geo: new BoxGeometry(0.5, i % 3 ? 0.9 : 1.6, 0.4),
-        color: '#0b0a0f',
-        at: [cx + Math.sin(a) * 6, 20 + Math.cos(a) * 6, 1.1],
-        rot: [0, 0, -a],
-      });
-    }
-    return { solid, glow };
-  }
-
-  /** Croquet hoops in a row with a ball, for the rose garden. */
-  private hoopBits(R: number): { solid: Bit[]; glow: Bit[] } {
-    const solid: Bit[] = [];
-    for (let i = -2; i <= 2; i++)
-      solid.push({
-        geo: new TorusGeometry(5.6, 0.65, 6, 14, Math.PI),
-        color: i % 2 ? PAPER : BRASS,
-        at: [i * R * 0.16, 0, (i % 2) * 4],
-        rot: [0, i * 0.2, 0],
-      });
-    solid.push(
-      { geo: new SphereGeometry(2, 8, 6), color: '#c0404e', at: [R * 0.05, 2, 9] },
-      { geo: new CylinderGeometry(0.7, 0.9, 11, 6), color: PAPER, at: [-R * 0.38, 5.5, 2] },
-      { geo: new SphereGeometry(1.2, 6, 4), color: '#c0404e', at: [-R * 0.38, 11.4, 2] },
-    );
-    return { solid, glow: [] };
   }
 
   private buildSlot(slot: Snapshot['slots'][number]): SlotView {
@@ -653,10 +339,9 @@ export class Arena {
     const biome = slot.open && slot.biomeId ? this.content.biomeById.get(slot.biomeId) : undefined;
     const R = slot.radius;
     const center = this.world(slot.x, slot.y);
-    this.terrain.setSlotArt(
-      slot.id,
-      this.paintSlot(biome ? slot.biomeId : null, R, biome?.palette ?? null),
-    );
+    const geo = this.gate(slot.id);
+    const gaps = geo ? geo.ports.map((p) => p.ang) : [];
+    this.terrain.setSlotArt(slot.id, this.paintCourt(slot, biome?.palette ?? null, gaps));
     const view: SlotView = {
       key: '',
       group,
@@ -666,72 +351,35 @@ export class Arena {
       born: -1e9,
       gy: center.y,
     };
-    if (!biome) return view;
+    if (!biome || !geo) return view;
 
     const pal = biome.palette;
-    const geo = this.gate(slot.id);
-    const spin = kit.decalRing(pal.glow, R * 0.82, true, 0.6);
-    spin.position.set(center.x, center.y + 0.7, center.z);
-    group.add(spin);
-    view.spin = spin;
-    if (!geo) return view;
-
-    const gaps = geo.ports.map((p) => p.ang);
     const inGap = (a: number): boolean =>
       gaps.some((g) => Math.abs(Math.atan2(Math.sin(a - g), Math.cos(a - g))) < GATE_GAP);
     const lampR = R * 1.04;
-
     const solid: Bit[] = [];
     const glow: Bit[] = [];
-    for (const p of geo.ports) {
-      const w = this.world(p.ex, p.ey);
-      const gold = p.lane === 1;
-      solid.push(
-        ...this.placed(
-          this.toriiBits(gold ? PALETTE.gold : BRASS),
-          w.x,
-          w.z,
-          Math.atan2(Math.cos(p.ang), Math.sin(p.ang)),
-          w.y,
-        ),
-      );
-      const lamp = gold ? PALETTE.gold : pal.glow;
+    // a lamp either side of every gate path
+    for (const p of geo.ports)
       for (const side of [-1, 1]) {
         const a = p.ang + side * GATE_GAP * 1.4;
-        const lx = center.x + Math.cos(a) * lampR;
-        const lz = center.z + Math.sin(a) * lampR;
-        const pb = this.propBits('lantern', lx, lz, a);
+        const pb = this.courtProp(
+          'lamp',
+          center.x + Math.cos(a) * lampR,
+          center.z + Math.sin(a) * lampR,
+          a,
+        );
         solid.push(...pb.solid);
         for (const g of pb.glow) glow.push({ ...g, color: pal.glow });
       }
-      glow.push({ geo: new SphereGeometry(1.2, 8, 6), color: lamp, at: [w.x, w.y + 13, w.z] });
-    }
-    const kinds: Record<string, string> = {
-      shrine: 'lantern',
-      foundry: 'slag',
-      station: 'tie',
-      teaparty: 'teacup',
-      roses: 'rose',
-    };
-    const kind = kinds[biome.id] ?? 'lantern';
-    if (biome.id === 'teaparty' || biome.id === 'roses') {
-      const a = this.quietAngle(geo.ports.map((p) => p.ang));
-      const set = biome.id === 'teaparty' ? this.teaTableBits(R) : this.hoopBits(R);
-      const dist = R * (biome.id === 'teaparty' ? 0.6 : 0.38);
-      const yaw = Math.atan2(-Math.cos(a), -Math.sin(a));
-      const sx = center.x + Math.cos(a) * dist;
-      const sz = center.z + Math.sin(a) * dist;
-      const sy = this.field.heightW(sx, sz);
-      solid.push(...this.placed(set.solid, sx, sz, yaw, sy));
-      for (const g of this.placed(set.glow, sx, sz, yaw, sy)) glow.push({ ...g, color: pal.glow });
-    }
+    // urns round the rim, the only place the biome's colour shows
     for (let i = 0; i < 6; i++) {
       const a = rand01(hash(slot.id) * 3 + i) * TAU;
       if (inGap(a) || inGap(a + 0.15) || inGap(a - 0.15)) continue;
-      const r = R * (0.72 + rand01(hash(slot.id) + i * 17) * 0.14);
-      const bits = this.propBits(kind, center.x + Math.cos(a) * r, center.z + Math.sin(a) * r, a);
-      solid.push(...bits.solid);
-      for (const g of bits.glow) glow.push({ ...g, color: pal.glow });
+      const r = R * (0.78 + rand01(hash(slot.id) + i * 17) * 0.1);
+      const pb = this.courtProp('urn', center.x + Math.cos(a) * r, center.z + Math.sin(a) * r, a);
+      solid.push(...pb.solid);
+      for (const g of pb.glow) glow.push({ ...g, color: pal.accent });
     }
     const key = `slot:${slot.id}:${biome.id}`;
     group.add(kit.solid(key, () => solid, 0.9));
@@ -779,8 +427,31 @@ export class Arena {
     return this.own(new MeshBasicMaterial({ map: tex }));
   }
 
+  /** Angles (from the base outwards) at which each lane leaves the base. */
+  private exits(bx: number, by: number): number[] {
+    const out: number[] = [];
+    const reach = this.content.map.walk.base * 1.05;
+    for (const lane of this.lanes) {
+      const first = Math.hypot(lane[0][0] - bx, lane[0][1] - by);
+      const last = Math.hypot(lane[lane.length - 1][0] - bx, lane[lane.length - 1][1] - by);
+      for (let t = 0; t <= 1; t += 0.01) {
+        const [x, y] = laneAt(lane, first < last ? t : 1 - t);
+        if (Math.hypot(x - bx, y - by) > reach) {
+          out.push(Math.atan2(y - by, x - bx));
+          break;
+        }
+      }
+    }
+    return out;
+  }
+
+  /**
+   * Each base is a castle throne platform: a crenellated curtain wall round the dais with a stair
+   * at every lane gate, round towers between the gates, and a banner in the team's colour on each.
+   */
   private buildBases(): void {
     const kit = this.kit;
+    const bk = this.field.ws.baseK;
     for (const team of ['A', 'B'] as const) {
       const [bx, by] = this.content.map.bases[team];
       const c = this.world(bx, by);
@@ -788,43 +459,71 @@ export class Arena {
       const white = team === 'A';
       const g = new Group();
       g.position.set(c.x, c.y, c.z);
-      const marble = white ? '#e2d8bd' : '#3b3544';
-      const marbleDark = white ? '#b3a78a' : '#252130';
+      const marble = white ? '#e2d8bd' : '#4a4540';
+      const marbleDark = white ? '#b3a78a' : '#34302d';
       const metal = white ? PALETTE.whiteTrim : PALETTE.blackTrim;
+      const exits = this.exits(bx, by);
+      const nearGate = (a: number, w: number): boolean =>
+        exits.some((e) => Math.abs(Math.atan2(Math.sin(a - e), Math.cos(a - e))) < w);
       g.add(
         kit.solid(
           `base:${team}`,
           () => {
             const bits: Bit[] = [];
-            // six fluted columns with capitals around the dais
+            const R = 46 * bk;
+            const N = 30;
+            const seg = ((TAU * R) / N) * 1.04;
+            // the curtain wall: stone, merlons on top, open at the lane gates
+            for (let i = 0; i < N; i++) {
+              const a = ((i + 0.5) / N) * TAU;
+              if (nearGate(a, 0.27)) continue;
+              const yaw = Math.atan2(-Math.cos(a), -Math.sin(a));
+              const x = Math.cos(a) * R;
+              const z = Math.sin(a) * R;
+              const tx = -Math.sin(a);
+              const tz = Math.cos(a);
+              bits.push({
+                geo: new BoxGeometry(seg, 7, 3.4),
+                color: marble,
+                at: [x, 3.5, z],
+                rot: [0, yaw, 0],
+              });
+              for (const o of [-0.26, 0.26])
+                bits.push({
+                  geo: new BoxGeometry(seg * 0.3, 2.4, 3.8),
+                  color: marbleDark,
+                  at: [x + tx * seg * o, 8.2, z + tz * seg * o],
+                  rot: [0, yaw, 0],
+                });
+            }
+            // a stair of three treads at each gate, climbing from the lane to the dais
+            for (const e of exits)
+              for (let s = 0; s < 3; s++) {
+                const r = R + 5 + s * 4.5;
+                bits.push({
+                  geo: new BoxGeometry(5, 3.2 - s * 1, 26 + s * 4),
+                  color: s % 2 ? marble : marbleDark,
+                  at: [Math.cos(e) * r, (3.2 - s * 1) / 2, Math.sin(e) * r],
+                  rot: [0, -e, 0],
+                });
+              }
+            // round towers at the corners, under a cone of the team's metal
             for (let i = 0; i < 6; i++) {
               const a = (i / 6) * TAU + Math.PI / 6;
-              const at = (y: number): [number, number, number] => [
-                Math.cos(a) * 47,
-                y,
-                Math.sin(a) * 47,
-              ];
+              if (nearGate(a, 0.45)) continue;
+              const x = Math.cos(a) * R;
+              const z = Math.sin(a) * R;
               bits.push(
-                { geo: new CylinderGeometry(3.4, 3.8, 2.6, 8), color: marbleDark, at: at(1.3) },
-                { geo: new CylinderGeometry(2.2, 2.6, 14, 8), color: marble, at: at(9.6) },
-                { geo: new CylinderGeometry(3.6, 2.4, 2.6, 8), color: metal, at: at(17.8) },
+                { geo: new CylinderGeometry(5.6, 6.2, 17, 10), color: marble, at: [x, 8.5, z] },
+                { geo: new CylinderGeometry(6.6, 6.6, 2, 10), color: marbleDark, at: [x, 17.6, z] },
+                { geo: new ConeGeometry(6.4, 8, 10), color: metal, at: [x, 22.6, z] },
+                { geo: new CylinderGeometry(0.28, 0.28, 11, 4), color: '#35383a', at: [x, 31, z] },
+                { geo: new BoxGeometry(7, 4, 0.3), color: col, at: [x + 3.6, 33.2, z] },
               );
             }
             return bits;
           },
           1.4,
-        ),
-      );
-      g.add(
-        kit.glowSolid(`base-flames:${team}`, () =>
-          Array.from({ length: 6 }, (_, i) => {
-            const a = (i / 6) * TAU + Math.PI / 6;
-            return {
-              geo: new SphereGeometry(2.3, 8, 6),
-              color: col,
-              at: [Math.cos(a) * 47, 21.4, Math.sin(a) * 47] as [number, number, number],
-            };
-          }),
         ),
       );
       const board = new Mesh(
@@ -838,9 +537,7 @@ export class Arena {
       inlay.position.y = 0.6;
       const inlay2 = kit.decalRing(col, 31, true, 0.55);
       inlay2.position.y = 0.7;
-      const pool = kit.glowDisc(col, 56, 0.3);
-      pool.position.y = 0.4;
-      g.add(inlay, inlay2, pool);
+      g.add(inlay, inlay2);
       this.seals.push(inlay2);
       this.group.add(g);
     }
@@ -860,33 +557,33 @@ export class Arena {
           'shop',
           () => {
             const bits: Bit[] = [
-              { geo: new CylinderGeometry(15, 16, 1.8, 8), color: '#3b3447', at: [0, 0.9, 0] },
+              { geo: new CylinderGeometry(15, 16, 1.8, 8), color: '#cdc5b0', at: [0, 0.9, 0] },
               {
                 geo: new ConeGeometry(21, 8, 4).rotateY(Math.PI / 4),
-                color: '#7a2430',
+                color: '#9c8a62',
                 at: [0, 20.2, 0],
                 scale: [1, 1, 0.8],
               },
-              { geo: new BoxGeometry(18, 5, 5), color: '#4a3626', at: [0, 4.3, 5] },
+              { geo: new BoxGeometry(18, 5, 5), color: '#6b5a44', at: [0, 4.3, 5] },
               {
                 geo: new BoxGeometry(4, 4, 4),
-                color: '#5a4430',
+                color: '#8a7a5e',
                 at: [-8, 3.8, -4],
                 rot: [0, 0.4, 0],
               },
               {
                 geo: new BoxGeometry(4, 4, 4),
-                color: '#5a4430',
+                color: '#8a7a5e',
                 at: [7, 3.8, -5],
                 rot: [0, -0.3, 0],
               },
-              { geo: new BoxGeometry(14, 5.5, 0.4), color: '#8a2a36', at: [0, 14, 8.2] },
+              { geo: new BoxGeometry(14, 5.5, 0.4), color: '#c9a35a', at: [0, 14, 8.2] },
             ];
             for (const x of [-1, 1])
               for (const z of [-1, 1])
                 bits.push({
                   geo: new CylinderGeometry(0.8, 0.9, 15, 6),
-                  color: LACQUER,
+                  color: '#e2dac6',
                   at: [x * 11, 9.3, z * 8],
                 });
             return bits;
@@ -903,66 +600,7 @@ export class Arena {
     }
   }
 
-  /* ------------------------------ rim, void, atmosphere ------------------------------ */
-
-  private buildRim(): void {
-    const kit = this.kit;
-    const n = Math.round(12 * this.field.ws.k);
-    const posts = new InstancedMesh(
-      kit.geo('rim-post', () => new CylinderGeometry(1.8, 2.4, 19, 8).translate(0, 9.5, 0)),
-      kit.toon('#2a1c24'),
-      n,
-    );
-    const caps = new InstancedMesh(
-      kit.geo('rim-cap', () => new SphereGeometry(2.8, 10, 8)),
-      kit.toon(BRASS, BRASS, 0.4),
-      n,
-    );
-    const hulls = new InstancedMesh(
-      kit.hull(
-        kit.geo('rim-post', () => new CylinderGeometry(1.8, 2.4, 19, 8).translate(0, 9.5, 0)),
-      ),
-      kit.ink(0.9),
-      n,
-    );
-    const lamps = new InstancedMesh(
-      kit.geo('rim-lamp', () => new SphereGeometry(2, 8, 6)),
-      kit.basic('#ff6a6a'),
-      n,
-    );
-    const m = new Matrix4();
-    for (let i = 0; i < n; i++) {
-      const a = (i / n) * TAU + 0.13;
-      const x = Math.cos(a) * (this.field.ws.islandR - 56 * this.field.ws.k);
-      const z = Math.sin(a) * (this.field.ws.islandR - 56 * this.field.ws.k);
-      const y = this.field.heightW(x, z);
-      m.makeTranslation(x, y, z);
-      posts.setMatrixAt(i, m);
-      hulls.setMatrixAt(i, m);
-      m.makeTranslation(x, y + 20, z);
-      caps.setMatrixAt(i, m);
-      this.ofudaSpots.push({ x: x * 0.985, y, z: z * 0.985, yaw: -a + Math.PI / 2 });
-      m.makeTranslation(x * 0.985, y + 17.5, z * 0.985);
-      lamps.setMatrixAt(i, m);
-    }
-    posts.castShadow = true;
-    for (const im of [posts, caps, hulls, lamps]) {
-      im.frustumCulled = false;
-      this.group.add(im);
-    }
-  }
-
-  private buildOfuda(): InstancedMesh {
-    const tex = this.own(ofudaTexture());
-    const geo = this.own(new PlaneGeometry(6, 13).translate(0, -6.5, 0));
-    const mat = this.own(
-      new MeshBasicMaterial({ map: tex, side: DoubleSide, transparent: true, alphaTest: 0.5 }),
-    );
-    const mesh = new InstancedMesh(geo, mat, this.ofudaSpots.length);
-    mesh.frustumCulled = false;
-    this.group.add(mesh);
-    return mesh;
-  }
+  /* ------------------------------ void, atmosphere ------------------------------ */
 
   private buildRocks(): void {
     const kit = this.kit;
@@ -971,8 +609,8 @@ export class Arena {
       g.computeVertexNormals();
       return g;
     });
-    const stone = kit.toon('#2b2538');
-    const crystal = kit.toon(PALETTE.spirit, PALETTE.spirit, 0.8);
+    const stone = kit.toon('#3d342b');
+    const crystal = kit.toon(BRASS, BRASS, 0.5);
     for (let i = 0; i < 9; i++) {
       const a = (i / 9) * TAU + rand01(i + 90) * 0.5;
       const r = 780 + rand01(i + 5) * 170;
@@ -1007,8 +645,8 @@ export class Arena {
       const r = 3200;
       pos.set([Math.cos(a) * s * r, u * r, Math.sin(a) * s * r], i * 3);
       const warm = rand01(i * 3 + 2);
-      c.set(warm < 0.2 ? '#c8aaff' : warm < 0.35 ? '#f0d58a' : '#ece2cc').multiplyScalar(
-        0.25 + rand01(i + 9) * 0.75,
+      c.set(warm < 0.15 ? '#cfd6e6' : warm < 0.4 ? '#f0d58a' : '#ece2cc').multiplyScalar(
+        0.2 + rand01(i + 9) * 0.6,
       );
       col.set([c.r, c.g, c.b], i * 3);
     }
@@ -1029,10 +667,10 @@ export class Arena {
     );
     pts.frustumCulled = false;
     pts.renderOrder = -10;
-    const haze = this.kit.glowSprite('#2a1f4a', 5200, 0.35);
+    const haze = this.kit.glowSprite('#4a3622', 5200, 0.3);
     haze.position.set(-900, 700, -2600);
     pts.add(haze);
-    const haze2 = this.kit.glowSprite('#3a1a2c', 4200, 0.25);
+    const haze2 = this.kit.glowSprite('#2e2a36', 4200, 0.22);
     haze2.position.set(1700, -500, 2000);
     pts.add(haze2);
     this.group.add(pts);
@@ -1062,7 +700,7 @@ export class Arena {
         [x, rand01(i * 5 + 2) * 70, z, 5 + rand01(i * 5 + 3) * 9, this.field.surfaceW(x, z)],
         i * 5,
       );
-      c.set(i % 3 === 0 ? '#f0d58a' : '#c4a8f0');
+      c.set(i % 3 === 0 ? '#f0d58a' : '#f1e6c8');
       col.set([c.r, c.g, c.b], i * 3);
     }
     const geo = this.own(new BufferGeometry());
@@ -1104,15 +742,6 @@ export class Arena {
     }
     p.needsUpdate = true;
 
-    this.ofudaSpots.forEach((s, i) => {
-      _q.setFromAxisAngle(_up, s.yaw + Math.sin(time * 1.3 + i * 2) * 0.3);
-      _swing.setFromAxisAngle(_right, Math.sin(time * 1.7 + i) * 0.18);
-      _q.multiply(_swing);
-      _m.compose(_pos.set(s.x, s.y + 16.5, s.z), _q, _one);
-      this.ofuda.setMatrixAt(i, _m);
-    });
-    this.ofuda.instanceMatrix.needsUpdate = true;
-
     for (const r of this.rocks) {
       r.mesh.position.y = r.base.y + Math.sin(time * r.speed + r.base.x) * 8;
       r.mesh.rotation.y = r.spin + time * 0.05;
@@ -1143,7 +772,6 @@ export class Arena {
     this.slotViews.clear();
     for (const d of this.bag) d.dispose();
     this.bag = [];
-    this.ofuda.dispose();
     this.terrain.dispose();
     this.scenery.dispose();
     this.river.dispose();

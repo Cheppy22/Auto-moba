@@ -177,7 +177,7 @@ export class TerrainField {
 
   /** Lateral offset of the river's centre line (along the (1,-1) axis) at distance s along it. */
   riverCenter(s: number): number {
-    return 12 * Math.sin(s * 0.0105 + 0.7) + 6 * Math.sin(s * 0.026 + 2.3);
+    return 5 * Math.sin(s * 0.0105 + 0.7) + 2.5 * Math.sin(s * 0.026 + 2.3);
   }
 
   /** Distance from the river's centre line. */
@@ -188,7 +188,7 @@ export class TerrainField {
   }
 
   /** Walkable-ground elevation, defined everywhere so cliffs can grow out of it. */
-  private ground(x: number, y: number): number {
+  private ground(x: number, y: number, d: number): number {
     const { k, baseK: bk, riverCore } = this.ws;
     let g = 0;
     for (const [bx, by] of this.bases) {
@@ -210,6 +210,8 @@ export class TerrainField {
     for (const s of this.slots) {
       const r = Math.hypot(x - s.x, y - s.y);
       g += s.lift * (1 - smooth(s.radius + 4, s.radius + 92 * k, r));
+      // a sunken court: the floor steps down inside the low wall
+      g -= 2.6 * (1 - smooth(s.radius - 12, s.radius - 1, r));
     }
     for (const s of this.shops) {
       const r = Math.hypot(x - s.x, y - s.y);
@@ -217,15 +219,18 @@ export class TerrainField {
     }
     // roads: a low raised causeway of inlaid stone along each lane
     g += this.roadLift(x, y);
-    // the river: a shallow bed at a fixed depth under the water, banks easing up to the land
+    // the canal: a flat bed under the water and steep stone-faced banks up to the land
     const rr = this.riverDist(x, y);
-    const bed = WATER_Y - 3 + (vnoise(x * 0.05, y * 0.05, 8) - 0.5) * 1.2;
-    const t = smooth(riverCore, riverCore + 46 * k, rr);
-    return Math.min(g, bed + (g - bed) * t);
+    const bed = WATER_Y - 3 + (vnoise(x * 0.05, y * 0.05, 8) - 0.5) * 0.4;
+    const t = smooth(riverCore, riverCore + 12 * k, rr);
+    const cut = Math.min(g, bed + (g - bed) * t);
+    // bridges and dry courts: anything walkable keeps its level across the water
+    const deck = (1 - smooth(1, 6, d)) * (1 - smooth(riverCore + 14 * k, riverCore + 40 * k, rr));
+    return cut + (Math.max(g, WATER_Y + 1.4) - cut) * deck;
   }
 
-  /** Height of the raised road under a sim point (0 off the lanes and on the base daises). */
-  private roadLift(x: number, y: number): number {
+  /** Distance from a sim point to the nearest lane's centre line. */
+  private roadDist(x: number, y: number): number {
     let d = 1e9;
     for (const s of this.roads) {
       const dx = s.bx - s.ax;
@@ -238,7 +243,12 @@ export class TerrainField {
       const dd = px * px + py * py;
       if (dd < d) d = dd;
     }
-    d = Math.sqrt(d);
+    return Math.sqrt(d);
+  }
+
+  /** Height of the raised road under a sim point (0 off the lanes and on the base daises). */
+  private roadLift(x: number, y: number): number {
+    const d = this.roadDist(x, y);
     const road = this.ws.roadHalf;
     let lift = 1.7 * (1 - smooth(road, road + 7, d));
     if (lift <= 0) return 0;
@@ -264,7 +274,7 @@ export class TerrainField {
       top * 0.27 * smooth(k1, k1 + 8, de) +
       top * 0.21 * smooth(k2, k2 + 9, de) +
       top * 0.12 * smooth(k3, k3 + 12, de);
-    h += (fbm(x * 0.045, y * 0.045, 23, 2) - 0.5) * 9 * smooth(6, 20, de);
+    h += (fbm(x * 0.03, y * 0.03, 23, 2) - 0.5) * 2.4 * smooth(6, 20, de);
     return h * gorge;
   }
 
@@ -285,7 +295,7 @@ export class TerrainField {
         const x = wx + half;
         const y = wz + half;
         const d = this.sdf(x, y);
-        let height = this.ground(x, y) + this.massif(x, y, d);
+        let height = this.ground(x, y, d) + this.massif(x, y, d);
         if (r > FALL_START - 30)
           height += 12 * smooth(2, 12, d) * smooth(FALL_START - 36, FALL_START - 14, r);
         if (r > FALL_START) height = lerp(height, FALL_Y, smooth(FALL_START, ISLAND_R, r));
@@ -386,6 +396,30 @@ export class TerrainField {
     }));
   }
 
+  /** Spacing of the garden's gravel walks. */
+  get walk(): number {
+    return this.ws.tile * 4;
+  }
+
+  /** Round beds where the gravel walks cross on level, dry ground off the roads. */
+  gardenBeds(): { x: number; y: number; i: number; j: number }[] {
+    const { islandR, riverCore, k } = this.ws;
+    const walk = this.walk;
+    const n = Math.ceil(islandR / walk);
+    const out: { x: number; y: number; i: number; j: number }[] = [];
+    for (let i = -n; i <= n; i++)
+      for (let j = -n; j <= n; j++) {
+        const x = this.half + i * walk;
+        const y = this.half + j * walk;
+        if (Math.hypot(x - this.half, y - this.half) > islandR - 40) continue;
+        if (this.sdfAt(x, y) < 26 || this.slopeAt(x, y) > 0.2) continue;
+        if (this.heightAt(x, y) < WATER_Y + 3.2 || this.riverDist(x, y) < riverCore + 30 * k)
+          continue;
+        out.push({ x, y, i, j });
+      }
+    return out;
+  }
+
   /** Steepness (rise over run) at a sim point. */
   slopeAt(simX: number, simY: number): number {
     const e = 4;
@@ -399,64 +433,59 @@ export class TerrainField {
 /* Painting                                                                    */
 /* -------------------------------------------------------------------------- */
 
-const LANE_TINT: Record<string, string> = { top: '#78bec8', mid: '#e0a93e', bot: '#c878aa' };
-const FLOOR: Record<string, string> = {
-  lane: '#2c2733',
-  base: '#2c2733',
-  slot: '#2c2733',
-  port: '#2c2733',
-  shop: '#2c2733',
-  spot: '#2c2733',
-};
+const FLOOR = '#2c2733';
 
 /** Chessboard: the ivory / ebony pairs for each half (tile size is `ws.tile`). */
 const BOARD = {
-  white: { light: '#d3c8a8', dark: '#4b4150' },
-  black: { light: '#8a8499', dark: '#1d1a26' },
+  white: { light: '#c9bb94', dark: '#4a3f48' },
+  black: { light: '#8d8798', dark: '#25212d' },
 };
-/** Road stone and its inlay edge. */
-const ROAD = { stone: '#9a93a6', seam: '#5e5868', edge: '#c8963c', rim: '#15111b' };
+/** Marble road, its brass inlay and the stone beyond it. */
+const ROAD = {
+  marble: '#f3f1ea',
+  seam: '#d9d4c6',
+  vein: 'rgba(120,128,138,0.2)',
+  brass: '#d1ab5c',
+  rim: '#3b2f20',
+};
+/** The palace garden: mown lawn, gravel walks, stone quays. */
+const GARDEN = {
+  lawn: ['#4b6843', '#446239'],
+  gravel: '#cdbf9b',
+  gravelEdge: '#9b8d6b',
+  hedge: '#2f4d35',
+  quay: '#cfc5ac',
+};
 
-function rockTexture(): CanvasTexture {
+/** Dressed limestone: courses of blocks with mortar joints, one tile of it. */
+function stoneTexture(): CanvasTexture {
   const S = 256;
   const c = document.createElement('canvas');
   c.width = S;
   c.height = S;
   const g = c.getContext('2d')!;
-  const img = g.createImageData(S, S);
-  const wrapNoise = (u: number, v: number, fx: number, fy: number, seed: number): number => {
-    const x = u * fx;
-    const y = v * fy;
-    const ix = Math.floor(x);
-    const iy = Math.floor(y);
-    const sx = x - ix;
-    const sy = y - iy;
-    const a = lattice(ix % fx, iy % fy, seed);
-    const b = lattice((ix + 1) % fx, iy % fy, seed);
-    const cc = lattice(ix % fx, (iy + 1) % fy, seed);
-    const dd = lattice((ix + 1) % fx, (iy + 1) % fy, seed);
-    const uu = sx * sx * (3 - 2 * sx);
-    const vv = sy * sy * (3 - 2 * sy);
-    return lerp(lerp(a, b, uu), lerp(cc, dd, uu), vv);
-  };
-  for (let y = 0; y < S; y++) {
-    for (let x = 0; x < S; x++) {
-      const u = x / S;
-      const v = y / S;
-      const strata = wrapNoise(u, v, 3, 22, 1);
-      const fine = wrapNoise(u, v, 24, 24, 2);
-      const crack = wrapNoise(u, v, 10, 3, 3);
-      let val = 0.5 + (strata - 0.5) * 0.62 + (fine - 0.5) * 0.28;
-      if (crack > 0.66 && fine > 0.45) val -= 0.16;
-      val = clamp(val, 0, 1);
-      const o = (y * S + x) * 4;
-      img.data[o] = lerp(50, 128, val);
-      img.data[o + 1] = lerp(50, 124, val);
-      img.data[o + 2] = lerp(64, 142, val);
-      img.data[o + 3] = 255;
+  const ROWS = 8;
+  const rh = S / ROWS;
+  g.fillStyle = '#6e6454';
+  g.fillRect(0, 0, S, S);
+  for (let r = 0; r < ROWS; r++) {
+    const bw = r % 3 === 1 ? 96 : 64;
+    const off = (r % 2) * (bw / 2);
+    for (let x = -bw; x < S + bw; x += bw) {
+      const tone = lattice(r, Math.floor((x + off) / bw), 3);
+      const l = 0.78 + tone * 0.2;
+      g.fillStyle = `rgb(${Math.round(206 * l)},${Math.round(194 * l)},${Math.round(168 * l)})`;
+      const x0 = x + off;
+      for (const wrap of [0, -S, S]) g.fillRect(x0 + wrap + 1.5, r * rh + 1.5, bw - 3, rh - 3);
+      // a soft top edge and a few chips, so the courses are not flat
+      g.fillStyle = 'rgba(255,248,230,0.16)';
+      for (const wrap of [0, -S, S]) g.fillRect(x0 + wrap + 1.5, r * rh + 1.5, bw - 3, 2.5);
+      g.fillStyle = 'rgba(60,48,32,0.10)';
+      const cx = x0 + lattice(r, x, 9) * (bw - 10);
+      for (const wrap of [0, -S, S])
+        g.fillRect(cx + wrap, r * rh + 5 + lattice(x, r, 4) * 12, 7, 3);
     }
   }
-  g.putImageData(img, 0, 0);
   const t = new CanvasTexture(c);
   t.colorSpace = SRGBColorSpace;
   t.wrapS = RepeatWrapping;
@@ -497,10 +526,9 @@ function terrainMaterial(kit: Kit, map: CanvasTexture, rock: CanvasTexture): Mes
   vec3 rz = texture2D(uRock, vWP.xy * 0.011 + 0.67).rgb;
   vec3 rock = rx * an.x + ry * an.y + rz * an.z;
   float hh = clamp(vWP.y / 78.0, 0.0, 1.0);
-  rock *= mix(vec3(0.6, 0.6, 0.74), vec3(1.1, 1.05, 0.98), hh);
+  rock *= mix(vec3(0.7, 0.68, 0.66), vec3(1.04, 1.0, 0.94), hh);
   diffuseColor.rgb = mix(diffuseColor.rgb, rock, steep);
-  diffuseColor.rgb *= mix(1.0, 0.55, vWet);
-  diffuseColor.rgb += vec3(0.0, 0.025, 0.05) * vWet;
+  diffuseColor.rgb *= mix(1.0, 0.7, vWet);
 }`,
       );
   };
@@ -542,7 +570,7 @@ export class TerrainView {
     this.tex.colorSpace = SRGBColorSpace;
     this.tex.anisotropy = 8;
     this.tex.minFilter = LinearMipmapLinearFilter;
-    this.rock = rockTexture();
+    this.rock = stoneTexture();
     this.repaint();
     const geo = this.buildGeometry();
     const mat = terrainMaterial(kit, this.tex, this.rock);
@@ -564,7 +592,15 @@ export class TerrainView {
   private paintBase(): HTMLCanvasElement {
     const f = this.field;
     const half = f.half;
-    const { edge: E, islandR: ISLAND_R, roadHalf: ROAD_HALF, portHalf, k, baseK } = this.ws;
+    const {
+      edge: E,
+      islandR: ISLAND_R,
+      roadHalf: ROAD_HALF,
+      portHalf,
+      k,
+      baseK,
+      riverCore,
+    } = this.ws;
     const area = k * k;
     const c = document.createElement('canvas');
     c.width = this.size;
@@ -575,65 +611,65 @@ export class TerrainView {
     let seed = 90210;
     const rnd = (): number => rand01(seed++);
 
-    // rock tops: mossy slate with lichen and strata scratches
-    g.fillStyle = '#292c37';
+    // the palace garden: lawn in mown stripes, crossed by gravel walks with round beds
+    const tile = this.ws.tile;
+    g.fillStyle = GARDEN.lawn[0];
     g.fillRect(lo, lo, E * 2, E * 2);
-    for (let i = 0; i < Math.round(260 * area); i++) {
+    g.fillStyle = GARDEN.lawn[1];
+    for (let i = 0; i * tile < E * 2; i += 2) g.fillRect(lo + i * tile, lo, tile, E * 2);
+    for (let i = 0; i < Math.round(3200 * area); i++) {
       const x = lo + rnd() * E * 2;
       const y = lo + rnd() * E * 2;
-      const r = 26 + rnd() * 110;
-      const gr = g.createRadialGradient(x, y, 0, x, y, r);
-      const kind = rnd();
-      gr.addColorStop(
-        0,
-        kind < 0.58
-          ? 'rgba(62,104,82,0.36)'
-          : kind < 0.72
-            ? 'rgba(96,84,128,0.2)'
-            : 'rgba(10,8,18,0.34)',
-      );
-      gr.addColorStop(1, 'rgba(0,0,0,0)');
-      g.fillStyle = gr;
-      g.fillRect(x - r, y - r, r * 2, r * 2);
-    }
-    g.lineCap = 'round';
-    for (let i = 0; i < Math.round(1500 * area); i++) {
-      const x = lo + rnd() * E * 2;
-      const y = lo + rnd() * E * 2;
-      const len = 8 + rnd() * 30;
-      const a = -0.3 + rnd() * 0.6;
-      g.strokeStyle = rnd() < 0.5 ? 'rgba(210,200,235,0.05)' : 'rgba(0,0,0,0.12)';
-      g.lineWidth = 0.8 + rnd() * 1.8;
+      g.fillStyle = rnd() < 0.5 ? 'rgba(20,40,20,0.07)' : 'rgba(210,230,170,0.05)';
       g.beginPath();
-      g.moveTo(x, y);
-      g.lineTo(x + Math.cos(a) * len, y + Math.sin(a) * len);
-      g.stroke();
-    }
-    for (let i = 0; i < Math.round(5200 * area); i++) {
-      const x = lo + rnd() * E * 2;
-      const y = lo + rnd() * E * 2;
-      const kind = rnd();
-      g.fillStyle =
-        kind < 0.55
-          ? 'rgba(104,150,112,0.26)'
-          : kind < 0.93
-            ? 'rgba(170,160,196,0.16)'
-            : 'rgba(224,169,62,0.34)';
-      g.beginPath();
-      g.ellipse(x, y, 0.8 + rnd() * 1.8, 0.6 + rnd() * 1.2, rnd() * 3, 0, TAU);
+      g.ellipse(x, y, 1 + rnd() * 2.2, 0.7 + rnd() * 1.4, rnd() * 3, 0, TAU);
       g.fill();
     }
-
-    // river banks: wet pebbles either side of the water
-    g.strokeStyle = 'rgba(96,110,150,0.22)';
-    g.lineJoin = 'round';
-    for (const [w, a] of [
-      [150, 0.1],
-      [104, 0.16],
-      [66, 0.24],
+    const walk = f.walk;
+    const wl = tile * 0.3;
+    const first = Math.ceil((lo - half) / walk);
+    const last = Math.floor((lo + E * 2 - half) / walk);
+    g.lineCap = 'butt';
+    for (const [w, c] of [
+      [wl + 3, GARDEN.gravelEdge],
+      [wl, GARDEN.gravel],
     ] as const) {
-      g.lineWidth = w * k;
-      g.strokeStyle = `rgba(88,104,142,${a})`;
+      g.strokeStyle = c;
+      g.lineWidth = w;
+      g.beginPath();
+      for (let i = first; i <= last; i++) {
+        const v = half + i * walk;
+        g.moveTo(v, lo);
+        g.lineTo(v, lo + E * 2);
+        g.moveTo(lo, v);
+        g.lineTo(lo + E * 2, v);
+      }
+      g.stroke();
+    }
+    for (const { x, y } of f.gardenBeds())
+      for (const [r, c] of [
+        [tile * 0.55, GARDEN.gravelEdge],
+        [tile * 0.52, GARDEN.gravel],
+        [tile * 0.3, GARDEN.hedge],
+        [tile * 0.24, GARDEN.lawn[0]],
+      ] as const) {
+        g.fillStyle = c;
+        g.beginPath();
+        g.arc(x, y, r, 0, TAU);
+        g.fill();
+      }
+
+    // the canal: stone quays either side of the water, a pale coping at the water line
+    g.lineJoin = 'round';
+    g.lineCap = 'butt';
+    for (const [w, c] of [
+      [riverCore + 25 * k, GARDEN.gravelEdge],
+      [riverCore + 22 * k, GARDEN.quay],
+      [riverCore + 9.5 * k, '#e4dcc6'],
+      [riverCore + 7 * k, '#3a403f'],
+    ] as const) {
+      g.strokeStyle = c;
+      g.lineWidth = w * 2;
       g.beginPath();
       for (let s = -ISLAND_R; s <= ISLAND_R; s += 24) {
         const a0 = f.riverCenter(s);
@@ -645,7 +681,7 @@ export class TerrainView {
       g.stroke();
     }
 
-    // shadowed foot of the cliffs, then the walkable floor on top (capsule union, exact edges)
+    // the walkable floor: a gravel apron round its edge, a brass line, then the board on top
     g.lineCap = 'round';
     g.lineJoin = 'round';
     const stroke = (s: WalkShape, width: number, style: string): void => {
@@ -656,13 +692,13 @@ export class TerrainView {
       g.lineTo(s.bx, s.by);
       g.stroke();
     };
-    for (const s of f.shapes) stroke(s, (s.r + SHOULDER + 5) * 2, 'rgba(8,6,14,0.55)');
-    for (const s of f.shapes) stroke(s, (s.r + SHOULDER) * 2, '#17131f');
-    for (const s of f.shapes) stroke(s, s.r * 2 + 3.4, 'rgba(200,150,60,0.7)');
-    for (const s of f.shapes) stroke(s, s.r * 2, FLOOR[s.kind] ?? FLOOR.lane);
+    for (const s of f.shapes) stroke(s, (s.r + SHOULDER + 3) * 2, 'rgba(36,28,18,0.4)');
+    for (const s of f.shapes) stroke(s, (s.r + SHOULDER) * 2, GARDEN.gravel);
+    for (const s of f.shapes) stroke(s, s.r * 2 + 3.4, 'rgba(201,163,90,0.85)');
+    for (const s of f.shapes) stroke(s, s.r * 2, FLOOR);
     this.paintBoard(g);
 
-    // roads: raised inlaid stone with a brass edge, flagstone seams and the lane's own colour
+    // roads: inlaid marble with a thin brass border, a fine brass line inside it, and flag seams
     const lanes = this.content.map.lanes;
     const trace = (pts: number[][]): void => {
       g.beginPath();
@@ -672,53 +708,71 @@ export class TerrainView {
     for (const id of ['top', 'mid', 'bot'] as const) {
       const pts = lanes[id];
       g.lineCap = 'round';
-      g.strokeStyle = ROAD.rim;
-      g.lineWidth = ROAD_HALF * 2 + 7;
-      trace(pts);
-      g.stroke();
-      g.strokeStyle = ROAD.edge;
-      g.lineWidth = ROAD_HALF * 2 + 2.6;
-      trace(pts);
-      g.stroke();
-      g.strokeStyle = ROAD.stone;
-      g.lineWidth = ROAD_HALF * 2 - 1;
-      trace(pts);
-      g.stroke();
-      // flagstone seams across the road
+      for (const [w, c] of [
+        [ROAD_HALF * 2 + 8, ROAD.rim],
+        [ROAD_HALF * 2 + 5.4, ROAD.brass],
+        [ROAD_HALF * 2 - 0.6, ROAD.marble],
+        [ROAD_HALF * 2 - 15, ROAD.brass + 'aa'],
+        [ROAD_HALF * 2 - 16.8, ROAD.marble],
+      ] as const) {
+        g.strokeStyle = c;
+        g.lineWidth = w;
+        trace(pts);
+        g.stroke();
+      }
+      // joints across the marble, one slab every few metres
       g.lineCap = 'butt';
-      g.setLineDash([1.4, 17]);
+      g.setLineDash([1.2, 26]);
       g.strokeStyle = ROAD.seam;
-      g.lineWidth = ROAD_HALF * 2 - 4;
+      g.lineWidth = ROAD_HALF * 2 - 18;
       trace(pts);
       g.stroke();
       g.setLineDash([]);
-      // the lane's colour as an inlaid centre line
-      g.strokeStyle = LANE_TINT[id] + 'cc';
-      g.lineWidth = 5;
-      trace(pts);
-      g.stroke();
-      g.strokeStyle = ROAD.stone + 'cc';
-      g.lineWidth = 1.6;
-      g.setLineDash([9, 13]);
-      trace(pts);
-      g.stroke();
-      g.setLineDash([]);
+      // veining: faint grey streaks drifting along the road
+      g.lineCap = 'round';
+      g.strokeStyle = ROAD.vein;
+      for (let i = 1; i < pts.length; i++) {
+        const ax = pts[i - 1][0];
+        const ay = pts[i - 1][1];
+        const len = Math.hypot(pts[i][0] - ax, pts[i][1] - ay);
+        if (len < 1) continue;
+        const ux = (pts[i][0] - ax) / len;
+        const uy = (pts[i][1] - ay) / len;
+        for (let n = 0; n < len * 0.16; n++) {
+          const t = rnd() * len;
+          const o = (rnd() * 2 - 1) * (ROAD_HALF - 22);
+          const x = ax + ux * t - uy * o;
+          const y = ay + uy * t + ux * o;
+          const l = 14 + rnd() * 38;
+          const bend = (rnd() - 0.5) * 18;
+          g.lineWidth = 0.7 + rnd() * 1.3;
+          g.beginPath();
+          g.moveTo(x, y);
+          g.quadraticCurveTo(
+            x + ux * l * 0.5 - uy * bend,
+            y + uy * l * 0.5 + ux * bend,
+            x + ux * l,
+            y + uy * l,
+          );
+          g.stroke();
+        }
+      }
     }
-    // ports: narrower stone paths into the clearings
+    // ports: narrower marble paths into the clearings
     g.lineCap = 'round';
     for (const s of f.shapes) {
       if (s.kind !== 'port') continue;
-      stroke(s, portHalf * 2 + 4.5, ROAD.rim);
-      stroke(s, portHalf * 2 + 2, ROAD.edge);
-      stroke(s, portHalf * 2, ROAD.stone);
+      stroke(s, portHalf * 2 + 5, ROAD.rim);
+      stroke(s, portHalf * 2 + 2.6, ROAD.brass);
+      stroke(s, portHalf * 2, ROAD.marble);
     }
 
     // bases: thrones on terraced daises, ringed in the team's metal
     for (const team of ['A', 'B'] as const) {
       const [bx, by] = this.content.map.bases[team];
       const white = team === 'A';
-      const stone = white ? '#e6dcc0' : '#2b2733';
-      const stone2 = white ? '#bdb293' : '#443e52';
+      const stone = white ? '#e6dcc0' : '#37332f';
+      const stone2 = white ? '#bdb293' : '#4b4640';
       const metal = white ? '#c8963c' : '#c6cfdc';
       g.save();
       g.beginPath();
@@ -1005,7 +1059,7 @@ export class TerrainView {
     under.dispose();
     faceted.computeVertexNormals();
     this.owned.push(faceted);
-    return new Mesh(faceted, this.kit.toon(new Color('#241f2e')));
+    return new Mesh(faceted, this.kit.toon(new Color('#34291f')));
   }
 
   dispose(): void {

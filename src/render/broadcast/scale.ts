@@ -38,7 +38,7 @@ export interface WorldScale {
 
 /** The hand-tuned art: base radius, and the shoulder between the road (or port path) and the walkable edge. */
 const ART_BASE = 105;
-const ROAD_SHOULDER = 6.5;
+const ROAD_SHOULDER = 22;
 const PORT_SHOULDER = 9.5;
 /** Heightfield cell size the art was tuned on, and the most cells a side may have. */
 const ART_STEP = 6;

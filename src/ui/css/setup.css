@@ -19,7 +19,7 @@
 }
 .setup-title h2 {
   font-size: var(--fs-xl);
-  color: #f3e9d0;
+  color: var(--ivory);
 }
 .setup-title p {
   margin: 2px 0 0;
@@ -50,15 +50,15 @@
   display: grid;
   gap: 6px;
   padding: var(--sp-2) var(--sp-3) var(--sp-3);
-  background: linear-gradient(180deg, #211c2d 0%, #16121f 100%);
+  background: linear-gradient(180deg, #33241a 0%, #221912 100%);
   border: 1px solid var(--rule);
   border-radius: var(--r-1);
 }
 .piece-card.sel {
-  border-color: var(--brass-hi);
+  border-color: var(--baize-hi);
   box-shadow:
-    0 0 0 1px var(--brass-hi),
-    var(--glow-brass);
+    0 0 0 1px var(--baize-hi),
+    var(--glow-baize);
 }
 .piece-head {
   display: flex;
@@ -117,19 +117,19 @@
   gap: 4px;
   min-width: 0;
   min-height: 88px;
-  padding: 5px 6px 6px;
+  padding: 5px 6px 14px;
   cursor: pointer;
-  background: rgba(12, 10, 18, 0.7);
+  background: rgba(20, 17, 14, 0.7);
   border: 1px solid var(--brass-dim);
   border-radius: var(--r-1);
 }
 .lane-zone.ready {
   border-style: dashed;
-  border-color: var(--brass-hi);
-  background: rgba(201, 162, 74, 0.08);
+  border-color: var(--baize-hi);
+  background: rgba(35, 80, 60, 0.35);
 }
 .lane-zone:focus-visible {
-  outline: 2px solid var(--spirit);
+  outline: 2px solid var(--baize-hi);
 }
 .lane-name {
   display: flex;
@@ -160,16 +160,16 @@
   gap: 1px;
   padding: 3px 2px;
   cursor: pointer;
-  background: linear-gradient(180deg, #2a2438, #181421);
+  background: linear-gradient(180deg, #3d281c, #251b14);
   border: 1px solid #4a3f2c;
   color: var(--text);
 }
 .lane-chip.sel {
-  border-color: var(--brass-hi);
-  background: linear-gradient(180deg, #3a2f18, #221a0d);
+  border-color: var(--baize-hi);
+  background: linear-gradient(180deg, #2c6249, var(--baize));
   box-shadow:
-    0 0 0 1px var(--brass-hi),
-    var(--glow-brass);
+    0 0 0 1px var(--baize-hi),
+    var(--glow-baize);
 }
 .chip-name {
   font-size: 11px;
@@ -196,4 +196,29 @@
   letter-spacing: 0.08em;
   color: var(--brass);
   text-transform: uppercase;
+}
+
+/* chess notation as quiet decoration: files a-e across the three lane zones */
+.lane-zone {
+  position: relative;
+}
+.lane-zone::after {
+  position: absolute;
+  right: 6px;
+  bottom: 2px;
+  font-family: var(--font-display);
+  font-size: 10px;
+  letter-spacing: 0.5em;
+  color: var(--brass-dim);
+  opacity: 0.9;
+  pointer-events: none;
+}
+.lane-zone:nth-child(1)::after {
+  content: 'ab';
+}
+.lane-zone:nth-child(2)::after {
+  content: 'c';
+}
+.lane-zone:nth-child(3)::after {
+  content: 'de';
 }

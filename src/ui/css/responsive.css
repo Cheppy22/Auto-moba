@@ -14,7 +14,7 @@ html:not([data-layout='desktop']) .overlay.setup {
 html:not([data-layout='desktop']) .panel {
   padding: var(--sp-3);
   box-shadow:
-    inset 0 0 0 2px #110e18,
+    inset 0 0 0 2px #1b1510,
     inset 0 0 0 3px var(--rule),
     0 6px 18px rgba(0, 0, 0, 0.6);
 }
@@ -25,10 +25,6 @@ html:not([data-layout='desktop']) .tabs {
 }
 html:not([data-layout='desktop']) .wordmark {
   font-size: 44px;
-}
-html:not([data-layout='desktop']) .title-wrap .seal {
-  right: -6px;
-  top: -30px;
 }
 html:not([data-layout='desktop']) table.stats {
   font-size: var(--fs-sm);

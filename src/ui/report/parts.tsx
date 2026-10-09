@@ -49,8 +49,8 @@ export function TeamStar(props: { size?: number; team: 'A' | 'B' }) {
     >
       <path
         d="M12 2.2l2.9 6.2 6.7.8-4.9 4.6 1.3 6.7L12 17l-6 3.5 1.3-6.7L2.4 9.2l6.7-.8z"
-        fill={props.team === 'A' ? '#f1e6c8' : '#aab4e6'}
-        stroke="#14111d"
+        fill={props.team === 'A' ? '#efe6d2' : '#9aa5b8'}
+        stroke="#14110e"
         stroke-width="1.2"
         stroke-linejoin="round"
       />

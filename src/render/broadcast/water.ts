@@ -43,25 +43,24 @@ float vn(vec2 p) {
   return mix(mix(h21(i), h21(i + vec2(1.0, 0.0)), f.x), mix(h21(i + vec2(0.0, 1.0)), h21(i + vec2(1.0, 1.0)), f.x), f.y);
 }
 void main() {
-  // flow runs down the river's long axis (1, 1) / sqrt 2
-  vec2 flow = vec2(0.7071) * uTime * 9.0;
+  // a calm canal: the slow drift of the water is barely there
+  vec2 flow = vec2(0.7071) * uTime * 2.4;
   vec2 p = vW.xz - flow;
-  float w = vn(p * 0.045) * 0.55 + vn(p * 0.11 + 7.0) * 0.3 + vn(p * 0.27 - uTime * 0.5) * 0.15;
-  float ripple = smoothstep(0.62, 0.8, w);
+  float w = vn(p * 0.05) * 0.6 + vn(p * 0.13 + 7.0) * 0.4;
+  float ripple = smoothstep(0.55, 0.8, w);
   float depth = clamp(vDepth, 0.0, 6.0);
-  vec3 shallow = vec3(0.1, 0.3, 0.38);
-  vec3 deep = vec3(0.03, 0.06, 0.15);
-  vec3 col = mix(shallow, deep, smoothstep(0.0, 4.2, depth));
-  col += vec3(0.5, 0.74, 0.88) * ripple * 0.2;
-  // moonlit glints
-  float glint = smoothstep(0.9, 0.97, vn(p * 0.3 + uTime * 0.9)) * 0.3;
-  col += vec3(0.9, 0.95, 1.0) * glint;
-  // foam where the water is thin
-  float foam = smoothstep(1.7, 0.1, vDepth) * (0.45 + 0.55 * vn(p * 0.22 + 3.0));
-  col = mix(col, vec3(0.8, 0.88, 0.94), foam * 0.5);
-  float alpha = (0.4 + 0.4 * smoothstep(0.0, 3.0, depth)) * smoothstep(0.0, 0.3, vDepth);
-  alpha = max(alpha, foam * 0.55 * step(0.0, vDepth));
-  // the lip of the island: the river runs out into the void
+  vec3 shallow = vec3(0.2, 0.37, 0.38);
+  vec3 deep = vec3(0.08, 0.17, 0.2);
+  vec3 col = mix(shallow, deep, smoothstep(0.0, 3.4, depth));
+  // the sky laid on the water, warm at the horizon, with a few soft glints
+  col += vec3(0.62, 0.56, 0.42) * (0.1 + 0.08 * ripple);
+  float glint = smoothstep(0.93, 0.98, vn(p * 0.35 + uTime * 0.3)) * 0.18;
+  col += vec3(1.0, 0.94, 0.8) * glint;
+  // a pale line of foam where the water laps the stone
+  float foam = smoothstep(1.2, 0.1, vDepth) * 0.5;
+  col = mix(col, vec3(0.88, 0.86, 0.78), foam);
+  float alpha = (0.78 + 0.14 * smoothstep(0.0, 3.0, depth)) * smoothstep(0.0, 0.3, vDepth);
+  // the lip of the island: the canal runs out into the void
   float r = length(vW.xz);
   alpha *= 1.0 - smoothstep(uLip.x, uLip.y, r);
   gl_FragColor = vec4(col, alpha);
@@ -69,7 +68,7 @@ void main() {
   #include <colorspace_fragment>
 }`;
 
-/** The river: one animated sheet at a fixed level; where terrain rises above it, it vanishes. */
+/** The canal: one animated sheet at a fixed level; where terrain rises above it, it vanishes. */
 export class River {
   readonly group = new Group();
   private readonly mat: ShaderMaterial;

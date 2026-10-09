@@ -21,7 +21,7 @@
   align-items: center;
   gap: var(--sp-2);
   border-bottom: 1px solid var(--rule);
-  background: rgba(10, 8, 15, 0.72);
+  background: rgba(10, 8, 6, 0.72);
   position: relative;
   z-index: 3;
 }
@@ -67,7 +67,7 @@
 }
 .rp-tab.on {
   color: var(--brass-hi);
-  border-bottom-color: var(--seal-hi);
+  border-bottom-color: var(--brass);
   text-shadow: 0 0 12px rgba(240, 213, 138, 0.35);
 }
 .rp-mock {
@@ -142,8 +142,8 @@
   font-size: 30px;
   line-height: 1;
   color: var(--brass-hi);
-  background: rgba(12, 10, 18, 0.72);
-  border: 1px solid rgba(201, 162, 74, 0.35);
+  background: rgba(20, 17, 14, 0.72);
+  border: 1px solid rgba(201, 163, 90, 0.35);
   border-radius: var(--r-1);
   cursor: pointer;
 }
@@ -272,7 +272,7 @@ html:not([data-layout='desktop']) .rp-page-scroll {
   height: 92px;
   margin: 0 auto 8px;
   border-radius: 50%;
-  background: radial-gradient(circle at 50% 35%, #3a3150, #15111e 75%);
+  background: radial-gradient(circle at 50% 35%, #4d3a28, #221912 75%);
   border: 2px solid var(--win);
   box-shadow:
     0 0 0 4px rgba(0, 0, 0, 0.35),
@@ -437,7 +437,7 @@ html:not([data-layout='desktop']) .rp-page-scroll {
   padding: 5px 9px 6px;
   border: 1px solid var(--brass-dim);
   border-top: 2px solid var(--brass);
-  background: linear-gradient(180deg, #211c2d, #16121f);
+  background: linear-gradient(180deg, #33241a, #221912);
   animation: rp-rise 0.6s calc(0.5s + var(--i, 0) * 0.09s) var(--ease) both;
   min-width: 0;
 }
@@ -614,11 +614,11 @@ html:not([data-layout='desktop']) .rp-page-scroll {
 }
 .rp-srow:hover,
 .rp-srow:focus-visible {
-  background: rgba(196, 168, 240, 0.1);
+  background: rgba(95, 174, 134, 0.1);
   outline: none;
 }
 .rp-srow:focus-visible {
-  box-shadow: inset 0 0 0 2px var(--spirit);
+  box-shadow: inset 0 0 0 2px var(--baize-hi);
 }
 .rp-srow[data-mark='mvp'] {
   background: linear-gradient(90deg, rgba(240, 213, 138, 0.16), transparent 70%);
@@ -669,7 +669,7 @@ html:not([data-layout='desktop']) .rp-page-scroll {
   font-weight: 600;
   line-height: 1;
   color: var(--brass-hi);
-  background: rgba(201, 162, 74, 0.14);
+  background: rgba(201, 163, 90, 0.14);
   vertical-align: 1px;
 }
 .rp-shead .short {
@@ -689,7 +689,7 @@ html:not([data-layout='desktop']) .rp-page-scroll {
   color: var(--cat, var(--brass-hi));
   border: 1px solid var(--brass-dim);
   border-radius: var(--r-1);
-  background: #0b0910;
+  background: #0d0b09;
 }
 .rp-item.big {
   width: 34px;
@@ -745,11 +745,11 @@ html:not([data-layout='desktop']) .rp-page-scroll {
   border-radius: 50%;
 }
 .rp-portrait.A {
-  background: radial-gradient(circle at 50% 35%, #4a4030, #1d1810 80%);
+  background: radial-gradient(circle at 50% 35%, #4a4030, #1d1510 80%);
   box-shadow: inset 0 0 0 2px var(--a-trim);
 }
 .rp-portrait.B {
-  background: radial-gradient(circle at 50% 35%, #6f6a96, #2b2842 80%);
+  background: radial-gradient(circle at 50% 35%, #9a8a6c, #2f2218 80%);
   box-shadow: inset 0 0 0 2px var(--b-trim);
 }
 .rp-emblem {
@@ -869,7 +869,7 @@ html:not([data-layout='desktop']) .rp-page-scroll {
   fill: transparent;
 }
 .ch-row.hot .ch-rowbg {
-  fill: rgba(196, 168, 240, 0.1);
+  fill: rgba(95, 174, 134, 0.1);
 }
 .ch-cursor {
   stroke: rgba(236, 226, 204, 0.7);
@@ -877,7 +877,7 @@ html:not([data-layout='desktop']) .rp-page-scroll {
   stroke-dasharray: 3 3;
 }
 .ch-dot {
-  stroke: #14111d;
+  stroke: #14110e;
   stroke-width: 2;
 }
 .ch-hit {
@@ -892,7 +892,7 @@ html:not([data-layout='desktop']) .rp-page-scroll {
   padding: 6px 9px 7px;
   font-size: var(--fs-xs);
   line-height: 1.35;
-  background: rgba(12, 10, 18, 0.94);
+  background: rgba(20, 17, 14, 0.94);
   border: 1px solid var(--brass-dim);
   box-shadow: var(--sh-2);
   font-variant-numeric: tabular-nums;
@@ -957,7 +957,7 @@ html:not([data-layout='desktop']) .rp-page-scroll {
   color: var(--dim);
   position: sticky;
   top: 0;
-  background: #17131f;
+  background: #221912;
 }
 @keyframes ch-fade {
   from {
@@ -1102,7 +1102,7 @@ html:not([data-layout='desktop']) .rp-page-scroll {
   background: rgba(0, 0, 0, 0.2);
 }
 .rp-events li.pressure {
-  border-color: #6f5a2e;
+  border-color: #7a6330;
 }
 
 /* chips (piece picker, log filters) */
@@ -1141,13 +1141,13 @@ html:not([data-layout='desktop']) .rp-page-scroll {
   font-size: var(--fs-sm);
 }
 .rp-chip:hover {
-  border-color: var(--spirit-dim);
+  border-color: var(--baize);
 }
 .rp-chip.on {
   color: var(--brass-hi);
   border-color: var(--brass-hi);
-  background: linear-gradient(180deg, #3a2f18 0%, #221a0d 100%);
-  box-shadow: inset 0 0 10px rgba(201, 162, 74, 0.2);
+  background: linear-gradient(180deg, #2c6249 0%, var(--baize) 100%);
+  box-shadow: inset 0 0 10px rgba(201, 163, 90, 0.2);
 }
 .rp-chip.A {
   border-bottom: 2px solid var(--a-trim);
@@ -1281,7 +1281,7 @@ html:not([data-layout='desktop']) .rp-page-scroll {
   aspect-ratio: 1;
   border-radius: 8px;
   cursor: pointer;
-  background: #08080c;
+  background: #0d0b09;
   border: 1px solid var(--rule);
 }
 .rp-replay-side {

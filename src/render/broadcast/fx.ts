@@ -14,6 +14,7 @@ import {
   Matrix4,
   Mesh,
   MeshBasicMaterial,
+  PerspectiveCamera,
   PlaneGeometry,
   Quaternion,
   Sprite,
@@ -36,6 +37,25 @@ const _p = new Vector3();
 const _s = new Vector3();
 const _c = new Color();
 const _white = new Color('#ffffff');
+const _up = new Vector3();
+const _v = new Vector3();
+
+/** One piece's badge pair waiting to be laid out (see `BadgeBatch.piece`). */
+interface PieceBadge {
+  a: Vector3;
+  r: Vector3;
+  dr: number;
+  de: number;
+  rs: number;
+  es: number;
+  rank: number;
+  color: Color;
+  pulse: boolean;
+  style: string | null;
+  pri: number;
+  /** World units the pair is lifted along the camera's up; negative when it is left out. */
+  lift: number;
+}
 
 /** Camera-facing health bars: every bar in the scene is two instanced quads. */
 export class BarBatch {
@@ -132,6 +152,12 @@ export class BadgeBatch {
   private readonly cells: InstancedBufferAttribute;
   private readonly pulseMat: MeshBasicMaterial;
   private readonly quat = new Quaternion();
+  private readonly pool: PieceBadge[] = [];
+  private pieces: PieceBadge[] = [];
+  private cam: Camera = new PerspectiveCamera();
+  private w = 1;
+  private h = 1;
+  private unitPx = 1;
   private n = 0;
   private np = 0;
 
@@ -224,9 +250,18 @@ export class BadgeBatch {
     for (let i = 0; i < cap; i++) this.badges.setColorAt(i, _c);
   }
 
-  begin(cam: Camera): void {
+  /**
+   * Starts a frame. `width` and `height` are the canvas size in CSS pixels and `unitPx` the world
+   * size of one pixel at the focus, which is what lets `end` tell when two badges overlap.
+   */
+  begin(cam: Camera, width = 1, height = 1, unitPx = 1): void {
     this.n = 0;
     this.np = 0;
+    this.cam = cam;
+    this.w = width;
+    this.h = height;
+    this.unitPx = Math.max(1e-6, unitPx);
+    this.pieces.length = 0;
     this.quat.copy(cam.quaternion);
   }
 
@@ -239,31 +274,122 @@ export class BadgeBatch {
     this.n++;
   }
 
-  /** `size` is the badge diameter in world units; `pulse` draws the fork ring behind it. */
-  add(
+  /**
+   * One piece's badges: [emblem][rank] hanging off the left of its bar, which is centred on
+   * (x, y, z); `right` is the camera's right vector, `dr` and `de` the offsets of the rank and
+   * emblem centres along it, `rs` and `es` their sizes in world units. `pulse` rings the rank
+   * badge when the piece has a fork waiting. Nothing is drawn until `end`, which stacks badges
+   * that would overlap on screen.
+   */
+  piece(
     x: number,
     y: number,
     z: number,
-    size: number,
+    right: Vector3,
+    dr: number,
+    de: number,
+    rs: number,
+    es: number,
     rank: number,
     color: ColorRepresentation,
     pulse: boolean,
-    time: number,
+    style: string | null,
   ): void {
-    this.quad(x, y, z, size, Math.max(0, Math.min(7, Math.round(rank) - 1)), _c.set(color));
-    if (pulse && this.np < this.cap) {
-      const k = 1.5 + 0.55 * (0.5 + 0.5 * Math.sin(time * 7));
-      _m.compose(_p.set(x, y, z), this.quat, _s.set(size * k, size * k, 1));
-      this.pulses.setMatrixAt(this.np++, _m);
+    let p = this.pool[this.pieces.length];
+    if (!p) {
+      p = {
+        a: new Vector3(),
+        r: new Vector3(),
+        dr: 0,
+        de: 0,
+        rs: 0,
+        es: 0,
+        rank: 1,
+        color: new Color(),
+        pulse: false,
+        style: null,
+        pri: 0,
+        lift: 0,
+      };
+      this.pool.push(p);
+    }
+    p.a.set(x, y, z);
+    p.r.copy(right);
+    p.dr = dr;
+    p.de = de;
+    p.rs = rs;
+    p.es = es;
+    p.rank = rank;
+    p.color.set(color);
+    p.pulse = pulse;
+    p.style = style;
+    p.pri = (pulse ? 1000 : 0) + rank * 10 - this.pieces.length * 0.001;
+    this.pieces.push(p);
+  }
+
+  /** Screen-space box of a piece's badge pair, lifted by `lift` world units along the camera's up. */
+  private box(p: PieceBadge, lift: number, out: number[]): void {
+    const up = _up.set(0, 1, 0).applyQuaternion(this.cam.quaternion);
+    const f = (dist: number, size: number): [number, number, number] => {
+      _p.copy(p.a).addScaledVector(p.r, -dist).addScaledVector(up, lift).project(this.cam);
+      const half = size / this.unitPx / 2;
+      return [(_p.x * 0.5 + 0.5) * this.w, (0.5 - _p.y * 0.5) * this.h, half];
+    };
+    const [rx, ry, rh] = f(p.dr, p.rs);
+    const [ex, ey, eh] = f(p.de, p.es);
+    out[0] = Math.min(rx - rh, ex - eh);
+    out[1] = Math.max(rx + rh, ex + eh);
+    out[2] = Math.min(ry - rh, ey - eh);
+    out[3] = Math.max(ry + rh, ey + eh);
+  }
+
+  /**
+   * Lays the badges out. Pieces are taken in priority order (a fork waiting, then rank); a pair
+   * that would overlap one already placed is lifted a step at a time until it is clear, and
+   * dropped altogether if five steps still do not clear it.
+   */
+  private layout(): void {
+    this.cam.updateMatrixWorld();
+    const order = this.pieces.slice().sort((a, b) => b.pri - a.pri);
+    const placed: number[][] = [];
+    const bx = [0, 0, 0, 0];
+    for (const p of order) {
+      p.lift = -1;
+      for (let step = 0; step <= 5; step++) {
+        const lift = step * p.es * 1.08;
+        this.box(p, lift, bx);
+        if (bx[1] < -40 || bx[0] > this.w + 40 || bx[3] < -40 || bx[2] > this.h + 40) {
+          p.lift = lift;
+          break;
+        }
+        const hit = placed.some(
+          (o) =>
+            bx[0] < o[1] - 0.5 && bx[1] > o[0] + 0.5 && bx[2] < o[3] - 0.5 && bx[3] > o[2] + 0.5,
+        );
+        if (!hit) {
+          placed.push([bx[0], bx[1], bx[2], bx[3]]);
+          p.lift = lift;
+          break;
+        }
+      }
     }
   }
 
-  /** The style emblem (drawn in its own colours). */
-  emblem(x: number, y: number, z: number, size: number, style: string | null): void {
-    this.quad(x, y, z, size, EMBLEM_BASE + styleEmblemIndex(style), _white);
-  }
-
   end(time: number): void {
+    this.layout();
+    const up = _up.set(0, 1, 0).applyQuaternion(this.cam.quaternion);
+    for (const p of this.pieces) {
+      if (p.lift < 0) continue;
+      _v.copy(p.a).addScaledVector(p.r, -p.dr).addScaledVector(up, p.lift);
+      this.quad(_v.x, _v.y, _v.z, p.rs, Math.max(0, Math.min(7, Math.round(p.rank) - 1)), p.color);
+      if (p.pulse && this.np < this.cap) {
+        const k = 1.5 + 0.55 * (0.5 + 0.5 * Math.sin(time * 7));
+        _m.compose(_p.copy(_v), this.quat, _s.set(p.rs * k, p.rs * k, 1));
+        this.pulses.setMatrixAt(this.np++, _m);
+      }
+      _v.copy(p.a).addScaledVector(p.r, -p.de).addScaledVector(up, p.lift);
+      this.quad(_v.x, _v.y, _v.z, p.es, EMBLEM_BASE + styleEmblemIndex(p.style), _white);
+    }
     this.badges.count = this.n;
     this.pulses.count = this.np;
     this.pulseMat.opacity = 0.55 + 0.45 * (0.5 + 0.5 * Math.sin(time * 7));

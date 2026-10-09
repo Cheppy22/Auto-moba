@@ -115,7 +115,7 @@ export function EconomyPage(props: { data: ReportData }) {
             {
               id: 'lead',
               label: 'White lead',
-              color: '#ece2cc',
+              color: '#efe6d2',
               pts: lead,
               mode: 'line',
               fmt: (v) => (v >= 0 ? `White +${full(v)}` : `Black +${full(-v)}`),

@@ -1,49 +1,35 @@
 import {
+  BoxGeometry,
   BufferGeometry,
+  ConeGeometry,
   CylinderGeometry,
   DoubleSide,
   Float32BufferAttribute,
   Group,
-  InstancedMesh,
-  Matrix4,
   Mesh,
-  MeshBasicMaterial,
-  PlaneGeometry,
-  QuadraticBezierCurve3,
-  Quaternion,
   ShaderMaterial,
   SphereGeometry,
-  TubeGeometry,
   Uint16BufferAttribute,
   Vector2,
-  Vector3,
 } from 'three';
 import { type Content, shapeDist, type Snapshot } from '../../sim';
-import { type Bit, BRASS, type Kit, LACQUER } from './kit';
-import { ofudaTexture } from './scenery';
+import { type Bit, BRASS, type Kit } from './kit';
 import { type TerrainField, WATER_Y } from './terrain';
 
 const TAU = Math.PI * 2;
-/** Seconds the mist and the gate seals take to burn away once a clearing opens. */
+/** Seconds the mist and the gates take to clear once a clearing opens. */
 const DISSOLVE = 2.2;
-const TAGS = 5;
 /** Mist layers: height above the ground and how much each one shows. */
 const LAYERS: [number, number][] = [
-  [1.6, 1],
-  [5.2, 0.75],
-  [9.4, 0.5],
+  [1.4, 1],
+  [4.4, 0.55],
 ];
 const RINGS = 9;
 const SEGS = 44;
-/** Gate seals stand this far clear of a lane corridor's edge, so they never sit in a lane. */
+/** Gates stand this far clear of a lane corridor's edge, so they never sit in a lane. */
 const LANE_CLEAR = 10;
-const _m = new Matrix4();
-const _q = new Quaternion();
-const _p = new Vector3();
-const _s = new Vector3(1, 1, 1);
-const Y = new Vector3(0, 1, 0);
-const X = new Vector3(1, 0, 0);
-const _sw = new Quaternion();
+const IRON = '#27252a';
+const STONE_PIER = '#d3ccb9';
 
 const NOISE = /* glsl */ `
 float h21(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
@@ -87,62 +73,37 @@ void main() {
   float w = vn(q + vec2(t * 0.04, 0.0)) * 0.55 + vn(q * 2.3 - vec2(0.0, t * 0.06)) * 0.3 + vn(q * 5.1 + t * 0.09) * 0.15;
   float wisp = smoothstep(0.32, 0.78, w);
   float r = length(vL) / uR;
-  float a = vMask * (0.12 + 0.34 * wisp);
+  float a = vMask * (0.07 + 0.2 * wisp);
   // burn away: a ragged front sweeps in from the rim with an ember edge
   float dn = vn(vL * 0.06 + vLayer * 1.7) * 0.6 + (1.0 - r) * 0.4;
   float cut = uDissolve * 1.25 - 0.1;
   if (dn < cut) discard;
   float edge = (1.0 - smoothstep(cut, cut + 0.12, dn)) * step(0.001, uDissolve);
-  vec3 ink = vec3(0.1, 0.07, 0.2);
-  vec3 lilac = vec3(0.56, 0.47, 0.86);
-  vec3 col = mix(ink, lilac, wisp * (0.55 + 0.25 * vLayer));
-  col += vec3(1.0, 0.68, 0.32) * edge * 1.5;
-  a = max(a * (1.0 - uDissolve * 0.6), edge * vMask * 0.9);
+  vec3 shade = vec3(0.56, 0.55, 0.54);
+  vec3 pale = vec3(0.9, 0.87, 0.8);
+  vec3 col = mix(shade, pale, wisp * (0.6 + 0.2 * vLayer));
+  col += vec3(1.0, 0.82, 0.5) * edge * 0.5;
+  a = max(a * (1.0 - uDissolve * 0.6), edge * vMask * 0.35);
   gl_FragColor = vec4(col, a);
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
 }`;
 
-const VEIL_VERT = /* glsl */ `
-varying vec2 vUv;
-void main() {
-  vUv = uv;
-  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-}`;
-
-/** The thin curtain of mist hanging behind a gate rope, darkest at the foot. */
-const VEIL_FRAG = /* glsl */ `
-uniform float uTime;
-uniform float uDissolve;
-varying vec2 vUv;
-${NOISE}
-void main() {
-  float t = uTime;
-  float mist = vn(vec2(vUv.x * 6.0 + t * 0.2, vUv.y * 3.0 - t * 0.3)) * 0.6 + vn(vec2(vUv.x * 13.0 - t * 0.3, vUv.y * 7.0)) * 0.4;
-  float side = smoothstep(0.0, 0.18, vUv.x) * smoothstep(1.0, 0.82, vUv.x);
-  float a = (0.1 + 0.24 * mist) * (1.0 - smoothstep(0.25, 1.0, vUv.y)) * side;
-  float dn = vn(vUv * vec2(9.0, 5.0));
-  float cut = uDissolve * 1.3 - 0.15;
-  if (dn < cut) discard;
-  float edge = (1.0 - smoothstep(cut, cut + 0.16, dn)) * step(0.001, uDissolve);
-  vec3 col = mix(vec3(0.12, 0.08, 0.24), vec3(0.5, 0.42, 0.82), mist);
-  col += vec3(1.0, 0.7, 0.3) * edge * 1.6;
-  gl_FragColor = vec4(col, max(a, edge * side * 0.8));
-  #include <tonemapping_fragment>
-  #include <colorspace_fragment>
-}`;
+interface Gate {
+  pivot: Group;
+  /** Heading of the leaf when shut, and which way it swings open (into the clearing). */
+  base: number;
+  sign: number;
+}
 
 interface Veil {
   group: Group;
   mist: ShaderMaterial;
-  veil: ShaderMaterial | null;
-  /** Posts, ropes and paper: they sink into the ground as the seal breaks. */
+  /** Piers, gates and bars: they swing open, then sink into the ground as the seal breaks. */
   seals: Group;
-  tags: InstancedMesh;
-  ring: Mesh;
+  gates: Gate[];
   cx: number;
   cy: number;
-  gy: number;
   radius: number;
   opened: number | null;
   /** Owned GPU objects to release when the veil goes. */
@@ -151,30 +112,20 @@ interface Veil {
 
 /**
  * The "Uncharted" look. A sealed clearing fills with low, slow ground mist (it never rises over
- * the lanes beside it) and each gate path is closed by a small shimenawa: two posts, a straw rope
- * with paper shide, and a thin curtain of mist, set inside the clearing's mouth. When the clearing
- * opens the mist burns off from the rim and the seals sink away.
+ * the lanes beside it) and each gate path is closed by a pair of wrought-iron gates between two
+ * stone piers, set inside the clearing's mouth. When the clearing opens the leaves swing in, the
+ * mist clears from the rim and the gates sink away.
  */
 export class Veils {
   readonly group = new Group();
   private readonly veils = new Map<string, Veil>();
-  private readonly tagTex = ofudaTexture();
-  private readonly tagMat: MeshBasicMaterial;
-  private readonly tagGeo = new PlaneGeometry(3.4, 7.2).translate(0, -3.6, 0);
   private seenFirst = false;
 
   constructor(
     private readonly kit: Kit,
     private readonly field: TerrainField,
     private readonly content: Content,
-  ) {
-    this.tagMat = new MeshBasicMaterial({
-      map: this.tagTex,
-      side: DoubleSide,
-      transparent: true,
-      alphaTest: 0.5,
-    });
-  }
+  ) {}
 
   private shader(frag: string, vert: string, extra: Record<string, { value: unknown }> = {}) {
     return new ShaderMaterial({
@@ -243,6 +194,22 @@ export class Veils {
     return geo;
   }
 
+  /** One gate leaf, hinged at the origin and reaching along +x: bars, rails and gilt spear tips. */
+  private leafBits(len: number): Bit[] {
+    const bits: Bit[] = [];
+    for (const y of [1.6, 6.4, 11.4])
+      bits.push({ geo: new BoxGeometry(len, 0.9, 0.9), color: IRON, at: [len / 2, y, 0] });
+    const n = Math.max(2, Math.round(len / 2.8));
+    for (let i = 0; i < n; i++) {
+      const x = ((i + 0.5) / n) * len;
+      bits.push(
+        { geo: new CylinderGeometry(0.42, 0.42, 12.4, 4, 1, true), color: IRON, at: [x, 6.4, 0] },
+        { geo: new ConeGeometry(0.9, 2.2, 4), color: BRASS, at: [x, 13.5, 0] },
+      );
+    }
+    return bits;
+  }
+
   private build(slot: Snapshot['slots'][number]): Veil {
     const f = this.field;
     const kit = this.kit;
@@ -250,7 +217,6 @@ export class Veils {
     const pad = this.content.map.walk.slotPad;
     const R = slot.radius + pad;
     const group = new Group();
-    const gy = f.heightAt(slot.x, slot.y);
     const wx = slot.x - f.half;
     const wz = slot.y - f.half;
 
@@ -264,12 +230,10 @@ export class Veils {
     group.add(mistMesh);
     bag.push(mistGeo, mist);
 
-    // one small shimenawa per gate path, inside the clearing's mouth and clear of the lane
+    // one pair of gates per gate path, inside the clearing's mouth and clear of the lane
     const seals = new Group();
+    const gates: Gate[] = [];
     const solid: Bit[] = [];
-    const strips: { x: number; y: number; z: number; yaw: number }[] = [];
-    const curtain: number[] = [];
-    const curtainUv: number[] = [];
     for (const s of f.shapes) {
       if (s.kind !== 'port' || s.slot !== slot.id) continue;
       const dx = s.bx - s.ax;
@@ -277,7 +241,7 @@ export class Veils {
       const len = Math.hypot(dx, dy) || 1;
       const ux = dx / len;
       const uy = dy / len;
-      // walk out from the centre to the mouth, then back off until the seal clears the lane
+      // walk out from the centre to the mouth, then back off until the gates clear the lane
       let at = R - 6;
       const half = s.r + 3;
       while (at > R * 0.5) {
@@ -293,108 +257,51 @@ export class Veils {
       }
       const gx = s.ax + ux * at;
       const gyy = s.ay + uy * at;
-      const yaw = Math.atan2(ux, uy);
       const px = -uy;
       const py = ux;
-      const ends: Vector3[] = [];
+      const leafLen = half - 1.8;
+      const leaf = kit.geo(`gate-leaf:${Math.round(leafLen * 10)}`, () =>
+        kit.merge(this.leafBits(leafLen)),
+      );
       for (const side of [-1, 1]) {
         const x = gx + px * half * side;
         const y = gyy + py * half * side;
         const base = f.heightAt(x, y);
-        ends.push(new Vector3(x - f.half, base + 12.5, y - f.half));
         solid.push(
           {
-            geo: new CylinderGeometry(1.15, 1.5, 14, 6),
-            color: LACQUER,
-            at: [x - f.half, base + 7, y - f.half],
+            geo: new BoxGeometry(3.6, 17, 3.6),
+            color: STONE_PIER,
+            at: [x - f.half, base + 8.5, y - f.half],
           },
           {
-            geo: new SphereGeometry(1.6, 8, 5),
+            geo: new BoxGeometry(4.6, 1.2, 4.6),
+            color: '#b9b19c',
+            at: [x - f.half, base + 17.4, y - f.half],
+          },
+          {
+            geo: new SphereGeometry(1.9, 8, 5),
             color: BRASS,
-            at: [x - f.half, base + 14.4, y - f.half],
+            at: [x - f.half, base + 19.6, y - f.half],
           },
         );
-      }
-      const mid = ends[0].clone().lerp(ends[1], 0.5);
-      mid.y -= 3.2;
-      const curve = new QuadraticBezierCurve3(ends[0], mid, ends[1]);
-      const rope = new TubeGeometry(curve, 10, 1.15, 5, false);
-      solid.push({ geo: rope, color: '#d2bd8a' });
-      for (let i = 1; i <= 4; i++) {
-        const p = curve.getPoint(i / 5);
-        strips.push({ x: p.x, y: p.y - 0.6, z: p.z, yaw });
-      }
-      // the curtain: a ground-hugging sheet across the path, just inside the rope
-      const c0 = ends[0];
-      const c1 = ends[1];
-      const back = 2.5;
-      for (const [cc, u] of [
-        [c0, 0],
-        [c1, 1],
-      ] as const) {
-        const bx = cc.x - ux * back;
-        const bz = cc.z - uy * back;
-        const g0 = f.heightW(bx, bz);
-        curtain.push(bx, g0 - 1, bz, bx, g0 + 17, bz);
-        curtainUv.push(u, 0, u, 1);
+        // the leaf reaches from this hinge towards the middle of the path
+        const hx = -px * side;
+        const hz = -py * side;
+        const th = Math.atan2(-hz, hx);
+        const sign = hz * -ux + hx * uy > 0 ? 1 : -1;
+        const pivot = new Group();
+        pivot.position.set(x - f.half, base + 0.2, y - f.half);
+        pivot.rotation.y = th;
+        const mesh = new Mesh(leaf, kit.vertexToon());
+        pivot.add(mesh);
+        seals.add(pivot);
+        gates.push({ pivot, base: th, sign });
       }
     }
-    let veil: ShaderMaterial | null = null;
-    if (solid.length) {
-      const key = `veil-seal:${slot.id}`;
-      const mesh = kit.solid(key, () => solid, 0.8);
-      seals.add(mesh);
-      const tags = new InstancedMesh(this.tagGeo, this.tagMat, strips.length);
-      strips.forEach((t, i) => {
-        _q.setFromAxisAngle(Y, t.yaw + ((i % 2) - 0.5) * 0.3);
-        _m.compose(_p.set(t.x, t.y, t.z), _q, _s.setScalar(0.85 + (i % 3) * 0.08));
-        tags.setMatrixAt(i, _m);
-      });
-      _s.set(1, 1, 1);
-      tags.instanceMatrix.needsUpdate = true;
-      seals.add(tags);
-      bag.push(tags);
-      const cg = new BufferGeometry();
-      cg.setAttribute('position', new Float32BufferAttribute(curtain, 3));
-      cg.setAttribute('uv', new Float32BufferAttribute(curtainUv, 2));
-      const ci: number[] = [];
-      for (let q = 0; q < curtain.length / 12; q++) {
-        const b = q * 4;
-        ci.push(b, b + 2, b + 1, b + 1, b + 2, b + 3);
-      }
-      cg.setIndex(ci);
-      veil = this.shader(VEIL_FRAG, VEIL_VERT);
-      const cm = new Mesh(cg, veil);
-      cm.renderOrder = 9;
-      group.add(cm);
-      bag.push(cg, veil);
-    }
+    if (solid.length) seals.add(kit.solid(`veil-seal:${slot.id}`, () => solid, 0.8));
     group.add(seals);
-
-    const ring = kit.decalRing('#a48cf0', R * 0.97, true, 0.42);
-    ring.position.set(wx, gy + 0.9, wz);
-    group.add(ring);
-    bag.push(ring.material as MeshBasicMaterial);
-
-    const tags = new InstancedMesh(this.tagGeo, this.tagMat, TAGS);
-    tags.frustumCulled = false;
-    group.add(tags);
-    bag.push(tags);
     this.group.add(group);
-    return {
-      group,
-      mist,
-      veil,
-      seals,
-      tags,
-      ring,
-      cx: slot.x,
-      cy: slot.y,
-      gy,
-      radius: R,
-      opened: null,
-      bag,
-    };
+    return { group, mist, seals, gates, cx: slot.x, cy: slot.y, radius: R, opened: null, bag };
   }
 
   private drop(id: string, v: Veil): void {
@@ -431,39 +338,20 @@ export class Veils {
       }
       v.mist.uniforms.uTime.value = time;
       v.mist.uniforms.uDissolve.value = d;
-      if (v.veil) {
-        v.veil.uniforms.uTime.value = time;
-        v.veil.uniforms.uDissolve.value = d;
-      }
-      v.ring.rotation.y = time * 0.08;
-      (v.ring.material as MeshBasicMaterial).opacity = 0.42 * (1 - d);
-      // the seals sink into the ground once the clearing opens
-      const sink = d * d * 18;
-      v.seals.position.y = -sink;
+      // the leaves swing in first, then everything sinks into the ground
+      const open = smoothstep(0, 0.5, d);
+      for (const g of v.gates) g.pivot.rotation.y = g.base + g.sign * open * 1.5;
+      v.seals.position.y = -smoothstep(0.5, 1, d) * 24;
       v.seals.visible = d < 0.95;
-      const f = this.field;
-      const wx = v.cx - f.half;
-      const wz = v.cy - f.half;
-      for (let i = 0; i < TAGS; i++) {
-        const a = (i / TAGS) * TAU + time * 0.07 * (i % 2 ? 1 : -1);
-        const r = v.radius * (0.3 + 0.12 * i);
-        const up = 10 + 2.5 * Math.sin(time * 0.6 + i * 1.7) + d * 46;
-        _q.setFromAxisAngle(Y, -a + Math.PI / 2 + Math.sin(time * 1.1 + i) * 0.3);
-        _sw.setFromAxisAngle(X, Math.sin(time * 1.5 + i * 1.3) * 0.25);
-        _q.multiply(_sw);
-        _p.set(wx + Math.cos(a) * r, v.gy + up, wz + Math.sin(a) * r);
-        _m.compose(_p, _q, _s.setScalar(Math.max(0.001, 1 - d)));
-        v.tags.setMatrixAt(i, _m);
-      }
-      v.tags.instanceMatrix.needsUpdate = true;
-      _s.set(1, 1, 1);
     }
   }
 
   dispose(): void {
     for (const [id, v] of [...this.veils]) this.drop(id, v);
-    this.tagTex.dispose();
-    this.tagMat.dispose();
-    this.tagGeo.dispose();
   }
 }
+
+const smoothstep = (a: number, b: number, x: number): number => {
+  const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
+  return t * t * (3 - 2 * t);
+};

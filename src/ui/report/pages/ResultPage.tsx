@@ -309,7 +309,7 @@ export function ResultPage(props: {
             <path
               d="M12 2.2l2.9 6.2 6.7.8-4.9 4.6 1.3 6.7L12 17l-6 3.5 1.3-6.7L2.4 9.2l6.7-.8z"
               fill="#cfc6b0"
-              stroke="#14111d"
+              stroke="#14110e"
               stroke-width="1.2"
             />
           </svg>{' '}

@@ -123,7 +123,7 @@ export function CombatPage(props: { data: ReportData }) {
       items: report.fights.map((f) => ({
         t0: f.startTick / tickRate,
         t1: f.endTick / tickRate,
-        color: '#c9a24a',
+        color: '#c9a35a',
         label: `Fight, ${f.sideA.length} v ${f.sideB.length}`,
       })),
     },

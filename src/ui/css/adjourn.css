@@ -92,7 +92,7 @@
   padding: 3px 10px 3px 4px;
   cursor: pointer;
   color: var(--text);
-  background: linear-gradient(180deg, #211c2d, #130f1b);
+  background: linear-gradient(180deg, #33241a, #1b1510);
   border: 1px solid var(--cat-1);
   border-radius: 22px;
 }

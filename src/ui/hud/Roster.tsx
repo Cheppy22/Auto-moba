@@ -64,7 +64,7 @@ export function Roster(props: { team: 'A' | 'B'; forks: number[] }) {
             <span class="ringwrap">
               <HpRing
                 frac={frac}
-                color={hurt ? 'var(--seal-hi)' : team === 'A' ? 'var(--a)' : 'var(--b)'}
+                color={hurt ? 'var(--clock-hi)' : team === 'A' ? 'var(--a)' : 'var(--b)'}
                 alive={u.alive}
               >
                 <PieceGlyph piece={h.defId} team={team} size={26} />

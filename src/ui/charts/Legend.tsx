@@ -45,18 +45,18 @@ function Mark(props: { shape: Swatch; color: string }) {
         <path
           d={`M8,1 L${s + 1},${s / 2} L8,${s - 1} L${3},${s / 2}Z`}
           fill={c}
-          stroke="#14111d"
+          stroke="#14110e"
           stroke-width="1"
         />
       )}
       {props.shape === 'square' && (
-        <rect x="3" y="2" width="9" height="8" fill={c} stroke="#14111d" stroke-width="1" />
+        <rect x="3" y="2" width="9" height="8" fill={c} stroke="#14110e" stroke-width="1" />
       )}
       {props.shape === 'tri' && (
         <path
           d={`M8,1 L${s + 1},${s - 1} L3,${s - 1}Z`}
           fill={c}
-          stroke="#14111d"
+          stroke="#14110e"
           stroke-width="1"
         />
       )}
