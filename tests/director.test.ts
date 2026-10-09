@@ -4,16 +4,19 @@ import { Director } from '../src/render/broadcast/director';
 import type { Shot } from '../src/render/broadcast/types';
 import { content, liveMatch } from './helpers';
 
+/** The test positions below are on a map 1000 across; the map is bigger now. */
+const K = content.map.size / 1000;
+
 const unit = (id: number, team: 'A' | 'B', x: number, y: number, o: Partial<SnapUnit> = {}) =>
   ({
     id,
     kind: 'hero',
     team,
     defId: 'hero',
-    x,
-    y,
-    px: x,
-    py: y,
+    x: x * K,
+    y: y * K,
+    px: x * K,
+    py: y * K,
     hp: 100,
     maxHp: 100,
     shield: 0,
@@ -68,13 +71,22 @@ const death = (tick: number, id: number, x: number, y: number): GameEvent => ({
   tick,
   seq: ++seq,
   type: 'death',
-  payload: { id, kind: 'hero', team: 'A', killer: 90, killerKind: 'hero', assists: [], x, y },
+  payload: {
+    id,
+    kind: 'hero',
+    team: 'A',
+    killer: 90,
+    killerKind: 'hero',
+    assists: [],
+    x: x * K,
+    y: y * K,
+  },
 });
 const towerDown = (tick: number, x: number, y: number): GameEvent => ({
   tick,
   seq: ++seq,
   type: 'structureDown',
-  payload: { kind: 'tower', team: 'B', lane: 'top', index: 0, killer: 90, x, y },
+  payload: { kind: 'tower', team: 'B', lane: 'top', index: 0, killer: 90, x: x * K, y: y * K },
 });
 const guardianHit = (tick: number, tgt: number): GameEvent => ({
   tick,
@@ -135,8 +147,8 @@ describe('Director', () => {
       kind: 'kill',
       priority: 60,
       caption: 'Hero down · Left',
-      x: 110,
-      y: 500,
+      x: 110 * K,
+      y: 500 * K,
       since: 1000,
     });
     expect(s.subjects).toEqual([1, 90]);
@@ -171,7 +183,7 @@ describe('Director', () => {
     const d = new Director(content);
     const s = d.update(snap(2000), [towerDown(2000, 110, 350)]);
     expect(s).toMatchObject({ kind: 'structure', caption: 'Tower falls · Left', cut: true });
-    expect(s.radius).toBeGreaterThanOrEqual(140);
+    expect(s.radius).toBeGreaterThanOrEqual(140 * K);
     expect(d.update(snap(2000), []).cut).toBe(true);
     const later = d.update(snap(2001), []);
     expect(later).toMatchObject({ kind: 'structure', cut: false, since: 2000 });
@@ -197,12 +209,12 @@ describe('Director', () => {
     const s = d.update(snap(1000, fightUnits(500, 500)), []);
     expect(s).toMatchObject({ kind: 'teamfight', priority: 70, caption: 'Team fight · Mid' });
     expect(s.subjects).toEqual([1, 2, 3, 11, 12, 13]);
-    expect(s.x).toBeCloseTo(500);
-    expect(s.radius).toBeGreaterThanOrEqual(140);
-    expect(s.radius).toBeLessThanOrEqual(520);
+    expect(s.x).toBeCloseTo(500 * K);
+    expect(s.radius).toBeGreaterThanOrEqual(140 * K);
+    expect(s.radius).toBeLessThanOrEqual(520 * K);
     const moved = d.update(snap(1030, fightUnits(540, 520)), []);
     expect(moved.since).toBe(1000);
-    expect(moved.x).toBeCloseTo(540);
+    expect(moved.x).toBeCloseTo(540 * K);
     expect(moved.cut).toBe(false);
   });
 
@@ -265,8 +277,8 @@ describe('Director', () => {
       type: 'oni',
       name: 'Hungry Oni',
       slot: 'tlc',
-      x: 330,
-      y: 330,
+      x: 330 * K,
+      y: 330 * K,
       radius: 90,
       phase: 'active',
       ticksLeft: 400,
@@ -279,7 +291,7 @@ describe('Director', () => {
     expect(d.update(snap(1001, [near[1]!], { events: [oni] }), []).kind).toBe('wide');
     const s = d.update(snap(1002, near, { events: [oni] }), []);
     expect(s).toMatchObject({ kind: 'event', caption: 'Hungry Oni', priority: 50, subjects: [1] });
-    expect([s.x, s.y]).toEqual([330, 330]);
+    expect([s.x, s.y]).toEqual([330 * K, 330 * K]);
   });
 
   it('watches a guardian under siege or on the march', () => {
@@ -291,7 +303,7 @@ describe('Director', () => {
     expect(d.update(snap(1100, [g]), []).kind).toBe('guardian');
     expect(d.update(snap(1140, [g]), []).kind).toBe('wide');
 
-    const roamer = { ...g, x: 700, y: 300 };
+    const roamer = { ...g, x: 700 * K, y: 300 * K };
     const late = { phase: { kind: 'live', n: 7, startTick: 0 } } as const;
     const march = new Director(content).update(snap(5000, [roamer], late), []);
     expect(march).toMatchObject({ kind: 'guardian', caption: 'The King marches' });
@@ -350,11 +362,11 @@ describe('Director', () => {
       expect(s.x).toBeLessThanOrEqual(size);
       expect(s.y).toBeGreaterThanOrEqual(0);
       expect(s.y).toBeLessThanOrEqual(size);
-      expect(s.radius).toBeGreaterThanOrEqual(140);
+      expect(s.radius).toBeGreaterThanOrEqual(140 * K);
       expect(s.radius).toBeLessThanOrEqual(size * 0.6);
       expect(s.since).toBeLessThanOrEqual(snapshot.tick);
       expect(s.caption === null).toBe(s.kind === 'wide');
-      if (s.kind !== 'wide') expect(s.radius).toBeLessThanOrEqual(520);
+      if (s.kind !== 'wide') expect(s.radius).toBeLessThanOrEqual(520 * K);
     }
     expect(m.state.tick).toBeGreaterThan(2000);
     expect([...kinds].filter((k) => k !== 'wide').length).toBeGreaterThan(0);

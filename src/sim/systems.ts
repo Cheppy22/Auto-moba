@@ -42,9 +42,14 @@ export function spawnWaves(ctx: Ctx): void {
   for (const team of ['A', 'B'] as PlayTeam[]) {
     for (const lane of LANES) {
       const lead = lane === 'mid' && team === leader ? w.midLeadUnits : 0;
-      for (let i = 0; i < melee; i++) makeMinion(ctx, team, lane, 'melee', scale, i * 9 + lead);
+      const gap = ctx.t.collision.spawnGap;
+      const stagger = ctx.t.collision.spawnStagger;
+      // Alternating sides of the lane's centre line, so a wave marches abreast, not in single file.
+      const row = (i: number): number => (i % 2 === 0 ? stagger : -stagger);
+      for (let i = 0; i < melee; i++)
+        makeMinion(ctx, team, lane, 'melee', scale, i * gap + lead, row(i));
       for (let i = 0; i < w.ranged; i++)
-        makeMinion(ctx, team, lane, 'ranged', scale, (melee + i) * 9 + lead);
+        makeMinion(ctx, team, lane, 'ranged', scale, (melee + i) * gap + lead, row(melee + i));
     }
   }
 }

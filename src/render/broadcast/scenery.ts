@@ -22,7 +22,7 @@ import {
 } from 'three';
 import type { Content } from '../../sim';
 import { type Bit, type Kit, PAPER, rand01 } from './kit';
-import { ISLAND_R, fbm, type TerrainField, WATER_Y } from './terrain';
+import { fbm, type TerrainField, WATER_Y } from './terrain';
 
 const TAU = Math.PI * 2;
 const WHITE = '#ffffff';
@@ -376,6 +376,9 @@ export class Scenery {
     const f = this.field;
     const kit = this.kit;
     const half = f.half;
+    const { islandR: ISLAND_R, k: mapK } = f.ws;
+    // A bigger island gets proportionally more of everything, so the forest keeps its density.
+    const area = mapK * mapK;
     const trees: Item[] = [];
     const maples: Item[] = [];
     const shrooms: Item[][] = [[], [], []];
@@ -385,7 +388,7 @@ export class Scenery {
     const reeds: Item[] = [];
     const lanterns: Item[] = [];
 
-    for (let n = 0; n < 16000; n++) {
+    for (let n = 0; n < Math.round(16000 * area); n++) {
       const x = half + (this.rnd() * 2 - 1) * (ISLAND_R - 30);
       const y = half + (this.rnd() * 2 - 1) * (ISLAND_R - 30);
       if (Math.hypot(x - half, y - half) > ISLAND_R - 34) continue;
@@ -398,14 +401,18 @@ export class Scenery {
       if (h < WATER_Y + 3.2) continue;
       const dens = smooth(0.42, 0.62, fbm(x * 0.012, y * 0.012, 31, 2));
       const roll = this.rnd();
-      if (d > 34 && roll < 0.1 + 0.85 * dens && trees.length + maples.length < 700 * this.load) {
+      if (
+        d > 34 &&
+        roll < 0.1 + 0.85 * dens &&
+        trees.length + maples.length < 700 * area * this.load
+      ) {
         if (!this.free(x, y, 20 - dens * 6)) continue;
         const big = (0.62 + this.rnd() * 0.6) * (0.6 + 0.4 * smooth(34, 110, d));
         if (this.rnd() < 0.05) this.push(maples, x, y, big * 0.95);
         else this.push(trees, x, y, big);
-      } else if (roll > 0.985 && d > 12 && rr > 40 && boulders.length < 36) {
+      } else if (roll > 0.985 && d > 12 && rr > 40 && boulders.length < 36 * area) {
         if (this.free(x, y, 40)) this.push(boulders, x, y, 0.85 + this.rnd() * 0.7);
-      } else if (roll > 0.972 && d > 14 && d < 90 && torii.length < 16) {
+      } else if (roll > 0.972 && d > 14 && d < 90 && torii.length < 16 * area) {
         if (this.free(x, y, 70)) this.push(torii, x, y, 0.9 + this.rnd() * 0.4);
       } else if (roll > 0.955 && d > 14 && d < 110) {
         if (!this.free(x, y, 40)) continue;
@@ -419,7 +426,7 @@ export class Scenery {
     }
 
     // reeds along the river banks and fringing the cliff feet
-    for (let n = 0; n < 9000 && reeds.length < 520 * this.load; n++) {
+    for (let n = 0; n < Math.round(9000 * area) && reeds.length < 520 * area * this.load; n++) {
       const x = half + (this.rnd() * 2 - 1) * (ISLAND_R - 60);
       const y = half + (this.rnd() * 2 - 1) * (ISLAND_R - 60);
       const h = f.heightAt(x, y);
@@ -434,6 +441,8 @@ export class Scenery {
 
     // stone lanterns on the first ledge, a little back from the roads
     const lanes = this.content.map.lanes;
+    const lane = f.ws.lane;
+    const gap = 88 * mapK;
     for (const id of ['top', 'mid', 'bot'] as const) {
       const pts = lanes[id];
       let carry = 0;
@@ -446,11 +455,11 @@ export class Scenery {
         if (len < 1e-6) continue;
         const nx = -(by - ay) / len;
         const ny = (bx - ax) / len;
-        for (let s = carry; s < len; s += 88) {
+        for (let s = carry; s < len; s += gap) {
           const px = ax + ((bx - ax) * s) / len;
           const py = ay + ((by - ay) * s) / len;
-          const side = Math.floor(s / 88 + i) % 2 === 0 ? 1 : -1;
-          for (const off of [48, 56, 64]) {
+          const side = Math.floor(s / gap + i) % 2 === 0 ? 1 : -1;
+          for (const off of [lane + 16, lane + 24, lane + 32]) {
             const x = px + nx * off * side;
             const y = py + ny * off * side;
             const d = f.sdfAt(x, y);
@@ -459,7 +468,7 @@ export class Scenery {
             this.push(lanterns, x, y, 1.15);
             break;
           }
-          carry = s + 88 - len;
+          carry = s + gap - len;
         }
       }
     }

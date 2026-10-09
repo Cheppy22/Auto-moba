@@ -64,15 +64,17 @@ describe('spawn points are walkable', () => {
         const path = laneWaypoints(world, team, lane);
         const [p0, p1] = path;
         const len = Math.hypot(p1[0] - p0[0], p1[1] - p0[1]);
-        // Wave offsets: up to a dozen bodies 9 apart plus the mid lane lead.
-        for (let off = 0; off <= 280; off += 9) {
+        // Wave offsets: a wave's bodies spread along the lane (and to either side of its centre
+        // line), plus the mid lane lead.
+        const { spawnGap, spawnStagger } = content.tuning.collision;
+        const reach = 12 * spawnGap + content.tuning.waves.midLeadUnits;
+        for (let off = 0; off <= reach; off += 9) {
           const f = Math.min(off, len) / len;
-          expectWalkable(
-            `minion ${team} ${lane} +${off}`,
-            noneOpen,
-            p0[0] + (p1[0] - p0[0]) * f,
-            p0[1] + (p1[1] - p0[1]) * f,
-          );
+          for (const side of [-spawnStagger, 0, spawnStagger]) {
+            const x = p0[0] + (p1[0] - p0[0]) * f - ((p1[1] - p0[1]) / len) * side;
+            const y = p0[1] + (p1[1] - p0[1]) * f + ((p1[0] - p0[0]) / len) * side;
+            expectWalkable(`minion ${team} ${lane} +${off} ${side}`, noneOpen, x, y);
+          }
         }
       }
     }
@@ -187,10 +189,11 @@ describe('terrain queries', () => {
       y: inside[1],
     });
     // Straight out from the top lane's vertical stretch.
-    const out = confine(terrain, noneOpen, inside[0] + 70, 700);
+    const row = inside[1] + 50;
+    const out = confine(terrain, noneOpen, inside[0] - map.walk.lane - 30, row);
     expect(walkable(terrain, noneOpen, out.x, out.y)).toBe(true);
-    expect(Math.abs(out.x - (inside[0] + map.walk.lane))).toBeLessThan(0.5);
-    expect(out.y).toBeCloseTo(700, 3);
+    expect(Math.abs(out.x - (inside[0] - map.walk.lane))).toBeLessThan(0.5);
+    expect(out.y).toBeCloseTo(row, 3);
   });
 
   it('clearLine holds along a lane and fails across solid ground between lanes', () => {
@@ -199,9 +202,11 @@ describe('terrain queries', () => {
       expect(clearLine(terrain, noneOpen, top[i - 1][0], top[i - 1][1], top[i][0], top[i][1])).toBe(
         true,
       );
-    // From the left lane (x = 110) straight across to the middle lane.
-    expect(clearLine(terrain, noneOpen, 110, 700, 300, 700)).toBe(false);
-    expect(walkable(terrain, noneOpen, 205, 700)).toBe(false);
+    // From the left lane straight across towards the middle lane.
+    const left = top[1][0];
+    const row = 0.54 * map.size;
+    expect(clearLine(terrain, noneOpen, left, row, left + 0.19 * map.size, row)).toBe(false);
+    expect(walkable(terrain, noneOpen, left + map.walk.lane + 40, row)).toBe(false);
   });
 
   it('closed jungle slots are solid, open ones walkable', () => {

@@ -4,9 +4,9 @@
   "era": "Victorian",
   "palette": { "ground": "#2a1d18", "accent": "#c9732f", "glow": "#ffb66b" },
   "camps": [
-    { "dx": -40, "dy": -20 },
-    { "dx": 40, "dy": -10 },
-    { "dx": 0, "dy": 45 }
+    { "dx": -52, "dy": -26 },
+    { "dx": 52, "dy": -13 },
+    { "dx": 0, "dy": 58 }
   ],
   "campTypes": [
     {

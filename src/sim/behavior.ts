@@ -1,5 +1,6 @@
 import { TPS, performAttack, tauntTarget } from './combat';
 import { dist } from './core/math';
+import { touchesFixedBody } from './collision';
 import { hpPct, isEnemy, isTargetable, type Ctx } from './ctx';
 import { matchupAt } from './ai/power';
 import { retreatLanePath } from './ai/strategic';
@@ -17,7 +18,7 @@ const DETOUR_TICKS = 10;
 function stepClear(ctx: Ctx, u: Unit, x: number, y: number): boolean {
   const terrain = ctx.world.terrain;
   const d = dist(u.x, u.y, x, y);
-  const f = Math.min(1, u.stats.moveSpeed / TPS / (d || 1));
+  const f = Math.min(1, (u.stats.moveSpeed * ctx.t.movement.speedMul) / TPS / (d || 1));
   return (
     walkable(terrain, ctx.open, u.x + (x - u.x) * f, u.y + (y - u.y) * f) &&
     clearLine(terrain, ctx.open, u.x, u.y, x, y)
@@ -82,7 +83,7 @@ export function stepToward(
   let dy = gy - u.y;
   let d = Math.sqrt(dx * dx + dy * dy);
   if (d < 0.001) return 0;
-  const reach = (u.stats.moveSpeed * speedMul) / TPS;
+  const reach = (u.stats.moveSpeed * speedMul * ctx.t.movement.speedMul) / TPS;
   let step = Math.min(d, reach);
   let nx = u.x + (dx / d) * step;
   let ny = u.y + (dy / d) * step;
@@ -117,6 +118,11 @@ function followPath(ctx: Ctx, u: Unit): boolean {
   if (u.pathI >= u.path.length) return false;
   const wp = u.path[u.pathI];
   const d = dist(u.x, u.y, wp[0], wp[1]);
+  // A path that ends inside a Bastion, Throne or obelisk is done once the unit touches it.
+  if (u.pathI === u.path.length - 1 && d <= 60 && touchesFixedBody(ctx, u)) {
+    u.pathI = u.path.length;
+    return true;
+  }
   if (d <= ctx.t.movement.arriveDist && u.pathI < u.path.length - 1) {
     u.pathI++;
     return true;
@@ -308,7 +314,7 @@ function eventUnitBehavior(ctx: Ctx, u: Unit): void {
   // boss: guards its spot like a camp
   const away = dist(u.x, u.y, ev.homeX, ev.homeY);
   const def = ctx.c.eventById.get(ctx.s.events.find((e) => e.id === ev.eventId)?.defId ?? '');
-  const leash = def?.leash ?? 260;
+  const leash = def?.leash ?? 338;
   if (t && away > leash) {
     u.targetId = null;
     t = null;

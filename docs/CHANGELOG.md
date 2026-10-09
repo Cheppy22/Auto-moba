@@ -4,6 +4,11 @@ Newest first. One entry per change: what changed, why, and any measured effect. 
 
 ## 2026-10-09
 
+- **Wider lanes, bigger map, soft collision** (branch `test-product-2`). Why: Cheppy found lanes too narrow to spectate; pieces were passing through each other.
+  - Map scaled ×1.3 (size 1300); lane half-width 40 → 72. Map-scale distances in tuning and AI scaled by the same factor.
+  - Soft collision (`src/sim/collision.ts`): units push apart by body size and mass (pieces > pawns > pawnlings); structures don't move. Deterministic. Tests in `tests/collision.test.ts`.
+  - 3D world follows the map size and lane width (`src/render/broadcast/scale.ts`).
+  - Measured (800 matches, seed 29000): White 46.9% (target 48–52, open), median 15.9 min, p90 28.2. Before: 48.1%. Compute 0.207 ms/tick, a little over the 0.25 target on one long run. Ablation suggests collision between same-team units lowers White's rate; probably noise plus a small bias, not yet confirmed.
 - **Report overhaul** (branch `test-product-2`). Why: Cheppy wanted graphs, a Deadlock-style result splash up front, and swipeable tabs for different status reports.
   - Data: `buildSummary` in `src/analysis/summary.ts` (rows, team totals, MVP, awards, 10 s series, timeline, objectives). Every number traces to the event log (`tests/summary.test.ts`). MVP score = 3·kills + 1.5·assists + 40·damage share + 15·healing share + 25·objective share − 2·deaths.
   - Screens: a scroll-snap pager with tabs Result, Economy, Combat, Objectives, Pieces, Replay and Log (swipe, arrows, keys). Result splash: Checkmate banner, both scoreboards (style emblem, rank, K/D/A, damage, healing, gold, items), MVP crown, award chips, team-total bars. Charts are in-house SVG (no new dependency): gold lead, gold by team and source, rank over time, damage by type, damage taken vs healing, kills, pieces alive, fights, Bastion/Throne/Check timeline, gambits and Tempo split.

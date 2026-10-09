@@ -150,7 +150,7 @@ function validTarget(
       } else if (!u.hero) return 'pick an enemy piece';
       if (eff === 'fork') {
         const k = teamPiece(ctx, team, 'knight')!;
-        if (dist(k.x, k.y, u.x, u.y) > p(def, 'reach', 600)) return 'out of the Knight’s reach';
+        if (dist(k.x, k.y, u.x, u.y) > p(def, 'reach', 780)) return 'out of the Knight’s reach';
       }
       return { targetId: u.id };
     }
@@ -537,8 +537,8 @@ function plan(ctx: Ctx, team: PlayTeam, def: GambitDef): Plan | null {
         const st = frontStructure(ctx, team, lane);
         if (!st || !isTargetable(ctx, st)) continue;
         const d = dist(r.x, r.y, st.x, st.y);
-        if (d > 650) continue;
-        const allies = countNear(ctx, team, st.x, st.y, 500, isPiece);
+        if (d > 650 * ctx.world.k) continue;
+        const allies = countNear(ctx, team, st.x, st.y, 500 * ctx.world.k, isPiece);
         const score = 0.7 + 0.2 * allies + (st.kind === 'guardian' ? 0.4 : 0) - d / 2000;
         if (!best || score > best.score) best = { score, target: { targetId: st.id } };
       }
@@ -567,7 +567,7 @@ function plan(ctx: Ctx, team: PlayTeam, def: GambitDef): Plan | null {
     case 'fork': {
       const k = teamPiece(ctx, team, 'knight');
       if (!k?.alive || hpPct(k) < 0.5) return null;
-      const reach = p(def, 'reach', 600);
+      const reach = p(def, 'reach', 780);
       let best: Plan | null = null;
       for (const e of theirs) {
         if (dist(k.x, k.y, e.x, e.y) > reach) continue;

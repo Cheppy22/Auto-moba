@@ -6,11 +6,15 @@ import {
   Mesh,
   ShaderMaterial,
   Uint32BufferAttribute,
+  Vector2,
 } from 'three';
 import { type TerrainField, WATER_Y } from './terrain';
 
 const SQRT1_2 = Math.SQRT1_2;
-/** The river runs this far either side of the centre of the map, and this wide either side of its line. */
+/**
+ * The river runs `REACH` either side of the centre of the map and `SPAN` either side of its line
+ * (both times the map's island radius over 700, as tuned), in `ALONG` by `ACROSS` quads.
+ */
 const REACH = 664;
 const SPAN = 74;
 const ALONG = 120;
@@ -28,6 +32,7 @@ void main() {
 
 const FRAG = /* glsl */ `
 uniform float uTime;
+uniform vec2 uLip;
 varying vec3 vW;
 varying float vDepth;
 float h21(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
@@ -58,7 +63,7 @@ void main() {
   alpha = max(alpha, foam * 0.55 * step(0.0, vDepth));
   // the lip of the island: the river runs out into the void
   float r = length(vW.xz);
-  alpha *= 1.0 - smoothstep(624.0, 676.0, r);
+  alpha *= 1.0 - smoothstep(uLip.x, uLip.y, r);
   gl_FragColor = vec4(col, alpha);
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
@@ -71,26 +76,30 @@ export class River {
   private readonly geo: BufferGeometry;
 
   constructor(field: TerrainField) {
+    const k = field.ws.k;
+    const reach = REACH * k;
+    const span = SPAN * k;
+    const along = Math.round(ALONG * k);
     const cols = ACROSS + 1;
-    const rows = ALONG + 1;
+    const rows = along + 1;
     const pos = new Float32Array(cols * rows * 3);
     const depth = new Float32Array(cols * rows);
     for (let r = 0; r < rows; r++) {
-      const s = -REACH + (r / ALONG) * REACH * 2;
+      const s = -reach + (r / along) * reach * 2;
       const center = field.riverCenter(s);
       for (let c = 0; c < cols; c++) {
-        const a = center + (c / ACROSS - 0.5) * SPAN * 2;
+        const a = center + (c / ACROSS - 0.5) * span * 2;
         const wx = (s + a) * SQRT1_2;
         const wz = (s - a) * SQRT1_2;
-        const k = r * cols + c;
-        pos[k * 3] = wx;
-        pos[k * 3 + 1] = WATER_Y;
-        pos[k * 3 + 2] = wz;
-        depth[k] = WATER_Y - field.heightW(wx, wz);
+        const v = r * cols + c;
+        pos[v * 3] = wx;
+        pos[v * 3 + 1] = WATER_Y;
+        pos[v * 3 + 2] = wz;
+        depth[v] = WATER_Y - field.heightW(wx, wz);
       }
     }
     const idx: number[] = [];
-    for (let r = 0; r < ALONG; r++) {
+    for (let r = 0; r < along; r++) {
       for (let c = 0; c < ACROSS; c++) {
         const a = r * cols + c;
         idx.push(a, a + 1, a + cols, a + 1, a + cols + 1, a + cols);
@@ -104,7 +113,10 @@ export class River {
     this.mat = new ShaderMaterial({
       vertexShader: VERT,
       fragmentShader: FRAG,
-      uniforms: { uTime: { value: 0 } },
+      uniforms: {
+        uTime: { value: 0 },
+        uLip: { value: new Vector2(field.ws.islandR * 0.891, field.ws.islandR * 0.966) },
+      },
       side: DoubleSide,
       transparent: true,
       depthWrite: false,

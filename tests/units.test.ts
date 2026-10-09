@@ -35,8 +35,10 @@ describe('world', () => {
     expect(laneT(world.lanes.top, p.x, p.y)).toBeCloseTo(0.3, 2);
   });
   it('paths respect closed slots', () => {
-    const from = { x: 110, y: 890 };
-    const to = { x: 890, y: 110 };
+    const [ax, ay] = content.map.bases.A;
+    const [bx, by] = content.map.bases.B;
+    const from = { x: ax, y: ay };
+    const to = { x: bx, y: by };
     const closed = findPath(world, from, to, new Set());
     const open = findPath(world, from, to, new Set(['tlc', 'brc']));
     expect(closed.length).toBeGreaterThan(2);
@@ -45,8 +47,8 @@ describe('world', () => {
   it('towers are placed symmetrically', () => {
     const a = world.towerPos.A.mid[0];
     const b = world.towerPos.B.mid[0];
-    expect(a.x + b.x).toBeCloseTo(1000, 0);
-    expect(a.y + b.y).toBeCloseTo(1000, 0);
+    expect(a.x + b.x).toBeCloseTo(content.map.size, 0);
+    expect(a.y + b.y).toBeCloseTo(content.map.size, 0);
   });
 });
 

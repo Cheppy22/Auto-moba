@@ -4,9 +4,9 @@
   "era": "Heian",
   "palette": { "ground": "#1a2630", "accent": "#4aa3a0", "glow": "#9ff3e6" },
   "camps": [
-    { "dx": -35, "dy": 15 },
-    { "dx": 35, "dy": 20 },
-    { "dx": 0, "dy": -40 }
+    { "dx": -46, "dy": 20 },
+    { "dx": 46, "dy": 26 },
+    { "dx": 0, "dy": -52 }
   ],
   "campTypes": [
     {

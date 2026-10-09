@@ -156,3 +156,8 @@ New events: `rankUp { id, rank, bonus }`, `fork { id, rank, optionId, auto }`, `
 
 - **Style must be readable on sight, for both teams.** Every one of the 15 styles gets: a distinct **emblem** (a simple glyph in a style colour) shown next to the rank badge on the piece's bar, on the roster portraits of **both** teams and in tooltips; a **signature accessory/prop** on the 3D piece (different silhouette, not just a colour); and a style-coloured ground ring. Tapping any piece or roster portrait (including Black's) opens a small **piece card**: style name and one-line description, path, rank, items.
 - **Calm HUD:** the screen is cluttered at all times, so the default view shows less: full-health pawnlings and pawns have no health bars; pieces keep a thin bar with emblem and rank; gambit cards show name and cost only (full text on tap or hold); roster cells drop the 8 rank pips (numeral only); speed and camera controls collapse to compact controls; banners and chips stack and fade faster; scenery and effects stay out of the lanes. Information appears when it matters (damaged, selected, fork pending, low health) rather than all the time.
+
+## Map scale and spacing (2026-10-09)
+
+- The map is 1300 units across (scaled ×1.3 from 1000). Lanes are 144 wide (half-width 72), enough for 3–4 units side by side.
+- Units have body radii and push each other apart (`collision` in `content/tuning.json`; masses piece 3, pawn 2, pawnling 1, neutral 4). Bastions, Thrones, obelisks and the Keeper never move and push others out.

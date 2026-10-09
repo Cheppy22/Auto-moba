@@ -15,8 +15,8 @@ describe('jungle shops', () => {
     const shops = content.map.shops;
     expect(shops).toHaveLength(2);
     const [a, b] = shops;
-    expect(a.x + b.x).toBe(1000);
-    expect(a.y + b.y).toBe(1000);
+    expect(a.x + b.x).toBe(content.map.size);
+    expect(a.y + b.y).toBe(content.map.size);
   });
 
   it('sells the base catalog to a piece standing at a shop', () => {

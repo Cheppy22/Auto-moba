@@ -62,8 +62,8 @@ export function makeHero(ctx: Ctx, team: PlayTeam, slot: number, entry: SetupEnt
   const role = entry.lane;
   const base = ctx.world.basePos[team];
   const dir = team === 'A' ? 1 : -1;
-  const ox = dir * (14 + slot * 7);
-  const oy = -dir * (14 + (slot % 2) * 9);
+  const ox = dir * (16 + slot * 20);
+  const oy = -dir * (14 + (slot % 2) * 20);
   const u = newUnit(ctx, 'hero', team, defId, base.x + ox, base.y + oy, { ...def.stats });
   u.atkRange = def.stats.range;
   u.lane = role;
@@ -122,6 +122,7 @@ export function makeMinion(
   type: 'melee' | 'ranged',
   scale: number,
   offset: number,
+  side = 0,
 ): Unit {
   const m = ctx.t.minions[type];
   const base = ctx.world.basePos[team];
@@ -151,8 +152,8 @@ export function makeMinion(
   const dx = p1[0] - p0[0];
   const dy = p1[1] - p0[1];
   const len = Math.sqrt(dx * dx + dy * dy) || 1;
-  u.x = p0[0] + (dx / len) * offset;
-  u.y = p0[1] + (dy / len) * offset;
+  u.x = p0[0] + (dx / len) * offset - (dy / len) * side;
+  u.y = p0[1] + (dy / len) * offset + (dx / len) * side;
   u.px = u.x;
   u.py = u.y;
   return u;

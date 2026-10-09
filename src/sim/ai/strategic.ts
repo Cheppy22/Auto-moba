@@ -240,7 +240,7 @@ export function strategicUpdate(ctx: Ctx, u: Unit): void {
 
   const wary = isWary(ctx, h);
   const healing = cur !== null && (cur.kind === 'retreat' || cur.kind === 'base');
-  const foesClose = enemiesNear(ctx, u, u.x, u.y, 600) > 0;
+  const foesClose = enemiesNear(ctx, u, u.x, u.y, 600 * ctx.world.k) > 0;
   const needHeal =
     hp < pers.retreatHp + (wary ? 0.12 : 0) ||
     (healing && hp < 0.78) ||
@@ -251,14 +251,14 @@ export function strategicUpdate(ctx: Ctx, u: Unit): void {
     if (distBase <= ai.ai.healBaseRadius) {
       cands.push(cand('base', base.x, base.y, goalKey('base', 0), 10));
     } else {
-      if (!threatened && distBase > 350) {
+      if (!threatened && distBase > 350 * ctx.world.k) {
         startRecall(ctx, u, 'base', true);
         return;
       }
       cands.push(cand('retreat', base.x, base.y, goalKey('retreat', 0), 10));
     }
   } else {
-    if (distBase > 400 && enemiesNear(ctx, u, u.x, u.y, 260) === 0) {
+    if (distBase > 400 * ctx.world.k && enemiesNear(ctx, u, u.x, u.y, 260) === 0) {
       const p = nextPurchase(ctx, u, 'base');
       const since = ctx.s.tick - (h.lastRecallTick ?? -9999);
       let shopClose = false;
@@ -306,7 +306,7 @@ export function strategicUpdate(ctx: Ctx, u: Unit): void {
           const lg = ctx.world.lanes[plan.lane].length;
           const tp = progressAt(ctx, team, plan.lane, st.x, st.y);
           const atp = pointAtProgress(ctx, team, plan.lane, tp - standoff(u) / lg);
-          const stp = pointAtProgress(ctx, team, plan.lane, tp - 260 / lg);
+          const stp = pointAtProgress(ctx, team, plan.lane, tp - (260 * ctx.world.k) / lg);
           sx = atp.x;
           sy = atp.y;
           stageX = stp.x;
@@ -317,15 +317,15 @@ export function strategicUpdate(ctx: Ctx, u: Unit): void {
           const l = Math.sqrt(dx * dx + dy * dy) || 1;
           sx = st.x + (dx / l) * 100;
           sy = st.y + (dy / l) * 100;
-          stageX = st.x + (dx / l) * 330;
-          stageY = st.y + (dy / l) * 330;
+          stageX = st.x + (dx / l) * 330 * ctx.world.k;
+          stageY = st.y + (dy / l) * 330 * ctx.world.k;
         }
         const need = Math.min(
           ai.ai.siegeGather,
           ctx.s.teams[team].heroIds.filter((id) => ctx.unit(id)?.alive).length,
         );
-        const gathered = alliedHeroesNear(ctx, team, stageX, stageY, 420, u.id) + 1;
-        const here = alliedHeroesNear(ctx, team, st.x, st.y, 420, u.id) + 1;
+        const gathered = alliedHeroesNear(ctx, team, stageX, stageY, 420 * ctx.world.k, u.id) + 1;
+        const here = alliedHeroesNear(ctx, team, st.x, st.y, 420 * ctx.world.k, u.id) + 1;
         const go =
           gathered >= need || here >= need || ctx.s.tick - h.goalSetTick > ai.ai.siegeWaitTicks;
         cands.push(
@@ -403,7 +403,7 @@ export function strategicUpdate(ctx: Ctx, u: Unit): void {
         ? (2.6 + 0.15 * Math.min(6, threat)) * (0.6 + 0.4 * (post.defendTower ?? 1))
         : (0.35 + 0.12 * Math.min(6, threat)) *
           (post.defendTower ?? 1) *
-          Math.max(0.2, 1 - d / 2500);
+          Math.max(0.2, 1 - d / (2500 * ctx.world.k));
       if (!bestDef || score > bestDef.score) {
         const dx = base.x - st.x;
         const dy = base.y - st.y;
@@ -434,7 +434,8 @@ export function strategicUpdate(ctx: Ctx, u: Unit): void {
             const mine = cur?.key === goalKey('clearCamp', cu.camp!.slot + cu.camp!.spot);
             if (claims > (mine ? 1 : 0)) continue;
             const base0 = h.jungler ? 1.1 : h.disposition === 'farmer' ? 0.5 : 0.3;
-            const score = base0 * (post.clearCamp ?? 1) * Math.max(0.2, 1 - d / 1800);
+            const score =
+              base0 * (post.clearCamp ?? 1) * Math.max(0.2, 1 - d / (1800 * ctx.world.k));
             if (!bestCamp || score > bestCamp.score) {
               bestCamp = cand(
                 'clearCamp',
@@ -522,7 +523,10 @@ export function strategicUpdate(ctx: Ctx, u: Unit): void {
       if (claims > (cur?.key === key ? 1 : 0)) continue;
       if (enemiesNear(ctx, u, ob.x, ob.y, 160) >= 4) continue;
       const score =
-        0.75 * (post.takeObelisk ?? 1) * Math.max(0.1, 1 - d / 2200) * (h.jungler ? 1.3 : 1);
+        0.75 *
+        (post.takeObelisk ?? 1) *
+        Math.max(0.1, 1 - d / (2200 * ctx.world.k)) *
+        (h.jungler ? 1.3 : 1);
       cands.push(cand('takeObelisk', ob.x, ob.y, key, score, ob.id));
     }
 
@@ -561,7 +565,7 @@ export function strategicUpdate(ctx: Ctx, u: Unit): void {
       const smallOnly = nextPurchase(ctx, u, 'base');
       const wantsT3 = !!big && ctx.c.itemById.get(big.id)?.tier === 3;
       const radius = wantsT3 ? ai.ai.tier3TripRadius : ai.ai.shopTripRadius;
-      if ((wantsT3 || smallOnly) && enemiesNear(ctx, u, u.x, u.y, 420) === 0) {
+      if ((wantsT3 || smallOnly) && enemiesNear(ctx, u, u.x, u.y, 420 * ctx.world.k) === 0) {
         let bestShop: { id: string; d: number } | null = null;
         for (const sh of ctx.world.map.shops) {
           const d = dist(u.x, u.y, sh.x, sh.y);

@@ -30,7 +30,6 @@ import {
 } from './models';
 import { isPieceId, PIECE_IDS, PIECE_SCALE, PieceModel, type PieceId } from './pieces';
 import { VisualPhysics } from './physics';
-import { ISLAND_R } from './terrain';
 import type { BroadcastFrame, NewEvents } from './types';
 
 const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
@@ -159,6 +158,8 @@ export class BroadcastView {
   private readonly sun: DirectionalLight;
   private readonly half: number;
   private readonly shadows: boolean;
+  /** Map size over the 1000 the art was tuned on. */
+  private readonly mapK: number;
   private time = 0;
   /** Dev tool: speeds up the view's own animation clock (slow software renderers). */
   private devTimeScale = 1;
@@ -198,6 +199,7 @@ export class BroadcastView {
     this.renderer = webgl(canvas);
     this.half = content.map.size / 2;
     const coarse = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
+    this.mapK = content.map.size / 1000;
     this.shadows = !coarse && Math.min(window.innerWidth, window.innerHeight) >= 640;
     const r = this.renderer;
     r.setPixelRatio(Math.min(1.5, window.devicePixelRatio || 1));
@@ -214,12 +216,13 @@ export class BroadcastView {
     sun.castShadow = this.shadows;
     sun.shadow.mapSize.set(2048, 2048);
     const cam = sun.shadow.camera;
-    cam.left = -700;
-    cam.right = 700;
-    cam.top = 700;
-    cam.bottom = -700;
+    const wide = 700 * (content.map.size / 1000);
+    cam.left = -wide;
+    cam.right = wide;
+    cam.top = wide;
+    cam.bottom = -wide;
     cam.near = 200;
-    cam.far = 1800;
+    cam.far = 1800 * (content.map.size / 1000);
     sun.shadow.bias = -0.0004;
     sun.shadow.normalBias = 0.7;
     const rim = new DirectionalLight('#7a64d8', 0.9);
@@ -429,7 +432,7 @@ export class BroadcastView {
     }
     const x = o.x + d.x * hi;
     const z = o.z + d.z * hi;
-    if (Math.hypot(x, z) > ISLAND_R) return null;
+    if (Math.hypot(x, z) > field.ws.islandR) return null;
     return { x: x + this.half, y: z + this.half };
   }
 
@@ -476,7 +479,7 @@ export class BroadcastView {
     this.sun.position.set(snapTo(f.x) + SUN_OFFSET.x, SUN_OFFSET.y, snapTo(f.z) + SUN_OFFSET.z);
     this.sun.target.position.set(snapTo(f.x), 0, snapTo(f.z));
     if (!this.shadows) return;
-    const reach = MathUtils.clamp(this.rig.distance * 0.75, 260, 720);
+    const reach = MathUtils.clamp(this.rig.distance * 0.75, 260, 720 * this.mapK);
     const cam = this.sun.shadow.camera;
     if (Math.abs(cam.right - reach) / reach > 0.08) {
       cam.left = -reach;

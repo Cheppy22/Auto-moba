@@ -40,7 +40,7 @@ import {
   STONE_DARK,
 } from './kit';
 import { ofudaTexture, Scenery } from './scenery';
-import { ISLAND_R, type TerrainField, TerrainView } from './terrain';
+import { type TerrainField, TerrainView } from './terrain';
 import { Veils } from './veil';
 import { River } from './water';
 
@@ -907,7 +907,7 @@ export class Arena {
 
   private buildRim(): void {
     const kit = this.kit;
-    const n = 12;
+    const n = Math.round(12 * this.field.ws.k);
     const posts = new InstancedMesh(
       kit.geo('rim-post', () => new CylinderGeometry(1.8, 2.4, 19, 8).translate(0, 9.5, 0)),
       kit.toon('#2a1c24'),
@@ -933,8 +933,8 @@ export class Arena {
     const m = new Matrix4();
     for (let i = 0; i < n; i++) {
       const a = (i / n) * TAU + 0.13;
-      const x = Math.cos(a) * (ISLAND_R - 56);
-      const z = Math.sin(a) * (ISLAND_R - 56);
+      const x = Math.cos(a) * (this.field.ws.islandR - 56 * this.field.ws.k);
+      const z = Math.sin(a) * (this.field.ws.islandR - 56 * this.field.ws.k);
       const y = this.field.heightW(x, z);
       m.makeTranslation(x, y, z);
       posts.setMatrixAt(i, m);
@@ -1053,7 +1053,7 @@ export class Arena {
       let z = 0;
       for (let k = 0; k < 8; k++) {
         const a = rand01(i * 5 + k * 977) * TAU;
-        const r = 80 + Math.sqrt(rand01(i * 5 + 1 + k * 977)) * 520;
+        const r = (80 + Math.sqrt(rand01(i * 5 + 1 + k * 977)) * 520) * this.field.ws.k;
         x = Math.cos(a) * r;
         z = Math.sin(a) * r;
         if (lanes.every((sh) => shapeDist(sh, x + h, z + h) > 24)) break;

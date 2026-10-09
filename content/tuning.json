@@ -51,7 +51,7 @@
     "extraMeleePerPhaseAfter": 1,
     "extraMeleeFromPhase": 2,
     "scalePerPhase": 0.3,
-    "midLeadUnits": 150
+    "midLeadUnits": 195
   },
   "minions": {
     "melee": {
@@ -107,7 +107,7 @@
   "gold": {
     "heroKill": 200,
     "assist": 80,
-    "shareRadius": 600,
+    "shareRadius": 780,
     "minionShare": 6,
     "killBountyPerStreak": 20,
     "comebackBounty": 40
@@ -272,9 +272,9 @@
   "shop": {
     "slots": 6,
     "sellRefund": 0.5,
-    "baseRadius": 110,
-    "keeperRadius": 120,
-    "jungleRadius": 60,
+    "baseRadius": 143,
+    "keeperRadius": 156,
+    "jungleRadius": 78,
     "keeperStock": 3,
     "unlockDiscount": 0.25
   },
@@ -282,7 +282,35 @@
     "baseSec": 3
   },
   "movement": {
-    "arriveDist": 12
+    "arriveDist": 12,
+    "speedMul": 1
+  },
+  "collision": {
+    "radius": {
+      "piece": 10,
+      "pawn": 7,
+      "pawnling": 5,
+      "tower": 18,
+      "guardian": 26,
+      "obelisk": 10,
+      "keeper": 12,
+      "neutralBase": 8,
+      "neutralPerHp": 0.004,
+      "neutralMax": 14
+    },
+    "mass": {
+      "piece": 3,
+      "pawn": 2,
+      "pawnling": 1,
+      "neutral": 4
+    },
+    "tolerance": 1.5,
+    "stiffness": 0.4,
+    "iterations": 2,
+    "maxPush": 1.2,
+    "slide": 0.5,
+    "spawnGap": 14,
+    "spawnStagger": 9
   },
   "ai": {
     "aggroRadius": 150,
@@ -290,11 +318,11 @@
     "allyRadius": 300,
     "shopAtBaseGold": 300,
     "recallBelowHp": 0.35,
-    "healBaseRadius": 100,
+    "healBaseRadius": 130,
     "baseHealPerSec": 0.12,
-    "wanderJitter": 25,
-    "pushWaveRadius": 260,
-    "defendRadius": 320,
+    "wanderJitter": 32,
+    "pushWaveRadius": 338,
+    "defendRadius": 416,
     "bidFraction": [0.3, 0.5, 1.0],
     "bidGoldFraction": 0.2,
     "curseAcceptBase": 0.55,
@@ -307,22 +335,22 @@
     "siegeAssignedBonus": 0.1,
     "siegeMidPenalty": 0.2,
     "siegeLaneStick": 0.6,
-    "laneHugRadius": 150,
-    "joinFightRadius": 450,
-    "defendOffLaneRadius": 600,
-    "guardianThreatRadius": 400,
+    "laneHugRadius": 195,
+    "joinFightRadius": 585,
+    "defendOffLaneRadius": 780,
+    "guardianThreatRadius": 520,
     "suggestScore": 1.2,
     "shopTripGold": 700,
-    "shopTripRadius": 380,
+    "shopTripRadius": 494,
     "shopTripScore": 0.9,
-    "tier3TripRadius": 1300,
+    "tier3TripRadius": 1690,
     "swapAfterDeaths": 3,
     "dominatedGap": 3,
     "lossWindowTicks": 3600,
     "cautiousDeaths": 2,
     "cautiousTicks": 1800,
     "healSafeHp": 0.45,
-    "rescueRadius": 900,
+    "rescueRadius": 1170,
     "rescueScore": 2.4,
     "rescueRatio": 1.0,
     "commitBonus": 1.5,
@@ -330,7 +358,7 @@
     "holdBraveCap": 1.2,
     "tier3TripScore": 1.1,
     "holdPatience": 400,
-    "huntRadius": 650,
+    "huntRadius": 845,
     "huntScore": 0.8
   },
   "personalities": {
@@ -410,7 +438,7 @@
   "obelisk": {
     "spawnSec": [50, 150],
     "claimSec": 5,
-    "radius": 65,
+    "radius": 85,
     "points": 3,
     "expireSec": 90,
     "rewards": [
@@ -447,12 +475,12 @@
   },
   "camps": {
     "respawnSec": 70,
-    "leash": 220,
+    "leash": 286,
     "aggro": 100
   },
   "fight": {
     "clusterGapSec": 4,
-    "clusterRadius": 220
+    "clusterRadius": 286
   },
   "events": {
     "firstSec": 40,

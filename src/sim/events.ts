@@ -183,7 +183,7 @@ function activate(ctx: Ctx, ev: EventInst, def: EventDef): void {
     let k = 0;
     for (const ud of def.units) {
       for (let i = 0; i < ud.count; i++, k++) {
-        const back = k * (def.kind === 'procession' ? 16 : 12);
+        const back = k * (def.kind === 'procession' ? 20 : 22);
         const u = newUnit(
           ctx,
           'minion',

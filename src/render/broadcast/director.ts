@@ -65,10 +65,10 @@ function centroid(pts: Pt[]): Pt {
   return { x: x / pts.length, y: y / pts.length };
 }
 
-function frame(pts: Pt[]): Pt & { radius: number } {
+function frame(pts: Pt[], k: number): Pt & { radius: number } {
   const c = centroid(pts);
   const reach = pts.reduce((m, p) => Math.max(m, dist(p, c)), 0);
-  return { ...c, radius: clamp(reach + MARGIN, MIN_RADIUS, MAX_RADIUS) };
+  return { ...c, radius: clamp(reach + MARGIN, MIN_RADIUS * k, MAX_RADIUS * k) };
 }
 
 function segmentDist(p: Pt, a: readonly number[], b: readonly number[]): number {
@@ -80,10 +80,10 @@ function segmentDist(p: Pt, a: readonly number[], b: readonly number[]): number 
 }
 
 /** The largest group of heroes within CLUSTER of one member that has enough of each side. */
-function bestCluster(heroes: SnapUnit[], perSide: number): SnapUnit[] | null {
+function bestCluster(heroes: SnapUnit[], perSide: number, k: number): SnapUnit[] | null {
   let best: SnapUnit[] | null = null;
   for (const c of heroes) {
-    const group = heroes.filter((u) => dist(u, c) <= CLUSTER);
+    const group = heroes.filter((u) => dist(u, c) <= CLUSTER * k);
     const a = group.filter((u) => u.team === 'A').length;
     if (a < perSide || group.length - a < perSide) continue;
     if (!best || group.length > best.length) best = group;
@@ -92,6 +92,8 @@ function bestCluster(heroes: SnapUnit[], perSide: number): SnapUnit[] | null {
 }
 
 export class Director {
+  /** Map size over 1000: the distances above were tuned on a 1000-unit map. */
+  private readonly k: number;
   private readonly size: number;
   private readonly lanes: [LaneId, readonly (readonly number[])[]][];
   private readonly bases: Pt[];
@@ -109,6 +111,7 @@ export class Director {
   constructor(content: Content) {
     const map = content.map;
     this.size = map.size;
+    this.k = map.size / 1000;
     this.lanes = LANE_IDS.map((id) => [id, map.lanes[id]]);
     this.bases = [map.bases.A, map.bases.B].map(([x, y]) => ({ x, y }));
     for (const team of ['A', 'B'] as const) {
@@ -206,7 +209,7 @@ export class Director {
     let match: Cand | undefined;
     if (this.key !== null) {
       match = cands
-        .filter((c) => c.key === this.key && dist(c, cur) <= JUMP)
+        .filter((c) => c.key === this.key && dist(c, cur) <= JUMP * this.k)
         .sort((a, b) => dist(a, cur) - dist(b, cur))[0];
       if (match) this.endedAt = null;
       else this.endedAt ??= tick;
@@ -227,7 +230,7 @@ export class Director {
 
   private start(c: Cand, tick: number): void {
     const from = this.key === null ? null : this.shot;
-    const cut = c.kind === 'structure' || (from !== null && dist(from, c) > JUMP);
+    const cut = c.kind === 'structure' || (from !== null && dist(from, c) > JUMP * this.k);
     this.cutTick = cut ? tick : null;
     this.key = c.key;
     this.endedAt = null;
@@ -244,7 +247,7 @@ export class Director {
     const tick = snap.tick;
     const out: Cand[] = [];
     const add = (key: string, kind: Play, pts: Pt[], caption: string, subjects: number[]): void => {
-      const f = frame(pts);
+      const f = frame(pts, this.k);
       out.push({ key, kind, ...f, caption, subjects, priority: PRIORITY[kind] });
     };
     const spot = (key: string, kind: Play, p: Pt, caption: string, subjects: number[]): void => {
@@ -253,7 +256,7 @@ export class Director {
         kind,
         x: p.x,
         y: p.y,
-        radius: MIN_RADIUS + 20,
+        radius: (MIN_RADIUS + 20) * this.k,
         caption,
         subjects,
         priority: PRIORITY[kind],
@@ -271,9 +274,10 @@ export class Director {
       const home = this.guardianHome[g.team];
       const hit = this.guardianHits.get(g.id);
       const siege = hit !== undefined && tick - hit <= GUARDIAN_HIT_WINDOW && g.hp < g.maxHp;
-      const away = snap.phase.n >= GUARDIAN_PHASE && !!home && dist(g, home) > GUARDIAN_AWAY;
+      const away =
+        snap.phase.n >= GUARDIAN_PHASE && !!home && dist(g, home) > GUARDIAN_AWAY * this.k;
       if (!siege && !away) continue;
-      const foes = heroes.filter((h) => h.team !== g.team && dist(h, g) <= CLUSTER + 40);
+      const foes = heroes.filter((h) => h.team !== g.team && dist(h, g) <= (CLUSTER + 40) * this.k);
       add(
         `guardian:${g.id}`,
         'guardian',
@@ -291,7 +295,7 @@ export class Director {
         kind: 'structure',
         x: f.x,
         y: f.y,
-        radius: 220,
+        radius: 220 * this.k,
         caption: titled(title, f),
         subjects,
         priority: PRIORITY.structure,
@@ -301,7 +305,7 @@ export class Director {
     const last = this.deaths[this.deaths.length - 1];
     if (last && tick - last.tick <= MULTI_HOLD) {
       const group = this.deaths.filter(
-        (d) => last.tick - d.tick <= MULTI_WINDOW && dist(d, last) <= MULTI_REACH,
+        (d) => last.tick - d.tick <= MULTI_WINDOW && dist(d, last) <= MULTI_REACH * this.k,
       );
       if (group.length >= 2) {
         const name = MULTI_NAMES[group.length - 2] ?? 'Massacre';
@@ -309,7 +313,7 @@ export class Director {
       }
     }
 
-    const fight = bestCluster(heroes, 3);
+    const fight = bestCluster(heroes, 3, this.k);
     if (fight)
       add('teamfight', 'teamfight', fight, titled('Team fight', centroid(fight)), ids(fight));
 
@@ -329,7 +333,7 @@ export class Director {
         kind: 'event',
         x: e.x,
         y: e.y,
-        radius: clamp(reach + MARGIN, MIN_RADIUS, MAX_RADIUS),
+        radius: clamp(reach + MARGIN, MIN_RADIUS * this.k, MAX_RADIUS * this.k),
         caption: e.name,
         subjects: ids(near),
         priority: PRIORITY.event,
@@ -349,14 +353,14 @@ export class Director {
         fighting.set(foe.id, foe);
       }
     }
-    const brawl = bestCluster([...fighting.values()].sort(byId), 1);
+    const brawl = bestCluster([...fighting.values()].sort(byId), 1, this.k);
     if (brawl) add('skirmish', 'skirmish', brawl, titled('Skirmish', centroid(brawl)), ids(brawl));
 
     return out.sort((a, b) => b.priority - a.priority);
   }
 
   private area(p: Pt): string {
-    if (this.bases.some((b) => dist(p, b) <= BASE_DIST)) return 'Base';
+    if (this.bases.some((b) => dist(p, b) <= BASE_DIST * this.k)) return 'Base';
     let best: LaneId = 'mid';
     let bestD = Infinity;
     for (const [id, line] of this.lanes) {
