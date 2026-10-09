@@ -102,10 +102,41 @@ Mobile first (portrait 390×844, landscape 844×390, desktop). The 3D island sta
 - **End report:** a horizontal pager. The front page is the **Result splash** (Checkmate banner, both team scoreboards, MVP, award chips, team totals, New match / Same seed); swipe or use the tab bar for Economy, Combat, Objectives, Pieces, Replay and Log, which hold the graphs. Data from `buildSummary` (`src/analysis/summary.ts`); factual only, no advice.
 - Cut: draft, upgrade cards, between-phase shop, shop pins and suggestion queue, auto-buy and Farm toggles, recall button, curse and event prompts (the AI decides curses for both teams).
 
-## Look
+## Look: "The Grand Board" (art direction, 2026-10-09)
 
-- White (ivory, pearl, brass) vs Black (ebony, obsidian, silver). The island ground becomes a chessboard: ivory and ebony tile halves, raised roads, the bases as throne daises. Jungle biomes and events stay as they are.
-- Pieces are characters shaped like chess pieces (crowned King, Queen with a coronet, tower-bodied Rook, mitred Bishop, horse-headed Knight), each with a style accent. Pawns are armoured pawn soldiers; pawnlings are smaller, simpler pawn figures.
+The chess branch drops the xxxHolic and Wonderland dressing (violet ink, seal-red stamps, kanji, butterflies, ritual rings, mushrooms, tea-party and rose-garden discs). It looks like a tournament hall and a formal palace garden built on a giant chessboard.
+
+**Interface palette** (tokens in `src/ui/css/tokens.css`):
+
+| Token        | Use                                       | Value   |
+| ------------ | ----------------------------------------- | ------- |
+| Ebony        | page background, deepest panels           | #14110e |
+| Walnut       | panels, cards                             | #2a1e16 |
+| Mahogany     | raised panels, hover                      | #3d281c |
+| Ivory        | primary text, White team, primary buttons | #efe6d2 |
+| Bone         | secondary text                            | #cbbd9f |
+| Brass        | rims, dividers, highlights, gold          | #c9a35a |
+| Baize        | selected / active state (tournament felt) | #23503c |
+| Silver-slate | Black team                                | #9aa5b8 |
+| Clock red    | danger only: Check, low health, errors    | #b8392c |
+
+- Item category colours (Mind, Body, Soul) and style emblem colours keep their own hues; nothing else uses them.
+- **Buttons** are ivory or ebony tiles with a brass rim; the primary action is an ivory tile with ebony text; selected options sit on baize green. Clock red is for danger, never for "Begin".
+- **Background:** a low-contrast checkerboard with a warm vignette; no rings, stamps, kanji or butterflies.
+- **Type:** keep the serif small caps; add chess notation as quiet decoration (file letters a–h and rank numbers on board edges, algebraic notation in the log where it fits).
+- **Act timer** reads as a chess clock; the score as captured material.
+- Contrast ≥ 5.7:1 for text; tap targets ≥ 40px.
+
+**3D board:**
+
+- Walkable ground is polished stone chessboard (ivory and ebony squares at one consistent scale). Lanes are inlaid marble roads with thin brass borders; no coloured centre stripes. Lane identity, if needed, comes from notation marks at the lane edges.
+- Bases are castle throne platforms (stone walls, steps, banners in team colours).
+- Off the walkable ground is a formal palace garden: clipped yew hedges, topiary shaped as chess pieces, marble balustrades along the drops, gravel, a few cypress and box trees. No mushrooms, autumn trees or random props.
+- Jungle clearings are sunken checkered courts with low stone walls. Sealed clearings show closed iron gates and a light ground mist, not domes.
+- The river is a stone-banked reflecting canal with bridges where lanes cross.
+- Pieces keep their models, emblems and props. Badges must not pile up when pieces bunch (merge, offset or hide overlapping ones).
+- Lighting is warm hall or late-afternoon garden light, calmer and less saturated than before.
+- Pieces are characters shaped like chess pieces (crowned King, Queen with a coronet, tower-bodied Rook, mitred Bishop, horse-headed Knight), each with a style accent. Pawns are armoured pawn soldiers; pawnlings are smaller pawn figures.
 
 ## Removed on this branch
 
