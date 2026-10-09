@@ -37,6 +37,9 @@ const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
 const GOLD_BOLT = '#f0b44c';
 const ONI_RED = '#9c2a2e';
 const SHIELD = '#a9d0e0';
+/** Below this health fraction a piece's bar turns red. */
+const LOW_HP = 0.3;
+const LOW_HP_RED = '#ff5a48';
 const SUN_OFFSET = new Vector3(-380, 760, 520);
 /** Seconds a Sanctuary zone ring lasts. */
 const SANCTUARY_SEC = 6;
@@ -167,6 +170,9 @@ export class BroadcastView {
   private cssH = 0;
   private barScale = 1;
   private badgeSize = 12;
+  private emblemSize = 14;
+  private pieceBarW = 26;
+  private pieceBarH = 3;
   private readonly camRight = new Vector3();
   /** Far shots enlarge heroes and minions a little so phones can still read them. */
   private boost = 1;
@@ -323,10 +329,14 @@ export class BroadcastView {
     const dist = this.rig.distance;
     this.kit.inkWidth.value = MathUtils.clamp(dist * 0.0032, 0.4, 2.6);
     this.barScale = MathUtils.clamp(dist / 700, 0.8, 2.4);
-    // a rank badge stays about 17 CSS px wide, whatever the zoom
+    // piece bars and badges are sized in CSS pixels: a little smaller on far shots, never illegible
     const fov = (camera.fov * Math.PI) / 180;
-    const pxPerUnit = Math.max(1, this.cssH) / (2 * dist * Math.tan(fov / 2));
-    this.badgeSize = MathUtils.clamp(17 / pxPerUnit, 9, 48);
+    const unitPx = (2 * dist * Math.tan(fov / 2)) / Math.max(1, this.cssH);
+    const far = MathUtils.clamp((dist - 600) / 1400, 0, 1);
+    this.badgeSize = lerp(16, 13, far) * unitPx;
+    this.emblemSize = lerp(21, 17, far) * unitPx;
+    this.pieceBarW = lerp(30, 22, far) * unitPx;
+    this.pieceBarH = lerp(3, 2.4, far) * unitPx;
     this.camRight.set(1, 0, 0).applyQuaternion(camera.quaternion);
     this.boost = MathUtils.clamp(dist / 1700, 1, 1.65);
     this.aimSun();
@@ -654,30 +664,36 @@ export class BroadcastView {
           this.rig.camera.quaternion,
         );
         const top = gy + (m.height * PIECE_SCALE + 6) * this.boost;
-        const bw = 26 * k;
-        const bh = 3.6 * k;
-        this.bars.add(x, top, z, bw, bh, frac, col);
+        const bw = this.pieceBarW;
+        const bh = this.pieceBarH;
+        this.bars.add(x, top, z, bw, bh, frac, frac < LOW_HP ? LOW_HP_RED : col);
         if (u.shield > 0)
           this.bars.add(
             x,
-            top + bh * 1.5,
+            top + bh * 1.6,
             z,
             bw,
-            bh * 0.55,
+            bh * 0.6,
             Math.min(1, u.shield / u.maxHp),
             SHIELD,
           );
-        const size = Math.max(bh * 3.4, this.badgeSize);
+        // [emblem][rank]=====  left of the bar
+        const rs = this.badgeSize;
+        const es = this.emblemSize;
+        const r = this.camRight;
+        const dr = bw / 2 + bh * 0.4 + rs * 0.5;
         this.badges.add(
-          x - this.camRight.x * (bw / 2 + size * 0.62),
-          top - this.camRight.y * (bw / 2 + size * 0.62),
-          z - this.camRight.z * (bw / 2 + size * 0.62),
-          size,
+          x - r.x * dr,
+          top - r.y * dr,
+          z - r.z * dr,
+          rs,
           u.rank ?? 1,
           col,
           u.forkPending === true,
           time,
         );
+        const de = dr + rs * 0.42 + es * 0.5;
+        this.badges.emblem(x - r.x * de, top - r.y * de, z - r.z * de, es, v.style);
         break;
       }
       case 'minion': {
@@ -713,23 +729,14 @@ export class BroadcastView {
           scale,
           gy,
         );
-        if (elite)
+        // calm board: pawns and pawnlings show a bar only once they are hurt
+        if (u.hp < u.maxHp - 0.5)
           this.bars.add(
             x,
-            gy + 25 * scale,
+            gy + (elite ? 25 : 14) * scale,
             z,
-            14 * k,
-            2.4 * k,
-            frac,
-            neutral ? PALETTE.neutral : col,
-          );
-        else if (u.hp < u.maxHp)
-          this.bars.add(
-            x,
-            gy + 14 * scale,
-            z,
-            9 * k,
-            1.8 * k,
+            (elite ? 13 : 8) * k,
+            (elite ? 1.9 : 1.5) * k,
             frac,
             neutral ? PALETTE.neutral : col,
           );
@@ -739,7 +746,7 @@ export class BroadcastView {
         v.tower?.root.position.set(x, gy, z);
         if (v.tower) v.tower.root.rotation.y = v.yaw;
         v.tower?.animate(time, lunge, frac);
-        this.bars.add(x, gy + 70, z, 28 * k, 3.6 * k, frac, col);
+        this.bars.add(x, gy + 70, z, 26 * k, 2.8 * k, frac, col);
         break;
       }
       case 'guardian': {
@@ -748,7 +755,7 @@ export class BroadcastView {
         g.root.position.set(x, gy, z);
         g.root.rotation.y = v.yaw;
         g.animate(time, lunge, frac);
-        this.bars.add(x, gy + 150, z, 52 * k, 4.6 * k, frac, col);
+        this.bars.add(x, gy + 150, z, 46 * k, 3.4 * k, frac, col);
         break;
       }
       case 'camp': {

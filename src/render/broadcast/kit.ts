@@ -210,6 +210,18 @@ export class Kit {
     });
   }
 
+  /** A thin hairline ring (event areas): 256 px, a soft band 6 px wide at the rim. */
+  thinRingTexture(): CanvasTexture {
+    return this.texture('ring-thin', 256, 256, (g) => {
+      const r = g.createRadialGradient(128, 128, 112, 128, 128, 124);
+      r.addColorStop(0, 'rgba(255,255,255,0)');
+      r.addColorStop(0.5, 'rgba(255,255,255,1)');
+      r.addColorStop(1, 'rgba(255,255,255,0)');
+      g.fillStyle = r;
+      g.fillRect(0, 0, 256, 256);
+    });
+  }
+
   ringTexture(dashed: boolean): CanvasTexture {
     return this.texture(dashed ? 'ring-dashed' : 'ring', 256, 256, (g) => {
       g.strokeStyle = '#fff';
@@ -277,10 +289,16 @@ export class Kit {
   }
 
   /** A flat decal ring lying on the ground, radius r. Material is unique so its opacity can animate. */
-  decalRing(color: ColorRepresentation, r: number, dashed = false, opacity = 1): Mesh {
+  decalRing(
+    color: ColorRepresentation,
+    r: number,
+    dashed = false,
+    opacity = 1,
+    thin = false,
+  ): Mesh {
     const mat = this.own(
       new MeshBasicMaterial({
-        map: this.ringTexture(dashed),
+        map: thin ? this.thinRingTexture() : this.ringTexture(dashed),
         color,
         transparent: true,
         opacity,
@@ -372,7 +390,11 @@ export class Kit {
 
   /** Primitives baked into one vertex-colour geometry (one draw call instead of many). */
   merge(bits: Bit[]): BufferGeometry {
-    const merged = mergeGeometries(bits.map(bake));
+    let geos = bits.map(bake);
+    // polyhedra come unindexed; merge needs all-or-none
+    if (geos.some((g) => g.index) && geos.some((g) => !g.index))
+      geos = geos.map((g) => (g.index ? g.toNonIndexed() : g));
+    const merged = mergeGeometries(geos);
     if (!merged) throw new Error('model parts do not share attributes');
     for (const b of bits) b.geo.dispose();
     return this.own(merged);
@@ -400,6 +422,53 @@ export class Kit {
       material ?? this.vertexToon(),
       k,
     );
+  }
+
+  /** Unlit vertex-colour mesh with an ink outline (style accents that must read on any body). */
+  inkedGlow(key: string, make: () => Bit[], k = 0.5): Mesh {
+    const geo = this.geo(key, () => this.disown(this.merge(make())));
+    let m = this.basics.get('vertex-basic-inked');
+    if (!m) {
+      m = this.own(new MeshBasicMaterial({ vertexColors: true, fog: false }));
+      this.basics.set('vertex-basic-inked', m);
+    }
+    return this.inked(geo, m, k);
+  }
+
+  /**
+   * A flat ground ring in a solid colour with dark edges (normal blending, so pale colours stay
+   * visible on a pale board and dark ones on a dark board). Material is unique per ring.
+   */
+  styleRing(color: ColorRepresentation, r: number, opacity = 0.92): Mesh {
+    const tex = this.texture('style-ring', 256, 256, (g) => {
+      const band = (r0: number, r1: number, style: string): void => {
+        g.fillStyle = style;
+        g.beginPath();
+        g.arc(128, 128, r1, 0, TAU);
+        g.arc(128, 128, r0, 0, TAU, true);
+        g.fill();
+      };
+      band(86, 92, 'rgba(0,0,0,0.75)');
+      band(92, 114, 'rgba(255,255,255,1)');
+      band(114, 121, 'rgba(0,0,0,0.75)');
+    });
+    const mat = this.own(
+      new MeshBasicMaterial({
+        map: tex,
+        color,
+        transparent: true,
+        opacity,
+        depthWrite: false,
+        fog: false,
+      }),
+    );
+    const m = new Mesh(
+      this.geo('decal', () => new PlaneGeometry(1, 1).rotateX(-Math.PI / 2)),
+      mat,
+    );
+    m.scale.set(r * 2, 1, r * 2);
+    m.renderOrder = 6;
+    return m;
   }
 
   /** Unlit vertex-colour mesh for bright trim and glass. */

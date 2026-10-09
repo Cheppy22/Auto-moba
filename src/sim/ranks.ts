@@ -151,7 +151,7 @@ function rankTo(ctx: Ctx, u: Unit, rank: number): void {
       ctx.s.forks.push({
         heroId: u.id,
         rank,
-        deadlineTick: ctx.s.tick + Math.round(ctx.t.ranks.forkSec * TPS),
+        deadlineTick: ctx.pauseForForks ? null : ctx.s.tick + Math.round(ctx.t.ranks.forkSec * TPS),
       });
     } else applyFork(ctx, u, rank, aiForkPick(ctx, u, rank), true);
     return;
@@ -175,6 +175,12 @@ export function chooseFork(ctx: Ctx, heroId: number, optionId: string): CommandR
   if (forks.length === 0) return { ok: false, reason: 'no fork waiting for that piece' };
   const u = ctx.unit(heroId);
   if (!u || !u.hero) return { ok: false, reason: 'unknown piece' };
+  if (optionId === 'auto') {
+    const f = forks[0];
+    ctx.s.forks.splice(ctx.s.forks.indexOf(f), 1);
+    applyFork(ctx, u, f.rank, aiForkPick(ctx, u, f.rank), true);
+    return { ok: true };
+  }
   for (const f of forks) {
     if (forkOptions(ctx, u, f.rank).some((o) => o.id === optionId)) {
       ctx.s.forks.splice(ctx.s.forks.indexOf(f), 1);
@@ -185,13 +191,27 @@ export function chooseFork(ctx: Ctx, heroId: number, optionId: string): CommandR
   return { ok: false, reason: 'not one of the fork options' };
 }
 
-/** Forks the player let run out get the AI's pick. */
+/** Resolves every pending White fork with the AI's pick (the "Let the AI choose" button). */
+export function autoForks(ctx: Ctx): CommandResult {
+  const pending = ctx.s.forks;
+  if (pending.length === 0) return { ok: false, reason: 'no fork waiting' };
+  ctx.s.forks = [];
+  for (const f of pending) {
+    const u = ctx.unit(f.heroId);
+    if (u?.hero) applyFork(ctx, u, f.rank, aiForkPick(ctx, u, f.rank), true);
+  }
+  return { ok: true };
+}
+
+/** Forks the player let run out get the AI's pick (never with `pauseForForks`: no deadline). */
 export function tickForks(ctx: Ctx): void {
   const s = ctx.s;
   if (s.forks.length === 0) return;
-  const due = s.forks.filter((f) => f.deadlineTick <= s.tick);
+  const isDue = (f: { deadlineTick: number | null }): boolean =>
+    f.deadlineTick !== null && f.deadlineTick <= s.tick;
+  const due = s.forks.filter(isDue);
   if (due.length === 0) return;
-  s.forks = s.forks.filter((f) => f.deadlineTick > s.tick);
+  s.forks = s.forks.filter((f) => !isDue(f));
   for (const f of due) {
     const u = ctx.unit(f.heroId);
     if (u?.hero) applyFork(ctx, u, f.rank, aiForkPick(ctx, u, f.rank), true);

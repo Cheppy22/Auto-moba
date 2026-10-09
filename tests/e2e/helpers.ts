@@ -16,7 +16,14 @@ export interface TestSnap {
     cost: number;
     reason: string;
   }[];
-  forks: { heroId: number; rank: number; options: { id: string; name: string }[] }[];
+  forks: {
+    heroId: number;
+    piece: string;
+    style: string;
+    rank: number;
+    options: { id: string; name: string }[];
+    ticksLeft: number | null;
+  }[];
 }
 
 /** The shape of `window.__session` that the tests use (page.evaluate callbacks cannot share helpers). */
@@ -25,7 +32,8 @@ export interface TestSession {
     step(n: number): number;
     snapshot(): TestSnap;
     events: { type: string; payload: Record<string, unknown> }[];
-    state: { phase: { kind: string }; tempo: { A: number; B: number } };
+    issue(cmd: { type: string }): { ok: boolean };
+    state: { phase: { kind: string }; tempo: { A: number; B: number }; forks: unknown[] };
   };
   notify(): void;
   setUi(patch: { speed: number }): void;
@@ -74,14 +82,30 @@ export function pauseAtStart(page: Page): Promise<void> {
   });
 }
 
-/** Steps the sim directly (the HUD refreshes on the next frame). */
+/**
+ * Steps the sim directly (the HUD refreshes on the next frame). The match halts whenever a White
+ * fork opens, so a fork that opens on the way is answered with the AI's pick and stepping goes on.
+ */
 export function step(page: Page, n: number): Promise<number> {
   return page.evaluate((ticks) => {
     const s = (window as unknown as { __session: TestSession }).__session;
-    const done = s.match.step(ticks);
+    let done = 0;
+    for (let guard = 0; done < ticks && guard < 200; guard++) {
+      done += s.match.step(ticks - done);
+      if (done >= ticks || s.match.state.forks.length === 0) break;
+      s.match.issue({ type: 'autoForks' });
+    }
     s.notify();
     return done;
   }, n);
+}
+
+/** Taps the speed chip until it shows `speed` (0 is paused). */
+export async function setSpeed(page: Page, speed: 0 | 1 | 2 | 4 | 8): Promise<void> {
+  const chip = page.getByTestId('speed-chip');
+  for (let i = 0; i < 5 && (await chip.getAttribute('data-speed')) !== String(speed); i++)
+    await chip.click();
+  await expect(chip).toHaveAttribute('data-speed', String(speed));
 }
 
 export function snap(page: Page): Promise<TestSnap> {
@@ -96,6 +120,30 @@ export function eventCount(page: Page, type: string): Promise<number> {
     const s = (window as unknown as { __session: TestSession }).__session;
     return s.match.events.filter((e) => e.type === t).length;
   }, type);
+}
+
+/**
+ * Waits until the clock passes `tick`. A fork that opens on the way stops the match until it is
+ * answered, so this answers it with "Let the AI choose" like a player would.
+ */
+export async function playPast(page: Page, tick: number, timeout = 60_000): Promise<void> {
+  await expect
+    .poll(
+      async () => {
+        const x = await snap(page);
+        if (x.forks.length > 0) await page.getByTestId('fork-auto').click();
+        return x.tick;
+      },
+      { timeout },
+    )
+    .toBeGreaterThan(tick);
+}
+
+/** Taps the camera button until it shows `mode`. */
+export async function setCam(page: Page, mode: 'auto' | 'follow' | 'free'): Promise<void> {
+  const btn = page.getByTestId('cam-btn');
+  for (let i = 0; i < 4 && (await btn.getAttribute('data-mode')) !== mode; i++) await btn.click();
+  await expect(btn).toHaveAttribute('data-mode', mode);
 }
 
 /** What to step the sim toward. */
@@ -136,6 +184,9 @@ export async function stepUntil(
       let x = s.match.snapshot();
       for (let i = 0; i < max && !met(x) && x.phase.kind === 'live'; i++) {
         s.match.step(chunk);
+        // the match halts for a White fork: only a test that waits for one leaves it open
+        if (until.kind !== 'fork' && s.match.state.forks.length > 0)
+          s.match.issue({ type: 'autoForks' });
         topUp();
         x = s.match.snapshot();
       }
@@ -165,4 +216,23 @@ export async function boxOf(page: Page, id: string) {
 
 export function overflow(page: Page): Promise<number> {
   return page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+}
+
+/** Plays the whole match to Checkmate inside the page (White's forks are answered by the AI). */
+export async function playToEnd(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    const s = (
+      window as unknown as {
+        __session: TestSession & {
+          match: { issue(c: { type: 'autoForks' }): unknown; state: { forks: unknown[] } };
+        };
+      }
+    ).__session;
+    s.setUi({ speed: 0 });
+    for (let i = 0; i < 400 && s.match.state.phase.kind === 'live'; i++) {
+      if (s.match.state.forks.length > 0) s.match.issue({ type: 'autoForks' });
+      s.match.step(600);
+    }
+    s.notify();
+  });
 }

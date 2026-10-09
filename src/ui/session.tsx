@@ -27,6 +27,8 @@ export interface Chip {
   team: PlayTeam | null;
   /** Wall-clock ms when the chip leaves. */
   until: number;
+  /** How long it lives, for its fade-out. */
+  ms: number;
 }
 
 export interface UiState {
@@ -39,6 +41,10 @@ export interface UiState {
   adjourned: boolean;
   chips: Chip[];
   reportHero: number | null;
+  /** The piece whose card is open (any team). */
+  card: number | null;
+  /** The hand slot whose full text is showing (long-press on a gambit). */
+  info: { slot: number; cardId: string } | null;
 }
 
 const freshUi = (): UiState => ({
@@ -51,6 +57,8 @@ const freshUi = (): UiState => ({
   adjourned: false,
   chips: [],
   reportHero: null,
+  card: null,
+  info: null,
 });
 
 /** The 3D view's picking calls, set by the game view while it exists. */
@@ -59,10 +67,14 @@ export interface PickView {
   pickUnit(clientX: number, clientY: number): number | null;
 }
 
-const RANK_CHIP_MS = 5200;
-const BANNER_MS = 3400;
-const MAX_RANK_CHIPS = 2;
+const RANK_CHIP_MS = 3200;
+const BANNER_MS = 2400;
+const MAX_RANK_CHIPS = 1;
 const MAX_BANNERS = 2;
+const INFO_MS = 7000;
+/** The run speeds the chip cycles through; 0 is paused. */
+const SPEEDS: Speed[] = [1, 2, 4, 8, 0];
+const CAMS: CamMode[] = ['auto', 'follow', 'free'];
 /** How far (map units) a tap may miss a unit and still count when it picks the ground. */
 const NEAR_PICK = 90;
 const same = (a: Chip, b: Chip): boolean => a.kind === b.kind && a.title === b.title;
@@ -77,6 +89,9 @@ export class Session {
   private chipId = 0;
   private seenSeq = -1;
   private toastTimer = 0;
+  private infoTimer = 0;
+  /** Camera mode and target to restore when the fork sheet closes. */
+  private forkCam: { cam: CamMode; follow: number | null } | null = null;
   private escapes: (() => void)[] = [];
   private listeners = new Set<() => void>();
   private frameListeners = new Set<(alpha: number) => void>();
@@ -109,7 +124,7 @@ export class Session {
   }
 
   /** A short message near the hand (the sim's refusals, small hints). */
-  toast(message: string, ms = 3200): void {
+  toast(message: string, ms = 2600): void {
     window.clearTimeout(this.toastTimer);
     this.setUi({ toast: cap(message) });
     this.toastTimer = window.setTimeout(() => this.setUi({ toast: null }), ms);
@@ -130,8 +145,10 @@ export class Session {
 
   newMatch(config?: Partial<MatchConfig>): void {
     const seed = config?.seed ?? Math.floor(Math.random() * 1e9);
-    this.match = Match.create(this.content, { seed, ...config });
+    // the browser game stops for White's forks: the player answers, or lets the AI choose
+    this.match = Match.create(this.content, { seed, pauseForForks: true, ...config });
     this.seenSeq = -1;
+    this.forkCam = null;
     this.ui = { ...freshUi(), cam: this.ui.cam };
     this.notify();
   }
@@ -146,13 +163,50 @@ export class Session {
 
   reset(): void {
     this.match = null;
+    this.forkCam = null;
     this.ui = freshUi();
     this.notify();
   }
 
   adjourn(): void {
     if (this.match?.state.phase.kind !== 'live') return;
-    this.setUi({ adjourned: true, aim: null });
+    this.setUi({ adjourned: true, aim: null, card: null, info: null });
+  }
+
+  /** The speed chip: 1x, 2x, 4x, 8x, then paused, then 1x again. */
+  cycleSpeed(): void {
+    const i = SPEEDS.indexOf(this.ui.speed);
+    this.setUi({ speed: SPEEDS[(i + 1) % SPEEDS.length] });
+  }
+
+  /** The camera button: Auto, Follow (the followed piece, or the King), Free. */
+  cycleCam(): void {
+    const i = CAMS.indexOf(this.ui.cam);
+    const cam = CAMS[(i + 1) % CAMS.length];
+    this.setUi({ cam, follow: cam === 'follow' ? this.ui.follow : null });
+  }
+
+  /** Opens the piece card (any team); a second call for the same piece closes it. */
+  openCard(id: number | null): void {
+    this.setUi({ card: id === this.ui.card ? null : id, info: null });
+  }
+
+  closeCard(): void {
+    if (this.ui.card !== null) this.setUi({ card: null });
+  }
+
+  /** Shows a gambit's full text for a few seconds (long-press on the card). */
+  showInfo(slot: number): void {
+    const card = this.match?.snapshot().hand[slot];
+    if (!card || card.cardId === '') return;
+    window.clearTimeout(this.infoTimer);
+    this.setUi({ info: { slot, cardId: card.cardId }, card: null });
+    this.infoTimer = window.setTimeout(() => this.setUi({ info: null }), INFO_MS);
+  }
+
+  closeInfo(): void {
+    window.clearTimeout(this.infoTimer);
+    if (this.ui.info) this.setUi({ info: null });
   }
 
   resume(): void {
@@ -269,10 +323,37 @@ export class Session {
     this.issue({ type: 'chooseFork', heroId, optionId });
   }
 
+  /** "Let the AI choose": the AI answers every waiting fork. */
+  autoForks(): void {
+    this.issue({ type: 'autoForks' });
+  }
+
+  /**
+   * While a fork waits the camera frames the piece that is choosing; the old camera comes back
+   * when the last fork is answered. Called every frame.
+   */
+  syncForks(): void {
+    const m = this.match;
+    if (!m) return;
+    const head = m.state.forks.length > 0 ? m.state.forks[0].heroId : null;
+    if (head !== null) {
+      if (!this.forkCam) {
+        this.forkCam = { cam: this.ui.cam, follow: this.ui.follow };
+        this.setUi({ cam: 'follow', follow: head, aim: null, card: null, info: null });
+      } else if (this.ui.cam !== 'follow' || this.ui.follow !== head) {
+        this.setUi({ cam: 'follow', follow: head });
+      }
+    } else if (this.forkCam) {
+      const back = this.forkCam;
+      this.forkCam = null;
+      this.setUi({ cam: back.cam, follow: back.follow });
+    }
+  }
+
   // ------------------------------------------------------------ events -> chips
 
-  private chip(c: Omit<Chip, 'id' | 'until'>, ms: number): Chip {
-    return { ...c, id: ++this.chipId, until: performance.now() + ms };
+  private chip(c: Omit<Chip, 'id' | 'until' | 'ms'>, ms: number): Chip {
+    return { ...c, id: ++this.chipId, until: performance.now() + ms, ms };
   }
 
   /** Turns new sim events into banners and chips, and drops the expired ones. */
@@ -300,7 +381,7 @@ export class Session {
               detail: 'Until the King returns',
               team: e.payload.team,
             },
-            BANNER_MS + 800,
+            BANNER_MS + 500,
           ),
         );
       } else if (e.type === 'throneDown') {
@@ -312,7 +393,7 @@ export class Session {
               detail: 'Its King can no longer return',
               team: e.payload.team,
             },
-            BANNER_MS + 1200,
+            BANNER_MS + 700,
           ),
         );
       } else if (e.type === 'rankUp' || e.type === 'fork') {

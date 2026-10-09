@@ -28,13 +28,18 @@ export class FrameClock {
     cancelAnimationFrame(this.raf);
   }
 
-  /** The match never stops by itself; only Pause or the Adjourn panel hold the sim. */
+  /**
+   * The match never stops by itself; only Pause, the Adjourn panel and a waiting fork hold the
+   * sim. The fork pause and Adjourn are separate flags: closing one never releases the other.
+   */
   private advance(now: number): void {
     const s = this.session;
     const dt = Math.min(250, now - this.last);
     this.last = now;
     const m = s.match;
-    if (m && m.state.phase.kind === 'live' && s.ui.speed > 0 && !s.ui.adjourned) {
+    s.syncForks();
+    const forkWait = !!m && m.state.forks.length > 0;
+    if (m && m.state.phase.kind === 'live' && s.ui.speed > 0 && !s.ui.adjourned && !forkWait) {
       this.acc += (dt / 1000) * TPS * s.ui.speed;
       let n = Math.floor(this.acc);
       this.acc -= n;

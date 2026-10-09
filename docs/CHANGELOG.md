@@ -2,6 +2,18 @@
 
 Newest first. One entry per change: what changed, why, and any measured effect. How the game works _now_ is in [SOURCE_OF_TRUTH.md](SOURCE_OF_TRUTH.md); this file is history. Commit ids are on branch `test-product`.
 
+## 2026-10-09
+
+- **Report overhaul** (branch `test-product-2`). Why: Cheppy wanted graphs, a Deadlock-style result splash up front, and swipeable tabs for different status reports.
+  - Data: `buildSummary` in `src/analysis/summary.ts` (rows, team totals, MVP, awards, 10 s series, timeline, objectives). Every number traces to the event log (`tests/summary.test.ts`). MVP score = 3·kills + 1.5·assists + 40·damage share + 15·healing share + 25·objective share − 2·deaths.
+  - Screens: a scroll-snap pager with tabs Result, Economy, Combat, Objectives, Pieces, Replay and Log (swipe, arrows, keys). Result splash: Checkmate banner, both scoreboards (style emblem, rank, K/D/A, damage, healing, gold, items), MVP crown, award chips, team-total bars. Charts are in-house SVG (no new dependency): gold lead, gold by team and source, rank over time, damage by type, damage taken vs healing, kills, pieces alive, fights, Bastion/Throne/Check timeline, gambits and Tempo split.
+  - Known gaps: pawns-alive and shielding are not in the log; starting lane is inferred; the Replay page still draws the old island map; "Same seed" returns to setup with default styles.
+- **Chess feedback round 1** (branch `test-product-2`). Why: Cheppy found the screen cluttered, enemy styles hard to tell apart, and wanted the game to pause at fork ranks.
+  - Forks now pause the game (Rank 4 and 8) until the player chooses; "Let the AI choose" button; no timeout (reversal recorded in the source of truth). The sim halts `step` when a White fork opens (`MatchConfig.pauseForForks`, on in the app, off for balance runs); `autoForks` command.
+  - Style distinction: 15 style emblems and colours (`src/render/emblems.ts`), a signature prop per style on the 3D pieces, style-coloured ground rings, emblems on both rosters, and a piece card (tap or hold a portrait, or tap a piece).
+  - Calm HUD: slim top row with cycling speed and camera controls, no rank pips, gambit cards show name and cost, no health bars on full-health pawns, fewer ambient effects.
+  - Measured: draw calls +5%, triangles +3.5% at the wide shot. No sim balance change.
+
 ## 2026-10-08
 
 - **Build stamp on the chess title screen** ("Chess variant · build <commit>") and the tab title "Auto-MOBA · Chess". Why: the old and chess title screens both mention a chessboard, so Cheppy couldn't tell which build the browser was showing.

@@ -16,6 +16,7 @@ export type { BadgeAward } from './badges';
 export type { Fight } from './fights';
 export { PositionIndex } from './positions';
 export * from './text';
+export * from './summary';
 
 export interface RosterEntry {
   id: number;
@@ -36,6 +37,8 @@ export interface AnalysisInput {
   badges: BadgeDef[];
   /** The human player's team; defaults to A. */
   playerTeam?: PlayTeam;
+  /** Content for display names and costs (pieces, styles, items, gambits). Optional. */
+  content?: Content;
 }
 
 export function inputFromMatch(m: Match, c: Content): AnalysisInput {
@@ -47,6 +50,7 @@ export function inputFromMatch(m: Match, c: Content): AnalysisInput {
     fightRadius: c.tuning.fight.clusterRadius,
     badges: c.badges,
     playerTeam: 'A',
+    content: c,
   };
 }
 

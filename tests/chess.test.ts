@@ -229,6 +229,100 @@ describe('ranks and forks', () => {
   });
 });
 
+describe('pausing for forks', () => {
+  const th = content.tuning.ranks.goldThresholds;
+  const pausing = (seed: number, pauseForForks = true): Match =>
+    liveMatch(seed, { autoGambits: { A: false, B: true }, pauseForForks });
+  /** Leaves the Queen one gold short of Rank 4 so the next passive income opens the fork mid-step. */
+  const nearFork = (m: Match): Unit => {
+    const u = piece(m, 'A', 'queen');
+    giveGold(m.ctx, u, th[2] - u.hero!.goldEarned, 'test');
+    u.hero!.goldEarned = th[3] - 1;
+    return u;
+  };
+
+  it('step halts when a fork opens, stays halted until answered, then proceeds', () => {
+    const m = pausing(40);
+    const u = nearFork(m);
+    const want = aiForkPick(m.ctx, u, 4);
+    const got = m.step(ACT);
+    expect(got).toBeGreaterThan(0);
+    expect(got).toBeLessThan(ACT);
+    const tick = m.state.tick;
+    const forks = m.snapshot().forks;
+    expect(forks).toHaveLength(1);
+    expect(forks[0]).toMatchObject({
+      heroId: u.id,
+      piece: 'queen',
+      style: u.hero!.style,
+      rank: 4,
+      ticksLeft: null,
+    });
+    // Halted, far past forkSec, with no timeout.
+    expect(m.step(content.tuning.ranks.forkSec * TPS * 3)).toBe(0);
+    expect(m.state.tick).toBe(tick);
+    expect(m.snapshot().forks).toHaveLength(1);
+    expect(m.issue({ type: 'chooseFork', heroId: u.id, optionId: 'auto' }).ok).toBe(true);
+    expect(u.hero!.perks).toContainEqual({ rank: 4, optionId: want });
+    expect(m.step(40)).toBe(40);
+    expect(m.snapshot().forks).toHaveLength(0);
+  });
+
+  it('autoForks resolves every pending fork with the AI pick; rejects when none wait', () => {
+    const m = pausing(41);
+    expect(m.issue({ type: 'autoForks' }).ok).toBe(false);
+    const u = piece(m, 'A', 'rook');
+    giveGold(m.ctx, u, th[7], 'test');
+    const k = piece(m, 'A', 'king');
+    giveGold(m.ctx, k, th[3], 'test');
+    expect(m.snapshot().forks.map((f) => f.rank)).toEqual([4, 8, 4]);
+    expect(m.step(10)).toBe(0);
+    const w4 = aiForkPick(m.ctx, u, 4);
+    const w8 = aiForkPick(m.ctx, u, 8);
+    expect(m.issue({ type: 'autoForks' }).ok).toBe(true);
+    expect(m.snapshot().forks).toHaveLength(0);
+    expect(u.hero!.perks).toContainEqual({ rank: 4, optionId: w4 });
+    expect(u.hero!.perks).toContainEqual({ rank: 8, optionId: w8 });
+    const evs = m.events.filter((e) => e.type === 'fork');
+    expect(evs.every((e) => e.type === 'fork' && e.payload.auto)).toBe(true);
+    expect(m.step(10)).toBe(10);
+  });
+
+  it("optionId 'auto' equals the timeout pick", () => {
+    const timed = pausing(42, false);
+    const tu = piece(timed, 'A', 'queen');
+    giveGold(timed.ctx, tu, th[3], 'test');
+    expect(timed.snapshot().forks[0].ticksLeft).toBe(content.tuning.ranks.forkSec * TPS);
+    timed.step(content.tuning.ranks.forkSec * TPS + 1);
+    const a = tu.hero!.perks.find((p) => p.rank === 4)!.optionId;
+    const paused = pausing(42);
+    const pu = piece(paused, 'A', 'queen');
+    giveGold(paused.ctx, pu, th[3], 'test');
+    paused.issue({ type: 'chooseFork', heroId: pu.id, optionId: 'auto' });
+    expect(pu.hero!.perks.find((p) => p.rank === 4)!.optionId).toBe(a);
+  });
+
+  it('with the flag off nothing pauses and the timeout still applies', () => {
+    const m = pausing(43, false);
+    const u = nearFork(m);
+    expect(m.step(ACT)).toBe(ACT);
+    expect(u.hero!.perks.some((p) => p.rank === 4)).toBe(true);
+    expect(m.snapshot().forks).toHaveLength(0);
+  });
+
+  it('is deterministic: same seed and commands give the same log hash', () => {
+    const run = (): string => {
+      const m = pausing(44);
+      nearFork(m);
+      for (let i = 0; i < 6; i++) {
+        if (m.step(ACT) === 0) m.issue({ type: 'autoForks' });
+      }
+      return logHash(m);
+    };
+    expect(run()).toBe(run());
+  });
+});
+
 describe('Check and Checkmate', () => {
   it('King death with the Throne up puts the team in Check until he respawns', () => {
     const m = playerMatch(13);

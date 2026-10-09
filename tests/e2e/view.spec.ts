@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { eventCount, startLive, step, stepUntil, viewReady, watchErrors } from './helpers';
+import { eventCount, setCam, startLive, step, stepUntil, viewReady, watchErrors } from './helpers';
 
 test.use({ viewport: { width: 800, height: 520 } });
 
@@ -21,7 +21,7 @@ test('3D view: camera modes, follow, caption and picking', async ({ page }) => {
   }).toPass({ timeout: 60_000 });
 
   // free camera: caption goes, drag and zoom work
-  await page.getByTestId('cam-free').click();
+  await setCam(page, 'free');
   await expect(page.getByTestId('caption')).toHaveCount(0);
   const box = (await page.getByTestId('stage').boundingBox())!;
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
@@ -32,9 +32,9 @@ test('3D view: camera modes, follow, caption and picking', async ({ page }) => {
 
   // tap a portrait (either side): the camera follows that piece
   await page.getByTestId('roster-B-queen').click();
-  await expect(page.getByTestId('cam-follow')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByTestId('cam-btn')).toHaveAttribute('data-mode', 'follow');
   await page.getByTestId('roster-A-king').click();
-  await expect(page.getByTestId('cam-follow')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByTestId('cam-btn')).toHaveAttribute('data-mode', 'follow');
   await page.waitForTimeout(800);
 
   // picking: the ground under the middle of the screen, and a piece under its own projection
@@ -77,8 +77,68 @@ test('3D view: camera modes, follow, caption and picking', async ({ page }) => {
     )
     .toBe('ok');
 
-  await page.getByTestId('cam-auto').click();
+  await setCam(page, 'auto');
   await page.waitForTimeout(500);
+  expect(errors).toEqual([]);
+});
+
+test('a tap on a piece in the 3D view opens its card, a tap on bare ground closes it', async ({
+  page,
+}) => {
+  test.setTimeout(300_000);
+  const errors = watchErrors(page);
+  await startLive(page, '42');
+  await viewReady(page);
+  await step(page, 200);
+  // follow the King so he is in the middle of the screen
+  await page.getByTestId('roster-A-king').click();
+  await expect(page.getByTestId('cam-btn')).toHaveAttribute('data-mode', 'follow');
+  const handle = await page.waitForFunction(
+    () => {
+      interface Sess {
+        view: {
+          project(x: number, y: number, lift?: number): { x: number; y: number; visible: boolean };
+        } | null;
+        match: {
+          state: { teams: { A: { heroIds: number[] } } };
+          unitById(id: number): { x: number; y: number; hero?: { defId: string } } | undefined;
+        };
+      }
+      const s = (window as unknown as { __session: Sess }).__session;
+      if (!s.view) return null;
+      const id = s.match.state.teams.A.heroIds.find(
+        (i) => s.match.unitById(i)?.hero?.defId === 'king',
+      )!;
+      const u = s.match.unitById(id)!;
+      const p = s.view.project(u.x, u.y, 20);
+      const rect = document.querySelector('canvas')!.getBoundingClientRect();
+      const inside =
+        p.visible &&
+        p.x > rect.width * 0.3 &&
+        p.x < rect.width * 0.7 &&
+        p.y > rect.height * 0.3 &&
+        p.y < rect.height * 0.7;
+      return inside
+        ? { x: rect.left + p.x, y: rect.top + p.y, w: rect.width, h: rect.height }
+        : null;
+    },
+    undefined,
+    { timeout: 40_000 },
+  );
+  const at = (await handle.jsonValue()) as { x: number; y: number; w: number; h: number };
+  await page.mouse.click(at.x, at.y);
+  await expect(page.getByTestId('unit-card')).toBeVisible();
+  await expect(page.getByTestId('unit-card')).toHaveAttribute('data-piece', 'king');
+  await expect(page.getByTestId('unit-card')).toHaveAttribute('data-team', 'A');
+  // a drag is not a tap: panning does not close or open anything
+  await page.mouse.move(at.w * 0.5, at.h * 0.5);
+  await page.mouse.down();
+  await page.mouse.move(at.w * 0.5 + 60, at.h * 0.5 + 30, { steps: 5 });
+  await page.mouse.up();
+  await expect(page.getByTestId('unit-card')).toBeVisible();
+  // bare ground in the far corner of the view closes the card
+  await page.mouse.click(at.w * 0.62, at.h * 0.12);
+  await expect(page.getByTestId('unit-card')).toHaveCount(0);
   expect(errors).toEqual([]);
 });
 
@@ -159,5 +219,5 @@ test('without WebGL the game shows a clear message and the HUD still works', asy
   await expect(notice).toContainText('WebGL');
   await expect(page.getByTestId('stage')).toBeHidden();
   await expect(page.getByTestId('hand')).toBeVisible();
-  await expect(page.getByTestId('speed-2')).toBeVisible();
+  await expect(page.getByTestId('speed-chip')).toBeVisible();
 });

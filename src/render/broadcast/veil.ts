@@ -87,7 +87,7 @@ void main() {
   float w = vn(q + vec2(t * 0.04, 0.0)) * 0.55 + vn(q * 2.3 - vec2(0.0, t * 0.06)) * 0.3 + vn(q * 5.1 + t * 0.09) * 0.15;
   float wisp = smoothstep(0.32, 0.78, w);
   float r = length(vL) / uR;
-  float a = vMask * (0.2 + 0.5 * wisp);
+  float a = vMask * (0.12 + 0.34 * wisp);
   // burn away: a ragged front sweeps in from the rim with an ember edge
   float dn = vn(vL * 0.06 + vLayer * 1.7) * 0.6 + (1.0 - r) * 0.4;
   float cut = uDissolve * 1.25 - 0.1;
@@ -120,7 +120,7 @@ void main() {
   float t = uTime;
   float mist = vn(vec2(vUv.x * 6.0 + t * 0.2, vUv.y * 3.0 - t * 0.3)) * 0.6 + vn(vec2(vUv.x * 13.0 - t * 0.3, vUv.y * 7.0)) * 0.4;
   float side = smoothstep(0.0, 0.18, vUv.x) * smoothstep(1.0, 0.82, vUv.x);
-  float a = (0.16 + 0.34 * mist) * (1.0 - smoothstep(0.25, 1.0, vUv.y)) * side;
+  float a = (0.1 + 0.24 * mist) * (1.0 - smoothstep(0.25, 1.0, vUv.y)) * side;
   float dn = vn(vUv * vec2(9.0, 5.0));
   float cut = uDissolve * 1.3 - 0.15;
   if (dn < cut) discard;

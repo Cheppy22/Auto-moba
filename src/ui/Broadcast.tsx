@@ -10,6 +10,8 @@ function kingId(m: Match): number | null {
 
 /** While the Adjourn panel covers the game, the 3D view only needs an occasional refresh. */
 const IDLE_FRAME_MS = 1000;
+/** How far (CSS pixels) a pointer may travel and still count as a tap on the board. */
+const TAP_PX = 8;
 
 /** The game view: a three.js scene. Picking calls are handed to the session for gambit aiming. */
 export function Broadcast() {
@@ -37,6 +39,32 @@ export function Broadcast() {
         s.view = view;
         canvas.dataset.ready = 'true';
         const director = new Director(s.content);
+        // a tap (not a drag) on a piece opens its card; a tap on empty ground closes the card
+        let down: { x: number; y: number; t: number } | null = null;
+        const onDown = (e: PointerEvent): void => {
+          down = e.isPrimary ? { x: e.clientX, y: e.clientY, t: performance.now() } : null;
+        };
+        const onUp = (e: PointerEvent): void => {
+          const d = down;
+          down = null;
+          const m = s.match;
+          if (!d || !e.isPrimary || !m) return;
+          if (
+            Math.hypot(e.clientX - d.x, e.clientY - d.y) > TAP_PX ||
+            performance.now() - d.t > 450
+          )
+            return;
+          if (s.ui.aim || s.ui.adjourned || m.state.forks.length > 0) return;
+          const id = view.pickUnit(e.clientX, e.clientY);
+          const u = id === null ? undefined : m.unitById(id);
+          if (u?.hero) s.openCard(u.id);
+          else {
+            s.closeCard();
+            s.closeInfo();
+          }
+        };
+        canvas.addEventListener('pointerdown', onDown);
+        canvas.addEventListener('pointerup', onUp);
         const watch = new ResizeObserver(() => view.resize());
         watch.observe(canvas);
         view.resize();
@@ -72,6 +100,8 @@ export function Broadcast() {
           if (caption !== s.ui.caption) s.setUi({ caption });
         });
         dispose = () => {
+          canvas.removeEventListener('pointerdown', onDown);
+          canvas.removeEventListener('pointerup', onUp);
           watch.disconnect();
           if (s.view === view) s.view = null;
           delete canvas.dataset.ready;

@@ -124,13 +124,14 @@ function initialState(content: Content, config: MatchConfig): MatchState {
   };
 }
 
-function buildCtx(content: Content, state: MatchState): Ctx {
+function buildCtx(content: Content, state: MatchState, pauseForForks: boolean): Ctx {
   const rec: Recorder = { events: [], samples: [], seq: 0 };
   const world = buildWorld(content.map);
   const ctx: Ctx = {
     s: state,
     c: content,
     t: content.tuning,
+    pauseForForks,
     world,
     open: new Set(state.slots.filter((x) => x.open).map((x) => x.id)),
     rec,
@@ -228,7 +229,7 @@ export class Match {
     readonly content: Content,
     readonly config: MatchConfig,
   ) {
-    this.ctx = buildCtx(content, initialState(content, config));
+    this.ctx = buildCtx(content, initialState(content, config), config.pauseForForks ?? false);
   }
 
   /** With `config.setup.A` the match starts live at once; otherwise it waits for `setupTeam`. */
@@ -265,11 +266,17 @@ export class Match {
     return applyCommand(this.ctx, cmd, startMatch);
   }
 
+  /**
+   * Steps up to `ticks` ticks and returns how many ran. With `pauseForForks` it stops right after
+   * the tick a White fork opens, and returns 0 while any White fork is pending.
+   */
   step(ticks = 1): number {
     let n = 0;
     const last = this.ops[this.ops.length - 1];
+    const pause = this.ctx.pauseForForks;
     for (let i = 0; i < ticks; i++) {
       if (this.ctx.s.phase.kind !== 'live') break;
+      if (pause && this.ctx.s.forks.length > 0) break;
       stepTick(this.ctx);
       n++;
     }
@@ -438,13 +445,14 @@ export class Match {
           return {
             heroId: f.heroId,
             piece: u.hero!.defId,
+            style: u.hero!.style,
             rank: f.rank,
             options: forkOptions(this.ctx, u, f.rank).map((o) => ({
               id: o.id,
               name: o.name,
               desc: o.desc,
             })),
-            ticksLeft: Math.max(0, f.deadlineTick - s.tick),
+            ticksLeft: f.deadlineTick === null ? null : Math.max(0, f.deadlineTick - s.tick),
           };
         }),
       check: { ...s.check },

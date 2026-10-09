@@ -25,7 +25,7 @@ import {
   Vector2,
   Vector3,
 } from 'three';
-import type { Content, Snapshot } from '../../sim';
+import { type Content, shapeDist, type Snapshot } from '../../sim';
 import { PALETTE, teamColor } from '../theme';
 import {
   type Bit,
@@ -1040,16 +1040,24 @@ export class Arena {
   }
 
   private buildMotes(): { points: Points; base: Float32Array } {
-    const n = 110;
+    // calm board: a few motes, and none drifting over a lane
+    const n = 44;
     const pos = new Float32Array(n * 3);
     const base = new Float32Array(n * 5);
     const col = new Float32Array(n * 3);
     const c = new Color();
+    const lanes = this.field.shapes.filter((sh) => sh.kind === 'lane');
+    const h = this.field.half;
     for (let i = 0; i < n; i++) {
-      const a = rand01(i * 5) * TAU;
-      const r = 80 + Math.sqrt(rand01(i * 5 + 1)) * 520;
-      const x = Math.cos(a) * r;
-      const z = Math.sin(a) * r;
+      let x = 0;
+      let z = 0;
+      for (let k = 0; k < 8; k++) {
+        const a = rand01(i * 5 + k * 977) * TAU;
+        const r = 80 + Math.sqrt(rand01(i * 5 + 1 + k * 977)) * 520;
+        x = Math.cos(a) * r;
+        z = Math.sin(a) * r;
+        if (lanes.every((sh) => shapeDist(sh, x + h, z + h) > 24)) break;
+      }
       base.set(
         [x, rand01(i * 5 + 2) * 70, z, 5 + rand01(i * 5 + 3) * 9, this.field.surfaceW(x, z)],
         i * 5,
@@ -1065,10 +1073,10 @@ export class Arena {
       this.own(
         new PointsMaterial({
           map: this.kit.glowTexture(),
-          size: 7,
+          size: 6,
           vertexColors: true,
           transparent: true,
-          opacity: 0.8,
+          opacity: 0.55,
           blending: AdditiveBlending,
           depthWrite: false,
         }),

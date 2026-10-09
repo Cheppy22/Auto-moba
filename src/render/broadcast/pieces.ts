@@ -2,20 +2,19 @@ import {
   BoxGeometry,
   type BufferGeometry,
   Color,
-  type ColorRepresentation,
   ConeGeometry,
   CylinderGeometry,
   Group,
-  LatheGeometry,
   Mesh,
   type MeshToonMaterial,
   type Quaternion,
   SphereGeometry,
   TorusGeometry,
-  Vector2,
 } from 'three';
+import { styleEmblem } from '../emblems';
 import { PALETTE } from '../theme';
 import { type Bit, hash, INK, type Kit, type Piece } from './kit';
+import { type Anchors, bit, lathe, type PropScheme, styleProps, type V3 } from './props';
 import { WATER_Y } from './terrain';
 
 const TAU = Math.PI * 2;
@@ -76,25 +75,6 @@ const SCHEMES: Record<'A' | 'B', Scheme> = {
   },
 };
 
-function lathe(points: [number, number][], seg = 16): LatheGeometry {
-  return new LatheGeometry(
-    points.map(([r, y]) => new Vector2(r, y)),
-    seg,
-  );
-}
-
-type V3 = [number, number, number];
-
-function bit(
-  geo: BufferGeometry,
-  color: ColorRepresentation,
-  at?: V3,
-  rot?: V3,
-  scale?: number | V3,
-): Bit {
-  return { geo, color, at, rot, scale };
-}
-
 /** Moves bits so that `pivot` becomes the origin (for parts that rotate about a joint). */
 function about(bits: Bit[], pivot: V3): Bit[] {
   return bits.map((b) => {
@@ -103,11 +83,13 @@ function about(bits: Bit[], pivot: V3): Bit[] {
   });
 }
 
-/** A hue from a style id, so every style has a consistent accent gem and sash. */
+/** The style colour (accent sash, props, ground ring), from the shared emblem table. */
 export function styleAccent(style: string | null | undefined): string | null {
-  if (!style) return null;
-  const hue = (hash(style) % 360) / 360;
-  return new Color().setHSL(hue, 0.85, 0.56).getStyle();
+  return style ? styleEmblem(style).color : null;
+}
+
+function propScheme(team: 'A' | 'B', s: Scheme): PropScheme {
+  return { body: s.body, shade: s.shade, trim: s.trim, cloak: s.cloak, dark: team === 'B' };
 }
 
 interface Parts {
@@ -116,9 +98,13 @@ interface Parts {
   /** Everything that sits above the neck. */
   head: Bit[];
   headPivot: V3;
-  /** The weapon arm: rotates about its shoulder. */
+  /** The weapon arm (shoulder and hand, model coordinates): rotates about its shoulder. */
   arm: Bit[];
+  /** What the weapon hand holds by default (a style prop may replace it). */
+  weapon: Bit[];
   armPivot: V3;
+  /** Where style props attach. */
+  anchors: Anchors;
   armRest: number;
   armLunge: number;
   /** Forward thrust of the whole figure on a lunge. */
@@ -126,7 +112,7 @@ interface Parts {
   /** Optional trailing cloth, swaying behind. */
   tail?: Bit[];
   tailPivot?: V3;
-  /** Where the style gem and sash sit (unlit accent colour). */
+  /** The style sash (unlit style colour). */
   accent: (c: string) => Bit[];
 }
 
@@ -199,29 +185,35 @@ function king(s: Scheme): Parts {
     );
   }
   const armPivot: V3 = [9, 21, 0.5];
-  const arm: Bit[] = about(
-    [
-      bit(new SphereGeometry(2.7, 8, 6), s.body, [9, 21, 0.5]),
-      bit(new SphereGeometry(1.9, 7, 5), s.skin, [9.4, 14.5, 3]),
-      bit(new CylinderGeometry(0.6, 0.7, 24, 6), s.trim, [9.4, 17.5, 3]),
-      bit(new SphereGeometry(2.3, 10, 8), s.trim, [9.4, 30, 3]),
-      bit(new SphereGeometry(1.2, 8, 6), '#ffffff', [9.4, 30, 3]),
-    ],
-    armPivot,
-  );
+  const arm: Bit[] = [
+    bit(new SphereGeometry(2.7, 8, 6), s.body, [9, 21, 0.5]),
+    bit(new SphereGeometry(1.9, 7, 5), s.skin, [9.4, 14.5, 3]),
+  ];
+  const weapon: Bit[] = [
+    bit(new CylinderGeometry(0.6, 0.7, 24, 6), s.trim, [9.4, 17.5, 3]),
+    bit(new SphereGeometry(2.3, 10, 8), s.trim, [9.4, 30, 3]),
+    bit(new SphereGeometry(1.2, 8, 6), '#ffffff', [9.4, 30, 3]),
+  ];
   return {
     body,
     head,
     headPivot: [0, 26, 0],
     arm,
+    weapon,
     armPivot,
+    anchors: {
+      hand: [9.4, 14.5, 3],
+      off: [-9.4, 15.4, 3],
+      shoulderY: 21,
+      radius: 9.4,
+      neckY: 24,
+      headTop: 40,
+      backZ: -9,
+    },
     armRest: 0.2,
     armLunge: 1.5,
     thrust: 3.4,
-    accent: (c) => [
-      bit(sash(7.1, 0, 0.6), c, [0, 17.5, 0]),
-      bit(new SphereGeometry(1.4, 8, 6), c, [0, 36, 4.1], undefined, [1, 1.3, 1]),
-    ],
+    accent: (c) => [bit(sash(7.1, 0, 0.6), c, [0, 17.5, 0])],
   };
 }
 
@@ -272,23 +264,32 @@ function queen(s: Scheme): Parts {
     );
   }
   const armPivot: V3 = [5.5, 25.5, 1];
-  const arm: Bit[] = about(
-    [
-      bit(new SphereGeometry(2.1, 8, 6), s.body, [5.5, 25.5, 1]),
-      bit(new SphereGeometry(1.5, 7, 5), s.skin, [6, 20, 3.4]),
-      bit(new CylinderGeometry(0.5, 0.5, 3.6, 6), s.trim, [6, 20, 4.4], [Math.PI / 2, 0, 0]),
-      bit(new BoxGeometry(5, 0.6, 0.9), s.trim, [6, 20, 6.4]),
-      bit(new BoxGeometry(0.7, 0.5, 17), '#e4eaf0', [6, 20, 15.2]),
-    ],
-    armPivot,
-  );
+  const arm: Bit[] = [
+    bit(new SphereGeometry(2.1, 8, 6), s.body, [5.5, 25.5, 1]),
+    bit(new SphereGeometry(1.5, 7, 5), s.skin, [6, 20, 3.4]),
+  ];
+  const weapon: Bit[] = [
+    bit(new CylinderGeometry(0.5, 0.5, 3.6, 6), s.trim, [6, 20, 4.4], [Math.PI / 2, 0, 0]),
+    bit(new BoxGeometry(5, 0.6, 0.9), s.trim, [6, 20, 6.4]),
+    bit(new BoxGeometry(0.7, 0.5, 17), '#e4eaf0', [6, 20, 15.2]),
+  ];
   const tailPivot: V3 = [0, 27, -3.5];
   return {
     body,
     head,
     headPivot: [0, 30, 0],
     arm,
+    weapon,
     armPivot,
+    anchors: {
+      hand: [6, 20, 3.4],
+      off: [-6.2, 20.5, 2.4],
+      shoulderY: 25.5,
+      radius: 8.6,
+      neckY: 28.5,
+      headTop: 42,
+      backZ: -5.5,
+    },
     armRest: 0.5,
     armLunge: 1.9,
     thrust: 4.4,
@@ -301,10 +302,7 @@ function queen(s: Scheme): Parts {
       tailPivot,
     ),
     tailPivot,
-    accent: (c) => [
-      bit(sash(4.4, 0, -0.55, 0.7), c, [0, 24, 0]),
-      bit(new SphereGeometry(1.2, 8, 6), c, [0, 40.4, 3.7], undefined, [1, 1.5, 1]),
-    ],
+    accent: (c) => [bit(sash(4.4, 0, -0.55, 0.7), c, [0, 24, 0])],
   };
 }
 
@@ -354,22 +352,31 @@ function rook(s: Scheme): Parts {
     );
   }
   const armPivot: V3 = [11, 17, 0.5];
-  const arm: Bit[] = about(
-    [
-      bit(new SphereGeometry(3.6, 9, 7), s.shade, [11, 17, 0.5]),
-      bit(new SphereGeometry(2.7, 8, 6), s.skin, [11.4, 11.5, 3.5]),
-      bit(new CylinderGeometry(0.9, 1, 17, 6), s.trim, [11.4, 13.5, 5.5], [Math.PI / 2.4, 0, 0]),
-      bit(new BoxGeometry(6.4, 5.4, 5.4), s.shade, [11.4, 11, 14]),
-      bit(new BoxGeometry(6.8, 1.2, 5.8), s.trim, [11.4, 14, 14]),
-    ],
-    armPivot,
-  );
+  const arm: Bit[] = [
+    bit(new SphereGeometry(3.6, 9, 7), s.shade, [11, 17, 0.5]),
+    bit(new SphereGeometry(2.7, 8, 6), s.skin, [11.4, 11.5, 3.5]),
+  ];
+  const weapon: Bit[] = [
+    bit(new CylinderGeometry(0.9, 1, 17, 6), s.trim, [11.4, 13.5, 5.5], [Math.PI / 2.4, 0, 0]),
+    bit(new BoxGeometry(6.4, 5.4, 5.4), s.shade, [11.4, 11, 14]),
+    bit(new BoxGeometry(6.8, 1.2, 5.8), s.trim, [11.4, 14, 14]),
+  ];
   return {
     body,
     head,
     headPivot: [0, 24, 0],
     arm,
+    weapon,
     armPivot,
+    anchors: {
+      hand: [11.4, 11.5, 3.5],
+      off: [-11.4, 11.5, 3],
+      shoulderY: 17,
+      radius: 10.6,
+      neckY: 23.5,
+      headTop: 32.5,
+      backZ: -10,
+    },
     armRest: 0.15,
     armLunge: 1.7,
     thrust: 3,
@@ -427,33 +434,35 @@ function bishop(s: Scheme): Parts {
     bit(new BoxGeometry(2.4, 0.8, 0.9), s.trim, [0, 45.4, 0]),
   ];
   const armPivot: V3 = [5.2, 25, 1];
-  const arm: Bit[] = about(
-    [
-      bit(new SphereGeometry(2.1, 8, 6), s.body, [5.2, 25, 1]),
-      bit(new SphereGeometry(1.5, 7, 5), s.skin, [5.8, 21, 3.4]),
-      bit(new CylinderGeometry(0.5, 0.6, 38, 6), s.trim, [5.8, 20, 3.4]),
-      bit(
-        new TorusGeometry(2.6, 0.5, 6, 14, Math.PI * 1.5).rotateZ(-0.4),
-        s.trim,
-        [5.8, 41.5, 3.4],
-      ),
-      bit(new SphereGeometry(1.1, 8, 6), '#ffffff', [5.8, 39.2, 3.4]),
-    ],
-    armPivot,
-  );
+  const arm: Bit[] = [
+    bit(new SphereGeometry(2.1, 8, 6), s.body, [5.2, 25, 1]),
+    bit(new SphereGeometry(1.5, 7, 5), s.skin, [5.8, 21, 3.4]),
+  ];
+  const weapon: Bit[] = [
+    bit(new CylinderGeometry(0.5, 0.6, 38, 6), s.trim, [5.8, 20, 3.4]),
+    bit(new TorusGeometry(2.6, 0.5, 6, 14, Math.PI * 1.5).rotateZ(-0.4), s.trim, [5.8, 41.5, 3.4]),
+    bit(new SphereGeometry(1.1, 8, 6), '#ffffff', [5.8, 39.2, 3.4]),
+  ];
   return {
     body,
     head,
     headPivot: [0, 28.5, 0],
     arm,
+    weapon,
     armPivot,
+    anchors: {
+      hand: [5.8, 21, 3.4],
+      off: [-5.8, 21, 3.4],
+      shoulderY: 25,
+      radius: 8.4,
+      neckY: 27.5,
+      headTop: 45,
+      backZ: -5.5,
+    },
     armRest: 0.12,
     armLunge: 0.9,
     thrust: 1.6,
-    accent: (c) => [
-      bit(sash(5.4, 0, 0.6, 0.8), c, [0, 20, 0]),
-      bit(new SphereGeometry(1.1, 8, 6), c, [0, 36.4, 2.4], undefined, [1, 1.3, 0.8]),
-    ],
+    accent: (c) => [bit(sash(5.4, 0, 0.6, 0.8), c, [0, 20, 0])],
   };
 }
 
@@ -506,33 +515,39 @@ function knight(s: Scheme): Parts {
     );
   }
   const armPivot: V3 = [7, 12.5, 1];
-  const arm: Bit[] = about(
-    [
-      bit(new SphereGeometry(2.6, 8, 6), s.shade, [7, 13.4, 0.5]),
-      bit(new SphereGeometry(1.8, 7, 5), s.skin, [7.6, 8, 3.4]),
-      bit(new CylinderGeometry(0.65, 0.8, 30, 6), s.trim, [7.6, 8, 13], [Math.PI / 2, 0, 0]),
-      bit(new ConeGeometry(1.4, 7, 6), '#e4eaf0', [7.6, 8, 31.5], [Math.PI / 2, 0, 0]),
-      bit(
-        new BoxGeometry(0.3, 3.2, 7),
-        s.body === PALETTE.blackBody ? '#c6cfdc' : '#b8352f',
-        [7.6, 9.8, 22],
-      ),
-    ],
-    armPivot,
-  );
+  const arm: Bit[] = [
+    bit(new SphereGeometry(2.6, 8, 6), s.shade, [7, 13.4, 0.5]),
+    bit(new SphereGeometry(1.8, 7, 5), s.skin, [7.6, 8, 3.4]),
+  ];
+  const weapon: Bit[] = [
+    bit(new CylinderGeometry(0.65, 0.8, 30, 6), s.trim, [7.6, 8, 13], [Math.PI / 2, 0, 0]),
+    bit(new ConeGeometry(1.4, 7, 6), '#e4eaf0', [7.6, 8, 31.5], [Math.PI / 2, 0, 0]),
+    bit(
+      new BoxGeometry(0.3, 3.2, 7),
+      s.body === PALETTE.blackBody ? '#c6cfdc' : '#b8352f',
+      [7.6, 9.8, 22],
+    ),
+  ];
   return {
     body,
     head,
     headPivot: neckPivot,
     arm,
+    weapon,
     armPivot,
+    anchors: {
+      hand: [7.6, 8, 3.4],
+      off: [-7.6, 8, 3],
+      shoulderY: 13.4,
+      radius: 9.2,
+      neckY: 16,
+      headTop: 44,
+      backZ: -6.5,
+    },
     armRest: -0.05,
     armLunge: -0.5,
     thrust: 6.4,
-    accent: (c) => [
-      bit(sash(6.2, 0, -0.5, 0.8), c, [0, 11, 0]),
-      bit(new SphereGeometry(1, 8, 6), c, [0, 40.8, 9.2], undefined, [1, 1.4, 0.8]),
-    ],
+    accent: (c) => [bit(sash(6.2, 0, -0.5, 0.8), c, [0, 11, 0])],
   };
 }
 
@@ -602,17 +617,32 @@ export class PieceModel {
     };
     this.cloth.customProgramCacheKey = () => 'piece-rim';
 
-    const id = `${piece}:${team}`;
+    const id = `${piece}:${team}:${style ?? '-'}`;
     const solid = (key: string, bits: () => Bit[], ink = 0.8): Mesh =>
       kit.solid(`piece-${key}:${id}`, bits, ink, this.cloth);
+    const emblem = styleEmblem(style);
+    const acc = style ? emblem.color : s.trim;
+    const props = styleProps(style, propScheme(team, s), spec.anchors, acc);
 
-    this.body.add(solid('body', () => spec.body, 1));
+    this.body.add(solid('body', () => [...spec.body, ...(props.body ?? [])], 1));
     this.figure.add(this.body);
-    this.head.add(solid('head', () => about(spec.head, spec.headPivot), 0.8));
+    this.head.add(
+      solid('head', () => about([...spec.head, ...(props.head ?? [])], spec.headPivot), 0.8),
+    );
     this.head.position.set(...spec.headPivot);
     if (piece !== 'knight') this.head.scale.setScalar(1.14);
     this.figure.add(this.head);
-    this.arm.add(solid('arm', () => spec.arm, 0.6));
+    this.arm.add(
+      solid(
+        'arm',
+        () => about([...spec.arm, ...(props.weapon ?? spec.weapon)], spec.armPivot),
+        0.6,
+      ),
+    );
+    if (props.armGlow) {
+      const held = props.armGlow;
+      this.arm.add(kit.inkedGlow(`piece-armglow:${id}`, () => about(held, spec.armPivot), 0.5));
+    }
     this.arm.position.set(...spec.armPivot);
     this.arm.rotation.x = spec.armRest;
     this.figure.add(this.arm);
@@ -622,22 +652,24 @@ export class PieceModel {
       this.tail.position.set(...spec.tailPivot);
       this.figure.add(this.tail);
     }
-    const acc = styleAccent(style) ?? s.trim;
+    // unlit style-colour parts, inked so pale colours still read on ivory
     this.figure.add(
-      kit.glowSolid(`piece-accent:${id}:${acc}`, () => spec.accent(new Color(acc).getStyle())),
+      kit.inkedGlow(`piece-accent:${id}`, () => [...spec.accent(acc), ...(props.glow ?? [])], 0.5),
     );
+    if (props.spin) {
+      const spin = props.spin;
+      this.spin = kit.inkedGlow(`piece-spin:${id}`, () => spin, 0.5);
+      this.figure.add(this.spin);
+    }
     this.root.add(this.figure);
     this.root.scale.setScalar(PIECE_SCALE);
 
-    const ring = kit.decalRing(s.ring, 16, false, 0.9);
+    const ring = kit.styleRing(acc, 19);
     ring.position.y = 0.9;
-    const ring2 = kit.decalRing(acc, 21, true, 0.55);
-    ring2.position.y = 1;
-    this.markers.add(kit.blob(13, 0.65), ring, ring2);
-    this.ringAccent = ring2;
+    this.markers.add(kit.blob(13, 0.65), ring);
   }
 
-  private readonly ringAccent: Mesh;
+  private spin: Mesh | null = null;
 
   /** `boost` enlarges the figure on far shots so it stays readable on small screens. */
   place(x: number, y: number, z: number, yaw: number, boost = 1): void {
@@ -684,6 +716,6 @@ export class PieceModel {
       this.tail.rotation.z = Math.sin(p.time * 1.9 + this.seed) * 0.05 + swing * 0.08 * p.move;
     }
     this.cloth.emissive.setScalar(p.flinch * 0.6);
-    this.ringAccent.rotation.y = p.time * 0.5;
+    if (this.spin) this.spin.rotation.y = p.time * 0.9 + this.seed;
   }
 }

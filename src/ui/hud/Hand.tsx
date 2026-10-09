@@ -1,15 +1,42 @@
 import type { Snapshot, SnapGambit } from '../../sim';
 import { PieceGlyph } from '../pieces';
+import { longPress, longPressed } from '../press';
 import { useSession } from '../session';
 
-const TARGET_TAG: Record<SnapGambit['target'], string> = {
+export const TARGET_TAG: Record<SnapGambit['target'], string> = {
   lane: 'Pick a lane',
   point: 'Pick a spot',
   enemy: 'Pick a target',
   none: 'Instant',
 };
 
-/** The gambit hand: three cards with cost, state and an expiry timer. */
+/** The full text of a gambit: shown on a long press, and in the aim tray once a card is aimed. */
+export function GambitInfo(props: { snap: Snapshot }) {
+  const s = useSession();
+  const info = s.ui.info;
+  const c = info ? props.snap.hand[info.slot] : undefined;
+  if (!info || !c || c.cardId !== info.cardId) return null;
+  return (
+    <div class="ginfo glass" data-testid="gambit-info" role="status" onClick={() => s.closeInfo()}>
+      <span class="ginfo-top">
+        <b>{c.name}</b>
+        <span class="gcost" aria-label={`${c.cost} Tempo`}>
+          {c.cost}
+        </span>
+      </span>
+      <span class="ginfo-desc">{c.desc}</span>
+      <span class="ginfo-tag dim tiny">
+        {TARGET_TAG[c.target]}
+        {c.usable ? '' : ` · Not now: ${c.reason}`}
+      </span>
+    </div>
+  );
+}
+
+/**
+ * The gambit hand: three cards showing name and cost. The full text is the tooltip, a long press,
+ * or the aim tray; a card only says more when it cannot be played (why) or is about to expire.
+ */
 export function Hand(props: { snap: Snapshot }) {
   const s = useSession();
   const { snap } = props;
@@ -22,9 +49,8 @@ export function Hand(props: { snap: Snapshot }) {
       {snap.hand.map((c) =>
         c.cardId === '' ? (
           <div class="gcard empty" key={c.slot} data-testid={`gambit-${c.slot}`} data-empty="true">
-            <span class="gname dim">Next card</span>
             <span class="gstate dim">
-              {c.refillTicks === null ? 'shuffling' : `in ${Math.ceil(c.refillTicks / 20)}s`}
+              {c.refillTicks === null ? 'Shuffling' : `Next in ${Math.ceil(c.refillTicks / 20)}s`}
             </span>
             <span class="timer refill">
               <i
@@ -44,19 +70,21 @@ export function Hand(props: { snap: Snapshot }) {
             aria-disabled={!c.usable}
             aria-pressed={aimSlot === c.slot}
             title={`${c.name} (${c.cost} Tempo): ${c.desc}${c.usable ? '' : ` Not now: ${c.reason}.`}`}
-            onClick={() => s.playCard(c.slot)}
+            onClick={() => {
+              if (longPressed()) return;
+              s.closeInfo();
+              s.playCard(c.slot);
+            }}
+            {...longPress(() => s.showInfo(c.slot))}
           >
             <span class="ghead">
-              {c.piece && <PieceGlyph piece={c.piece} team="A" size={18} class="gsig" />}
+              {c.piece && <PieceGlyph piece={c.piece} team="A" size={16} class="gsig" />}
               <span class="gname">{c.name}</span>
               <span class="gcost" aria-label={`${c.cost} Tempo`}>
                 {c.cost}
               </span>
             </span>
-            <span class="gdesc">{c.desc}</span>
-            <span class={`gstate ${c.usable ? '' : 'why'}`}>
-              {c.usable ? TARGET_TAG[c.target] : c.reason}
-            </span>
+            {!c.usable && <span class="gstate why">{c.reason}</span>}
             <span class={`timer ${c.ticksLeft < expireTicks * 0.25 ? 'low' : ''}`}>
               <i style={{ width: `${Math.min(100, (c.ticksLeft / expireTicks) * 100)}%` }} />
             </span>

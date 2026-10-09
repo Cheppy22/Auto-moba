@@ -94,10 +94,12 @@ Both teams field the same five pieces, so balance lives in roles, styles, paths 
 Mobile first (portrait 390×844, landscape 844×390, desktop). The 3D island stays; the HUD sits in the corners.
 
 - **Setup board:** five piece cards (style picker, path toggle) and three lane slots to drop them in. One "Begin" button.
-- **Live HUD:** Act clock and score (top); White's roster with rank pips, health and lane (left column); Black's roster (right); **gambit hand + Tempo meter + Field Pawn button** (pawn count / cap; tap, then pick Left / Mid / Right) (bottom); **fork sheet** that pauses the game (see Ranks and forks); **Adjourn** button (top right, next to speed). Camera Auto / Follow (tap a roster portrait) / Free.
+- **Live HUD (calm):** one slim top row — Act clock and score, a cycling speed chip (1×, 2×, 4×, 8×, paused), a cycling camera button (Auto / Follow / Free) and **Adjourn**; both rosters in the side columns (portrait, health ring, lane tag, rank **numeral**, and the **style emblem**, for Black too); **gambit hand** (cards show name and cost; the reason when unusable; hold a card for its full text), **Tempo meter** and **Field Pawn** (`alive/cap · cost`) at the bottom. Banners and rank chips are small and fade in about 2–3 s. Camera Auto / Follow (tap a roster portrait; tap again or hold for the **piece card**) / Free. Tapping a piece in the 3D view also opens its piece card.
+- **Fork sheet (pauses the game):** a bottom sheet on phones, docked right in landscape, bottom-centre on desktop. One fork at a time: piece, style, "Rank 4 · Choose a path", both options with full text and an Offense/Defense/Utility leaning tag, "N more waiting", and **Let the AI choose**. The camera follows the choosing piece and is restored afterwards.
+- **Piece card:** piece and team, style name and description, path, lane, kills/deaths, rank pips with the next rank or fork, forks taken, current items.
 - **Gambit targeting:** tap a card. Lane cards show three big Left / Mid / Right buttons; point and enemy cards are aimed by tapping the 3D view (ground pick or piece pick); a Cancel chip backs out.
 - **Adjourn panel:** paused. Lanes (move pieces between lanes), paths, the **Armory** (each piece's items and next buy, read-only), mini scoreboard. Resume.
-- **End screen:** "Checkmate: White wins" (or Black) and the existing report.
+- **End report:** a horizontal pager. The front page is the **Result splash** (Checkmate banner, both team scoreboards, MVP, award chips, team totals, New match / Same seed); swipe or use the tab bar for Economy, Combat, Objectives, Pieces, Replay and Log, which hold the graphs. Data from `buildSummary` (`src/analysis/summary.ts`); factual only, no advice.
 - Cut: draft, upgrade cards, between-phase shop, shop pins and suggestion queue, auto-buy and Farm toggles, recall button, curse and event prompts (the AI decides curses for both teams).
 
 ## Look

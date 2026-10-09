@@ -321,7 +321,8 @@ export interface HandSlot {
 export interface PendingFork {
   heroId: number;
   rank: 4 | 8;
-  deadlineTick: number;
+  /** Tick the AI picks for the player; null when the game pauses for forks (no timeout). */
+  deadlineTick: number | null;
 }
 
 /** Sanctuary zone: heals allies inside it every tick. */
@@ -558,7 +559,10 @@ export type Recorder = {
 
 export type Command =
   | { type: 'setupTeam'; pieces: SetupEntry[] }
+  /** `optionId: 'auto'` takes the AI's pick for that piece's oldest pending fork. */
   | { type: 'chooseFork'; heroId: number; optionId: string }
+  /** Resolves every pending White fork with the AI's pick ("Let the AI choose"). */
+  | { type: 'autoForks' }
   | { type: 'playGambit'; slot: number; lane?: LaneId; x?: number; y?: number; targetId?: number }
   | { type: 'setLane'; heroId: number; lane: LaneId }
   | { type: 'setPath'; heroId: number; path: Path }
@@ -579,6 +583,12 @@ export interface MatchConfig {
   autoGambits?: { A: boolean; B: boolean };
   /** Internal (tools): forks pick at once without the player wait. Defaults to `autoGambits`. */
   autoForks?: { A: boolean; B: boolean };
+  /**
+   * Interactive play: `Match.step` stops the moment a White fork opens and does nothing (returns 0)
+   * while one is pending, and White's forks have no timeout (answer with `chooseFork` or
+   * `autoForks`). Default false: headless runs never pause and the AI picks after `ranks.forkSec`.
+   */
+  pauseForForks?: boolean;
 }
 
 export interface Replay {
@@ -674,9 +684,12 @@ export interface SnapGambit {
 export interface SnapFork {
   heroId: number;
   piece: PieceId;
+  /** The piece's style key (as `SnapUnit.style`). */
+  style: string;
   rank: 4 | 8;
   options: { id: string; name: string; desc: string }[];
-  ticksLeft: number;
+  /** Ticks until the AI picks; null when there is no timeout (`pauseForForks`). */
+  ticksLeft: number | null;
 }
 
 export interface SnapEvent {

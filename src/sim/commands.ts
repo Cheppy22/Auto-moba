@@ -2,7 +2,7 @@ import { PATHS } from './content/schema';
 import type { Ctx } from './ctx';
 import { playGambit } from './gambits';
 import { fieldPawn } from './pawns';
-import { chooseFork } from './ranks';
+import { autoForks, chooseFork } from './ranks';
 import { assignJunglers, validateSetup } from './setup';
 import { LANES } from './world/map';
 import type { Command, CommandResult, SetupEntry, Unit } from './types';
@@ -41,6 +41,8 @@ function run(ctx: Ctx, cmd: Command, startMatch: StartMatchFn): CommandResult {
     case 'chooseFork':
       if (!whitePiece(ctx, cmd.heroId)) return { ok: false, reason: 'not one of your pieces' };
       return chooseFork(ctx, cmd.heroId, cmd.optionId);
+    case 'autoForks':
+      return autoForks(ctx);
     case 'playGambit':
       return playGambit(ctx, 'A', cmd.slot, {
         lane: cmd.lane,

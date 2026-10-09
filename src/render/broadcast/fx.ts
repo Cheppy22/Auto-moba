@@ -20,6 +20,7 @@ import {
   SpriteMaterial,
   Vector3,
 } from 'three';
+import { drawStyleEmblem, STYLE_IDS, styleEmblemIndex } from '../emblems';
 import { PALETTE } from '../theme';
 import { type Kit, ProgressRing } from './kit';
 
@@ -112,12 +113,17 @@ export class BarBatch {
   }
 }
 
-const BADGE_CELL = 64;
+const BADGE_CELL = 128;
+/** Atlas: row 0 holds the numerals 1-8, rows 1-2 the 15 style emblems (plus one for "unknown"). */
+const ATLAS_COLS = 8;
+const ATLAS_ROWS = 3;
+const EMBLEM_BASE = ATLAS_COLS;
 
 /**
- * Rank badges: a numeral 1-8 beside each piece's health bar, camera-facing, one instanced quad per
- * badge. A sprite atlas on a canvas texture holds the eight numerals; a second instanced quad
- * draws a pulsing gold ring behind badges whose piece has a fork waiting.
+ * Rank and style badges: a numeral 1-8 and a style emblem beside each piece's health bar,
+ * camera-facing, one instanced quad per badge. A canvas atlas holds the eight numerals and the 16
+ * emblem cells; a second instanced quad draws a pulsing gold ring behind badges whose piece has a
+ * fork waiting.
  */
 export class BadgeBatch {
   readonly group = new Group();
@@ -131,26 +137,34 @@ export class BadgeBatch {
 
   constructor(
     kit: Kit,
-    private cap = 64,
+    private cap = 96,
   ) {
-    const atlas = kit.texture('rank-atlas', BADGE_CELL * 8, BADGE_CELL, (g) => {
+    const C = BADGE_CELL;
+    const atlas = kit.texture('badge-atlas', C * ATLAS_COLS, C * ATLAS_ROWS, (g) => {
+      const R = C / 2;
       for (let i = 0; i < 8; i++) {
-        const cx = i * BADGE_CELL + BADGE_CELL / 2;
-        const cy = BADGE_CELL / 2;
+        const cx = i * C + R;
+        const cy = R;
         g.fillStyle = '#0a0810';
         g.beginPath();
-        g.arc(cx, cy, 29, 0, Math.PI * 2);
+        g.arc(cx, cy, R * 0.9, 0, Math.PI * 2);
         g.fill();
         g.strokeStyle = '#ffffff';
-        g.lineWidth = 5;
+        g.lineWidth = C * 0.075;
         g.beginPath();
-        g.arc(cx, cy, 27, 0, Math.PI * 2);
+        g.arc(cx, cy, R * 0.83, 0, Math.PI * 2);
         g.stroke();
         g.fillStyle = '#ffffff';
-        g.font = 'bold 38px Georgia, "Times New Roman", serif';
+        g.font = `bold ${Math.round(C * 0.6)}px Georgia, "Times New Roman", serif`;
         g.textAlign = 'center';
         g.textBaseline = 'middle';
-        g.fillText(String(i + 1), cx, cy + 2);
+        g.fillText(String(i + 1), cx, cy + C * 0.04);
+      }
+      for (let i = 0; i <= STYLE_IDS.length; i++) {
+        const cell = EMBLEM_BASE + i;
+        const cx = (cell % ATLAS_COLS) * C + R;
+        const cy = Math.floor(cell / ATLAS_COLS) * C + R;
+        drawStyleEmblem(g, STYLE_IDS[i] ?? null, C * 0.96, { x: cx, y: cy });
       }
     });
     const geo = new PlaneGeometry(1, 1);
@@ -166,6 +180,8 @@ export class BadgeBatch {
         fog: false,
       }),
     );
+    const cw = (1 / ATLAS_COLS).toFixed(6);
+    const ch = (1 / ATLAS_ROWS).toFixed(6);
     mat.onBeforeCompile = (shader) => {
       shader.vertexShader = shader.vertexShader
         .replace('#include <common>', '#include <common>\nattribute float aCell;')
@@ -173,11 +189,13 @@ export class BadgeBatch {
           '#include <uv_vertex>',
           `#include <uv_vertex>
 #ifdef USE_MAP
-  vMapUv = ( mapTransform * vec3( uv * vec2( 0.125, 1.0 ) + vec2( aCell * 0.125, 0.0 ), 1.0 ) ).xy;
+  float bCol = mod( aCell, ${ATLAS_COLS}.0 );
+  float bRow = floor( aCell / ${ATLAS_COLS}.0 + 0.001 );
+  vMapUv = ( mapTransform * vec3( uv * vec2( ${cw}, ${ch} ) + vec2( bCol * ${cw}, 1.0 - ( bRow + 1.0 ) * ${ch} ), 1.0 ) ).xy;
 #endif`,
         );
     };
-    mat.customProgramCacheKey = () => 'rank-badge';
+    mat.customProgramCacheKey = () => 'rank-style-badge';
     this.badges = new InstancedMesh(kit.own(geo), mat, cap);
     this.badges.renderOrder = 53;
     this.pulseMat = kit.own(
@@ -212,6 +230,15 @@ export class BadgeBatch {
     this.quat.copy(cam.quaternion);
   }
 
+  private quad(x: number, y: number, z: number, size: number, cell: number, color: Color): void {
+    if (this.n >= this.cap) return;
+    this.cells.setX(this.n, cell);
+    _m.compose(_p.set(x, y, z), this.quat, _s.set(size, size, 1));
+    this.badges.setMatrixAt(this.n, _m);
+    this.badges.setColorAt(this.n, color);
+    this.n++;
+  }
+
   /** `size` is the badge diameter in world units; `pulse` draws the fork ring behind it. */
   add(
     x: number,
@@ -223,17 +250,17 @@ export class BadgeBatch {
     pulse: boolean,
     time: number,
   ): void {
-    if (this.n >= this.cap) return;
-    this.cells.setX(this.n, Math.max(0, Math.min(7, Math.round(rank) - 1)));
-    _m.compose(_p.set(x, y, z), this.quat, _s.set(size, size, 1));
-    this.badges.setMatrixAt(this.n, _m);
-    this.badges.setColorAt(this.n, _c.set(color));
-    this.n++;
-    if (pulse) {
+    this.quad(x, y, z, size, Math.max(0, Math.min(7, Math.round(rank) - 1)), _c.set(color));
+    if (pulse && this.np < this.cap) {
       const k = 1.5 + 0.55 * (0.5 + 0.5 * Math.sin(time * 7));
       _m.compose(_p.set(x, y, z), this.quat, _s.set(size * k, size * k, 1));
       this.pulses.setMatrixAt(this.np++, _m);
     }
+  }
+
+  /** The style emblem (drawn in its own colours). */
+  emblem(x: number, y: number, z: number, size: number, style: string | null): void {
+    this.quad(x, y, z, size, EMBLEM_BASE + styleEmblemIndex(style), _white);
   }
 
   end(time: number): void {
@@ -375,13 +402,14 @@ export class EventRing {
 
   constructor(kit: Kit, type: string, radius: number) {
     this.color = EVENT_COLORS[type] ?? PALETTE.spirit;
-    this.area = kit.glowDisc(this.color, radius * 1.1, 0.34);
+    // calm board: hairline edge, faint area, a short faint pillar
+    this.area = kit.glowDisc(this.color, radius * 1.1, 0.16);
     this.area.position.y = 0.9;
-    this.edge = kit.decalRing(this.color, radius, false, 0.9);
+    this.edge = kit.decalRing(this.color, radius, false, 0.7, true);
     this.edge.position.y = 1.0;
-    this.dash = kit.decalRing(this.color, radius * 0.88, true, 0.6);
+    this.dash = kit.decalRing(this.color, radius * 0.9, true, 0.3);
     this.dash.position.y = 1.05;
-    this.progress = new ProgressRing(kit, radius * 1.06, radius * 1.1, this.color, 0.95);
+    this.progress = new ProgressRing(kit, radius * 1.05, radius * 1.075, this.color, 0.9);
     this.progress.mesh.position.y = 1.1;
     this.pillar = new Mesh(
       kit.geo('pillar', () => new CylinderGeometry(1, 1, 1, 20, 1, true).translate(0, 0.5, 0)),
@@ -398,14 +426,14 @@ export class EventRing {
         }),
       ),
     );
-    this.pillar.scale.set(radius * 0.22, 90, radius * 0.22);
+    this.pillar.scale.set(radius * 0.16, 60, radius * 0.16);
     this.gem = new Mesh(
       kit.geo('event-gem', () => new IcosahedronGeometry(1, 0).scale(1, 1.5, 1)),
       kit.basic(this.color),
     );
     this.gem.scale.setScalar(5.5);
     this.gem.position.y = 34;
-    const halo = kit.glowSprite(this.color, 46, 0.6);
+    const halo = kit.glowSprite(this.color, 34, 0.4);
     halo.position.y = 34;
     this.tele = new Group();
     this.teleDisc = kit.glowDisc('#d04a52', 1, 0.6);
@@ -432,11 +460,11 @@ export class EventRing {
     team: string | null | undefined,
   ): void {
     const pulse = 0.5 + 0.5 * Math.sin(time * 6);
-    (this.edge.material as MeshBasicMaterial).opacity = warning ? 0.3 + 0.5 * pulse : 0.95;
-    (this.area.material as MeshBasicMaterial).opacity = warning ? 0.12 + 0.08 * pulse : 0.3;
+    (this.edge.material as MeshBasicMaterial).opacity = warning ? 0.3 + 0.5 * pulse : 0.75;
+    (this.area.material as MeshBasicMaterial).opacity = warning ? 0.08 + 0.06 * pulse : 0.14;
     (this.pillar.material as MeshBasicMaterial).opacity = warning
-      ? 0.25 + 0.2 * pulse
-      : 0.7 + 0.2 * pulse;
+      ? 0.18 + 0.14 * pulse
+      : 0.38 + 0.12 * pulse;
     this.dash.rotation.y = time * 0.35;
     this.gem.rotation.y = time * 1.6;
     this.gem.position.y = 34 + Math.sin(time * 2.2) * 2.4;

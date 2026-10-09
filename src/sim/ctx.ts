@@ -23,6 +23,8 @@ export interface Ctx {
   s: MatchState;
   c: Content;
   t: Tuning;
+  /** `MatchConfig.pauseForForks`: White's forks have no deadline and `Match.step` halts for them. */
+  pauseForForks: boolean;
   world: World;
   /** Ids of the jungle slots that are open; kept in step with `s.slots[].open`. */
   open: Set<string>;

@@ -1,4 +1,5 @@
 import type { Content, LaneId, Path, PieceId } from '../sim';
+import { styleEmblem, styleEmblemDescriptor } from '../render/emblems';
 import { PALETTE } from '../render/theme';
 
 export const cap = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
@@ -27,6 +28,59 @@ export const pieceLabel = (c: Content, piece: string): string =>
 
 export const styleLabel = (c: Content, piece: string, style: string | null): string =>
   (style && c.styleByKey.get(`${piece}/${style}`)?.name) || '';
+
+export const styleDesc = (c: Content, piece: string, style: string | null): string =>
+  (style && c.styleByKey.get(`${piece}/${style}`)?.desc) || '';
+
+/** The style's colour (hex), for borders and text accents. */
+export const styleColor = (style: string | null): string => styleEmblem(style).color;
+
+/** A style's emblem: its colour plate with a glyph that is also a shape cue. Both teams. */
+export function StyleBadge(props: {
+  style: string | null;
+  team?: 'A' | 'B' | null;
+  size?: number;
+  class?: string;
+}) {
+  const size = props.size ?? 18;
+  const d = styleEmblemDescriptor(props.style, props.team ?? null);
+  return (
+    <svg
+      class={props.class}
+      width={size}
+      height={size}
+      viewBox={d.viewBox}
+      aria-hidden="true"
+      data-style={props.style ?? ''}
+    >
+      <circle cx="12" cy="12" r="11.4" fill={d.rim} />
+      <circle cx="12" cy="12" r="10.5" fill={d.ink} />
+      <circle cx="12" cy="12" r="9.3" fill={d.color} />
+      <g transform={d.glyphTransform}>
+        {d.parts.map((p, i) =>
+          p.mode === 'fill' ? (
+            <path
+              key={i}
+              d={p.d}
+              fill={d.ink}
+              fill-rule={p.rule === 'evenodd' ? 'evenodd' : undefined}
+            />
+          ) : (
+            <path
+              key={i}
+              d={p.d}
+              fill="none"
+              stroke={d.ink}
+              stroke-width={p.w ?? 2}
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          ),
+        )}
+      </g>
+    </svg>
+  );
+}
 
 const BODY: Record<PieceId, string> = {
   king: 'M10.8 1.4h2.4v1.9h2v2.3h-2v1.9h-2.4V5.6h-2V3.3h2z M12 9.2c-3.5 0-6.2 1.9-6.2 4.8 0 1.4.7 2.5 1.8 3.3L6.4 20.2h11.2l-1.2-2.9c1.1-.8 1.8-1.9 1.8-3.3 0-2.9-2.7-4.8-6.2-4.8z M5 20.2h14v2.4H5z',

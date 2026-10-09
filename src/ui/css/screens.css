@@ -124,131 +124,7 @@
   }
 }
 
-/* ---------- report: takeaways, scoreboard, details ---------- */
-.takeaways {
-  list-style: none;
-  margin: 0;
-  padding: var(--sp-2) var(--sp-3);
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-2) var(--sp-4);
-  background: rgba(255, 255, 255, 0.03);
-  border-left: 2px solid var(--brass);
-  font-size: var(--fs-sm);
-}
-.takeaways li {
-  flex: 1 1 260px;
-  min-width: 0;
-}
-.tk-k {
-  display: block;
-  font-family: var(--font-display);
-  font-size: var(--fs-xs);
-  letter-spacing: 0.12em;
-  color: var(--brass);
-  text-transform: uppercase;
-}
-.sb-wrap {
-  overflow-x: auto;
-}
-table.scoreboard {
-  min-width: 520px;
-}
-.sb-team td {
-  font-family: var(--font-display);
-  letter-spacing: 0.06em;
-  background: rgba(255, 255, 255, 0.04);
-}
-.sb-team.A td:first-child {
-  color: var(--a);
-}
-.sb-team.B td:first-child {
-  color: var(--b);
-}
-.sb-row {
-  cursor: pointer;
-}
-.sb-row:hover,
-.sb-row:focus-visible,
-.sb-row.sel {
-  background: rgba(196, 168, 240, 0.1);
-  outline: none;
-}
-.sb-row.sel td:first-child {
-  box-shadow: inset 2px 0 0 var(--brass-hi);
-}
-.sb-hero {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--sp-2);
-}
-table.scoreboard td.sb-items,
-table.scoreboard th.sb-items {
-  text-align: left;
-}
-.sb-item {
-  display: inline-grid;
-  place-items: center;
-  width: 22px;
-  height: 22px;
-  margin-right: 2px;
-  color: var(--cat, var(--brass-hi));
-  border: 1px solid var(--brass-dim);
-  border-radius: var(--r-1);
-  background: #0b0910;
-}
-.details-toggle {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-2);
-  width: 100%;
-  text-align: left;
-}
-.details-body {
-  padding-top: var(--sp-3);
-}
-
-/* ---------- report: you, folded takeaways, narrow rows ---------- */
-.sb-more td {
-  padding: 6px 8px;
-  background: rgba(255, 255, 255, 0.03);
-}
-.sb-icons {
-  display: inline-flex;
-  flex-wrap: wrap;
-  gap: 2px;
-}
-.takeaways-fold {
-  background: rgba(255, 255, 255, 0.03);
-  border-left: 2px solid var(--brass);
-}
-.takeaways-fold summary {
-  cursor: pointer;
-  padding: var(--sp-2) var(--sp-3);
-  font-size: var(--fs-sm);
-}
-.takeaways-fold .tk-k {
-  display: inline;
-  margin-right: var(--sp-2);
-}
-.takeaways-fold .takeaways {
-  border-left: 0;
-}
-@media (max-width: 499px) {
-  table.scoreboard {
-    min-width: 0;
-  }
-}
-
 /* ---------- shared bits kept from the old screens ---------- */
-.detail-name {
-  font-family: var(--font-display);
-  font-size: var(--fs-lg);
-  letter-spacing: 0.04em;
-}
-.report-scroll {
-  max-height: calc(100vh - 190px);
-}
 .card b {
   font-weight: 600;
 }
@@ -262,9 +138,6 @@ h3.teamA {
 h3.teamB {
   border-bottom-color: color-mix(in srgb, var(--b) 55%, transparent);
 }
-.report-scroll .card:has(.chip) {
-  border-left: 2px solid var(--brass-dim);
-}
 .title-pieces {
   display: flex;
   gap: 10px;
@@ -272,24 +145,6 @@ h3.teamB {
   border: 1px solid var(--brass-dim);
   border-radius: 24px;
   background: rgba(12, 10, 18, 0.6);
-}
-.report-panel {
-  width: min(1280px, 100%);
-}
-.verdict {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-3);
-  padding: var(--sp-2) var(--sp-3);
-  border: 1px solid var(--brass-dim);
-  border-left: 4px solid var(--a);
-  background: rgba(255, 255, 255, 0.03);
-}
-.verdict.B {
-  border-left-color: var(--b);
-}
-.verdict h2 {
-  font-size: var(--fs-xl);
 }
 
 .build-stamp {

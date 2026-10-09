@@ -3,6 +3,8 @@ import {
   boxOf,
   overflow,
   pauseAtStart,
+  playPast,
+  setSpeed,
   setTempo,
   snap,
   stepUntil,
@@ -86,14 +88,8 @@ for (const v of views) {
         'field-pawn',
         'tempo',
         'adjourn',
-        'speed-0',
-        'speed-1',
-        'speed-2',
-        'speed-4',
-        'speed-8',
-        'cam-auto',
-        'cam-follow',
-        'cam-free',
+        'speed-chip',
+        'cam-btn',
         'roster-A-king',
         'roster-A-knight',
         'roster-B-king',
@@ -104,14 +100,22 @@ for (const v of views) {
       for (const id of ['gambit-0', 'gambit-1', 'gambit-2', 'field-pawn', 'adjourn']) {
         await bigEnough(page, id);
       }
-      for (const id of ['0', '1', '2', '4', '8']) await bigEnough(page, `speed-${id}`);
-      for (const id of ['auto', 'follow', 'free']) await bigEnough(page, `cam-${id}`);
+      for (const id of ['speed-chip', 'cam-btn']) await bigEnough(page, id);
       for (const piece of ['king', 'queen', 'rook', 'bishop', 'knight']) {
         await bigEnough(page, `roster-A-${piece}`);
         await bigEnough(page, `roster-B-${piece}`);
       }
-      // the five rank pips and numeral are on every portrait
-      await expect(page.locator('[data-testid="roster"] .rank-pips i')).toHaveCount(40);
+      // calm HUD: a rank numeral and a style emblem on every portrait of both teams, no pips
+      await expect(page.locator('.roster .rank-pips')).toHaveCount(0);
+      await expect(page.locator('.roster .rank-num')).toHaveCount(10);
+      await expect(page.locator('.roster .style-badge')).toHaveCount(10);
+      // the gambit cards show a name and a cost only
+      await expect(page.locator('.gcard .gdesc')).toHaveCount(0);
+      // the speed chip and the camera button each replace a row of buttons
+      const topH = (await boxOf(page, 'adjourn')).y + (await boxOf(page, 'adjourn')).height;
+      expect(topH, 'one slim row on top').toBeLessThanOrEqual(64);
+      const firstCell = await boxOf(page, 'roster-A-king');
+      expect(firstCell.y, 'the roster sits right under the top row').toBeLessThanOrEqual(68);
       // the hand never covers the Field Pawn button or the Tempo meter
       const hand = await boxOf(page, 'hand');
       const pawn = await boxOf(page, 'field-pawn');
@@ -159,20 +163,46 @@ for (const v of views) {
       await page.getByTestId('aim-bot').tap();
       await expect(page.getByTestId('pawn-count')).toContainText('1/8');
 
-      // ---- forks stack above the hand without covering the middle of the screen
+      // ---- the piece card: tap a Black portrait to follow, tap again for the card
+      await page.getByTestId('roster-B-queen').tap();
+      await expect(page.getByTestId('unit-card')).toHaveCount(0);
+      await page.getByTestId('roster-B-queen').tap();
+      await expect(page.getByTestId('unit-card')).toBeVisible();
+      await expect(page.getByTestId('unit-card-style')).not.toBeEmpty();
+      await page.waitForTimeout(400);
+      await shot(page, `${v.name}-card`);
+      await expect(page.getByTestId('unit-card')).toBeInViewport({ ratio: 1 });
+      await bigEnough(page, 'unit-card-close');
+      expect(await overflow(page)).toBeLessThanOrEqual(0);
+      await centreIsMap(page);
+      await page.getByTestId('unit-card-close').tap();
+      await expect(page.getByTestId('unit-card')).toHaveCount(0);
+      await page.getByTestId('cam-btn').tap();
+      await page.getByTestId('cam-btn').tap();
+      await expect(page.getByTestId('cam-btn')).toHaveAttribute('data-mode', 'auto');
+
+      // ---- a fork pauses the match and opens a sheet that fits and can be tapped
       await stepUntil(page, { kind: 'fork' });
       await expect(page.getByTestId('forks')).toBeVisible();
       await page.waitForTimeout(500);
       await shot(page, `${v.name}-forks`);
       expect(await overflow(page)).toBeLessThanOrEqual(0);
-      await centreIsMap(page);
-      const forks = await page.locator('.fork:not(.strip)').all();
-      expect(forks.length).toBeGreaterThan(0);
-      for (const f of forks) await expect(f).toBeInViewport({ ratio: 1 });
-      for (const o of await page.locator('.fork-opt').all()) {
+      await expect(page.getByTestId('forks')).toBeInViewport({ ratio: 1 });
+      for (const o of await page.locator('.fs-opt').all()) {
         await expect(o).toBeInViewport({ ratio: 1 });
         expect((await o.boundingBox())!.height).toBeGreaterThanOrEqual(40);
       }
+      await expect(page.getByTestId('fork-auto')).toBeInViewport({ ratio: 1 });
+      await bigEnough(page, 'fork-auto');
+      // the sheet leaves the middle of the screen to the piece that is choosing
+      const sheetBox = await boxOf(page, 'forks');
+      if (v.name === 'portrait') expect(sheetBox.y).toBeGreaterThan(vp.height / 2);
+      else expect(sheetBox.x).toBeGreaterThanOrEqual(vp.width / 2 - 8);
+      // the clock is frozen even at 1x
+      await setSpeed(page, 1);
+      const held = (await snap(page)).tick;
+      await page.waitForTimeout(700);
+      expect((await snap(page)).tick).toBe(held);
       const first = (await snap(page)).forks[0];
       await page.getByTestId(`fork-opt-${first.heroId}-${first.options[0].id}`).tap();
       await expect
@@ -180,6 +210,17 @@ for (const v of views) {
           (await snap(page)).forks.some((f) => f.heroId === first.heroId && f.rank === first.rank),
         )
         .toBe(false);
+      // choosing resumes play (other pieces may be waiting: "Let the AI choose" answers them)
+      await setSpeed(page, 0);
+      while ((await snap(page)).forks.length > 0) await page.getByTestId('fork-auto').tap();
+      await expect(page.getByTestId('forks')).toHaveCount(0);
+      await setSpeed(page, 1);
+      await playPast(page, held);
+      await setSpeed(page, 0);
+      if ((await snap(page)).forks.length > 0) await page.getByTestId('fork-auto').tap();
+      await expect(page.getByTestId('forks')).toHaveCount(0);
+      await centreIsMap(page);
+      expect(await overflow(page)).toBeLessThanOrEqual(0);
 
       // ---- Adjourn fits the screen
       await page.getByTestId('adjourn').tap();
@@ -210,12 +251,12 @@ for (const v of views) {
       // ---- the end screen
       await stepUntil(page, { kind: 'end' }, 1500, 80);
       await expect(page.getByTestId('report')).toBeVisible();
-      await expect(page.getByTestId('winner')).toHaveText(/Checkmate: (White|Black) wins/);
+      await expect(page.getByTestId('winner')).toHaveText(/Checkmate · (White|Black) wins/);
       await shot(page, `${v.name}-end`);
       expect(await overflow(page)).toBeLessThanOrEqual(0);
       await expect(page.locator('[data-testid^="report-hero-"]')).toHaveCount(10);
-      await page.locator('[data-testid^="report-hero-"]').first().tap();
-      if (vp.width < 500) await page.locator('[data-testid^="open-hero-"]').tap();
+      await bigEnough(page, 'report-tab-result');
+      await page.getByTestId('report-tab-pieces').tap();
       await expect(page.getByTestId('hero-view')).toBeVisible();
       expect(errors).toEqual([]);
     });
