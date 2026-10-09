@@ -49,7 +49,7 @@ function spawnSpot(ctx: Ctx, slot: SlotState, spot: number): void {
   const hy = sdef.y + (slot.mirrored ? pos.dx : pos.dy);
   const ids: number[] = [];
   for (let i = 0; i < type.count; i++) {
-    const ox = type.count > 1 ? (i - (type.count - 1) / 2) * 14 : 0;
+    const ox = type.count > 1 ? (i - (type.count - 1) / 2) * 26 : 0;
     const u = newUnit(
       ctx,
       'camp',

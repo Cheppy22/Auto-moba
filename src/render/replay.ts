@@ -93,9 +93,18 @@ export function drawReplay(
   g.setTransform(1, 0, 0, 1, 0, 0);
   g.fillStyle = PALETTE.bg;
   g.fillRect(0, 0, canvas.width, canvas.height);
-  const [gcx, gcy] = xy(500, 500);
+  const mid = content.map.size / 2;
+  const [gcx, gcy] = xy(mid, mid);
   g.beginPath();
-  g.ellipse(gcx, gcy, 612 * v.sx, 612 * v.sy, 0, 0, Math.PI * 2);
+  g.ellipse(
+    gcx,
+    gcy,
+    0.612 * content.map.size * v.sx,
+    0.612 * content.map.size * v.sy,
+    0,
+    0,
+    Math.PI * 2,
+  );
   g.fillStyle = '#12111b';
   g.fill();
   g.strokeStyle = 'rgba(224,169,62,0.35)';

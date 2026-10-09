@@ -16,28 +16,16 @@ import {
 import { buildTerrain, type Content, type Terrain, type WalkShape } from '../../sim';
 import type { Kit } from './kit';
 import { rand01 } from './kit';
+import { type WorldScale, worldScale } from './scale';
 
 const TAU = Math.PI * 2;
 
-/** Radius of the floating island (world units); everything beyond falls away into the void. */
-export const ISLAND_R = 700;
 /** Height of the river surface. Ground that dips below it is wet; fords are a few units under. */
 export const WATER_Y = -2.6;
-/** Half width of the heightfield square (world units) and its cell count. */
-const E = 708;
-const N = 236;
-const STEP = (2 * E) / N;
-const W1 = N + 1;
-/** Distances to the walkable edge are only tracked this far; the massif tops out before then. */
-const D_CAP = 140;
 /** The cliff foot starts this far beyond the walkable edge, so a unit at the edge never clips rock. */
 const SHOULDER = 5;
-const RIVER_CORE = 20;
-const FALL_START = 664;
 const FALL_Y = -36;
 const SQRT1_2 = Math.SQRT1_2;
-/** Half width of the painted and raised road (the walkable lane is wider). */
-export const ROAD_HALF = 22;
 
 const clamp = (v: number, lo: number, hi: number): number => (v < lo ? lo : v > hi ? hi : v);
 const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
@@ -108,18 +96,28 @@ interface SlotDef {
  */
 export class TerrainField {
   readonly half: number;
+  /** Every size that follows the map: island radius, heightfield, road, tiles (see `worldScale`). */
+  readonly ws: WorldScale;
   readonly shapes: WalkShape[];
-  readonly h = new Float32Array(W1 * W1);
-  readonly d = new Float32Array(W1 * W1);
+  readonly h: Float32Array;
+  readonly d: Float32Array;
+  /** Cells per side of the heightfield and the points per side. */
+  private readonly n: number;
+  private readonly w1: number;
   private readonly t: Terrain;
   private readonly bases: [number, number][];
   private readonly slots: SlotDef[];
   private readonly shops: { x: number; y: number }[];
   private readonly roads: WalkShape[];
 
-  constructor(content: Content) {
+  constructor(content: Content, desktop = true) {
     const map = content.map;
     this.half = map.size / 2;
+    this.ws = worldScale(map, desktop);
+    this.n = this.ws.cells;
+    this.w1 = this.n + 1;
+    this.h = new Float32Array(this.w1 * this.w1);
+    this.d = new Float32Array(this.w1 * this.w1);
     this.t = buildTerrain(map);
     this.shapes = this.t.shapes;
     this.roads = this.shapes.filter((s) => s.kind === 'lane');
@@ -139,12 +137,12 @@ export class TerrainField {
     if (active === this) active = null;
   }
 
-  /** Signed distance to the nearest walkable shape (negative inside), capped at D_CAP. */
+  /** Signed distance to the nearest walkable shape (negative inside), capped at `ws.dCap`. */
   sdf(x: number, y: number): number {
     const t = this.t;
     const c = Math.floor(x / t.cell);
     const r = Math.floor(y / t.cell);
-    let best = D_CAP;
+    let best = this.ws.dCap;
     const shapes = t.shapes;
     if (c >= 0 && r >= 0 && c < t.cols && r < t.cols) {
       const list = t.cells[r * t.cols + c];
@@ -191,35 +189,38 @@ export class TerrainField {
 
   /** Walkable-ground elevation, defined everywhere so cliffs can grow out of it. */
   private ground(x: number, y: number): number {
+    const { k, baseK: bk, riverCore } = this.ws;
     let g = 0;
     for (const [bx, by] of this.bases) {
       const r = Math.hypot(x - bx, y - by);
       // a terraced dais: 20 on top, 14, then 8, then the land falls away towards the lanes
       g = Math.max(
         g,
-        8 * (1 - smooth(96, 340, r)) + 6 * (1 - smooth(78, 88, r)) + 6 * (1 - smooth(50, 60, r)),
+        8 * (1 - smooth(96 * bk, 340 * bk, r)) +
+          6 * (1 - smooth(78 * bk, 88 * bk, r)) +
+          6 * (1 - smooth(50 * bk, 60 * bk, r)),
       );
     }
     const rc = Math.hypot(x - this.half, y - this.half);
-    g -= 3.4 * Math.exp(-((rc / 240) * (rc / 240)));
+    g -= 3.4 * Math.exp(-((rc / (240 * k)) * (rc / (240 * k))));
     // gentle rolls, mirrored across the river so the two halves feel alike
     const a = fbm(x * 0.011, y * 0.011, 3, 2);
     const b = fbm(y * 0.011, x * 0.011, 3, 2);
     g += (a + b - 1) * 6.5;
     for (const s of this.slots) {
       const r = Math.hypot(x - s.x, y - s.y);
-      g += s.lift * (1 - smooth(s.radius + 4, s.radius + 92, r));
+      g += s.lift * (1 - smooth(s.radius + 4, s.radius + 92 * k, r));
     }
     for (const s of this.shops) {
       const r = Math.hypot(x - s.x, y - s.y);
-      g += 7 * (1 - smooth(60, 108, r));
+      g += 7 * (1 - smooth(60 * k, 108 * k, r));
     }
     // roads: a low raised causeway of inlaid stone along each lane
     g += this.roadLift(x, y);
     // the river: a shallow bed at a fixed depth under the water, banks easing up to the land
     const rr = this.riverDist(x, y);
     const bed = WATER_Y - 3 + (vnoise(x * 0.05, y * 0.05, 8) - 0.5) * 1.2;
-    const t = smooth(RIVER_CORE, RIVER_CORE + 46, rr);
+    const t = smooth(riverCore, riverCore + 46 * k, rr);
     return Math.min(g, bed + (g - bed) * t);
   }
 
@@ -238,9 +239,11 @@ export class TerrainField {
       if (dd < d) d = dd;
     }
     d = Math.sqrt(d);
-    let lift = 1.7 * (1 - smooth(ROAD_HALF, ROAD_HALF + 7, d));
+    const road = this.ws.roadHalf;
+    let lift = 1.7 * (1 - smooth(road, road + 7, d));
     if (lift <= 0) return 0;
-    for (const [bx, by] of this.bases) lift *= smooth(88, 126, Math.hypot(x - bx, y - by));
+    for (const [bx, by] of this.bases)
+      lift *= smooth(88 * this.ws.baseK, 126 * this.ws.baseK, Math.hypot(x - bx, y - by));
     return lift;
   }
 
@@ -249,7 +252,7 @@ export class TerrainField {
     const de = d - SHOULDER;
     if (de <= 0) return 0;
     const rr = this.riverDist(x, y);
-    const gorge = smooth(RIVER_CORE + 8, RIVER_CORE + 96, rr);
+    const gorge = smooth(this.ws.riverCore + 8 * this.ws.k, this.ws.riverCore + 96 * this.ws.k, rr);
     const n1 = fbm(x * 0.0055, y * 0.0055, 11, 3);
     const top = 34 + 44 * smooth(0.3, 0.7, n1);
     const n2 = vnoise(x * 0.018, y * 0.018, 5);
@@ -267,13 +270,15 @@ export class TerrainField {
 
   private bake(): void {
     const half = this.half;
+    const { edge: E, step: STEP, islandR: ISLAND_R, fallStart: FALL_START, dCap } = this.ws;
+    const W1 = this.w1;
     for (let j = 0; j < W1; j++) {
       for (let i = 0; i < W1; i++) {
         const wx = -E + i * STEP;
         const wz = -E + j * STEP;
         const r = Math.hypot(wx, wz);
         if (r > ISLAND_R + STEP * 1.5) {
-          this.d[j * W1 + i] = D_CAP;
+          this.d[j * W1 + i] = dCap;
           this.h[j * W1 + i] = FALL_Y;
           continue;
         }
@@ -292,6 +297,9 @@ export class TerrainField {
 
   /** Height at world (x, z), interpolated exactly like the rendered triangles. */
   heightW(wx: number, wz: number): number {
+    const { edge: E, step: STEP } = this.ws;
+    const N = this.n;
+    const W1 = this.w1;
     const fx = (wx + E) / STEP;
     const fz = (wz + E) / STEP;
     if (fx <= 0 || fz <= 0 || fx >= N || fz >= N) return FALL_Y;
@@ -322,9 +330,12 @@ export class TerrainField {
 
   /** Walkable-edge distance from the baked grid (negative inside), for painting and scattering. */
   sdfAt(simX: number, simY: number): number {
+    const { edge: E, step: STEP, dCap } = this.ws;
+    const N = this.n;
+    const W1 = this.w1;
     const fx = (simX - this.half + E) / STEP;
     const fz = (simY - this.half + E) / STEP;
-    if (fx < 0 || fz < 0 || fx >= N || fz >= N) return D_CAP;
+    if (fx < 0 || fz < 0 || fx >= N || fz >= N) return dCap;
     const i = Math.floor(fx);
     const j = Math.floor(fz);
     const u = fx - i;
@@ -398,8 +409,7 @@ const FLOOR: Record<string, string> = {
   spot: '#2c2733',
 };
 
-/** Chessboard: tile size in sim units, and the ivory / ebony pairs for each half. */
-const TILE = 40;
+/** Chessboard: the ivory / ebony pairs for each half (tile size is `ws.tile`). */
 const BOARD = {
   white: { light: '#d3c8a8', dark: '#4b4150' },
   black: { light: '#8a8499', dark: '#1d1a26' },
@@ -507,7 +517,8 @@ export class TerrainView {
   readonly field: TerrainField;
   private readonly kit: Kit;
   private readonly content: Content;
-  private readonly size = 2048;
+  private readonly size: number;
+  private readonly ws: WorldScale;
   private readonly base: HTMLCanvasElement;
   private readonly canvas: HTMLCanvasElement;
   private readonly tex: CanvasTexture;
@@ -520,7 +531,9 @@ export class TerrainView {
   constructor(kit: Kit, content: Content, shadows: boolean) {
     this.kit = kit;
     this.content = content;
-    this.field = new TerrainField(content);
+    this.field = new TerrainField(content, shadows);
+    this.ws = this.field.ws;
+    this.size = this.ws.texSize;
     this.base = this.paintBase();
     this.canvas = document.createElement('canvas');
     this.canvas.width = this.size;
@@ -542,6 +555,7 @@ export class TerrainView {
 
   /** Sim point to canvas pixel transform, applied to a 2D context. */
   private frame(g: CanvasRenderingContext2D): void {
+    const E = this.ws.edge;
     const k = this.size / (2 * E);
     const o = (E - this.field.half) * k;
     g.setTransform(k, 0, 0, k, o, o);
@@ -550,6 +564,8 @@ export class TerrainView {
   private paintBase(): HTMLCanvasElement {
     const f = this.field;
     const half = f.half;
+    const { edge: E, islandR: ISLAND_R, roadHalf: ROAD_HALF, portHalf, k, baseK } = this.ws;
+    const area = k * k;
     const c = document.createElement('canvas');
     c.width = this.size;
     c.height = this.size;
@@ -562,7 +578,7 @@ export class TerrainView {
     // rock tops: mossy slate with lichen and strata scratches
     g.fillStyle = '#292c37';
     g.fillRect(lo, lo, E * 2, E * 2);
-    for (let i = 0; i < 260; i++) {
+    for (let i = 0; i < Math.round(260 * area); i++) {
       const x = lo + rnd() * E * 2;
       const y = lo + rnd() * E * 2;
       const r = 26 + rnd() * 110;
@@ -581,7 +597,7 @@ export class TerrainView {
       g.fillRect(x - r, y - r, r * 2, r * 2);
     }
     g.lineCap = 'round';
-    for (let i = 0; i < 1500; i++) {
+    for (let i = 0; i < Math.round(1500 * area); i++) {
       const x = lo + rnd() * E * 2;
       const y = lo + rnd() * E * 2;
       const len = 8 + rnd() * 30;
@@ -593,7 +609,7 @@ export class TerrainView {
       g.lineTo(x + Math.cos(a) * len, y + Math.sin(a) * len);
       g.stroke();
     }
-    for (let i = 0; i < 5200; i++) {
+    for (let i = 0; i < Math.round(5200 * area); i++) {
       const x = lo + rnd() * E * 2;
       const y = lo + rnd() * E * 2;
       const kind = rnd();
@@ -616,7 +632,7 @@ export class TerrainView {
       [104, 0.16],
       [66, 0.24],
     ] as const) {
-      g.lineWidth = w;
+      g.lineWidth = w * k;
       g.strokeStyle = `rgba(88,104,142,${a})`;
       g.beginPath();
       for (let s = -ISLAND_R; s <= ISLAND_R; s += 24) {
@@ -692,9 +708,9 @@ export class TerrainView {
     g.lineCap = 'round';
     for (const s of f.shapes) {
       if (s.kind !== 'port') continue;
-      stroke(s, 33, ROAD.rim);
-      stroke(s, 30.5, ROAD.edge);
-      stroke(s, 28.5, ROAD.stone);
+      stroke(s, portHalf * 2 + 4.5, ROAD.rim);
+      stroke(s, portHalf * 2 + 2, ROAD.edge);
+      stroke(s, portHalf * 2, ROAD.stone);
     }
 
     // bases: thrones on terraced daises, ringed in the team's metal
@@ -709,6 +725,7 @@ export class TerrainView {
       g.arc(bx, by, this.content.map.walk.base - 1, 0, TAU);
       g.clip();
       g.translate(bx, by);
+      g.scale(baseK, baseK);
       // terrace rings in alternating stone
       for (const [r, c] of [
         [110, stone2],
@@ -748,6 +765,9 @@ export class TerrainView {
       g.fill();
       g.globalAlpha = 1;
       g.restore();
+      g.save();
+      g.translate(bx, by);
+      g.scale(baseK, baseK);
       g.lineWidth = 2.2;
       for (const [r, a] of [
         [103, 0.85],
@@ -757,16 +777,17 @@ export class TerrainView {
       ] as const) {
         g.strokeStyle = metal + Math.round(a * 255).toString(16);
         g.beginPath();
-        g.arc(bx, by, r, 0, TAU);
+        g.arc(0, 0, r, 0, TAU);
         g.stroke();
       }
       g.fillStyle = metal + 'cc';
       for (let i = 0; i < 24; i++) {
         const a = (i / 24) * TAU;
         g.beginPath();
-        g.arc(bx + Math.cos(a) * 95, by + Math.sin(a) * 95, i % 6 === 0 ? 2.8 : 1.5, 0, TAU);
+        g.arc(Math.cos(a) * 95, Math.sin(a) * 95, i % 6 === 0 ? 2.8 : 1.5, 0, TAU);
         g.fill();
       }
+      g.restore();
     }
     // shops: a brass-ringed marble plaza
     for (const s of this.content.map.shops) {
@@ -810,12 +831,13 @@ export class TerrainView {
     const cw = new Color();
     const mix = (a: string, b: string, t: number): string =>
       cw.set(a).lerp(new Color(b), t).getStyle();
+    const TILE = this.ws.tile;
     const n = Math.ceil(this.content.map.size / TILE);
     for (let j = 0; j < n; j++)
       for (let i = 0; i < n; i++) {
         const cx = (i + 0.5) * TILE;
         const cy = (j + 0.5) * TILE;
-        const w = smooth(-110, 110, cy - cx);
+        const w = smooth(-110 * this.ws.k, 110 * this.ws.k, cy - cx);
         const light = (i + j) % 2 === 0;
         bg.fillStyle = light
           ? mix(BOARD.black.light, BOARD.white.light, w)
@@ -882,6 +904,16 @@ export class TerrainView {
 
   private buildGeometry(): BufferGeometry {
     const f = this.field;
+    const {
+      edge: E,
+      step: STEP,
+      islandR: ISLAND_R,
+      fallStart: FALL_START,
+      riverCore,
+      k: scaleK,
+    } = this.ws;
+    const N = f.ws.cells;
+    const W1 = N + 1;
     const n = W1 * W1;
     const pos = new Float32Array(n * 3);
     const uv = new Float32Array(n * 2);
@@ -899,7 +931,7 @@ export class TerrainView {
         const sx0 = wx + f.half;
         const sy0 = wz + f.half;
         wet[k] =
-          (1 - smooth(RIVER_CORE + 6, RIVER_CORE + 54, f.riverDist(sx0, sy0))) *
+          (1 - smooth(riverCore + 6 * scaleK, riverCore + 54 * scaleK, f.riverDist(sx0, sy0))) *
           smooth(WATER_Y + 2.4, WATER_Y + 0.4, h[k]);
         const s = r > ISLAND_R ? ISLAND_R / r : 1;
         pos[k * 3] = wx * s;
@@ -943,15 +975,16 @@ export class TerrainView {
 
   /** The underside of the floating island: a faceted spire hanging into the void. */
   private buildUnderside(): Mesh {
+    const { islandR, k } = this.ws;
     const prof: [number, number][] = [
-      [ISLAND_R, FALL_Y],
-      [ISLAND_R - 34, -84],
-      [560, -150],
-      [450, -222],
-      [340, -300],
-      [230, -372],
-      [130, -450],
-      [48, -526],
+      [islandR, FALL_Y],
+      [islandR - 34 * k, -84],
+      [560 * k, -150],
+      [450 * k, -222],
+      [340 * k, -300],
+      [230 * k, -372],
+      [130 * k, -450],
+      [48 * k, -526],
       [0, -570],
     ];
     const under = new LatheGeometry(

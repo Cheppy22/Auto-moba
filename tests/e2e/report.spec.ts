@@ -18,9 +18,11 @@ const selectedTab = async (page: Page, id: string): Promise<void> => {
   await expect(page.getByTestId(`report-tab-${id}`)).toHaveAttribute('aria-selected', 'true');
 };
 
-/** A real touch swipe along the pager: a finger drags `dx` pixels to the left (negative: right). */
-async function swipe(page: Page, dx: number): Promise<void> {
+/** A real touch swipe along the pager: a finger drags 75% of the pager to the left (negative: right). */
+async function swipe(page: Page, dir: number): Promise<void> {
   const box = await boxOf(page, 'report-pager');
+  // Scroll-snap moves on past half a page, so the drag is a share of the pager width (well past halfway), not fixed pixels.
+  const dx = Math.round(dir * box.width * 0.75);
   const cdp = await page.context().newCDPSession(page);
   const y = Math.round(box.y + Math.min(300, box.height / 2));
   const x0 = Math.round(box.x + box.width / 2 + dx / 2);
@@ -109,10 +111,10 @@ for (const v of views) {
       await page.getByTestId('report-tab-result').click();
       await selectedTab(page, 'result');
       if (v.touch) {
-        await swipe(page, 300);
+        await swipe(page, 1);
         await selectedTab(page, 'economy');
         expect(await pageIndex(page)).toBe(1);
-        await swipe(page, -300);
+        await swipe(page, -1);
         await selectedTab(page, 'result');
       }
       await page.keyboard.press('ArrowRight');

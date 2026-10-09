@@ -24,6 +24,8 @@ interface NavNode {
 
 export interface World {
   map: MapDef;
+  /** Map size over 1000, the size the AI's hard-coded distances were tuned on. */
+  k: number;
   lanes: Record<LaneId, LaneGeo>;
   nodes: NavNode[];
   slotNode: Record<string, number>;
@@ -120,7 +122,7 @@ export function buildWorld(map: MapDef): World {
     const lane = lanes[id];
     const ts = new Set<number>([0, 1, ...portTs[id]]);
     for (let i = 1; i < lane.pts.length; i++) ts.add(lane.cum[i] / lane.length);
-    const steps = Math.ceil(lane.length / 110);
+    const steps = Math.ceil(lane.length / (110 * (map.size / 1000)));
     for (let i = 1; i < steps; i++) ts.add(i / steps);
     const sorted = [...ts].sort((a, b) => a - b);
     let prev = -1;
@@ -186,6 +188,7 @@ export function buildWorld(map: MapDef): World {
   };
   return {
     map,
+    k: map.size / 1000,
     lanes,
     nodes,
     slotNode,
@@ -221,14 +224,14 @@ function candidateNodes(
   if (!sees) {
     let best = Infinity;
     for (const c of all) if (c.d < best) best = c.d;
-    return all.filter((c) => c.d <= best + START_SLACK);
+    return all.filter((c) => c.d <= best + START_SLACK * world.k);
   }
   // Only nodes a unit can walk to directly count as ways onto the graph.
   all.sort((a, b) => a.d - b.d || a.node - b.node);
   const out: { node: number; d: number }[] = [];
   let best = Infinity;
   for (const c of all) {
-    if (c.d > best + START_SLACK) break;
+    if (c.d > best + START_SLACK * world.k) break;
     const n = world.nodes[c.node];
     if (!sees(n.x, n.y)) continue;
     if (c.d < best) best = c.d;

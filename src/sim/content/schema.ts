@@ -605,7 +605,45 @@ export const TuningSchema = z.object({
     unlockDiscount: z.number(),
   }),
   recall: z.object({ baseSec: z.number() }),
-  movement: z.object({ arriveDist: z.number() }),
+  movement: z.object({
+    arriveDist: z.number(),
+    /** One multiplier on every unit's walking speed; keeps the pace when the map grows. */
+    speedMul: z.number(),
+  }),
+  /** Soft body collision: units shove each other apart so pieces and pawns never stack. */
+  collision: z.object({
+    /** Body radius by kind of unit. Neutrals (camps, event units) grow with their health. */
+    radius: z.object({
+      piece: z.number(),
+      pawn: z.number(),
+      pawnling: z.number(),
+      tower: z.number(),
+      guardian: z.number(),
+      obelisk: z.number(),
+      keeper: z.number(),
+      neutralBase: z.number(),
+      neutralPerHp: z.number(),
+      neutralMax: z.number(),
+    }),
+    /** Who gives way: the lighter body moves further. Structures never move. */
+    mass: z.object({
+      piece: z.number(),
+      pawn: z.number(),
+      pawnling: z.number(),
+      neutral: z.number(),
+    }),
+    /** Overlap left alone (no jitter), the share of the rest removed per pass, passes per tick. */
+    tolerance: z.number(),
+    stiffness: z.number(),
+    iterations: z.number().int(),
+    /** Most a unit is shoved in one tick. */
+    maxPush: z.number(),
+    /** Sideways step, as a share of the shove, for a unit blocked head-on while walking. */
+    slide: z.number(),
+    /** Gap and sideways stagger between the pawnlings of a wave on spawn. */
+    spawnGap: z.number(),
+    spawnStagger: z.number(),
+  }),
   ai: z.object({
     aggroRadius: z.number(),
     fightRadius: z.number(),

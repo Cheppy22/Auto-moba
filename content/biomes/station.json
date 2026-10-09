@@ -4,9 +4,9 @@
   "era": "1970s",
   "palette": { "ground": "#1b1830", "accent": "#8a63d2", "glow": "#d6c2ff" },
   "camps": [
-    { "dx": -30, "dy": -30 },
-    { "dx": 45, "dy": 0 },
-    { "dx": -10, "dy": 45 }
+    { "dx": -39, "dy": -39 },
+    { "dx": 58, "dy": 0 },
+    { "dx": -13, "dy": 58 }
   ],
   "campTypes": [
     {

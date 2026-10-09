@@ -58,7 +58,13 @@ export function Report() {
     if (!el) return;
     target.current = n;
     window.setTimeout(() => {
-      if (target.current === n) target.current = null;
+      if (target.current !== n) return;
+      target.current = null;
+      // a swipe made during the jump is ignored by onScroll, so read the pager's real page once the jump ends
+      const now = pager.current;
+      if (!now || !now.clientWidth) return;
+      const j = clamp(Math.round(now.scrollLeft / now.clientWidth), 0, LAST);
+      if (j !== pageRef.current) setPage(j);
     }, 900);
     el.scrollTo({
       left: n * el.clientWidth,
@@ -187,7 +193,16 @@ export function Report() {
           {data.mock && <span class="rp-mock tiny">Sample data</span>}
         </div>
         <div class="rp-pagerwrap">
-          <div class="rp-pager" ref={pager} onScroll={onScroll} data-testid="report-pager">
+          <div
+            class="rp-pager"
+            ref={pager}
+            onScroll={onScroll}
+            onPointerDown={() => {
+              // a finger on the pages cancels a pending tab jump, so the swipe moves the tabs too
+              target.current = null;
+            }}
+            data-testid="report-pager"
+          >
             {REPORT_PAGES.map((p, i) => (
               <section
                 key={p.id}

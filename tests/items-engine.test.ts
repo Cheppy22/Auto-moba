@@ -3,7 +3,7 @@ import type { Match } from '../src/sim';
 import { dealDamage, fireTriggers, tryRevive } from '../src/sim/combat';
 import { recompute } from '../src/sim/stats';
 import type { Unit } from '../src/sim';
-import { liveMatch, piece } from './helpers';
+import { content, liveMatch, piece } from './helpers';
 
 function live(seed = 11): { m: Match; p: Unit; foe: Unit } {
   const m = liveMatch(seed, { autoGambits: { A: false, B: false } });
@@ -86,8 +86,8 @@ describe('item triggers', () => {
     // Keep the enemy pieces out of it (a long-range snipe would spoil the reading).
     for (const id of m.state.teams.B.heroIds) m.unitById(id)!.alive = false;
     equip(m, p, ['iron_lung']);
-    p.x = 500;
-    p.y = 500;
+    p.x = content.map.size / 2;
+    p.y = content.map.size / 2;
     p.hp = p.stats.maxHp * 0.5;
     p.lastDamagedTick = m.state.tick;
     p.hero!.lastDealtTick = m.state.tick;
@@ -95,8 +95,8 @@ describe('item triggers', () => {
     m.step(60);
     const busy = p.hp - before;
     p.hp = p.stats.maxHp * 0.5;
-    p.x = 500;
-    p.y = 500;
+    p.x = content.map.size / 2;
+    p.y = content.map.size / 2;
     p.lastDamagedTick = -9999;
     p.hero!.lastDealtTick = -9999;
     const mid = p.hp;

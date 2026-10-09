@@ -1,4 +1,5 @@
 import { stepUnits } from './behavior';
+import { resolveCollisions } from './collision';
 import { initAuction } from './auction';
 import { applyCommand } from './commands';
 import type { Content } from './content/loader';
@@ -213,6 +214,7 @@ function stepTick(ctx: Ctx): void {
     }
   }
   stepUnits(ctx);
+  resolveCollisions(ctx);
   tickUnitState(ctx);
   processDeaths(ctx);
   respawnHeroes(ctx);
