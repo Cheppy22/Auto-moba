@@ -319,7 +319,8 @@ export class BroadcastView {
     if (this.lost) return;
     if (this.canvas.clientWidth !== this.cssW || this.canvas.clientHeight !== this.cssH)
       this.resize();
-    const dt = MathUtils.clamp(frame.dtMs, 0, 100) / 1000;
+    const real = MathUtils.clamp(frame.dtMs, 0, 100) / 1000;
+    const dt = real * frame.timeScale;
     this.time += dt * this.devTimeScale;
     if (snap.tick < this.lastTick) this.reset();
     this.lastTick = snap.tick;
@@ -355,7 +356,7 @@ export class BroadcastView {
     this.bars.begin(camera);
     this.badges.begin(camera, this.cssW, this.cssH, unitPx);
     this.minions.begin();
-    this.syncUnits(snap, frame.alpha, dt);
+    this.syncUnits(snap, frame.alpha, dt, real);
     this.minions.end();
     this.bars.end();
     this.badges.end(this.time);
@@ -364,7 +365,7 @@ export class BroadcastView {
     if (snap.zones) this.zones.setZones(snap.zones, this.half, this.zoneGround, this.time, dt);
     this.gambits.update(dt, this.time, this.unitPos);
     this.streaks.update(dt);
-    this.physics.update(frame.dtMs);
+    this.physics.update(frame.dtMs * frame.timeScale);
     this.arena.update(this.time, camera.position);
     this.renderer.render(this.scene, camera);
     this.drawn++;
@@ -579,7 +580,7 @@ export class BroadcastView {
     this.views.delete(v.id);
   }
 
-  private syncUnits(snap: Snapshot, alpha: number, dt: number): void {
+  private syncUnits(snap: Snapshot, alpha: number, dt: number, real: number): void {
     for (const v of this.views.values()) v.live = false;
     for (const u of snap.units as ChessUnit[]) {
       if (!u.alive && u.kind !== 'hero') continue;
@@ -608,7 +609,7 @@ export class BroadcastView {
       v.stamp = this.stamp;
       v.live = u.alive;
       v.lane = u.lane ?? null;
-      this.updateUnit(v, u, alpha, dt);
+      this.updateUnit(v, u, alpha, dt, real);
     }
     this.stale.length = 0;
     for (const v of this.views.values()) if (v.stamp !== this.stamp) this.stale.push(v);
@@ -644,7 +645,7 @@ export class BroadcastView {
     this.gambits.flare(x, gy, z, teamColor(v.team), 34, 1, 70);
   }
 
-  private updateUnit(v: UnitView, u: ChessUnit, alpha: number, dt: number): void {
+  private updateUnit(v: UnitView, u: ChessUnit, alpha: number, dt: number, real: number): void {
     const x = lerp(u.px, u.x, alpha) - this.half;
     const z = lerp(u.py, u.y, alpha) - this.half;
     if (!v.placed) {
@@ -662,7 +663,7 @@ export class BroadcastView {
     const dz = z - v.z;
     const dist = Math.hypot(dx, dz);
     const teleport = dist > 60;
-    const speed = dt > 1e-4 && !teleport ? dist / dt : 0;
+    const speed = real > 1e-4 && !teleport ? dist / real : 0;
     v.x = x;
     v.z = z;
 

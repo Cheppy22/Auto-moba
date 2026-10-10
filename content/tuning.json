@@ -4,6 +4,18 @@
   "startingGold": 500,
   "passiveGoldPerSec": 1.5,
   "maxPhases": 10,
+  "bell": {
+    "alertsSec": [60, 30, 10],
+    "pulseLastSec": 5,
+    "calmSec": 2,
+    "capSec": 30,
+    "tolls": 3,
+    "tollSec": 1,
+    "haltTicks": 15,
+    "pendingSaturation": 0.7,
+    "resumeWaveSec": 1,
+    "replan": { "minDeaths": 2, "chance": 0.75 }
+  },
   "ranks": {
     "goldThresholds": [0, 600, 1300, 2100, 3000, 4100, 5400, 7000],
     "growth": 0.045,

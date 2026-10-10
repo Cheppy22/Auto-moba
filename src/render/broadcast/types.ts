@@ -40,6 +40,8 @@ export interface BroadcastFrame {
   followId: number | null;
   /** Real milliseconds since the previous frame, for camera easing and visual physics. */
   dtMs: number;
+  /** 1 normally; eases to 0 across the bell's halt so walk cycles, effects and water slow with the sim. */
+  timeScale: number;
 }
 
 /** Events the sim emitted since the previous frame (seq-ordered). */

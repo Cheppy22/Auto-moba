@@ -27,17 +27,24 @@ export function maybeSwapLane(ctx: Ctx, loser: Unit): void {
     }
   }
   if (!best?.hero) return;
-  const b = best.hero;
-  const lane = h.lane;
-  h.lane = b.lane;
-  loser.lane = b.lane;
-  b.lane = lane;
-  best.lane = lane;
-  const role = h.role;
-  h.role = b.role;
-  b.role = role;
+  swapLanes(ctx, loser, best);
   h.lossStreak = 0;
-  b.goal = null;
-  assignJunglers(ctx, team);
-  ctx.emit('laneSwap', { a: loser.id, b: best.id });
+}
+
+/** Two pieces of one team trade lanes and roles; the 2/2/1 formation is unchanged. */
+export function swapLanes(ctx: Ctx, a: Unit, b: Unit): void {
+  const ha = a.hero!;
+  const hb = b.hero!;
+  const lane = ha.lane;
+  ha.lane = hb.lane;
+  a.lane = hb.lane;
+  hb.lane = lane;
+  b.lane = lane;
+  const role = ha.role;
+  ha.role = hb.role;
+  hb.role = role;
+  ha.goal = null;
+  hb.goal = null;
+  assignJunglers(ctx, a.team as PlayTeam);
+  ctx.emit('laneSwap', { a: a.id, b: b.id });
 }

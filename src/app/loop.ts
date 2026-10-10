@@ -29,8 +29,9 @@ export class FrameClock {
   }
 
   /**
-   * The match never stops by itself; only Pause, the Adjourn panel, a gambit sheet and a waiting
-   * fork hold the sim. They are separate flags: closing one never releases another.
+   * Only Pause, the Adjourn panel, a gambit sheet, a waiting fork and the Act break sheet hold the
+   * sim. They are separate flags: closing one never releases another. Across the bell's halt the
+   * step rate eases from 1 to 0 (`Match.timeScale`) and the renderer slows its clocks to match.
    */
   private advance(now: number): void {
     const s = this.session;
@@ -39,15 +40,17 @@ export class FrameClock {
     const m = s.match;
     s.syncForks();
     const forkWait = !!m && m.state.forks.length > 0;
+    const scale = m ? m.timeScale : 1;
     if (
       m &&
       m.state.phase.kind === 'live' &&
       s.ui.speed > 0 &&
       !s.ui.adjourned &&
       !s.ui.info &&
-      !forkWait
+      !forkWait &&
+      m.state.bell.stage !== 'break'
     ) {
-      this.acc += (dt / 1000) * TPS * s.ui.speed;
+      this.acc += (dt / 1000) * TPS * s.ui.speed * scale;
       let n = Math.floor(this.acc);
       this.acc -= n;
       n = Math.min(n, 120);
@@ -57,7 +60,9 @@ export class FrameClock {
         s.notify();
       }
     } else this.acc = 0;
+    s.timeScale = m ? m.timeScale : 1;
     s.syncEvents();
+    s.syncBell();
     s.frame(m ? Math.min(1, this.acc) : 1);
     if (now - this.lastNotify > 120) {
       this.lastNotify = now;

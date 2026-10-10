@@ -1,4 +1,5 @@
 import { PATHS } from './content/schema';
+import { frozen, resumeFromBreak } from './bell';
 import type { Ctx } from './ctx';
 import { playGambit } from './gambits';
 import { fieldPawn } from './pawns';
@@ -37,7 +38,14 @@ function run(ctx: Ctx, cmd: Command, startMatch: StartMatchFn): CommandResult {
     return { ok: true };
   }
   if (kind !== 'live') return { ok: false, reason: 'the match has not started' };
+  if (frozen(ctx) && (cmd.type === 'playGambit' || cmd.type === 'fieldPawn'))
+    return { ok: false, reason: 'play is stopped for the bell' };
   switch (cmd.type) {
+    case 'resumeAct':
+      if (s.bell.stage !== 'break') return { ok: false, reason: 'no Act break to leave' };
+      if (s.forks.length > 0) return { ok: false, reason: 'answer the fork first' };
+      resumeFromBreak(ctx);
+      return { ok: true };
     case 'chooseFork':
       if (!whitePiece(ctx, cmd.heroId)) return { ok: false, reason: 'not one of your pieces' };
       return chooseFork(ctx, cmd.heroId, cmd.optionId);

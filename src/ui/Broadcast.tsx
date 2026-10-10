@@ -55,6 +55,7 @@ export function Broadcast() {
           )
             return;
           if (s.ui.aim || s.ui.adjourned || m.state.forks.length > 0) return;
+          if (m.state.bell.stage === 'break') return;
           const id = view.pickUnit(e.clientX, e.clientY);
           const u = id === null ? undefined : m.unitById(id);
           if (u?.hero) s.openCard(u.id);
@@ -76,7 +77,8 @@ export function Broadcast() {
           if (!m || m.state.phase.kind === 'setup') return;
           const live = m.state.phase.kind === 'live';
           const now = performance.now();
-          if ((!live || s.ui.adjourned) && now - last < IDLE_FRAME_MS) return;
+          const still = !live || s.ui.adjourned || m.state.bell.stage === 'break';
+          if (still && now - last < IDLE_FRAME_MS) return;
           const ev = m.events;
           if (ev.length === 0 || ev[ev.length - 1].seq < seq) {
             seq = -1;
@@ -94,6 +96,7 @@ export function Broadcast() {
             mode: s.ui.cam,
             followId: s.ui.follow ?? kingId(m),
             dtMs: Math.min(100, now - last),
+            timeScale: s.timeScale,
           });
           last = now;
           const caption = s.ui.cam === 'auto' && live ? shot.caption : null;

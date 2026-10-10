@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { Match } from '../src/sim';
 import { healUnit } from '../src/sim/combat';
 import { respawnTicks } from '../src/sim/systems';
-import { content, liveMatch, piece } from './helpers';
+import { content, liveMatch, piece, toAct, toBell } from './helpers';
 
 const ACT = content.tuning.phaseSeconds * content.tuning.tickRate;
 
@@ -35,24 +35,25 @@ describe('setup and Acts', () => {
     expect(m.issue({ type: 'setupTeam', ...m.defaultSetup() }).ok).toBe(false);
   });
 
-  it('runs Acts back to back with no pause between them', () => {
+  it('headless Acts roll over with no sheet: the next Act opens the tick the old one closes', () => {
     const m = liveMatch(4);
-    expect(m.step(ACT)).toBe(ACT);
-    expect(m.state.phase).toMatchObject({ kind: 'live', n: 2, startTick: ACT });
+    toAct(m, 2);
+    expect(m.state.phase).toMatchObject({ kind: 'live', n: 2 });
+    expect(m.state.phase.startTick).toBeGreaterThan(ACT);
     const end = m.events.find((e) => e.type === 'phaseEnd')!;
     const next = m.events.find((e) => e.type === 'phaseStart' && e.payload.phase === 2)!;
     expect(end.tick).toBe(next.tick);
     const snap = m.snapshot();
-    expect(snap.act).toBe(2);
+    expect(snap.act).toMatchObject({ n: 2, bell: 'none', remainingSec: ACT / 20 });
     expect(snap.phaseTicksLeft).toBe(ACT);
   });
 
   it('opens two slots per Act, 3 Acts in total, as pairs sharing a biome', () => {
     const m = liveMatch(4);
     expect(openIds(m).sort()).toEqual(['brc', 'tlc']);
-    m.step(ACT);
+    toAct(m, 2);
     expect(openIds(m).sort()).toEqual(['brc', 'tla', 'tlb', 'tlc']);
-    m.step(ACT);
+    toAct(m, 3);
     expect(openIds(m)).toHaveLength(6);
     const byId = Object.fromEntries(m.state.slots.map((s) => [s.id, s]));
     expect(byId.tlc.biomeId).toBe(byId.brc.biomeId);
@@ -76,7 +77,7 @@ describe('setup and Acts', () => {
     const rolls = (): number => m.events.filter((e) => e.type === 'campsRolled').length;
     const moves = (): number => m.events.filter((e) => e.type === 'keeperMoved').length;
     const [a, k] = [rolls(), moves()];
-    m.step(ACT);
+    toAct(m, 2);
     expect(rolls()).toBeGreaterThan(a);
     expect(moves()).toBeGreaterThan(k);
   });
@@ -95,15 +96,15 @@ describe('setup and Acts', () => {
 
   it('a piece dead at an Act boundary stays dead into the next Act and respawns on time', () => {
     const m = liveMatch(2);
-    m.step(ACT - 100);
+    toBell(m, 'halt');
     const hero = piece(m, 'A', 'bishop');
     hero.hp = 0;
     hero.pendingKill = { killerId: 0 };
-    m.step(50);
+    m.step(1);
     expect(hero.alive).toBe(false);
     const due = hero.hero!.respawnAt!;
-    expect(due).toBeGreaterThan(ACT);
-    m.step(60);
+    toAct(m, 2);
+    expect(due).toBeGreaterThan(m.state.tick);
     expect(m.state.phase.n).toBe(2);
     expect(hero.alive).toBe(false);
     m.step(due - m.state.tick + 2);
@@ -115,7 +116,7 @@ describe('setup and Acts', () => {
     const seenAt: Record<number, string[]> = {};
     for (let i = 0; i < 7 && m.state.phase.kind === 'live'; i++) {
       seenAt[m.state.phase.n] = m.state.pressure.slice();
-      m.step(ACT);
+      toAct(m, m.state.phase.n + 1);
     }
     seenAt[m.state.phase.n] = m.state.pressure.slice();
     expect(seenAt[3]).toEqual([]);
@@ -153,7 +154,8 @@ describe('setup and Acts', () => {
 
   it('spirit tide sends neutral spirits into the lanes', () => {
     const m = stalemate(6);
-    m.step(ACT * 4 + 700);
+    toAct(m, 5);
+    m.step(700);
     const tide = m.state.units.filter((u) => u.defId === 'tide_spirit');
     expect(tide.length).toBeGreaterThan(0);
     expect(tide.every((u) => u.team === 'neutral')).toBe(true);
