@@ -8,6 +8,8 @@ import { PieceCard } from './hud/PieceCard';
 import { Roster } from './hud/Roster';
 import { courtName } from '../analysis/text';
 import { BreakSheet } from './hud/BreakSheet';
+import { LaneBars } from './hud/LaneBars';
+import { FightTags, NoteLane } from './hud/Notes';
 import { clockSec } from './format';
 import { useSession } from './session';
 
@@ -208,7 +210,13 @@ export function Hud() {
       <TopBar snap={snap} held={held} />
       <Roster team="A" forks={forkIds} snap={snap} />
       <Roster team="B" forks={[]} snap={snap} />
+      {!stopped && (
+        <div class="lane-strip">
+          <LaneBars lanes={snap.momentum} />
+        </div>
+      )}
       <Notices act={snap.act} />
+      <FightTags notes={s.ui.notes} />
       <PieceCard />
       <div class="dock">
         <div class="dock-main">
@@ -217,6 +225,7 @@ export function Hud() {
               {s.ui.toast}
             </div>
           )}
+          <NoteLane notes={s.ui.notes} />
           <Aim snap={snap} />
           <Hand snap={snap} />
         </div>

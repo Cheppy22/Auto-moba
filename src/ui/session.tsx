@@ -11,6 +11,7 @@ import {
 } from '../sim';
 import type { CamMode } from '../render/broadcast/types';
 import { courtName } from '../analysis/text';
+import { cardLine, decisive, fallToast, fightLine, fightVerdict } from '../analysis/feedback';
 import { mmss } from './format';
 import { cap, pieceLabel } from './pieces';
 
@@ -32,6 +33,18 @@ export interface Chip {
   ms: number;
 }
 
+/** A calm one-liner from the combat feedback: a fight verdict, why a piece fell, or what a gambit did. */
+export interface Note {
+  id: number;
+  kind: 'fight' | 'fall' | 'card';
+  text: string;
+  tone: 'good' | 'bad' | 'even' | 'plain';
+  /** Fight verdicts: the fight's place in map units; the tag sits there in the 3D view. */
+  at: { x: number; y: number } | null;
+  until: number;
+  ms: number;
+}
+
 export interface UiState {
   speed: Speed;
   cam: CamMode;
@@ -41,6 +54,8 @@ export interface UiState {
   aim: Aim | null;
   adjourned: boolean;
   chips: Chip[];
+  /** Fight verdicts, falls and gambit lines share one lane: at most two show, the newest wins. */
+  notes: Note[];
   reportHero: number | null;
   /** The piece whose card is open (any team). */
   card: number | null;
@@ -61,6 +76,7 @@ const freshUi = (): UiState => ({
   aim: null,
   adjourned: false,
   chips: [],
+  notes: [],
   reportHero: null,
   card: null,
   info: null,
@@ -72,6 +88,8 @@ const freshUi = (): UiState => ({
 export interface PickView {
   pickGround(clientX: number, clientY: number): { x: number; y: number } | null;
   pickUnit(clientX: number, clientY: number): number | null;
+  /** Where a map point lands on the canvas (CSS pixels from its top-left). */
+  project(x: number, y: number, lift?: number): { x: number; y: number; visible: boolean };
 }
 
 const RANK_CHIP_MS = 3200;
@@ -79,6 +97,9 @@ const BANNER_MS = 2400;
 const BELL_CHIP_MS = 2200;
 const MAX_RANK_CHIPS = 1;
 const MAX_BANNERS = 2;
+const MAX_NOTES = 2;
+const FIGHT_NOTE_MS = 4200;
+const NOTE_MS = 3200;
 /** The run speeds the chip cycles through; 0 is paused. */
 const SPEEDS: Speed[] = [1, 2, 4, 8, 0];
 const CAMS: CamMode[] = ['auto', 'follow', 'free'];
@@ -97,6 +118,7 @@ export class Session {
   timeScale = 1;
   private lastLeft: number | null = null;
   private chipId = 0;
+  private noteId = 0;
   private seenSeq = -1;
   private toastTimer = 0;
   /** Camera mode and target to restore when the fork sheet closes. */
@@ -477,6 +499,11 @@ export class Session {
     const ev = m.events;
     if (ev.length === 0 || ev[ev.length - 1].seq < this.seenSeq) this.seenSeq = -1;
     const fresh: Chip[] = [];
+    const notes: Note[] = [];
+    const quiet = m.state.bell.stage === 'halt' || m.state.bell.stage === 'break';
+    const note = (n: Omit<Note, 'id' | 'until' | 'ms'>, ms: number): void => {
+      if (!quiet) notes.unshift({ ...n, id: ++this.noteId, until: performance.now() + ms, ms });
+    };
     for (let i = ev.length - 1; i >= 0 && ev[i].seq > this.seenSeq; i--) {
       const e = ev[i];
       if (e.type === 'phaseStart' && e.payload.kind === 'live') {
@@ -485,6 +512,37 @@ export class Session {
             { kind: 'act', title: `Act ${e.payload.phase}`, detail: '', team: null },
             BANNER_MS,
           ),
+        );
+      } else if (e.type === 'fightEnd') {
+        if (!decisive(e.payload)) continue;
+        const v = fightVerdict(e.payload).verdict;
+        note(
+          {
+            kind: 'fight',
+            text: fightLine(e.payload),
+            tone: v === 'won' ? 'good' : v === 'lost' ? 'bad' : 'even',
+            at: { x: e.payload.x, y: e.payload.y },
+          },
+          FIGHT_NOTE_MS,
+        );
+      } else if (e.type === 'death') {
+        const piece = m.unitById(e.payload.id)?.hero?.defId;
+        if (e.payload.team !== 'A' || !e.payload.fall || !piece) continue;
+        note(
+          { kind: 'fall', text: fallToast(piece, e.payload.fall), tone: 'plain', at: null },
+          NOTE_MS,
+        );
+      } else if (e.type === 'gambitEnd') {
+        const name = this.content.gambitById.get(e.payload.cardId)?.name;
+        if (e.payload.team !== 'A' || !name) continue;
+        note(
+          {
+            kind: 'card',
+            text: cardLine(name, e.payload, this.content.tuning.tickRate),
+            tone: 'plain',
+            at: null,
+          },
+          NOTE_MS,
         );
       } else if (e.type === 'check') {
         fresh.unshift(
@@ -563,8 +621,11 @@ export class Session {
       ...next.filter((c) => c.kind === 'bell').slice(-1),
     ]);
     const trimmed = next.filter((c) => keep.has(c));
-    if (latest.length > 0 || trimmed.length !== this.ui.chips.length) {
-      this.ui = { ...this.ui, chips: trimmed };
+    const heldNotes = this.ui.notes.filter((n) => n.until > now);
+    const nextNotes = notes.length > 0 ? [...heldNotes, ...notes].slice(-MAX_NOTES) : heldNotes;
+    const notesChanged = notes.length > 0 || nextNotes.length !== this.ui.notes.length;
+    if (latest.length > 0 || trimmed.length !== this.ui.chips.length || notesChanged) {
+      this.ui = { ...this.ui, chips: trimmed, notes: nextNotes };
       this.notify();
     }
   }

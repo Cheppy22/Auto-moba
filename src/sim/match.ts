@@ -18,6 +18,8 @@ import { pawnCap, pawnsAlive } from './pawns';
 import { actTicks, enterAct } from './phase';
 import { bellTimeScale, frozen, freshBell, tickBell } from './bell';
 import { freshTally } from './actReport';
+import { freshFeedback, laneMomentum, tickFights } from './feedback';
+import { tickRuns } from './impact';
 import { tickSpiritTide } from './pressure';
 import { forkOptions, tickForks } from './ranks';
 import { attackKindOf } from './pieces';
@@ -129,6 +131,7 @@ function initialState(content: Content, config: MatchConfig): MatchState {
     nextEventId: 1,
     bell: freshBell(),
     actTally: freshTally(0),
+    feedback: freshFeedback(),
   };
 }
 
@@ -230,7 +233,9 @@ function stepTick(ctx: Ctx): void {
   stepUnits(ctx);
   resolveCollisions(ctx);
   tickUnitState(ctx);
+  tickFights(ctx);
   processDeaths(ctx);
+  tickRuns(ctx);
   respawnHeroes(ctx);
   passiveGold(ctx);
   sampleAndFlush(ctx);
@@ -505,6 +510,7 @@ export class Match {
           ticksLeft: Math.max(0, z.endTick - s.tick),
         };
       }),
+      momentum: laneMomentum(this.ctx),
     };
   }
 

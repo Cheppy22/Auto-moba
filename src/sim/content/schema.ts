@@ -582,6 +582,49 @@ export const TuningSchema = z.object({
     expireSec: z.number(),
   }),
   check: z.object({ kingRespawnMul: z.number(), damageMul: z.number() }),
+  /** Combat feedback (information only): why a piece fell, fight verdicts, lane momentum, gambit impact. */
+  feedback: z.object({
+    death: z.object({
+      /** Damage taken in this many seconds before a death is read for its cause. */
+      windowSec: z.number(),
+      /** Burst: this fraction of max health inside `burstSec`. */
+      burstFrac: z.number(),
+      burstSec: z.number(),
+      /** Focus: this many distinct enemy pieces hit it within `windowSec`. */
+      focusAttackers: z.number().int(),
+      /** "Nearby" for the outnumbered count. */
+      nearRadius: z.number(),
+      /** Out of position: no allied piece or structure within this radius at death. */
+      isolatedRadius: z.number(),
+      /** Out of position: farther than this from its assigned lane with no ally piece nearby. */
+      laneOffMax: z.number(),
+    }),
+    fight: z.object({
+      /** Pieces in combat within this distance of each other (or of the fight) are one fight. */
+      radius: z.number(),
+      /** The fight ends this long after no cluster of both sides is in combat (the 1.5 s combat timer runs first). */
+      endSec: z.number(),
+      /** Within this distance of a lane's centre line the fight is "on" that lane. */
+      laneRadius: z.number(),
+      /** Within this distance of a Throne the fight is at that base. */
+      baseRadius: z.number(),
+    }),
+    momentum: z.object({
+      /** Piece kills in a lane count for this many seconds. */
+      killWindowSec: z.number(),
+      /** Net piece kills over `killWindowSec` that fill the kill term. */
+      killsFull: z.number(),
+      /** How far the clash point moves from the lane centre to fill the front term (fraction of the lane). */
+      frontSpan: z.number(),
+      weights: z.object({ front: z.number(), structures: z.number(), kills: z.number() }),
+    }),
+    impact: z.object({
+      /** Instant cards (Castle, Fork, Pawn Sacrifice) are watched this long for their swing. */
+      graceSec: z.number(),
+      /** Barricade: enemy units this close to the wall count as having met it. */
+      barricadeNear: z.number(),
+    }),
+  }),
   waves: z.object({
     firstSec: z.number(),
     intervalSec: z.number(),

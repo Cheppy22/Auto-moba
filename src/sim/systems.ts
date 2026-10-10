@@ -24,6 +24,8 @@ import { onCampUnitDeath } from './camps';
 import { endAllEvents, onEventUnitDeath } from './events';
 import { removeBoardClaim } from './ai/claims';
 import { addTempo, onPoisonedDeath } from './gambits';
+import { classifyFall, flushFights, noteFall, noteMinionLoss } from './feedback';
+import { flushRuns, noteDeath } from './impact';
 
 export function spawnWaves(ctx: Ctx): void {
   const w = ctx.t.waves;
@@ -102,6 +104,8 @@ function checkmate(ctx: Ctx, loser: PlayTeam): void {
   if (ctx.s.phase.kind === 'end') return;
   const winner = other(loser);
   ctx.s.winner = winner;
+  flushFights(ctx);
+  flushRuns(ctx);
   endAllEvents(ctx);
   ctx.s.phase = { kind: 'end', n: ctx.s.phase.n, startTick: ctx.s.tick };
   ctx.emit('checkmate', { winner });
@@ -158,9 +162,14 @@ function killUnit(ctx: Ctx, u: Unit): void {
   u.pendingKill = null;
   u.targetId = null;
   onPoisonedDeath(ctx, u, killer);
+  noteDeath(ctx, u, killer);
   switch (u.kind) {
     case 'hero': {
       const h = u.hero!;
+      const fall = classifyFall(ctx, u, killer);
+      h.fall = fall;
+      h.hits = [];
+      noteFall(ctx, u);
       h.deaths++;
       const victimStreak = h.streak;
       h.streak = 0;
@@ -203,6 +212,7 @@ function killUnit(ctx: Ctx, u: Unit): void {
         assists,
         x: u.x,
         y: u.y,
+        fall: { cause: fall.cause, killer: fall.killer, by: fall.by },
       });
       maybeSwapLane(ctx, u);
       if (h.defId === 'king' && u.team !== 'neutral') {
@@ -216,6 +226,7 @@ function killUnit(ctx: Ctx, u: Unit): void {
         onEventUnitDeath(ctx, u, killer);
         break;
       }
+      noteMinionLoss(ctx, u);
       if (u.pawn) {
         if (killerTeam) {
           addTempo(ctx, killerTeam, ctx.t.gambits.tempoPawnKill);

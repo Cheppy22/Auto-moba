@@ -8,19 +8,19 @@ Playable chess auto-battler: 5 pieces per side, pawnlings/pawns, Bastions, Check
 
 ## Done recently
 
-Map x1.5, humanoid models, combat flash, lane tags, gambit long-press, schools wave 1, Openings, Rank 4 archetype, Act break (commit 631521f, `npm run check` passes, 209 tests).
+Map x1.5, humanoid models, combat flash, lane tags, gambit long-press, schools wave 1, Openings, Rank 4 archetype, Act break (commit 631521f). 2026-10-10: **combat feedback** (fight verdict tags, why a piece fell, gambit impact lines and Report tally, lane momentum strip and "Lanes at the bell"); spec in `docs/CHESS.md` "Combat feedback", code in `src/sim/feedback.ts`, `src/sim/impact.ts`, `src/analysis/feedback.ts`, `src/ui/hud/Notes.tsx`, `src/ui/hud/LaneBars.tsx`.
 
 ## Next steps
 
-1. Owner reviews the Act break on a phone (countdown flashes, toll pulses, grey halt were never viewed live).
-2. Relic draft: design list for owner approval, then add as a third tab in the break sheet.
-3. Minimap with pings + combat feedback (recommended before relics).
-4. Gambit waves 2 (Clock school, English Opening) and 3.
-5. Dedicated testing pass (task #56): full Playwright, 800-match balance, school counters, stuck check incl. Barricade.
+1. Owner reviews the Act break and the new combat feedback on a phone (countdown flashes, toll pulses, grey halt, verdict tags and the lane strip were never viewed live on a device).
+2. Relic draft: list for owner approval (a relic list doc may be in progress), then add as a third tab in the break sheet.
+3. Gambit waves 2 (Clock school, English Opening) and 3, redesigned toward pre-armed set-up cards (play before the Act, not mid-fight).
+4. Minimap with pings (the combat feedback covers the read-the-board part; pings are still open).
+5. Dedicated testing pass (task #56): full Playwright, 800-match balance, school counters, stuck check incl. Barricade; tune `feedback` thresholds in `content/tuning.json`.
 
 ## Open decisions
 
-Relic content; minimap/evaluation bar/gauntlet mode; stronger grey at "Bell pending"; callout thresholds (guesses).
+Relic content; minimap/evaluation bar/gauntlet mode; stronger grey at "Bell pending"; callout thresholds and `feedback` thresholds (guesses).
 
 ## Gotchas
 

@@ -2,6 +2,8 @@ import { dist, clamp } from './core/math';
 import { rand } from './core/rng';
 import { hpPct, isEnemy, isTargetable, type Ctx } from './ctx';
 import type { AbilityDef, DamageType, EffectDef, TriggerDef } from './content/schema';
+import { trackDamage } from './feedback';
+import { noteDamage } from './impact';
 import { kitOf, perksOf, pieceDef } from './pieces';
 import { addMod, recompute, triggersOf } from './stats';
 import type { Unit } from './types';
@@ -138,6 +140,8 @@ export function dealDamage(
   if (src && src.hero) src.hero.lastDealtTick = ctx.s.tick;
   const lethal = tgt.hp <= 0;
   recordDamage(ctx, src, tgt, applied + absorbed, dtype, origin, lethal);
+  trackDamage(ctx, src, tgt, applied + absorbed);
+  if (ctx.s.feedback.runs.length > 0) noteDamage(ctx, src, tgt, raw, dtype, applied + absorbed);
   if (lethal) tgt.pendingKill = { killerId: src ? src.id : 0 };
   if (tgt.hero && !lethal)
     fireTriggers(ctx, tgt, 'damaged', {

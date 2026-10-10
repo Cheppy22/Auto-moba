@@ -55,6 +55,25 @@
     "kingRespawnMul": 1.5,
     "damageMul": 0.9
   },
+  "feedback": {
+    "death": {
+      "windowSec": 5,
+      "burstFrac": 0.6,
+      "burstSec": 2,
+      "focusAttackers": 3,
+      "nearRadius": 380,
+      "isolatedRadius": 520,
+      "laneOffMax": 420
+    },
+    "fight": { "radius": 420, "endSec": 1.5, "laneRadius": 300, "baseRadius": 380 },
+    "momentum": {
+      "killWindowSec": 30,
+      "killsFull": 3,
+      "frontSpan": 0.35,
+      "weights": { "front": 0.5, "structures": 0.3, "kills": 0.2 }
+    },
+    "impact": { "graceSec": 5, "barricadeNear": 90 }
+  },
   "waves": {
     "firstSec": 6,
     "intervalSec": 30,

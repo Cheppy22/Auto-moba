@@ -1,5 +1,6 @@
 import { useRef } from 'preact/hooks';
 import type { Snapshot, Unit } from '../../sim';
+import { causeWord, fallPhrase } from '../../analysis/feedback';
 import { HpRing } from '../Ornament';
 import { mmss } from '../format';
 import {
@@ -58,6 +59,7 @@ export function Roster(props: { team: 'A' | 'B'; forks: number[]; snap: Snapshot
         const laneAt = lanes.current.get(u.id)!.at;
         const laneChanged = performance.now() - laneAt < LANE_FLASH_MS;
         const left = h.respawnAt === null ? null : Math.max(0, h.respawnAt - tick);
+        const fall = !u.alive ? h.fall : null;
         const name = pieceLabel(s.content, h.defId);
         const style = h.style ? styleLabel(s.content, h.defId, h.style) : 'Generic';
         const tap = (): void => {
@@ -77,7 +79,7 @@ export function Roster(props: { team: 'A' | 'B'; forks: number[]; snap: Snapshot
             data-style={h.style}
             aria-label={`${team === 'A' ? 'White' : 'Black'} ${name}${style ? `, ${style}` : ''}, rank ${h.rank}, ${LANE_LABEL[lane]}${u.alive ? '' : ', down'}`}
             aria-expanded={open}
-            title={`${name}${style ? ` · ${style}` : ''} · Rank ${h.rank}. Tap to follow, tap again or hold for details.`}
+            title={`${name}${style ? ` · ${style}` : ''} · Rank ${h.rank}.${fall ? ` Fell: ${fallPhrase(fall)}.` : ''} Tap to follow, tap again or hold for details.`}
             onClick={tap}
             {...longPress(() => s.openCard(u.id))}
           >
@@ -107,6 +109,14 @@ export function Roster(props: { team: 'A' | 'B'; forks: number[]; snap: Snapshot
                 </span>
               )}
             </span>
+            {fall && (
+              <span class="fall" data-testid="fall" data-cause={fall.cause}>
+                {fall.killer && (
+                  <PieceGlyph piece={fall.killer} team={team === 'A' ? 'B' : 'A'} size={11} />
+                )}
+                <i>{causeWord(fall.cause)}</i>
+              </span>
+            )}
           </button>
         );
       })}

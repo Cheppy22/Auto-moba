@@ -107,6 +107,8 @@ export function makeHero(ctx: Ctx, team: PlayTeam, slot: number, entry: SetupEnt
     lossStreak: 0,
     lastDeathTick: -9999,
     lastStandUsed: false,
+    hits: [],
+    fall: null,
   };
   u.hero = hero;
   ctx.s.teams[team].heroIds.push(u.id);

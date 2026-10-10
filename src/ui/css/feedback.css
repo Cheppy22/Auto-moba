@@ -1,0 +1,272 @@
+/* Combat feedback: lane momentum, fight verdict tags, falls and gambit lines, report sections. */
+
+/* ---------- lane momentum: three tug-of-war bars under the Act clock ---------- */
+.lane-strip {
+  position: absolute;
+  z-index: 2;
+  top: calc(54px + env(safe-area-inset-top));
+  left: 50%;
+  translate: -50% 0;
+  width: min(calc(100% - 136px), 180px);
+  pointer-events: none;
+}
+.lanebars {
+  display: flex;
+  gap: 6px;
+}
+.lanebar {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.lane-letter {
+  font-style: normal;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  color: var(--brass);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+.lane-track {
+  position: relative;
+  flex: 1 1 auto;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--b);
+  border: 1px solid var(--ebony);
+  box-shadow:
+    0 0 0 1px var(--brass-dim),
+    0 1px 3px rgba(0, 0, 0, 0.6);
+}
+.lane-white {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--a);
+  border-right: 1px solid var(--ebony);
+  transition: width 0.9s var(--ease);
+}
+.lane-mid {
+  position: absolute;
+  inset: 0 auto 0 50%;
+  width: 1px;
+  background: rgba(20, 17, 14, 0.55);
+}
+.lanebars.big {
+  flex-direction: column;
+  gap: 8px;
+}
+.lanebars.big .lanebar {
+  gap: 10px;
+}
+.lanebars.big .lane-letter {
+  flex: none;
+  width: 44px;
+  font-size: var(--fs-sm);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.lanebars.big .lane-track {
+  height: 12px;
+  border-radius: 6px;
+}
+
+/* the banners and the caption sit just below the strip */
+.notices {
+  top: calc(72px + env(safe-area-inset-top));
+}
+html[data-layout='landscape'] .notices {
+  top: calc(70px + env(safe-area-inset-top));
+}
+
+/* ---------- fight verdict tags, pinned in the 3D view ---------- */
+.fight-tags {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  overflow: hidden;
+  pointer-events: none;
+}
+.fight-pin {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform: translate(-999px, -999px);
+  will-change: transform;
+}
+.fight-tag {
+  position: relative;
+  translate: -50% -100%;
+  white-space: nowrap;
+  padding: 2px 9px 3px;
+  font-size: var(--fs-xs);
+  letter-spacing: 0.03em;
+  color: var(--ivory);
+  background: rgba(20, 17, 14, 0.88);
+  border: 1px solid var(--brass-dim);
+  border-radius: var(--r-1);
+  box-shadow: var(--sh-1);
+  animation:
+    tag-in 0.25s var(--ease) both,
+    tag-out 0.6s ease-in calc(var(--ms, 4200ms) - 600ms) forwards;
+}
+.fight-tag::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  translate: -50% 0;
+  border: 5px solid transparent;
+  border-top-color: var(--brass-dim);
+}
+.fight-tag.good {
+  border-color: var(--baize-hi);
+}
+.fight-tag.good::after {
+  border-top-color: var(--baize-hi);
+}
+.fight-tag.bad {
+  border-color: var(--clock-hi);
+}
+.fight-tag.bad::after {
+  border-top-color: var(--clock-hi);
+}
+.fight-tag.even {
+  border-color: var(--bone);
+}
+.fight-tag.even::after {
+  border-top-color: var(--bone);
+}
+@keyframes tag-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+@keyframes tag-out {
+  to {
+    opacity: 0;
+  }
+}
+
+/* ---------- falls and gambit lines, above the hand ---------- */
+.notelane {
+  order: 2;
+  align-self: center;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  pointer-events: none;
+}
+.noteline {
+  max-width: 100%;
+  padding: 2px 10px;
+  text-align: center;
+  font-size: var(--fs-xs);
+  line-height: 1.3;
+  color: var(--ivory);
+  background: rgba(20, 17, 14, 0.82);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--brass-dim);
+  border-radius: var(--r-1);
+  animation:
+    toast-up var(--t-med) var(--ease) both,
+    fade-out 0.5s ease-in calc(var(--ms, 3200ms) - 500ms) forwards;
+}
+.noteline.fall {
+  border-left-color: var(--clock-hi);
+}
+.noteline.card {
+  border-left-color: var(--brass);
+}
+
+/* ---------- roster tile of a fallen piece: killer icon and cause word ---------- */
+.roster-cell .fall {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  max-width: 100%;
+  margin-top: 1px;
+  line-height: 1;
+}
+.roster-cell .fall i {
+  font-style: normal;
+  font-size: 8px;
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: 0;
+  text-align: center;
+  color: var(--clock-hi);
+}
+
+/* ---------- break sheet: Report sections ---------- */
+.bs-sec {
+  display: grid;
+  gap: 4px;
+}
+.bs-h {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--fs-sm);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--brass);
+}
+.bs-line {
+  margin: 0;
+  font-size: var(--fs-md);
+  color: var(--ivory);
+}
+.bs-line.dim {
+  font-size: var(--fs-sm);
+  color: var(--bone);
+}
+.bs-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 4px;
+}
+.bs-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 10px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--rule);
+  font-size: var(--fs-md);
+}
+.bs-list b {
+  font-weight: 600;
+  color: var(--ivory);
+}
+.bs-list span {
+  color: var(--bone);
+}
+.bs-list.cards i {
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+  color: var(--brass-hi);
+}
+.bs-list.cards span {
+  flex: 1 1 100%;
+  font-size: var(--fs-sm);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lane-white {
+    transition: none;
+  }
+  .fight-tag,
+  .noteline {
+    animation-duration: 0.01ms;
+  }
+}

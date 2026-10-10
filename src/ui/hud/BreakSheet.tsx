@@ -1,10 +1,20 @@
 import { useEffect, useMemo, useState } from 'preact/hooks';
 import type { ActReport, PlayTeam, Snapshot } from '../../sim';
 import { actCallouts } from '../../analysis/callouts';
+import {
+  cardRow,
+  causeWord,
+  fightLine,
+  fightsText,
+  pieceWord,
+  summarizeFights,
+} from '../../analysis/feedback';
 import { courtName } from '../../analysis/text';
 import { n0 } from '../format';
 import { Orders } from '../Orders';
+import { PIECE_ORDER } from '../pieces';
 import { useSession } from '../session';
+import { LaneBars } from './LaneBars';
 
 type Tab = 'report' | 'orders';
 
@@ -56,6 +66,67 @@ function lead(row: Row, side: 'a' | 'b'): boolean {
   return side === 'a' ? aAhead : !aAhead;
 }
 
+function Fights(props: { report: ActReport }) {
+  const sum = summarizeFights(props.report);
+  return (
+    <section class="bs-sec" data-testid="break-fights">
+      <h3 class="bs-h">Fights</h3>
+      <p class="bs-line">{fightsText(sum)}</p>
+      {sum.biggest && <p class="bs-line dim">Biggest: {fightLine(sum.biggest)}</p>}
+    </section>
+  );
+}
+
+function Falls(props: { report: ActReport }) {
+  const mine = props.report.teams.A.pieces
+    .filter((p) => p.deaths > 0)
+    .sort((a, b) => PIECE_ORDER.indexOf(a.piece) - PIECE_ORDER.indexOf(b.piece));
+  if (mine.length === 0) return null;
+  return (
+    <section class="bs-sec" data-testid="break-falls">
+      <h3 class="bs-h">How your pieces fell</h3>
+      <ul class="bs-list">
+        {mine.map((p) => (
+          <li key={p.id}>
+            <b>{pieceWord(p.piece)}</b>
+            <span>
+              {(Object.entries(p.falls) as [Parameters<typeof causeWord>[0], number][])
+                .sort((a, b) => b[1] - a[1])
+                .map(([cause, n]) => `${causeWord(cause).toLowerCase()} ×${n}`)
+                .join(', ')}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function Cards(props: { report: ActReport }) {
+  const s = useSession();
+  const cards = props.report.teams.A.cards;
+  if (cards.length === 0) return null;
+  const spent = cards.reduce((a, c) => a + c.tempo, 0);
+  return (
+    <section class="bs-sec" data-testid="break-cards">
+      <h3 class="bs-h">Gambits: Tempo spent, result</h3>
+      <ul class="bs-list cards">
+        {cards.map((c) => (
+          <li key={c.cardId} data-testid={`break-card-${c.cardId}`}>
+            <b>
+              {s.content.gambitById.get(c.cardId)?.name ?? c.cardId}
+              {c.plays > 1 ? ` ×${c.plays}` : ''}
+            </b>
+            <i>{c.tempo} Tempo</i>
+            <span>{cardRow(c)}</span>
+          </li>
+        ))}
+      </ul>
+      <p class="bs-line dim">{spent} Tempo spent on gambits this Act.</p>
+    </section>
+  );
+}
+
 function Report(props: { report: ActReport }) {
   const { report } = props;
   const callouts = useMemo(() => actCallouts(report), [report]);
@@ -68,6 +139,13 @@ function Report(props: { report: ActReport }) {
           </li>
         ))}
       </ul>
+      <section class="bs-sec" data-testid="break-lanes">
+        <h3 class="bs-h">Lanes at the bell</h3>
+        <LaneBars lanes={report.lanes} big testid="break-lane-bars" />
+      </section>
+      <Fights report={report} />
+      <Falls report={report} />
+      <Cards report={report} />
       <table class="bs-table" data-testid="break-numbers">
         <caption class="tiny dim">This Act, side by side</caption>
         <thead>

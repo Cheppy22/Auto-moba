@@ -1,4 +1,5 @@
-import type { ActPieceStat, ActReport, LaneId, PlayTeam } from '../sim';
+import type { ActPieceStat, ActReport, DeathCause, LaneId, PlayTeam } from '../sim';
+import { fightVerdict } from './feedback';
 import { laneName } from './text';
 
 export interface Callout {
@@ -24,6 +25,7 @@ const KILLER: Record<string, string> = {
   camp: 'the jungle',
 };
 const LANES: LaneId[] = ['top', 'mid', 'bot'];
+const CAUSES: Exclude<DeathCause, 'traded'>[] = ['outOfPosition', 'burst', 'focus', 'outnumbered'];
 const MAX_CALLOUTS = 3;
 const MIN_CALLOUTS = 2;
 
@@ -37,6 +39,42 @@ function killerPhrase(p: ActPieceStat): string {
   if (by === 'none' || n < 2 || n / p.deaths < 0.6) return '';
   const who = PIECE[by] ? `their ${PIECE[by]}` : KILLER[by];
   return who ? `, mostly to ${who}` : '';
+}
+
+/** The lane (other than `from`) where `viewer` is strongest at the bell. */
+function bestLane(report: ActReport, viewer: PlayTeam, from: LaneId): LaneId {
+  const sign = viewer === 'A' ? 1 : -1;
+  let best: LaneId = 'mid';
+  let bestV = -Infinity;
+  for (const lane of LANES) {
+    if (lane === from) continue;
+    const v = report.lanes[lane] * sign;
+    if (v > bestV) {
+      bestV = v;
+      best = lane;
+    }
+  }
+  return best;
+}
+
+function causeText(
+  p: ActPieceStat,
+  cause: Exclude<DeathCause, 'traded'>,
+  n: number,
+  r: ActReport,
+  v: PlayTeam,
+): string {
+  const who = `Your ${pieceName(p.piece)}`;
+  switch (cause) {
+    case 'outOfPosition':
+      return `${who} died ${n}× out of position — consider moving it ${laneName(bestLane(r, v, p.lane))}.`;
+    case 'burst':
+      return `${who} was burst down ${n}× (most of its health in two seconds). Keep it out of their reach, or build Defense.`;
+    case 'focus':
+      return `${who} was focused by three or more pieces ${n}×. Keep it beside its allies.`;
+    case 'outnumbered':
+      return `${who} fell ${n}× to more pieces than it had beside it. Send backup to the ${laneName(p.lane)}, or pull it back.`;
+  }
 }
 
 /**
@@ -70,8 +108,50 @@ export function actCallouts(report: ActReport, viewer: PlayTeam = 'A'): Callout[
     });
   }
 
+  const explained = new Set<string>();
   for (const p of me.pieces) {
-    if (p.deaths < 2) continue;
+    for (const cause of CAUSES) {
+      const n = p.falls[cause] ?? 0;
+      if (n < 2) continue;
+      explained.add(p.piece);
+      add({
+        id: `fell-${p.piece}-${cause}`,
+        severity: Math.min(0.95, 0.62 + 0.08 * (n - 2)),
+        tone: 'bad',
+        text: causeText(p, cause, n, report, viewer),
+      });
+    }
+  }
+
+  const zones = new Map<string, { won: number; lost: number }>();
+  for (const f of report.fights) {
+    if (f.lost.A + f.lost.B === 0) continue;
+    const z = zones.get(f.zone) ?? { won: 0, lost: 0 };
+    const v = fightVerdict(f, viewer).verdict;
+    if (v === 'won') z.won++;
+    else if (v === 'lost') z.lost++;
+    zones.set(f.zone, z);
+  }
+  for (const [zone, z] of zones) {
+    if (zone !== 'top' && zone !== 'mid' && zone !== 'bot') continue;
+    if (z.lost >= 2 && z.won === 0)
+      add({
+        id: `fights-lost-${zone}`,
+        severity: 0.7,
+        tone: 'bad',
+        text: `You lost every fight on the ${laneName(zone)} lane.`,
+      });
+    else if (z.won >= 2 && z.lost === 0)
+      add({
+        id: `fights-won-${zone}`,
+        severity: 0.45,
+        tone: 'good',
+        text: `You won every fight on the ${laneName(zone)} lane. Press it.`,
+      });
+  }
+
+  for (const p of me.pieces) {
+    if (p.deaths < 2 || explained.has(p.piece)) continue;
     add({
       id: `died-${p.piece}`,
       severity: Math.min(0.9, 0.55 + 0.1 * (p.deaths - 2)),
