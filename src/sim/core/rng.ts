@@ -7,6 +7,7 @@ export const STREAMS = [
   'draft',
   'events',
   'gambit',
+  'relic',
 ] as const;
 export type StreamName = (typeof STREAMS)[number];
 export type RngState = Record<StreamName, number>;

@@ -66,6 +66,13 @@ const snap = (tick: number, units: SnapUnit[] = [], o: Partial<Snapshot> = {}): 
   opening: { A: null, B: null },
   zones: [],
   momentum: { top: 0, mid: 0, bot: 0 },
+  relics: {
+    held: { A: [], B: [] },
+    offers: [],
+    settled: true,
+    latest: { A: null, B: null },
+    behind: { A: false, B: false },
+  },
   ...o,
 });
 

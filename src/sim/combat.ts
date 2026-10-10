@@ -5,6 +5,7 @@ import type { AbilityDef, DamageType, EffectDef, TriggerDef } from './content/sc
 import { trackDamage } from './feedback';
 import { noteDamage } from './impact';
 import { kitOf, perksOf, pieceDef } from './pieces';
+import { structureMul } from './relics';
 import { addMod, recompute, triggersOf } from './stats';
 import type { Unit } from './types';
 import { confine, walkable } from './world/terrain';
@@ -95,7 +96,7 @@ export function dealDamage(
     raw *= ctx.t.tower.heroDamageMul;
     const sm = src.hero!.structMul;
     if (sm && sm.untilTick > ctx.s.tick) raw *= sm.value;
-  }
+  } else if (src && structure) raw *= structureMul(ctx, src);
   if (tgt.kind === 'guardian') raw *= ctx.s.tagMult.throneDamage ?? 1;
   if (src && src.team !== 'neutral' && ctx.s.check[src.team]) raw *= ctx.t.check.damageMul;
   if (src && src.team !== 'neutral') {

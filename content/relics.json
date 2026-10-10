@@ -1,0 +1,107 @@
+{
+  "relics": [
+    {
+      "id": "half_open_file",
+      "name": "Half-Open File",
+      "family": "lane",
+      "bind": "lane",
+      "aim": "offense",
+      "desc": "Your pieces, pawns and pawnlings in the bound lane move 12% faster; in the other two lanes 4% slower.",
+      "rewards": "One committed push lane.",
+      "counter": "Position: Barricade stalls the faster wave. Fortress: Hold the File outlasts it.",
+      "tags": ["march", "position", "pawn-heavy"],
+      "params": { "speedMul": 1.12, "otherMul": 0.96 }
+    },
+    {
+      "id": "closed_position",
+      "name": "Closed Position",
+      "family": "lane",
+      "bind": "lane",
+      "aim": "defense",
+      "rally": true,
+      "desc": "Rally. Your Bastions in the bound lane take 20% less damage and your pieces there gain 10% armor and resist; your pawnlings there deal 15% less. Off while you are not behind.",
+      "rewards": "Lock a lane you cannot win and win elsewhere.",
+      "counter": "Sacrifice: Pawn Sacrifice ignores the cap. Battering Ram strips armor.",
+      "tags": ["fortress", "position"],
+      "params": {
+        "bastionTakenMul": 0.8,
+        "armorMul": 1.1,
+        "resistMul": 1.1,
+        "pawnlingDamageMul": 0.85
+      }
+    },
+    {
+      "id": "crown_jewel",
+      "name": "Crown Jewel",
+      "family": "carry",
+      "bind": "piece",
+      "aim": "carry",
+      "desc": "The bound piece deals 12% more damage and has 8% more health; your other four pieces deal 3% less.",
+      "rewards": "Pick one carry and build the team around it.",
+      "counter": "Initiative: Check and Fork on the obvious target.",
+      "tags": ["initiative", "sacrifice"],
+      "params": { "damageMul": 1.12, "healthMul": 1.08, "othersMul": 0.97 }
+    },
+    {
+      "id": "development",
+      "name": "Development",
+      "family": "carry",
+      "bind": "piece",
+      "aim": "carry",
+      "desc": "The bound piece earns 20% more gold and reaches its Rank 4 and Rank 8 forks sooner; the enemy earns 50% more bounty for killing it.",
+      "rewards": "Decide who reaches Rank 8 first.",
+      "counter": "Focus it: every kill pays the enemy more.",
+      "tags": ["initiative", "gambit-heavy"],
+      "params": { "incomeMul": 1.2, "bountyMul": 1.5 }
+    },
+    {
+      "id": "pawn_majority",
+      "name": "Pawn Majority",
+      "family": "pawns",
+      "bind": "none",
+      "aim": "offense",
+      "desc": "Pawns cost 12 Tempo (from 15) and your pawn cap is 2 higher; your pawns have 10% less health.",
+      "rewards": "A pawn-heavy doctrine.",
+      "counter": "Area damage clears them. Fortress soaks cheap pushes.",
+      "tags": ["march", "pawn-heavy", "warlord", "bastion", "light", "sovereign", "paladin"],
+      "params": { "cost": 12, "capBonus": 2, "healthMul": 0.9 }
+    },
+    {
+      "id": "pawn_lever",
+      "name": "Pawn Lever",
+      "family": "siege",
+      "bind": "lane",
+      "aim": "offense",
+      "desc": "Your pawns and pawnlings in the bound lane deal 20% more damage to Bastions and the Throne (still under the per-second cap).",
+      "rewards": "Pick the lane to crack; send pawns and the Ram.",
+      "counter": "Fortress: Hold the File and Closed Position. A Bastion Rook.",
+      "tags": ["march", "pawn-heavy", "ram"],
+      "params": { "structureMul": 1.2 }
+    },
+    {
+      "id": "opening_theory",
+      "name": "Opening Theory",
+      "family": "orders",
+      "bind": "none",
+      "aim": "offense",
+      "desc": "Cards from your Opening's two schools cost 5 Tempo less; other schools cost 5 more. Italian Game: every card costs 2 less.",
+      "rewards": "Commit to your Opening.",
+      "counter": "The schools that counter your Opening's.",
+      "tags": ["opening", "gambit-heavy"],
+      "params": { "favoured": -5, "other": 5, "italian": -2 }
+    },
+    {
+      "id": "standing_order",
+      "name": "Standing Order",
+      "family": "orders",
+      "bind": "laneCard",
+      "aim": "offense",
+      "desc": "Pick a lane card and a lane: it is always on there at half strength (Pawn Storm at one third). The card leaves your deck while it is bound.",
+      "rewards": "A lane doctrine with no live taps.",
+      "counter": "The card's own school counter: Fortress and Position against March cards.",
+      "tags": ["march", "position", "fortress"],
+      "cards": ["advance", "hold_the_file", "open_file", "pawn_storm"],
+      "params": { "strength": 0.5, "stormStrength": 0.3333 }
+    }
+  ]
+}

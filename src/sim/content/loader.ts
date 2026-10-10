@@ -10,6 +10,8 @@ import {
   OpeningFileSchema,
   PressureSchema,
   PieceSchema,
+  RelicFileSchema,
+  RELIC_EFFECTS,
   TuningSchema,
   type BadgeDef,
   type BiomeDef,
@@ -26,6 +28,8 @@ import {
   type MapDef,
   type OpeningDef,
   type PressureDef,
+  type RelicDef,
+  type RelicEffect,
   type Tuning,
 } from './schema';
 
@@ -33,6 +37,7 @@ export interface RawContentFiles {
   pieces: unknown[];
   gambits: unknown;
   openings: unknown;
+  relics: unknown;
   items: unknown[];
   biomes: unknown[];
   events: unknown[];
@@ -54,6 +59,8 @@ export interface Content {
   gambitById: Map<string, GambitDef>;
   openings: OpeningDef[];
   openingById: Map<string, OpeningDef>;
+  relics: RelicDef[];
+  relicById: Map<string, RelicDef>;
   items: ItemDef[];
   itemById: Map<string, ItemDef>;
   cursed: CursedItemDef[];
@@ -128,6 +135,14 @@ export function validateRefs(c: Content): string[] {
     if (!(GAMBIT_EFFECTS as readonly string[]).includes(eff))
       errs.push(`gambit ${g.id}: unknown effect ${eff}`);
   }
+  for (const r of c.relics) {
+    const eff = r.effect ?? r.id;
+    if (!(RELIC_EFFECTS as readonly string[]).includes(eff))
+      errs.push(`relic ${r.id}: unknown effect ${eff}`);
+    for (const card of r.cards)
+      if (!c.gambitById.has(card)) errs.push(`relic ${r.id}: unknown card ${card}`);
+    if (r.bind === 'laneCard' && r.cards.length === 0) errs.push(`relic ${r.id}: needs cards`);
+  }
   if (!c.openingById.has('italian')) errs.push('openings: needs the balanced "italian" opening');
   if (!c.gambits.some((g) => g.piece === null && g.weight > 0))
     errs.push('gambits: needs at least one universal card');
@@ -164,6 +179,7 @@ export function loadContent(raw: RawContentFiles): Content {
   const pieces = raw.pieces.map((p) => PieceSchema.parse(p));
   const gambits = GambitFileSchema.parse(raw.gambits).gambits;
   const openings = OpeningFileSchema.parse(raw.openings);
+  const relics = RelicFileSchema.parse(raw.relics).relics;
   const itemFiles = raw.items.map((f) => ItemFileSchema.parse(f));
   const items = itemFiles.flatMap((f) => f.items);
   const cursed = itemFiles.flatMap((f) => f.cursed);
@@ -193,6 +209,8 @@ export function loadContent(raw: RawContentFiles): Content {
     gambitById: byId(gambits, 'gambit'),
     openings,
     openingById: byId(openings, 'opening'),
+    relics,
+    relicById: byId(relics, 'relic'),
     items,
     itemById: byId(items, 'item'),
     cursed,
@@ -214,3 +232,5 @@ export function loadContent(raw: RawContentFiles): Content {
 }
 
 export const gambitEffect = (g: GambitDef): GambitEffect => (g.effect ?? g.id) as GambitEffect;
+
+export const relicEffect = (r: RelicDef): RelicEffect => (r.effect ?? r.id) as RelicEffect;

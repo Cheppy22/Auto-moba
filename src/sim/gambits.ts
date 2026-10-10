@@ -9,6 +9,7 @@ import { enemyTowerTarget } from './ai/lanes';
 import { bindZone, noteDrain, noteHeal, startRun } from './impact';
 import { fieldPawn, pawnCap, pawnsAlive } from './pawns';
 import { teamPiece } from './pieces';
+import { LANE_SPEED_TAG, boundCards, cardCost, pawnCost } from './relics';
 import { addMod } from './stats';
 import { LANES, lanePoint } from './world/map';
 import { confine, shapeDist, walkable, type WalkShape } from './world/terrain';
@@ -46,8 +47,9 @@ function alivePieces(ctx: Ctx, team: PlayTeam): Unit[] {
 
 function drawCard(ctx: Ctx, team: PlayTeam): string | null {
   const held = new Set(ctx.s.hands[team].map((h) => h.cardId).filter((x) => x !== null));
+  const bound = boundCards(ctx, team);
   const deck = ctx.c.gambits.filter((g) => {
-    if (g.weight <= 0) return false;
+    if (g.weight <= 0 || bound.includes(g.id)) return false;
     if (g.piece === null) return true;
     return !!teamPiece(ctx, team, g.piece)?.alive;
   });
@@ -71,6 +73,14 @@ function deal(ctx: Ctx, team: PlayTeam, slot: number): void {
   h.refillTick = h.cardId === null ? ctx.s.tick + TPS : null;
 }
 
+/** A card a Standing Order now keeps always on leaves the hand: its slot is dealt again. */
+export function dropBoundCards(ctx: Ctx, team: PlayTeam): void {
+  const bound = boundCards(ctx, team);
+  ctx.s.hands[team].forEach((h, i) => {
+    if (h.cardId !== null && bound.includes(h.cardId)) deal(ctx, team, i);
+  });
+}
+
 export function initHands(ctx: Ctx): void {
   for (const team of ['A', 'B'] as PlayTeam[]) {
     ctx.s.hands[team] = [];
@@ -90,7 +100,7 @@ export function cardBlock(ctx: Ctx, team: PlayTeam, slot: number): string {
     const u = teamPiece(ctx, team, def.piece);
     if (!u?.alive) return `${ctx.c.pieceById.get(def.piece)!.name} is down`;
   }
-  if (ctx.s.tempo[team] < def.cost) return 'not enough Tempo';
+  if (ctx.s.tempo[team] < cardCost(ctx, team, def)) return 'not enough Tempo';
   const eff = gambitEffect(def);
   if (eff === 'castle' && !teamPiece(ctx, team, 'rook')?.alive) return 'Rook is down';
   if (eff === 'pawn_sacrifice' && pawnsAlive(ctx, team) === 0) return 'no pawn to sacrifice';
@@ -106,6 +116,7 @@ function timedMod(
   stat: Modifier['stat'],
   value: number,
   sec: number,
+  tags: string[] = [],
 ): void {
   addMod(ctx, u, {
     id,
@@ -113,7 +124,7 @@ function timedMod(
     kind: 'mul',
     value,
     source: id,
-    tags: [],
+    tags,
     expiresTick: ctx.s.tick + Math.round(sec * TPS),
   });
 }
@@ -301,10 +312,10 @@ function applyCard(ctx: Ctx, team: PlayTeam, def: GambitDef, t: GambitTarget): v
       const lane = t.lane!;
       for (const u of laneUnits(ctx, team, lane, true)) {
         setOrder(ctx, u, { kind: 'push', lane, x: u.x, y: u.y, targetId: null, untilTick: until });
-        timedMod(ctx, u, tag, 'moveSpeed', p(def, 'moveSpeedMul', 1.1), dur);
+        timedMod(ctx, u, tag, 'moveSpeed', p(def, 'moveSpeedMul', 1.1), dur, [LANE_SPEED_TAG]);
       }
       for (const u of laneUnits(ctx, team, lane, false))
-        timedMod(ctx, u, tag, 'moveSpeed', p(def, 'moveSpeedMul', 1.1), dur);
+        timedMod(ctx, u, tag, 'moveSpeed', p(def, 'moveSpeedMul', 1.1), dur, [LANE_SPEED_TAG]);
       break;
     }
     case 'hold_the_file': {
@@ -528,7 +539,7 @@ export function playGambit(
   const def = ctx.c.gambitById.get(h.cardId!)!;
   const t = validTarget(ctx, team, def, target);
   if (typeof t === 'string') return { ok: false, reason: t };
-  ctx.s.tempo[team] -= def.cost;
+  ctx.s.tempo[team] -= cardCost(ctx, team, def);
   const run = startRun(ctx, team, def, t);
   const zones = ctx.s.zones.length;
   applyCard(ctx, team, def, t);
@@ -587,6 +598,7 @@ function holdMod(
   stat: Modifier['stat'],
   kind: Modifier['kind'],
   value: number,
+  tags: string[] = [],
 ): void {
   const have = u.mods.find((m) => m.id === id);
   if (have && have.expiresTick !== null && have.expiresTick - ctx.s.tick > 6) return;
@@ -596,7 +608,7 @@ function holdMod(
     kind,
     value,
     source: id,
-    tags: [],
+    tags,
     expiresTick: Math.min(z.endTick, ctx.s.tick + 12),
   });
 }
@@ -639,7 +651,9 @@ function tickZone(ctx: Ctx, z: ZoneState): void {
         if (!u.alive || u.team !== z.team || u.ev) continue;
         const lane = u.hero ? u.hero.lane : u.kind === 'minion' ? u.lane : null;
         if (lane !== z.lane) continue;
-        holdMod(ctx, u, z, `gambit:${z.cardId}`, 'moveSpeed', 'mul', p(def, 'moveSpeedMul', 1.25));
+        holdMod(ctx, u, z, `gambit:${z.cardId}`, 'moveSpeed', 'mul', p(def, 'moveSpeedMul', 1.25), [
+          LANE_SPEED_TAG,
+        ]);
       }
       break;
     case 'barricade':
@@ -998,16 +1012,17 @@ export function aiGambits(ctx: Ctx, team: PlayTeam): void {
     if (def.piece && !teamPiece(ctx, team, def.piece)?.alive) continue;
     const pl = plan(ctx, team, def);
     if (!pl || pl.score < 1) continue;
-    if (s.tempo[team] < def.cost) {
-      wanted = Math.max(wanted, def.cost);
+    const cost = cardCost(ctx, team, def);
+    if (s.tempo[team] < cost) {
+      wanted = Math.max(wanted, cost);
       continue;
     }
     if (!best || pl.score > best.plan.score) best = { slot: i, plan: pl };
   }
   if (best && playGambit(ctx, team, best.slot, best.plan.target).ok) return;
-  const cost = ctx.t.pawns.cost;
+  const cost = pawnCost(ctx, team);
   const reserve = wanted > 0 ? wanted : 20;
-  if (pawnsAlive(ctx, team) >= pawnCap(ctx)) return;
+  if (pawnsAlive(ctx, team) >= pawnCap(ctx, team)) return;
   if (s.tempo[team] >= cost + reserve || s.tempo[team] >= ctx.t.gambits.tempoMax - 10)
     fieldPawn(ctx, team, pawnLane(ctx, team));
 }

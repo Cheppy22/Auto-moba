@@ -1,5 +1,6 @@
 import { PATHS } from './content/schema';
 import { frozen, resumeFromBreak } from './bell';
+import { aimRelic, autoRelic, declineRelic, draftOpen, pickRelic } from './draft';
 import type { Ctx } from './ctx';
 import { playGambit } from './gambits';
 import { fieldPawn } from './pawns';
@@ -44,8 +45,17 @@ function run(ctx: Ctx, cmd: Command, startMatch: StartMatchFn): CommandResult {
     case 'resumeAct':
       if (s.bell.stage !== 'break') return { ok: false, reason: 'no Act break to leave' };
       if (s.forks.length > 0) return { ok: false, reason: 'answer the fork first' };
+      if (draftOpen(ctx)) return { ok: false, reason: 'take a relic first' };
       resumeFromBreak(ctx);
       return { ok: true };
+    case 'pickRelic':
+      return pickRelic(ctx, cmd.relicId, cmd, cmd.replace);
+    case 'declineRelic':
+      return declineRelic(ctx);
+    case 'autoRelic':
+      return autoRelic(ctx);
+    case 'aimRelic':
+      return aimRelic(ctx, cmd.relicId, cmd);
     case 'chooseFork':
       if (!whitePiece(ctx, cmd.heroId)) return { ok: false, reason: 'not one of your pieces' };
       return chooseFork(ctx, cmd.heroId, cmd.optionId);
@@ -70,6 +80,7 @@ function run(ctx: Ctx, cmd: Command, startMatch: StartMatchFn): CommandResult {
       u.lane = cmd.lane;
       h.goal = null;
       h.order = null;
+      u.dirty = true;
       assignJunglers(ctx, 'A');
       ctx.emit('laneSet', { id: u.id, lane: cmd.lane });
       return { ok: true };

@@ -56,6 +56,12 @@ export function newUnit(
   return u;
 }
 
+/** Recomputes a freshly built unit once its lane and kind are set (relics read both), at full health. */
+function refresh(ctx: Ctx, u: Unit): void {
+  recompute(ctx, u);
+  u.hp = u.stats.maxHp;
+}
+
 export function makeHero(ctx: Ctx, team: PlayTeam, slot: number, entry: SetupEntry): Unit {
   const def = ctx.c.pieceById.get(entry.piece)!;
   const defId = entry.piece;
@@ -158,6 +164,7 @@ export function makeMinion(
   u.y = p0[1] + (dy / len) * offset + (dx / len) * side;
   u.px = u.x;
   u.py = u.y;
+  refresh(ctx, u);
   return u;
 }
 
@@ -192,6 +199,7 @@ export function makePawn(ctx: Ctx, team: PlayTeam, lane: LaneId): Unit {
   u.y = path[0][1];
   u.px = u.x;
   u.py = u.y;
+  refresh(ctx, u);
   return u;
 }
 

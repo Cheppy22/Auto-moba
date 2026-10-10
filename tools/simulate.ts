@@ -1,4 +1,11 @@
-import { Match, type Content, type PieceId, type PlayTeam, type TeamSetup } from '../src/sim';
+import {
+  Match,
+  type Content,
+  type PieceId,
+  type PlayTeam,
+  type RelicMode,
+  type TeamSetup,
+} from '../src/sim';
 import { teamNetWorth } from '../src/sim/curses';
 
 export interface HeroResult {
@@ -48,6 +55,8 @@ export interface MatchSummary {
   rankMinute: (number | null)[];
   /** How the match ended: checkmate after the Throne fell first or the King fell first. */
   mate: 'throneFirst' | 'kingFirst' | null;
+  /** Relic ids offered to each side across the match, and the ones it took. */
+  relics: Record<PlayTeam, { offered: string[]; taken: string[]; held: string[] }>;
 }
 
 export interface SimOptions {
@@ -57,6 +66,8 @@ export interface SimOptions {
   /** Black never plays gambits or fields pawns. */
   noGambitsB?: boolean;
   setup?: { A?: TeamSetup; B?: TeamSetup };
+  /** Who drafts each side's relics at the Act breaks (default: both by the AI rule). */
+  relics?: { A?: RelicMode; B?: RelicMode };
   /** Force archetypes at Rank 4 (per team and piece). */
   forceStyles?: { A?: Partial<Record<PieceId, string>>; B?: Partial<Record<PieceId, string>> };
 }
@@ -68,6 +79,7 @@ export function simulateMatch(content: Content, seed: number, opts: SimOptions =
     seed,
     setup: opts.setup,
     forceStyles: opts.forceStyles,
+    relics: opts.relics,
     autoGambits: { A: !opts.noGambitsA, B: !opts.noGambitsB },
     // The baseline removes Tempo spending only; forks still pick at once as the AI does.
     autoForks: { A: true, B: true },
@@ -118,6 +130,10 @@ export function simulateMatch(content: Content, seed: number, opts: SimOptions =
   const pawns: Record<PlayTeam, number> = { A: 0, B: 0 };
   const checks: Record<PlayTeam, number> = { A: 0, B: 0 };
   const tempoSpent = { A: { cards: 0, pawns: 0 }, B: { cards: 0, pawns: 0 } };
+  const relics: MatchSummary['relics'] = {
+    A: { offered: [], taken: [], held: s.relics.held.A.map((h) => h.id) },
+    B: { offered: [], taken: [], held: s.relics.held.B.map((h) => h.id) },
+  };
   const rankMinute: (number | null)[] = Array.from({ length: 9 }, () => null);
   let campsCleared = 0;
   let firstTowerMinute: number | null = null;
@@ -125,7 +141,9 @@ export function simulateMatch(content: Content, seed: number, opts: SimOptions =
   let mate: MatchSummary['mate'] = null;
   const min = (tick: number): number => tick / content.tuning.tickRate / 60;
   for (const e of m.events) {
-    if (e.type === 'curseOffered') curses.offered++;
+    if (e.type === 'relicOffered') relics[e.payload.team].offered.push(...e.payload.ids);
+    else if (e.type === 'relicTaken') relics[e.payload.team].taken.push(e.payload.relic);
+    else if (e.type === 'curseOffered') curses.offered++;
     else if (e.type === 'curseRefused') curses.refused++;
     else if (e.type === 'curseAccepted') {
       curses.accepted++;
@@ -176,5 +194,6 @@ export function simulateMatch(content: Content, seed: number, opts: SimOptions =
     checks,
     rankMinute,
     mate,
+    relics,
   };
 }

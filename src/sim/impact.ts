@@ -6,6 +6,7 @@ import type { Ctx } from './ctx';
 import { laneAt } from './feedback';
 import type { GambitTarget } from './gambits';
 import { teamPiece } from './pieces';
+import { cardCost } from './relics';
 import type { CardMetrics, CardRun, PlayTeam, Unit, ZoneState } from './types';
 
 const MAX_SEEN = 40;
@@ -42,7 +43,7 @@ export function startRun(ctx: Ctx, team: PlayTeam, def: GambitDef, t: GambitTarg
     id: fb.nextRun++,
     team,
     cardId: def.id,
-    cost: def.cost,
+    cost: cardCost(ctx, team, def),
     startTick: tick,
     endTick: tick,
     scope: 'team',

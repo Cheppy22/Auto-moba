@@ -154,7 +154,7 @@ describe('pawnlings and pawns', () => {
     const b = m.ctx.world.basePos.A;
     expect(Math.hypot(p.x - b.x, p.y - b.y)).toBeLessThan(120);
     expect(p.stats.maxHp).toBeGreaterThan(content.tuning.minions.melee.hp * 2);
-    const cap = pawnCap(m.ctx);
+    const cap = pawnCap(m.ctx, 'A');
     expect(cap).toBe(content.tuning.pawns.capBase);
     while (pawnsAlive(m.ctx, 'A') < cap) m.issue({ type: 'fieldPawn', lane: 'mid' });
     expect(m.issue({ type: 'fieldPawn', lane: 'mid' }).reason).toMatch(/cap/);
@@ -172,7 +172,7 @@ describe('pawnlings and pawns', () => {
       [6, p.capBase + 3 * p.capPerAct],
     ]) {
       m.state.phase.n = act;
-      expect(pawnCap(m.ctx)).toBe(want);
+      expect(pawnCap(m.ctx, 'A')).toBe(want);
     }
   });
 

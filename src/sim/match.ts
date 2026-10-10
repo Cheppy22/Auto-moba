@@ -15,6 +15,7 @@ import { POISON_MOD, cardBlock, initHands, tickGambits } from './gambits';
 import { createKeeper } from './keeper';
 import { tickObelisks } from './obelisks';
 import { pawnCap, pawnsAlive } from './pawns';
+import { cardCost, pawnCost } from './relics';
 import { actTicks, enterAct } from './phase';
 import { bellTimeScale, frozen, freshBell, tickBell } from './bell';
 import { freshTally } from './actReport';
@@ -47,6 +48,7 @@ import type {
   MatchState,
   PlayTeam,
   Recorder,
+  RelicMode,
   Replay,
   ReplayOp,
   SnapGambit,
@@ -132,7 +134,22 @@ function initialState(content: Content, config: MatchConfig): MatchState {
     bell: freshBell(),
     actTally: freshTally(0),
     feedback: freshFeedback(),
+    relics: {
+      held: { A: [], B: [] },
+      offers: { A: [], B: [] },
+      settled: { A: true, B: true },
+      latest: { A: null, B: null },
+      behind: { A: false, B: false },
+      mode: relicModes(config),
+    },
   };
+}
+
+function relicModes(config: MatchConfig): Record<PlayTeam, RelicMode> {
+  const manual = config.pauseForBreak ?? false;
+  const a = config.relics?.A ?? (manual ? 'manual' : 'ai');
+  const b = config.relics?.B ?? 'ai';
+  return { A: a === 'manual' && !manual ? 'ai' : a, B: b === 'manual' ? 'ai' : b };
 }
 
 function buildCtx(
@@ -419,7 +436,7 @@ export class Match {
         school: def ? def.school : null,
         name: def ? def.name : '',
         desc: def ? def.desc : '',
-        cost: def ? def.cost : 0,
+        cost: def ? cardCost(this.ctx, 'A', def) : 0,
         target: def ? def.target : 'none',
         piece: def ? def.piece : null,
         usable: live && !still && block === '',
@@ -428,7 +445,11 @@ export class Match {
         refillTicks: slot.refillTick !== null ? Math.max(0, slot.refillTick - s.tick) : null,
       };
     });
-    const cap = live ? pawnCap(this.ctx) : this.ctx.t.pawns.capBase;
+    const pawnsOf = (team: PlayTeam): Snapshot['pawns']['A'] => ({
+      alive: pawnsAlive(this.ctx, team),
+      cap: live ? pawnCap(this.ctx, team) : this.ctx.t.pawns.capBase,
+      cost: pawnCost(this.ctx, team),
+    });
     return {
       tick: s.tick,
       phase: { ...s.phase },
@@ -472,10 +493,7 @@ export class Match {
       act: this.snapAct(live),
       tempo: { A: Math.floor(s.tempo.A), B: Math.floor(s.tempo.B) },
       hand,
-      pawns: {
-        A: { alive: pawnsAlive(this.ctx, 'A'), cap, cost: this.ctx.t.pawns.cost },
-        B: { alive: pawnsAlive(this.ctx, 'B'), cap, cost: this.ctx.t.pawns.cost },
-      },
+      pawns: { A: pawnsOf('A'), B: pawnsOf('B') },
       forks: s.forks
         .filter((f) => this.ctx.unit(f.heroId)?.team === 'A')
         .map((f) => {
@@ -511,6 +529,16 @@ export class Match {
         };
       }),
       momentum: laneMomentum(this.ctx),
+      relics: {
+        held: {
+          A: s.relics.held.A.map((h) => ({ ...h })),
+          B: s.relics.held.B.map((h) => ({ ...h })),
+        },
+        offers: s.relics.offers.A.map((o) => ({ ...o, aim: { ...o.aim } })),
+        settled: s.relics.settled.A,
+        latest: { ...s.relics.latest },
+        behind: { ...s.relics.behind },
+      },
     };
   }
 

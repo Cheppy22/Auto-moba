@@ -15,12 +15,15 @@ import { Orders } from '../Orders';
 import { PIECE_ORDER } from '../pieces';
 import { useSession } from '../session';
 import { LaneBars } from './LaneBars';
+import { RelicsTab } from './RelicsTab';
+import { RelicSeal, aimText } from '../relics';
 
-type Tab = 'report' | 'orders';
+type Tab = 'report' | 'orders' | 'relics';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'report', label: 'Report' },
   { id: 'orders', label: 'Orders' },
+  { id: 'relics', label: 'Relics' },
 ];
 
 interface Row {
@@ -127,7 +130,33 @@ function Cards(props: { report: ActReport }) {
   );
 }
 
-function Report(props: { report: ActReport }) {
+function BlackRelics(props: { snap: Snapshot }) {
+  const s = useSession();
+  const held = props.snap.relics.held.B;
+  if (held.length === 0) return null;
+  return (
+    <section class="bs-sec" data-testid="break-black-relics">
+      <h3 class="bs-h">Black’s relics</h3>
+      <ul class="bs-list relics">
+        {held.map((h) => {
+          const def = s.content.relicById.get(h.id);
+          if (!def) return null;
+          const where = aimText(s.content, h, (id) => s.match!.unitById(id));
+          return (
+            <li key={h.id} data-testid={`break-black-relic-${h.id}`}>
+              <RelicSeal family={def.family} size={20} />
+              <b>{def.name}</b>
+              {where && <i>{where}</i>}
+              <span>{def.desc}</span>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
+
+function Report(props: { report: ActReport; snap: Snapshot }) {
   const { report } = props;
   const callouts = useMemo(() => actCallouts(report), [report]);
   return (
@@ -146,6 +175,7 @@ function Report(props: { report: ActReport }) {
       <Fights report={report} />
       <Falls report={report} />
       <Cards report={report} />
+      <BlackRelics snap={props.snap} />
       <table class="bs-table" data-testid="break-numbers">
         <caption class="tiny dim">This Act, side by side</caption>
         <thead>
@@ -193,6 +223,7 @@ export function BreakSheet(props: { snap: Snapshot }) {
   }, []);
   if (!act.report) return null;
   const tab = s.ui.breakTab;
+  const pending = !props.snap.relics.settled;
   return (
     <>
       <div class="break-scrim" aria-hidden="true" />
@@ -219,20 +250,24 @@ export function BreakSheet(props: { snap: Snapshot }) {
                 onClick={() => s.setBreakTab(t.id)}
               >
                 {t.label}
+                {t.id === 'relics' && pending && <i class="bs-dot" data-testid="relics-pending" />}
               </button>
             ))}
           </div>
         </header>
         <div class="bs-body scroll">
-          {tab === 'report' ? <Report report={act.report} /> : <Orders />}
+          {tab === 'report' && <Report report={act.report} snap={props.snap} />}
+          {tab === 'orders' && <Orders />}
+          {tab === 'relics' && <RelicsTab snap={props.snap} />}
         </div>
         <footer class="bs-foot">
           <button
             class="btn primary bs-resume"
             data-testid="break-resume"
+            disabled={pending}
             onClick={() => s.resumeAct()}
           >
-            Resume — Act {act.n + 1}
+            {pending ? 'Take a relic to resume' : `Resume — Act ${act.n + 1}`}
           </button>
         </footer>
       </section>

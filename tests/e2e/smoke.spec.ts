@@ -314,6 +314,19 @@ test('an Act ends with the bell and a break sheet; Resume opens the next Act', a
   await expect(page.getByTestId('break-callouts').locator('li').first()).toBeVisible();
   await page.getByTestId('break-tab-orders').click();
   await expect(page.getByTestId('tab-orders')).toBeVisible();
+  // the relic draft: Resume stays locked until one is taken (aimed)
+  await expect(page.getByTestId('break-resume')).toBeDisabled();
+  await page.getByTestId('break-tab-relics').click();
+  const offers = page.getByTestId('relic-offers').locator('article');
+  await expect(offers).toHaveCount(3);
+  const aim = offers.first().locator('[role="radio"]');
+  if ((await aim.count()) > 0) await aim.last().click();
+  await offers
+    .first()
+    .getByRole('button', { name: /Take this relic/ })
+    .click();
+  await expect(page.getByTestId('relic-done')).toBeVisible();
+  await expect(page.getByTestId('break-resume')).toBeEnabled();
   const frozen = (await snap(page)).tick;
   await step(page, 100);
   expect((await snap(page)).tick).toBe(frozen);
@@ -322,6 +335,7 @@ test('an Act ends with the bell and a break sheet; Resume opens the next Act', a
   await expect(page.getByTestId('break-sheet')).toHaveCount(0);
   await expect(page.getByTestId('hud')).toBeVisible();
   await expect(page.getByTestId('report')).toHaveCount(0);
+  await expect(page.getByTestId('relic-row-A')).toBeVisible();
   // un-pause: play carries on
   const tick = (await snap(page)).tick;
   await setSpeed(page, 2);
