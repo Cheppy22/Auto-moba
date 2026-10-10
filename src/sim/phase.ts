@@ -3,6 +3,8 @@ import { openSlotsForPhase, rerollJungle } from './camps';
 import { TPS } from './combat';
 import type { Ctx } from './ctx';
 import { evaluateCurseOffers } from './curses';
+import { flushFights } from './feedback';
+import { flushRuns } from './impact';
 import { endAllEvents, scheduleEvents } from './events';
 import { relocateKeeper } from './keeper';
 import { scheduleObelisks } from './obelisks';
@@ -36,6 +38,8 @@ export function enterAct(ctx: Ctx, n: number): void {
 /** Closes the current Act's timed objectives; respawn timers and positions carry over. */
 export function endAct(ctx: Ctx): void {
   const s = ctx.s;
+  flushFights(ctx);
+  flushRuns(ctx);
   for (const u of s.units) {
     if (u.kind === 'obelisk' && u.alive) {
       u.alive = false;

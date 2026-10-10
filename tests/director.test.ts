@@ -65,6 +65,7 @@ const snap = (tick: number, units: SnapUnit[] = [], o: Partial<Snapshot> = {}): 
   throneDown: { A: false, B: false },
   opening: { A: null, B: null },
   zones: [],
+  momentum: { top: 0, mid: 0, bot: 0 },
   ...o,
 });
 

@@ -1,15 +1,31 @@
+import { TPS } from './combat';
 import type { Ctx } from './ctx';
+import { laneMomentum } from './feedback';
 import type {
+  ActCardStat,
   ActPieceStat,
   ActReport,
   ActTally,
   ActTeamStat,
+  FightRecord,
   GameEvent,
   LaneId,
   PlayTeam,
 } from './types';
 
 const TEAMS: PlayTeam[] = ['A', 'B'];
+const METRICS = [
+  'dealt',
+  'structure',
+  'taken',
+  'bonus',
+  'prevented',
+  'healed',
+  'kills',
+  'deaths',
+  'met',
+  'drained',
+] as const;
 
 export function freshTally(startSeq: number): ActTally {
   const lost = (): Record<LaneId, number> => ({ top: 0, mid: 0, bot: 0 });
@@ -32,6 +48,7 @@ function teamStat(ctx: Ctx, team: PlayTeam): ActTeamStat {
       deaths: 0,
       damage: 0,
       diedTo: {},
+      falls: {},
     };
   });
   return {
@@ -48,6 +65,7 @@ function teamStat(ctx: Ctx, team: PlayTeam): ActTeamStat {
     tempoHeld: Math.floor(ctx.s.tempo[team]),
     pawnlingsLost: { ...ctx.s.actTally.pawnlingsLost[team] },
     pieces,
+    cards: [],
   };
 }
 
@@ -62,6 +80,7 @@ export function buildActReport(ctx: Ctx): ActReport {
       teamOf.set(p.id, team);
     }
   }
+  const fights: FightRecord[] = [];
   const events: GameEvent[] = ctx.rec.events;
   let from = events.length;
   while (from > 0 && events[from - 1].seq >= ctx.s.actTally.startSeq) from--;
@@ -92,6 +111,8 @@ export function buildActReport(ctx: Ctx): ActReport {
         const killer = pieceOf.get(e.payload.killer);
         const by = e.payload.killerKind === 'hero' && killer ? killer.piece : e.payload.killerKind;
         victim.diedTo[by] = (victim.diedTo[by] ?? 0) + 1;
+        const cause = e.payload.fall?.cause;
+        if (cause) victim.falls[cause] = (victim.falls[cause] ?? 0) + 1;
         if (killer) {
           killer.kills++;
           const kt = teamOf.get(killer.id);
@@ -122,11 +143,50 @@ export function buildActReport(ctx: Ctx): ActReport {
       case 'pawnFielded':
         teams[e.payload.team].pawns++;
         break;
+      case 'fightEnd':
+        if (e.payload.lost.A + e.payload.lost.B > 0) fights.push(e.payload);
+        break;
+      case 'gambitEnd': {
+        const g = e.payload;
+        const cards = teams[g.team].cards;
+        let c = cards.find((x) => x.cardId === g.cardId);
+        if (!c) {
+          c = {
+            cardId: g.cardId,
+            plays: 0,
+            tempo: 0,
+            seconds: 0,
+            dealt: 0,
+            structure: 0,
+            taken: 0,
+            bonus: 0,
+            prevented: 0,
+            healed: 0,
+            kills: 0,
+            deaths: 0,
+            met: 0,
+            drained: 0,
+          } satisfies ActCardStat;
+          cards.push(c);
+        }
+        c.plays++;
+        c.tempo += g.cost;
+        c.seconds += (g.endTick - g.startTick) / TPS;
+        for (const k of METRICS) c[k] += g[k];
+        break;
+      }
       default:
         break;
     }
   }
   for (const team of TEAMS) teams[team].damage = Math.round(teams[team].damage);
   for (const team of TEAMS) for (const p of teams[team].pieces) p.damage = Math.round(p.damage);
-  return { act: ctx.s.phase.n, waves: ctx.s.actTally.waves, teams };
+  for (const team of TEAMS) for (const c of teams[team].cards) c.seconds = Math.round(c.seconds);
+  return {
+    act: ctx.s.phase.n,
+    waves: ctx.s.actTally.waves,
+    teams,
+    fights,
+    lanes: laneMomentum(ctx),
+  };
 }

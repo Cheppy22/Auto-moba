@@ -146,6 +146,33 @@ export interface HeroState {
   lossStreak: number;
   lastDeathTick: number;
   lastStandUsed: boolean;
+  /** Damage taken lately, merged per attacker and fifth of a second (feeds the death cause). */
+  hits: DamageHit[];
+  /** Why this piece last fell (kept while it waits to respawn). */
+  fall: Fall | null;
+}
+
+/** Why a piece fell: burst, focus (3+ attackers), outnumbered nearby, caught alone, or an even trade. */
+export type DeathCause = 'burst' | 'focus' | 'outOfPosition' | 'outnumbered' | 'traded';
+
+/** A lane, the jungle, or a Throne's grounds: where a fight happened. */
+export type FightZone = LaneId | 'jungle' | 'baseA' | 'baseB';
+
+export interface DamageHit {
+  tick: number;
+  src: number;
+  kind: UnitKind;
+  amount: number;
+}
+
+export interface Fall {
+  cause: DeathCause;
+  /** The killing blow's piece, if a piece landed it. */
+  killer: PieceId | null;
+  killerKind: UnitKind | 'none';
+  /** Enemy pieces that hurt it in the window, most damage first (at most three). */
+  by: PieceId[];
+  tick: number;
 }
 
 export interface CampState {
@@ -309,6 +336,77 @@ export interface PhaseState {
 /** none: the Act runs. pending: the clock hit 0:00, waiting for calm. tolling: the three tolls. halt: the slow stop. break: frozen on the sheet. */
 export type BellStage = 'none' | 'pending' | 'tolling' | 'halt' | 'break';
 
+/** A fight in progress: pieces from both sides in combat in the same area. */
+export interface OpenFight {
+  id: number;
+  startTick: number;
+  lastTick: number;
+  x: number;
+  y: number;
+  sx: number;
+  sy: number;
+  n: number;
+  pieces: Record<PlayTeam, number[]>;
+  /** Pieces each side lost in it. */
+  lost: Record<PlayTeam, number>;
+  pawnlings: Record<PlayTeam, number>;
+  pawns: Record<PlayTeam, number>;
+  /** Damage each side's Bastions and Throne took. */
+  bastion: Record<PlayTeam, number>;
+}
+
+/** What a played gambit did while it was active (everything the sim can attribute, nothing more). */
+export interface CardMetrics {
+  /** Damage dealt by the units the card covers. */
+  dealt: number;
+  /** Part of `dealt` that hit Bastions or Thrones. */
+  structure: number;
+  /** Damage the covered units took. */
+  taken: number;
+  /** Extra damage the card itself caused (its multiplier's share), net of any backlash. */
+  bonus: number;
+  /** Damage an armor or resist bonus turned away. */
+  prevented: number;
+  healed: number;
+  /** Piece kills and losses next to the card's effect. */
+  kills: number;
+  deaths: number;
+  /** Barricade: enemy units that came up to the wall. */
+  met: number;
+  /** Enemy Tempo drained. */
+  drained: number;
+}
+
+export interface CardRun extends CardMetrics {
+  id: number;
+  team: PlayTeam;
+  cardId: string;
+  cost: number;
+  startTick: number;
+  endTick: number;
+  scope: 'lane' | 'ids' | 'team' | 'point';
+  who: 'any' | 'hero' | 'minion';
+  lane: LaneId | null;
+  x: number;
+  y: number;
+  r: number;
+  ids: number[];
+  targetId: number | null;
+  /** Where `bonus` comes from: which damage, the multiplier on it, and the one after `until`. */
+  attr: { on: 'dealt' | 'structure' | 'taken' | 'none'; mul: number; until: number; after: number };
+  armor: boolean;
+  fell: boolean;
+  seen: number[];
+}
+
+export interface FeedbackState {
+  fights: OpenFight[];
+  nextFight: number;
+  laneKills: { tick: number; lane: LaneId; team: PlayTeam }[];
+  runs: CardRun[];
+  nextRun: number;
+}
+
 /** Counters the event log cannot give (reset when an Act starts). */
 export interface ActTally {
   /** Event seq of the Act's first event; the report reads the log from here. */
@@ -337,6 +435,16 @@ export interface ActPieceStat {
   damage: number;
   /** Who killed it, by count: a piece id, or minion, tower, guardian, camp, none. */
   diedTo: Record<string, number>;
+  /** Why it fell, by cause. */
+  falls: Partial<Record<DeathCause, number>>;
+}
+
+/** One card's plays in an Act, summed. */
+export interface ActCardStat extends CardMetrics {
+  cardId: string;
+  plays: number;
+  tempo: number;
+  seconds: number;
 }
 
 export interface ActTeamStat {
@@ -355,6 +463,7 @@ export interface ActTeamStat {
   tempoHeld: number;
   pawnlingsLost: Record<LaneId, number>;
   pieces: ActPieceStat[];
+  cards: ActCardStat[];
 }
 
 /** What each side did in the Act that just closed (the break sheet and the AI re-plan read it). */
@@ -362,6 +471,25 @@ export interface ActReport {
   act: number;
   waves: number;
   teams: Record<PlayTeam, ActTeamStat>;
+  /** Fights with at least one piece lost, in order. */
+  fights: FightRecord[];
+  /** Lane momentum at the bell (-1 Black .. 1 White). */
+  lanes: Record<LaneId, number>;
+}
+
+/** A fight that has ended (the `fightEnd` event). `lost.A` is how many White pieces fell in it. */
+export interface FightRecord {
+  id: number;
+  zone: FightZone;
+  x: number;
+  y: number;
+  startTick: number;
+  endTick: number;
+  pieces: Record<PlayTeam, PieceId[]>;
+  lost: Record<PlayTeam, number>;
+  pawnlings: Record<PlayTeam, number>;
+  pawns: Record<PlayTeam, number>;
+  bastion: Record<PlayTeam, number>;
 }
 
 export interface SetupEntry {
@@ -404,6 +532,8 @@ export interface ZoneState {
   /** Barricade: the wall's endpoints (also written into the terrain's blocks). */
   wall?: { ax: number; ay: number; bx: number; by: number; r: number };
   endTick: number;
+  /** The `CardRun` measuring this card. */
+  runId?: number;
 }
 
 /** A modifier that starts later (Queen's Gambit backlash). */
@@ -460,6 +590,7 @@ export interface MatchState {
   nextEventId: number;
   bell: BellState;
   actTally: ActTally;
+  feedback: FeedbackState;
 }
 
 export interface PositionSample {
@@ -512,6 +643,8 @@ export interface EventPayloads {
     assists: number[];
     x: number;
     y: number;
+    /** Pieces only: why it fell. */
+    fall?: { cause: DeathCause; killer: PieceId | null; by: PieceId[] };
   };
   respawn: { id: number };
   gold: { id: number; amount: number; source: string };
@@ -526,6 +659,19 @@ export interface EventPayloads {
     x?: number;
     y?: number;
     targetId?: number;
+  };
+  fightEnd: FightRecord;
+  gambitEnd: CardMetrics & {
+    team: PlayTeam;
+    cardId: string;
+    cost: number;
+    lane?: LaneId;
+    x: number;
+    y: number;
+    startTick: number;
+    endTick: number;
+    /** Check and Poisoned Pawn: the marked unit fell. */
+    fell: boolean;
   };
   check: { team: PlayTeam };
   throneDown: { team: PlayTeam };
@@ -761,6 +907,8 @@ export interface Snapshot {
   opening: Record<PlayTeam, string | null>;
   /** Active gambit zones: Sanctuary, Barricade, Outpost and Open File. */
   zones: SnapZone[];
+  /** Who is pushing each lane: -1 Black all the way .. 1 White all the way. */
+  momentum: Record<LaneId, number>;
 }
 
 export interface SnapAct {

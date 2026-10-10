@@ -6,6 +6,7 @@ import { dist } from './core/math';
 import { weightedPick } from './core/rng';
 import { hpPct, isTargetable, type Ctx } from './ctx';
 import { enemyTowerTarget } from './ai/lanes';
+import { bindZone, noteDrain, noteHeal, startRun } from './impact';
 import { fieldPawn, pawnCap, pawnsAlive } from './pawns';
 import { teamPiece } from './pieces';
 import { addMod } from './stats';
@@ -528,7 +529,10 @@ export function playGambit(
   const t = validTarget(ctx, team, def, target);
   if (typeof t === 'string') return { ok: false, reason: t };
   ctx.s.tempo[team] -= def.cost;
+  const run = startRun(ctx, team, def, t);
+  const zones = ctx.s.zones.length;
   applyCard(ctx, team, def, t);
+  if (ctx.s.zones.length > zones) bindZone(run, ctx.s.zones[ctx.s.zones.length - 1]);
   h.cardId = null;
   h.refillTick = ctx.s.tick + Math.round(ctx.t.gambits.refillSec * TPS);
   ctx.emit('gambit', { team, cardId: def.id, ...t });
@@ -606,13 +610,17 @@ function tickZone(ctx: Ctx, z: ZoneState): void {
       for (const u of ctx.grid.query(z.x, z.y, z.radius)) {
         if (!u.alive || u.team !== z.team || (u.kind !== 'hero' && u.kind !== 'minion')) continue;
         if (dist(u.x, u.y, z.x, z.y) > z.radius) continue;
-        healUnit(
+        noteHeal(
           ctx,
-          null,
-          u,
-          (u.stats.maxHp * p(def, 'healPctPerSec', 0.04)) / TPS,
-          `gambit:${z.cardId}`,
-          false,
+          z,
+          healUnit(
+            ctx,
+            null,
+            u,
+            (u.stats.maxHp * p(def, 'healPctPerSec', 0.04)) / TPS,
+            `gambit:${z.cardId}`,
+            false,
+          ),
         );
       }
       break;
@@ -650,7 +658,9 @@ export function onPoisonedDeath(ctx: Ctx, victim: Unit, killer: Unit | null): vo
   const def = ctx.c.gambitById.get('poisoned_pawn');
   if (!def) return;
   const team = killer.team;
-  ctx.s.tempo[team] = Math.max(0, ctx.s.tempo[team] - p(def, 'tempoLoss', 10));
+  const held = ctx.s.tempo[team];
+  ctx.s.tempo[team] = Math.max(0, held - p(def, 'tempoLoss', 10));
+  noteDrain(ctx, victim.id, held - ctx.s.tempo[team]);
   if (killer.kind === 'hero' || killer.kind === 'minion')
     timedMod(
       ctx,
