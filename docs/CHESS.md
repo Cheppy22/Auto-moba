@@ -94,14 +94,14 @@ Both teams field the same five pieces, so balance lives in roles, styles, paths 
 
 Every gambit belongs to one of six **schools**. Each card shows its school's colour and glyph (**school markings**).
 
-| School     | Job                                                   | Colour, glyph                 | Refuted by            |
-| ---------- | ----------------------------------------------------- | ----------------------------- | --------------------- |
-| March      | Push lanes with pawns and pawnlings, break structures | brass, pawn with arrow        | Fortress, Position    |
-| Initiative | Pick off or lock down enemy pieces                    | ruby, crossed swords          | Fortress              |
-| Fortress   | Hold, absorb, save                                    | slate blue, tower             | Sacrifice, Initiative |
-| Sacrifice  | Give something up now for a bigger swing              | amethyst, broken pawn         | Clock, Position       |
-| Position   | Reshape the board for a while                         | baize green, flag on a square | Initiative            |
-| Clock      | Bend the Tempo economy and gather information         | bone, clock face              | March                 |
+| School     | Job                                                   | Colour, glyph                 | Countered by (effects) |
+| ---------- | ----------------------------------------------------- | ----------------------------- | ---------------------- |
+| March      | Push lanes with pawns and pawnlings, break structures | brass, pawn with arrow        | Fortress, Position     |
+| Initiative | Pick off or lock down enemy pieces                    | ruby, crossed swords          | Fortress               |
+| Fortress   | Hold, absorb, save                                    | slate blue, tower             | Sacrifice, Initiative  |
+| Sacrifice  | Give something up now for a bigger swing              | amethyst, broken pawn         | Clock, Position        |
+| Position   | Reshape the board for a while                         | baize green, flag on a square | Initiative             |
+| Clock      | Bend the Tempo economy and gather information         | bone, clock face              | March                  |
 
 - **Counters work through effects, never by cancelling a card.** Each pairing below is designed into the cards' effects and checked with school-vs-school balance runs:
   - **Fortress vs March:** armor/resist and Bastion shields soak a push longer than its buff lasts.
