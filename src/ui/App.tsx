@@ -22,8 +22,19 @@ export function App() {
   const m = s.match;
   if (!m) return <Title />;
   const kind = m.state.phase.kind;
+  const bell = kind === 'live' ? m.state.bell.stage : 'none';
+  const snap = bell === 'none' ? null : m.snapshot().act;
+  const pend = s.content.tuning.bell.pendingSaturation;
+  const sat =
+    bell === 'break' ? 0 : bell === 'halt' ? pend * (1 - (snap?.haltProgress ?? 0)) : pend;
   return (
-    <div class="shell" data-phase={kind} data-testid="shell">
+    <div
+      class="shell"
+      data-phase={kind}
+      data-bell={bell}
+      data-testid="shell"
+      style={bell === 'none' ? undefined : { '--bell-sat': sat }}
+    >
       <Stage />
       {kind === 'setup' && <Setup />}
       {kind === 'live' && <Hud />}

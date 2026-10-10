@@ -28,6 +28,7 @@ const p = (def: GambitDef, key: string, fallback: number): number => def.params[
 
 export function addTempo(ctx: Ctx, team: PlayTeam, amount: number): void {
   if (amount <= 0) return;
+  ctx.s.actTally.tempo[team] += amount;
   ctx.s.tempo[team] = Math.min(ctx.t.gambits.tempoMax, ctx.s.tempo[team] + amount);
 }
 

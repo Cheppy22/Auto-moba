@@ -4,6 +4,11 @@ Newest first. One entry per change: what changed, why, and any measured effect. 
 
 ## 2026-10-10
 
+- **The Act break ("the bell")** (branch `test-product-2`, rules in [CHESS.md](CHESS.md) "Act break"). Why: Cheppy approved ending each Act with a short stop instead of rolling on, so the player can read the Act and re-plan.
+  - Countdown alerts at 1:00, 0:30, 0:10 and growing clock pulses in the last 5 s (visual only). At 0:00 the board greys and waits for calm (no piece in combat for 2 s, at most 30 s), then three tolls, a 15-tick halt (the app eases its step rate 1 to 0; the 3D view slows its animation clocks with it), and a bottom break sheet: Report (coach callouts and White-vs-Black Act numbers) and Orders (lanes and paths, shared with Adjourn). "Resume — Act N" starts the next Act with a full clock; the first pawnling wave spawns 1 s after resume.
+  - Sim: bell state machine in `src/sim/bell.ts`, per-Act report in `src/sim/actReport.ts`, AI lane re-plan in `src/sim/ai/replan.ts` (Black in the app, both sides headless), `resumeAct` command, `MatchConfig.pauseForBreak`, `Snapshot.act` is now an object, tuning under `bell`. The last Act still ends as a draw with no break. `phase.kind` stays `live` through the break, so match-end checks are unchanged.
+  - Tests: updated the Act-boundary tests for the longer Acts; new `tests/bell.test.ts` (sequence and resume, calm and cap, determinism and lane formation).
+  - Measured (40 matches, seed 29000, sanity only): White 42.5%, median 12.6 min, all ended in checkmate. Small sample; full balance pass later.
 - **Gambit schools wave 1, Openings, archetype at Rank 4** (branch `test-product-2`). Why: Cheppy approved the six schools, Openings and moving archetypes to Rank 4.
   - Every card has a school (March, Initiative, Fortress, Sacrifice, Position, Clock) with colour and glyph markings; the long-press sheet lists counters. Counters come from card effects only.
   - New cards: Pawn Sacrifice, Exchange, Poisoned Pawn (Sacrifice); Barricade, Open File, Outpost (Position), with 3D visuals for Barricade, Outpost and Open File.

@@ -1,4 +1,5 @@
 import { maybeSwapLane } from './ai/swap';
+import { committed } from './bell';
 import { teamNetWorth } from './curses';
 import {
   TPS,
@@ -26,7 +27,8 @@ import { addTempo, onPoisonedDeath } from './gambits';
 
 export function spawnWaves(ctx: Ctx): void {
   const w = ctx.t.waves;
-  if (ctx.s.tick < ctx.s.nextWaveTick) return;
+  if (ctx.s.tick < ctx.s.nextWaveTick || committed(ctx)) return;
+  ctx.s.actTally.waves++;
   ctx.s.nextWaveTick += Math.round(w.intervalSec * TPS);
   const phase = ctx.s.phase.n;
   const scale = 1 + w.scalePerPhase * (phase - 1);
@@ -225,6 +227,7 @@ function killUnit(ctx: Ctx, u: Unit): void {
         }
         break;
       }
+      if (u.team !== 'neutral' && u.lane) ctx.s.actTally.pawnlingsLost[u.team][u.lane]++;
       if (killerTeam) addTempo(ctx, killerTeam, ctx.t.gambits.tempoPawnlingKill);
       if (killerHero) {
         giveGold(ctx, killerHero, u.bounty, 'lasthit');

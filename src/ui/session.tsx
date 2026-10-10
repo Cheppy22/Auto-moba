@@ -11,6 +11,7 @@ import {
 } from '../sim';
 import type { CamMode } from '../render/broadcast/types';
 import { courtName } from '../analysis/text';
+import { mmss } from './format';
 import { cap, pieceLabel } from './pieces';
 
 export type Speed = 0 | 1 | 2 | 4 | 8;
@@ -21,7 +22,7 @@ export type Aim = { kind: 'gambit'; slot: number; cardId: string } | { kind: 'pa
 /** A short-lived banner (Act, Check, Throne) or rank-up chip. */
 export interface Chip {
   id: number;
-  kind: 'rank' | 'act' | 'check' | 'throne';
+  kind: 'rank' | 'act' | 'check' | 'throne' | 'bell';
   title: string;
   detail: string;
   team: PlayTeam | null;
@@ -45,6 +46,10 @@ export interface UiState {
   card: number | null;
   /** The gambit sheet (long-press on a card): the hand slot shown enlarged. The game is paused while it is open. */
   info: { slot: number; cardId: string } | null;
+  /** The tab open on the Act break sheet. */
+  breakTab: 'report' | 'orders';
+  /** When (ms) a countdown alert last flashed the Act clock; 0 before the first. */
+  clockFlash: number;
 }
 
 const freshUi = (): UiState => ({
@@ -59,6 +64,8 @@ const freshUi = (): UiState => ({
   reportHero: null,
   card: null,
   info: null,
+  breakTab: 'report',
+  clockFlash: 0,
 });
 
 /** The 3D view's picking calls, set by the game view while it exists. */
@@ -69,6 +76,7 @@ export interface PickView {
 
 const RANK_CHIP_MS = 3200;
 const BANNER_MS = 2400;
+const BELL_CHIP_MS = 2200;
 const MAX_RANK_CHIPS = 1;
 const MAX_BANNERS = 2;
 /** The run speeds the chip cycles through; 0 is paused. */
@@ -85,6 +93,9 @@ export class Session {
   version = 0;
   alpha = 1;
   view: PickView | null = null;
+  /** The sim's step-rate multiplier this frame (1, easing to 0 across the bell's halt). */
+  timeScale = 1;
+  private lastLeft: number | null = null;
   private chipId = 0;
   private seenSeq = -1;
   private toastTimer = 0;
@@ -145,9 +156,15 @@ export class Session {
 
   newMatch(config?: Partial<MatchConfig>): void {
     const seed = config?.seed ?? Math.floor(Math.random() * 1e9);
-    // the browser game stops for White's forks: the player answers, or lets the AI choose
-    this.match = Match.create(this.content, { seed, pauseForForks: true, ...config });
+    // the browser game stops for White's forks and for the Act break sheet
+    this.match = Match.create(this.content, {
+      seed,
+      pauseForForks: true,
+      pauseForBreak: true,
+      ...config,
+    });
     this.seenSeq = -1;
+    this.lastLeft = null;
     this.forkCam = null;
     this.ui = { ...freshUi(), cam: this.ui.cam };
     this.notify();
@@ -169,7 +186,7 @@ export class Session {
   }
 
   adjourn(): void {
-    if (this.match?.state.phase.kind !== 'live') return;
+    if (this.match?.state.phase.kind !== 'live' || this.match.state.bell.stage === 'break') return;
     this.setUi({ adjourned: true, aim: null, card: null, info: null });
   }
 
@@ -201,7 +218,13 @@ export class Session {
    */
   showInfo(slot: number): void {
     const m = this.match;
-    if (!m || m.state.phase.kind !== 'live' || this.ui.adjourned || m.state.forks.length > 0)
+    if (
+      !m ||
+      m.state.phase.kind !== 'live' ||
+      this.ui.adjourned ||
+      m.state.forks.length > 0 ||
+      m.state.bell.stage === 'break'
+    )
       return;
     const card = m.snapshot().hand[slot];
     if (!card || card.cardId === '') return;
@@ -253,6 +276,8 @@ export class Session {
     const snap = m.snapshot();
     const p = snap.pawns.A;
     if (snap.phase.kind !== 'live') return this.toast('Pawns are fielded during the match');
+    if (snap.act.bell === 'halt' || snap.act.bell === 'break')
+      return this.toast('Play is stopped for the bell');
     if (snap.tempo.A < p.cost) return this.toast('Not enough Tempo');
     if (p.alive >= p.cap) return this.toast('Pawn cap reached');
     this.setUi({ aim: { kind: 'pawn' }, toast: null });
@@ -402,6 +427,43 @@ export class Session {
     }
   }
 
+  /** Leaves the Act break sheet: the next Act begins. */
+  resumeAct(): void {
+    if (this.issue({ type: 'resumeAct' }).ok) this.setUi({ breakTab: 'report' });
+  }
+
+  setBreakTab(tab: UiState['breakTab']): void {
+    this.setUi({ breakTab: tab });
+  }
+
+  /** Flashes the Act clock and drops a small notice as the clock passes each alert time. */
+  syncBell(): void {
+    const m = this.match;
+    if (!m) return;
+    const st = m.state;
+    if (st.phase.kind !== 'live' || st.bell.stage !== 'none') {
+      this.lastLeft = null;
+      return;
+    }
+    const t = this.content.tuning;
+    const left = t.phaseSeconds - (st.tick - st.phase.startTick) / t.tickRate;
+    const prev = this.lastLeft;
+    this.lastLeft = left;
+    if (prev === null || left >= prev) return;
+    const hit = t.bell.alertsSec.find((a) => prev > a && left <= a);
+    if (hit === undefined) return;
+    const chip = this.chip(
+      { kind: 'bell', title: `${mmss(hit * t.tickRate)} to the bell`, detail: '', team: null },
+      BELL_CHIP_MS,
+    );
+    this.ui = {
+      ...this.ui,
+      clockFlash: performance.now(),
+      chips: [...this.ui.chips.filter((c) => c.kind !== 'bell'), chip],
+    };
+    this.notify();
+  }
+
   // ------------------------------------------------------------ events -> chips
 
   private chip(c: Omit<Chip, 'id' | 'until' | 'ms'>, ms: number): Chip {
@@ -497,7 +559,8 @@ export class Session {
       : alive;
     const keep = new Set([
       ...next.filter((c) => c.kind === 'rank').slice(-MAX_RANK_CHIPS),
-      ...next.filter((c) => c.kind !== 'rank').slice(-MAX_BANNERS),
+      ...next.filter((c) => c.kind !== 'rank' && c.kind !== 'bell').slice(-MAX_BANNERS),
+      ...next.filter((c) => c.kind === 'bell').slice(-1),
     ]);
     const trimmed = next.filter((c) => keep.has(c));
     if (latest.length > 0 || trimmed.length !== this.ui.chips.length) {

@@ -5,7 +5,7 @@ import { evaluateCurseOffers, grantSpecial } from '../src/sim/curses';
 import { startRecall } from '../src/sim/recall';
 import { buyItem } from '../src/sim/shop';
 import { recompute } from '../src/sim/stats';
-import { content, liveMatch, piece } from './helpers';
+import { content, liveMatch, piece, toAct, toBell } from './helpers';
 
 const ACT = content.tuning.phaseSeconds * content.tuning.tickRate;
 
@@ -15,7 +15,7 @@ describe('keeper', () => {
     expect(m.state.keeper.stock).toHaveLength(3);
     for (const id of m.state.keeper.stock) expect(content.itemById.get(id)!.tier).toBe(3);
     const before = m.events.filter((e) => e.type === 'keeperMoved').length;
-    m.step(ACT);
+    toAct(m, 2);
     expect(m.events.filter((e) => e.type === 'keeperMoved').length).toBeGreaterThan(before);
   });
 
@@ -49,7 +49,7 @@ describe('keeper', () => {
 describe('cursed items', () => {
   function cursedSetup(): { m: Match; id: number } {
     const m = liveMatch(41);
-    m.step(ACT - 1);
+    toBell(m, 'halt');
     const id = piece(m, 'A', 'queen').id;
     for (const t of ['A', 'B'] as const) {
       for (const hid of m.state.teams[t].heroIds) {
@@ -59,7 +59,7 @@ describe('cursed items', () => {
         u.dirty = true;
       }
     }
-    m.step(1);
+    toAct(m, 2);
     return { m, id };
   }
 

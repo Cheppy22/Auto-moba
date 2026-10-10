@@ -520,6 +520,27 @@ export const TuningSchema = z.object({
   startingGold: z.number(),
   passiveGoldPerSec: z.number(),
   maxPhases: z.number().int(),
+  /** The Act break: countdown alerts, the grey wait for calm, the tolls and the slow halt. */
+  bell: z.object({
+    /** Seconds before the bell at which the clock flashes an alert. */
+    alertsSec: z.array(z.number()),
+    /** In the last N seconds the clock pulses on every second, each bigger than the last. */
+    pulseLastSec: z.number().int(),
+    /** Seconds with none of the ten pieces in combat that count as calm. */
+    calmSec: z.number(),
+    /** The longest the bell waits for calm before it tolls anyway. */
+    capSec: z.number(),
+    tolls: z.number().int(),
+    tollSec: z.number(),
+    /** Sim ticks of the slow halt; the app slows its step rate from 1 to 0 across them. */
+    haltTicks: z.number().int(),
+    /** Board saturation while the bell is pending (1 is full colour). */
+    pendingSaturation: z.number(),
+    /** The next pawnling wave spawns this many seconds after the Act resumes. */
+    resumeWaveSec: z.number(),
+    /** The AI moves one piece with at least `minDeaths` deaths in the Act, with this chance. */
+    replan: z.object({ minDeaths: z.number().int(), chance: z.number() }),
+  }),
   /** Ranks 1-8 from lifetime gold earned. */
   ranks: z.object({
     goldThresholds: z.array(z.number()).length(8),

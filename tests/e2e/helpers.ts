@@ -3,7 +3,7 @@ import { expect, type Page } from '@playwright/test';
 /** What the tests read from the page. `window.__session` is the game's session object. */
 export interface TestSnap {
   tick: number;
-  act: number;
+  act: { n: number; bell: string };
   winner: string | null;
   phase: { kind: string; n: number };
   tempo: { A: number; B: number };
@@ -34,7 +34,12 @@ export interface TestSession {
     snapshot(): TestSnap;
     events: { type: string; payload: Record<string, unknown> }[];
     issue(cmd: { type: string }): { ok: boolean };
-    state: { phase: { kind: string }; tempo: { A: number; B: number }; forks: unknown[] };
+    state: {
+      phase: { kind: string };
+      tempo: { A: number; B: number };
+      forks: unknown[];
+      bell: { stage: string };
+    };
   };
   notify(): void;
   setUi(patch: { speed: number }): void;

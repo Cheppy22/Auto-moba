@@ -7,7 +7,8 @@ import { GambitSheet, Hand } from './hud/Hand';
 import { PieceCard } from './hud/PieceCard';
 import { Roster } from './hud/Roster';
 import { courtName } from '../analysis/text';
-import { mmss } from './format';
+import { BreakSheet } from './hud/BreakSheet';
+import { clockSec } from './format';
 import { useSession } from './session';
 
 /** One chip for the run speed: 1x, 2x, 4x, 8x, then paused; tap to step to the next. */
@@ -80,16 +81,39 @@ function Side(props: { team: 'A' | 'B'; snap: Snapshot }) {
   );
 }
 
+const FLASH_MS = 900;
+
+/** How the clock digits move: an alert flash, a growing pulse in the last seconds, or a toll. */
+function clockFx(
+  s: ReturnType<typeof useSession>,
+  act: Snapshot['act'],
+): { fx: string; key: string; k: number } {
+  const last = s.content.tuning.bell.pulseLastSec;
+  const sec = Math.ceil(act.remainingSec - 1e-6);
+  if (act.bell === 'tolling' || act.bell === 'halt') {
+    const toll = act.toll ?? 1;
+    return { fx: 'toll', key: `t${toll}`, k: toll / s.content.tuning.bell.tolls };
+  }
+  if (act.bell === 'none' && sec >= 1 && sec <= last)
+    return { fx: 'pulse', key: `p${sec}`, k: (last + 1 - sec) / last };
+  if (s.ui.clockFlash > 0 && performance.now() - s.ui.clockFlash < FLASH_MS)
+    return { fx: 'flash', key: `f${s.ui.clockFlash}`, k: 0.5 };
+  return { fx: '', key: 'n', k: 0 };
+}
+
 function TopBar(props: { snap: Snapshot; held: boolean }) {
   const s = useSession();
   const { snap } = props;
+  const fx = clockFx(s, snap.act);
   return (
     <div class="topbar">
       <div class="clock" data-testid="score">
         <Side team="A" snap={snap} />
-        <div class="clockface" data-held={props.held}>
-          <b data-testid="phase">Act {snap.act}</b>
-          <span data-testid="clock">{mmss(snap.phaseTicksLeft)}</span>
+        <div class="clockface" data-held={props.held} data-bell={snap.act.bell} data-fx={fx.fx}>
+          <b data-testid="phase">Act {snap.act.n}</b>
+          <span key={fx.key} data-testid="clock" data-fx={fx.fx} style={{ '--k': fx.k }}>
+            {clockSec(snap.act.remainingSec)}
+          </span>
         </div>
         <Side team="B" snap={snap} />
       </div>
@@ -104,13 +128,23 @@ function TopBar(props: { snap: Snapshot; held: boolean }) {
   );
 }
 
-function Notices() {
+function Notices(props: { act: Snapshot['act'] }) {
   const s = useSession();
   const text = s.ui.caption;
   const banners = s.ui.chips.filter((c) => c.kind !== 'rank');
+  const bell = props.act;
   const ranks = s.ui.chips.filter((c) => c.kind === 'rank');
   return (
     <div class="notices" aria-live="polite">
+      {bell.bell !== 'none' && bell.bell !== 'break' && (
+        <div class="bell-line" data-testid="bell-line" data-stage={bell.bell}>
+          {bell.bell === 'pending'
+            ? 'Bell pending — waiting for the board to calm'
+            : bell.bell === 'tolling'
+              ? `The bell tolls — ${bell.toll} of ${s.content.tuning.bell.tolls}`
+              : 'The bell has rung — stopping play'}
+        </div>
+      )}
       {banners.map((c) => (
         <div
           class={`banner ${c.kind}`}
@@ -148,8 +182,22 @@ export function Hud() {
   const tapMap = !!aimCard && (aimCard.target === 'point' || aimCard.target === 'enemy');
   const forkIds = snap.forks.map((f) => f.heroId);
   const held = snap.forks.length > 0;
+  const stopped = snap.act.bell === 'break' && !held;
   return (
-    <div class={`hud ${held ? 'held' : ''}`} data-testid="hud" data-held={held}>
+    <div
+      class={`hud ${held ? 'held' : ''}`}
+      data-testid="hud"
+      data-held={held}
+      data-bell={snap.act.bell}
+    >
+      {snap.act.bell === 'tolling' && (
+        <div
+          class="toll-ring"
+          key={snap.act.toll}
+          data-testid="toll-ring"
+          style={{ '--k': (snap.act.toll ?? 1) / s.content.tuning.bell.tolls }}
+        />
+      )}
       {tapMap && (
         <div
           class="aim-layer"
@@ -160,7 +208,7 @@ export function Hud() {
       <TopBar snap={snap} held={held} />
       <Roster team="A" forks={forkIds} snap={snap} />
       <Roster team="B" forks={[]} snap={snap} />
-      <Notices />
+      <Notices act={snap.act} />
       <PieceCard />
       <div class="dock">
         <div class="dock-main">
@@ -177,7 +225,8 @@ export function Hud() {
         </div>
       </div>
       {held && !s.ui.adjourned && <ForkSheet forks={snap.forks} />}
-      {!held && !s.ui.adjourned && <GambitSheet snap={snap} />}
+      {stopped && !s.ui.adjourned && <BreakSheet snap={snap} />}
+      {!held && !stopped && !s.ui.adjourned && <GambitSheet snap={snap} />}
     </div>
   );
 }

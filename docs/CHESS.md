@@ -13,7 +13,7 @@ An experimental twist on Auto-MOBA. **On this branch this file overrides [SOURCE
 | King death ends the game? | No. See Check and Checkmate.                                                                                                                                   |
 | Lane towers               | Renamed **Bastions**.                                                                                                                                          |
 | First move                | Both sides start at the same instant.                                                                                                                          |
-| Between-phase screens     | Cut. The match runs continuously ("Doctrine and Gambits" below).                                                                                               |
+| Between-phase screens     | Cut. Acts end with the bell and a break sheet instead ("Act break" below).                                                                                     |
 | Level-ups                 | Automatic **Ranks 1–8**, plus two **fork** choices (Rank 4 and 8). **The game pauses for a fork** until the player chooses. Rank is easy to read on units.     |
 | Gambits                   | A **random hand** of orders, for replayability.                                                                                                                |
 | Jungle shops              | Stay.                                                                                                                                                          |
@@ -21,7 +21,7 @@ An experimental twist on Auto-MOBA. **On this branch this file overrides [SOURCE
 ## Match flow
 
 1. **Title → Setup board.** The player picks an **Opening** (which schools of gambits the hand favours), and for each of White's five pieces a **build path** (Offense, Defense, Utility), then assigns lanes: 2 Left, 2 Right, 1 Mid. Everything is pre-filled with sensible defaults, so "Begin" works immediately. Black's setup is picked by the AI (seeded) and shown on the enemy roster once the match starts.
-2. **Live, continuously.** No pause screens. Internally the match still runs in **Acts** of 240 s (the old phases): Acts open jungle clearings, move the Keeper, schedule obelisks and events, and switch on pressure events. An Act change shows a banner ("Act 3") and never stops play.
+2. **Live, in Acts.** The match runs in **Acts** of 240 s (the old phases): Acts open jungle clearings, move the Keeper, schedule obelisks and events, and switch on pressure events. Each Act ends with **the bell**: the board greys while it waits for calm, tolls three times, slows to a stop, and a break sheet (Act report and Orders) waits for the player. The next Act starts when the sheet closes. See "Act break" below.
 3. **During play the player:** plays **Gambits**, answers **forks**, moves the camera, and may press **Adjourn** (pause) to re-assign lanes or paths and read the Armory.
 4. **End:** Checkmate screen and the match report.
 
@@ -124,6 +124,23 @@ Every gambit belongs to one of six **schools**. Each card shows its school's col
   - Clock (wave 2): Zugzwang, Time Trouble, Opening Book, Blitz.
 - **Testing** goes a few schools at a time: the balance tool can restrict both decks to chosen schools.
 
+## Act break (2026-10-10)
+
+Owner-approved sequence at the end of every Act except the last (timings in `content/tuning.json` → `bell`):
+
+1. **Countdown (UI only, no audio).** The Act clock flashes with a small notice at 1:00, 0:30 and 0:10 ("1:00 to the bell"). In the last 5 seconds it pulses on every second, each pulse bigger and stronger than the last.
+2. **Bell pending (0:00).** The board desaturates about 30% (smooth CSS filter on the 3D canvas) and a small line reads "Bell pending — waiting for the board to calm". Play continues normally and the old Act's rules stay in force.
+3. **Calm.** The board is calm when none of the ten pieces is in combat for 2 s (the same signal as `SnapUnit.inCombat`: damage dealt or taken within 1.5 s). Pawnlings, pawns and structures are ignored. If it is not calm 30 s after 0:00, the bell tolls anyway.
+4. **Three tolls**, 1 s apart, each a growing pulse on the clock plus a ring of light at the screen edge. Once tolling starts it is committed: a new fight does not stop it. No new pawnling wave spawns from the first toll on.
+5. **Halt.** The sim runs a short halt stage (`haltTicks`, 15 ticks). The app scales its step rate from 1 to 0 across it (about 1.5 s of wall clock, ease-out), the colour drains to full grey, and the 3D view slows its animation clocks (walk cycles, effects, water) by the same factor. No unit is moved, teleported or reset at any point.
+6. **Break sheet.** When fully stopped a sheet slides up from the bottom (no time limit, like forks). Tabs: **Report** (two or three plain-language coach callouts from this Act, ranked by severity, and "this Act" numbers for White and Black side by side: Tempo earned, damage dealt, piece deaths, Bastions destroyed, obelisks claimed, camps cleared, gambits played) and **Orders** (lanes and build paths for White's pieces, the same controls as Adjourn). The button "Resume — Act N" closes it. If a fork is pending when play stops, the fork sheet shows first. The gambit hand and Field Pawn are inert while stopped.
+7. **Resume.** `endAct` runs when the break starts (the old Act's timed objectives close); `enterAct` runs on resume with a full 4:00 clock and its events. The first pawnling wave of the new Act spawns 1 s after resume, so each Act opens with a fresh clash.
+8. **AI re-plan.** At each break Black's AI may (75% chance, seeded `ai` stream) move its most beaten piece (at least 2 deaths this Act, ties by lower damage) to the lane that went best for the team, swapping with the steadiest piece there so lanes stay 2 Left / 2 Right / 1 Mid. In headless and AI-vs-AI runs White's AI does the same.
+9. **Last Act.** If the Act that reaches 0:00 is the last (`maxPhases`), there is no break: the match ends as a draw as before.
+
+- **Headless runs** (`MatchConfig.pauseForBreak` false, the default) still play pending, tolls and halt in the sim, but the break resolves at once: both AIs re-plan and the next Act starts. The browser game sets `pauseForBreak` so `Match.step` returns 0 on the sheet until the `resumeAct` command.
+- **Coach callouts** (`src/analysis/callouts.ts`) are deterministic rules over the Act report (`Snapshot.act.report`, built in `src/sim/actReport.ts`): a Throne or Bastion lost, a piece dying 2+ times (and to whom), a Tempo gap of 40+, Tempo left unused, a lane losing 1.5+ more pawnlings per wave, a piece with under 10% of the team's piece damage, and a few wins (Bastion taken, enemy piece falling twice). Only rules that are true of the numbers fire.
+
 ## Interface
 
 Mobile first (portrait 390×844, landscape 844×390, desktop). The 3D island stays; the HUD sits in the corners.
@@ -131,6 +148,7 @@ Mobile first (portrait 390×844, landscape 844×390, desktop). The 3D island sta
 - **Setup board:** Opening picker, five piece cards (path toggle; no style yet) and three lane slots. One "Begin" button.
 - **Live HUD (calm):** one slim top row — Act clock and score, a cycling speed chip (1×, 2×, 4×, 8×, paused), a cycling camera button (Auto / Follow / Free) and **Adjourn**; both rosters in the side columns (portrait, health ring, lane tag, rank **numeral**, and the **style emblem**, for Black too); **gambit hand** (cards show name and cost; the reason when unusable; hold a card for its full text), **Tempo meter** and **Field Pawn** (`alive/cap · cost`) at the bottom. Banners and rank chips are small and fade in about 2–3 s. Camera Auto / Follow (tap a roster portrait; tap again or hold for the **piece card**) / Free. Tapping a piece in the 3D view also opens its piece card.
 - **Fork sheet (pauses the game):** a bottom sheet on phones, docked right in landscape, bottom-centre on desktop. One fork at a time: piece, style, "Rank 4 · Choose a path", both options with full text and an Offense/Defense/Utility leaning tag, "N more waiting", and **Let the AI choose**. The camera follows the choosing piece and is restored afterwards.
+- **Act break sheet (stops the game):** a bottom sheet with Report and Orders tabs and a big "Resume — Act N" button; works at 390×844 portrait and on landscape phones. Details in "Act break".
 - **Piece card:** piece and team, style name and description, path, lane, kills/deaths, rank pips with the next rank or fork, forks taken, current items.
 - **Gambit targeting:** tap a card. Lane cards show three big Left / Mid / Right buttons; point and enemy cards are aimed by tapping the 3D view (ground pick or piece pick); a Cancel chip backs out.
 - **Adjourn panel:** paused. Lanes (move pieces between lanes), paths, the **Armory** (each piece's items and next buy, read-only), mini scoreboard. Resume.
@@ -198,13 +216,16 @@ type Path = 'offense' | 'defense' | 'utility';
 | { type: 'setLane'; heroId: number; lane: LaneId }   // live or adjourned
 | { type: 'setPath'; heroId: number; path: Path }
 | { type: 'fieldPawn'; lane: LaneId }                 // costs pawns.cost Tempo; respects the cap
+| { type: 'resumeAct' }                               // leaves the Act break sheet
 
 // MatchConfig
-{ seed: number; setup?: { A?: SetupEntry[]; B?: SetupEntry[] }; autoGambits?: { A: boolean; B: boolean } }
+{ seed: number; setup?: { A?: SetupEntry[]; B?: SetupEntry[] }; autoGambits?: { A: boolean; B: boolean };
+  pauseForBreak?: boolean }   // true: the Act break waits for resumeAct (the app); false: resolves at once
 
 // Snapshot additions
 SnapUnit: piece: PieceId | null; style: string | null; path: Path | null; rank: number; forkPending: boolean; pawn: boolean; lane: LaneId | null;
-Snapshot: act: number; tempo: Record<PlayTeam, number>; hand: SnapGambit[];   // White's hand
+Snapshot: act: { n; remainingSec; bell: 'none' | 'pending' | 'tolling' | 'halt' | 'break'; toll?; haltProgress?; report? };
+          tempo: Record<PlayTeam, number>; hand: SnapGambit[];   // White's hand
           pawns: Record<PlayTeam, { alive: number; cap: number; cost: number }>;
           forks: SnapFork[];                                                    // White's pending forks
           check: Record<PlayTeam, boolean>; throneDown: Record<PlayTeam, boolean>;
@@ -216,7 +237,7 @@ BroadcastView.pickGround(clientX, clientY): { x: number; y: number } | null   //
 BroadcastView.pickUnit(clientX, clientY): number | null                        // unit id
 ```
 
-New events: `rankUp { id, rank, bonus }`, `fork { id, rank, optionId, auto }`, `gambit { team, cardId, lane?, x?, y?, targetId? }`, `check { team }`, `throneDown { team }`, `checkmate { winner }`.
+New events: `bell { stage, toll?, act }`, `rankUp { id, rank, bonus }`, `fork { id, rank, optionId, auto }`, `gambit { team, cardId, lane?, x?, y?, targetId? }`, `check { team }`, `throneDown { team }`, `checkmate { winner }`.
 
 ## Visual distinction and a calmer screen (owner feedback, 2026-10-08)
 

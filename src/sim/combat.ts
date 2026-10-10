@@ -10,6 +10,16 @@ import { confine, walkable } from './world/terrain';
 const HERO_ASSIST_WINDOW = 160;
 export const TPS = 20;
 
+/** A unit counts as in combat for 1.5 s after it deals or takes damage. */
+export const COMBAT_TICKS = Math.round(1.5 * TPS);
+
+export function inCombat(tick: number, u: Unit): boolean {
+  return (
+    tick - u.lastDamagedTick <= COMBAT_TICKS ||
+    (!!u.hero && tick - u.hero.lastDealtTick <= COMBAT_TICKS)
+  );
+}
+
 export function amountOf(
   e: { base: number; bladeScale: number; soulScale: number },
   caster: Unit | null,

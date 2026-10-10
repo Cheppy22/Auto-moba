@@ -25,6 +25,8 @@ export interface Ctx {
   t: Tuning;
   /** `MatchConfig.pauseForForks`: White's forks have no deadline and `Match.step` halts for them. */
   pauseForForks: boolean;
+  /** `MatchConfig.pauseForBreak`: the Act break waits for `resumeAct` and `Match.step` stops at it. */
+  pauseForBreak: boolean;
   world: World;
   /** Ids of the jungle slots that are open; kept in step with `s.slots[].open`. */
   open: Set<string>;

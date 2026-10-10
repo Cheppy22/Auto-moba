@@ -306,6 +306,64 @@ export interface PhaseState {
   startTick: number;
 }
 
+/** none: the Act runs. pending: the clock hit 0:00, waiting for calm. tolling: the three tolls. halt: the slow stop. break: frozen on the sheet. */
+export type BellStage = 'none' | 'pending' | 'tolling' | 'halt' | 'break';
+
+/** Counters the event log cannot give (reset when an Act starts). */
+export interface ActTally {
+  /** Event seq of the Act's first event; the report reads the log from here. */
+  startSeq: number;
+  tempo: Record<PlayTeam, number>;
+  waves: number;
+  pawnlingsLost: Record<PlayTeam, Record<LaneId, number>>;
+}
+
+export interface BellState {
+  stage: BellStage;
+  /** Tick the current stage began. */
+  since: number;
+  /** Consecutive ticks with none of the ten pieces in combat (pending only). */
+  calm: number;
+  toll: number;
+  report: ActReport | null;
+}
+
+export interface ActPieceStat {
+  id: number;
+  piece: PieceId;
+  lane: LaneId;
+  kills: number;
+  deaths: number;
+  damage: number;
+  /** Who killed it, by count: a piece id, or minion, tower, guardian, camp, none. */
+  diedTo: Record<string, number>;
+}
+
+export interface ActTeamStat {
+  tempo: number;
+  damage: number;
+  pieceDeaths: number;
+  pieceKills: number;
+  /** Lanes where this team lost a Bastion. */
+  bastionsLost: LaneId[];
+  throneLost: boolean;
+  obelisks: number;
+  camps: number;
+  gambits: number;
+  pawns: number;
+  /** Tempo held when the Act closed. */
+  tempoHeld: number;
+  pawnlingsLost: Record<LaneId, number>;
+  pieces: ActPieceStat[];
+}
+
+/** What each side did in the Act that just closed (the break sheet and the AI re-plan read it). */
+export interface ActReport {
+  act: number;
+  waves: number;
+  teams: Record<PlayTeam, ActTeamStat>;
+}
+
 export interface SetupEntry {
   piece: PieceId;
   path: Path;
@@ -400,6 +458,8 @@ export interface MatchState {
   events: EventInst[];
   eventSchedule: EventScheduleEntry[];
   nextEventId: number;
+  bell: BellState;
+  actTally: ActTally;
 }
 
 export interface PositionSample {
@@ -471,6 +531,7 @@ export interface EventPayloads {
   throneDown: { team: PlayTeam };
   checkmate: { winner: PlayTeam };
   pawnFielded: { team: PlayTeam; lane: LaneId; id: number };
+  bell: { stage: BellStage; toll?: number; act: number };
   laneSet: { id: number; lane: LaneId };
   pathSet: { id: number; path: Path };
   recall: {
@@ -584,7 +645,9 @@ export type Command =
   | { type: 'playGambit'; slot: number; lane?: LaneId; x?: number; y?: number; targetId?: number }
   | { type: 'setLane'; heroId: number; lane: LaneId }
   | { type: 'setPath'; heroId: number; path: Path }
-  | { type: 'fieldPawn'; lane: LaneId };
+  | { type: 'fieldPawn'; lane: LaneId }
+  /** Leaves the Act break sheet and starts the next Act. */
+  | { type: 'resumeAct' };
 
 export interface CommandResult {
   ok: boolean;
@@ -609,6 +672,12 @@ export interface MatchConfig {
    * `autoForks`). Default false: headless runs never pause and the AI picks after `ranks.forkSec`.
    */
   pauseForForks?: boolean;
+  /**
+   * Interactive play: the Act break waits on the sheet until `resumeAct`, and `Match.step` does
+   * nothing while it waits. Default false: headless runs resolve the break at once (both AIs
+   * re-plan, then the next Act starts).
+   */
+  pauseForBreak?: boolean;
 }
 
 export interface Replay {
@@ -679,7 +748,7 @@ export interface Snapshot {
   keeper: { x: number; y: number; spot: string } | null;
   phaseTicksLeft: number;
   events: SnapEvent[];
-  act: number;
+  act: SnapAct;
   tempo: Record<PlayTeam, number>;
   /** White's hand. */
   hand: SnapGambit[];
@@ -692,6 +761,19 @@ export interface Snapshot {
   opening: Record<PlayTeam, string | null>;
   /** Active gambit zones: Sanctuary, Barricade, Outpost and Open File. */
   zones: SnapZone[];
+}
+
+export interface SnapAct {
+  n: number;
+  /** Seconds left on the Act clock; 0 from the bell on. */
+  remainingSec: number;
+  bell: BellStage;
+  /** 1..tolls while tolling and during the halt. */
+  toll?: number;
+  /** 0..1 across the halt. */
+  haltProgress?: number;
+  /** The closed Act's numbers, present on the break sheet. */
+  report?: ActReport;
 }
 
 export type ZoneKind = 'sanctuary' | 'barricade' | 'outpost' | 'openFile';

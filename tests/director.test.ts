@@ -56,7 +56,7 @@ const snap = (tick: number, units: SnapUnit[] = [], o: Partial<Snapshot> = {}): 
   keeper: null,
   phaseTicksLeft: 0,
   events: [],
-  act: 1,
+  act: { n: 1, remainingSec: 240, bell: 'none' },
   tempo: { A: 0, B: 0 },
   hand: [],
   pawns: { A: { alive: 0, cap: 8, cost: 15 }, B: { alive: 0, cap: 8, cost: 15 } },

@@ -4,7 +4,7 @@ import { initAuction } from './auction';
 import { applyCommand } from './commands';
 import type { Content } from './content/loader';
 import type { LaneId } from './content/schema';
-import { TPS } from './combat';
+import { inCombat, TPS } from './combat';
 import type { Ctx } from './ctx';
 import { Grid } from './core/grid';
 import { seedStreams } from './core/rng';
@@ -15,7 +15,9 @@ import { POISON_MOD, cardBlock, initHands, tickGambits } from './gambits';
 import { createKeeper } from './keeper';
 import { tickObelisks } from './obelisks';
 import { pawnCap, pawnsAlive } from './pawns';
-import { actTicks, enterAct, tickActClock } from './phase';
+import { actTicks, enterAct } from './phase';
+import { bellTimeScale, frozen, freshBell, tickBell } from './bell';
+import { freshTally } from './actReport';
 import { tickSpiritTide } from './pressure';
 import { forkOptions, tickForks } from './ranks';
 import { attackKindOf } from './pieces';
@@ -125,10 +127,17 @@ function initialState(content: Content, config: MatchConfig): MatchState {
     events: [],
     eventSchedule: [],
     nextEventId: 1,
+    bell: freshBell(),
+    actTally: freshTally(0),
   };
 }
 
-function buildCtx(content: Content, state: MatchState, pauseForForks: boolean): Ctx {
+function buildCtx(
+  content: Content,
+  state: MatchState,
+  pauseForForks: boolean,
+  pauseForBreak: boolean,
+): Ctx {
   const rec: Recorder = { events: [], samples: [], seq: 0 };
   const world = buildWorld(content.map);
   const ctx: Ctx = {
@@ -136,6 +145,7 @@ function buildCtx(content: Content, state: MatchState, pauseForForks: boolean): 
     c: content,
     t: content.tuning,
     pauseForForks,
+    pauseForBreak,
     world,
     open: new Set(state.slots.filter((x) => x.open).map((x) => x.id)),
     rec,
@@ -225,11 +235,8 @@ function stepTick(ctx: Ctx): void {
   passiveGold(ctx);
   sampleAndFlush(ctx);
   s.tick++;
-  tickActClock(ctx);
+  tickBell(ctx);
 }
-
-/** A unit counts as in combat for 1.5 s after it deals or takes damage. */
-const COMBAT_TICKS = Math.round(1.5 * TPS);
 
 export class Match {
   readonly ctx: Ctx;
@@ -238,7 +245,12 @@ export class Match {
     readonly content: Content,
     readonly config: MatchConfig,
   ) {
-    this.ctx = buildCtx(content, initialState(content, config), config.pauseForForks ?? false);
+    this.ctx = buildCtx(
+      content,
+      initialState(content, config),
+      config.pauseForForks ?? false,
+      config.pauseForBreak ?? false,
+    );
   }
 
   /** With `config.setup.A` the match starts live at once; otherwise it waits for `setupTeam`. */
@@ -278,7 +290,8 @@ export class Match {
 
   /**
    * Steps up to `ticks` ticks and returns how many ran. With `pauseForForks` it stops right after
-   * the tick a White fork opens, and returns 0 while any White fork is pending.
+   * the tick a White fork opens, and returns 0 while any White fork is pending. With
+   * `pauseForBreak` it returns 0 while the Act break sheet waits for `resumeAct`.
    */
   step(ticks = 1): number {
     let n = 0;
@@ -287,6 +300,7 @@ export class Match {
     for (let i = 0; i < ticks; i++) {
       if (this.ctx.s.phase.kind !== 'live') break;
       if (pause && this.ctx.s.forks.length > 0) break;
+      if (this.ctx.s.bell.stage === 'break') break;
       stepTick(this.ctx);
       n++;
     }
@@ -295,6 +309,11 @@ export class Match {
       else this.ops.push({ op: 'step', ticks: n });
     }
     return n;
+  }
+
+  /** The app's step-rate multiplier: 1 normally, easing out to 0 across the bell's halt. */
+  get timeScale(): number {
+    return bellTimeScale(this.ctx);
   }
 
   /** Runs to checkmate (or the Act limit). A match still in setup starts with White's default. */
@@ -380,13 +399,12 @@ export class Match {
         curse,
         holy,
         target: u.targetId,
-        inCombat:
-          s.tick - u.lastDamagedTick <= COMBAT_TICKS ||
-          (!!h && s.tick - h.lastDealtTick <= COMBAT_TICKS),
+        inCombat: inCombat(s.tick, u),
         flash: u.atkCd >= Math.max(1, Math.round(TPS / Math.max(0.2, u.stats.atkSpeed))) - 2,
       });
     }
     const live = s.phase.kind === 'live';
+    const still = live && frozen(this.ctx);
     const hand: SnapGambit[] = s.hands.A.map((slot, i) => {
       const def = slot.cardId !== null ? c.gambitById.get(slot.cardId) : undefined;
       const block = def ? cardBlock(this.ctx, 'A', i) : 'refilling';
@@ -399,8 +417,8 @@ export class Match {
         cost: def ? def.cost : 0,
         target: def ? def.target : 'none',
         piece: def ? def.piece : null,
-        usable: live && block === '',
-        reason: live ? block : 'match not live',
+        usable: live && !still && block === '',
+        reason: !live ? 'match not live' : still ? 'play is stopped for the bell' : block,
         ticksLeft: def ? Math.max(0, slot.expireTick - s.tick) : 0,
         refillTicks: slot.refillTick !== null ? Math.max(0, slot.refillTick - s.tick) : null,
       };
@@ -446,7 +464,7 @@ export class Match {
             : {}),
         };
       }),
-      act: s.phase.n,
+      act: this.snapAct(live),
       tempo: { A: Math.floor(s.tempo.A), B: Math.floor(s.tempo.B) },
       hand,
       pawns: {
@@ -487,6 +505,26 @@ export class Match {
           ticksLeft: Math.max(0, z.endTick - s.tick),
         };
       }),
+    };
+  }
+
+  private snapAct(live: boolean): Snapshot['act'] {
+    const s = this.ctx.s;
+    const b = s.bell;
+    const bell = live ? b.stage : 'none';
+    const left = live ? actTicks(this.ctx) - (s.tick - s.phase.startTick) : 0;
+    return {
+      n: s.phase.n,
+      remainingSec: Math.max(0, left) / TPS,
+      bell,
+      ...(bell === 'tolling' || bell === 'halt' ? { toll: b.toll } : {}),
+      ...(bell === 'halt' || bell === 'break'
+        ? {
+            haltProgress:
+              bell === 'break' ? 1 : Math.min(1, (s.tick - b.since) / this.ctx.t.bell.haltTicks),
+          }
+        : {}),
+      ...(bell === 'break' && b.report ? { report: b.report } : {}),
     };
   }
 

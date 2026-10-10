@@ -10,6 +10,7 @@ import {
   startLive,
   step,
   stepUntil,
+  type TestSession,
   watchErrors,
 } from './helpers';
 
@@ -291,24 +292,35 @@ test('title, setup, gambits, pawn, fork, adjourn, checkmate and report', async (
   expect(errors).toEqual([]);
 });
 
-test('the match runs on its own and never stops between Acts', async ({ page }) => {
+test('an Act ends with the bell and a break sheet; Resume opens the next Act', async ({ page }) => {
   test.setTimeout(240_000);
   const errors = watchErrors(page);
   await startLive(page, '7');
   await step(page, 4799);
   await expect(page.getByTestId('phase')).toHaveText('Act 1');
-  // cross the Act boundary: Act 2 opens with a banner and no other screen. Banners fade within
-  // a couple of seconds, so watch for it inside the page while the sim steps over the boundary.
-  const banner = page.waitForFunction(() =>
-    [...document.querySelectorAll('[data-testid="banner-act"]')].some((e) =>
-      /Act 2/.test(e.textContent ?? ''),
-    ),
-  );
+  // 0:00: the board greys and play carries on, waiting for calm
   await step(page, 2);
-  await banner;
+  await expect(page.getByTestId('bell-line')).toBeVisible();
+  await expect(page.getByTestId('shell')).toHaveAttribute('data-bell', 'pending');
+  // tolls, the halt, then the sheet
+  await page.evaluate(() => {
+    const s = (window as unknown as { __session: TestSession }).__session;
+    for (let i = 0; i < 4000 && s.match.state.bell.stage !== 'break'; i++) {
+      if (s.match.step(1) === 0) s.match.issue({ type: 'autoForks' });
+    }
+    s.notify();
+  });
+  await expect(page.getByTestId('break-sheet')).toBeVisible();
+  await expect(page.getByTestId('break-callouts').locator('li').first()).toBeVisible();
+  await page.getByTestId('break-tab-orders').click();
+  await expect(page.getByTestId('tab-orders')).toBeVisible();
+  const frozen = (await snap(page)).tick;
+  await step(page, 100);
+  expect((await snap(page)).tick).toBe(frozen);
+  await page.getByTestId('break-resume').click();
   await expect(page.getByTestId('phase')).toHaveText('Act 2');
+  await expect(page.getByTestId('break-sheet')).toHaveCount(0);
   await expect(page.getByTestId('hud')).toBeVisible();
-  await expect(page.getByTestId('setup')).toHaveCount(0);
   await expect(page.getByTestId('report')).toHaveCount(0);
   // un-pause: play carries on
   const tick = (await snap(page)).tick;
