@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Match, Unit } from '../src/sim';
+import { aimFor, type Hint } from '../src/sim/draft';
 import { dropBoundCards } from '../src/sim/gambits';
 import {
   boundCards,
@@ -117,16 +118,52 @@ describe('relic draft', () => {
     expect(m.issue({ type: 'aimRelic', relicId: pick.id, lane: 'mid' }).ok).toBe(false);
   });
 
+  it('a problem hint aims defensive relics only: carry relics never land on the piece that fed', () => {
+    const m = breakMatch(11);
+    for (const team of ['A', 'B'] as const) {
+      const report = structuredClone(m.state.bell.report!);
+      const foe = team === 'A' ? 'B' : 'A';
+      const me = report.teams[team];
+      me.bastionsLost = [];
+      report.teams[foe].bastionsLost = [];
+      me.pawnlingsLost = { top: 30, mid: 0, bot: 0 };
+      report.teams[foe].pawnlingsLost = { top: 0, mid: 20, bot: 0 };
+      for (const p of me.pieces) Object.assign(p, { kills: 0, deaths: 0, damage: 100 });
+      const king = me.pieces.find((p) => p.piece === 'king')!;
+      const rook = me.pieces.find((p) => p.piece === 'rook')!;
+      king.damage = 900;
+      Object.assign(rook, { deaths: 4, lane: 'top' });
+      const died: Hint = {
+        callout: { id: 'died-rook', severity: 0.75, tone: 'bad', text: '', piece: 'rook' },
+        family: 'carry',
+        lane: null,
+        piece: rook.id,
+      };
+      const bled: Hint = {
+        callout: { id: 'pawnlings-top', severity: 0.6, tone: 'bad', text: '', lane: 'top' },
+        family: 'lane',
+        lane: 'top',
+        piece: null,
+      };
+      const aim = (id: string, hint: Hint) =>
+        aimFor(m.ctx, team, content.relicById.get(id)!, report, hint);
+      expect(aim('crown_jewel', died).piece).toBe(king.id);
+      expect(aim('development', died).piece).toBe(king.id);
+      expect(aim('closed_position', bled).lane).toBe('top');
+      expect(aim('half_open_file', bled).lane).toBe('mid');
+    }
+  });
+
   it('headless breaks resolve both picks, deterministically', () => {
     const run = (seed: number): Match => {
       const m = liveMatch(seed);
       toAct(m, 3);
       return m;
     };
-    const a = run(3);
+    const a = run(4);
     expect(a.state.relics.held.A).toHaveLength(2);
     expect(a.state.relics.held.B).toHaveLength(2);
-    expect(logHash(run(3))).toBe(logHash(a));
+    expect(logHash(run(4))).toBe(logHash(a));
     const off = liveMatch(3, { relics: { A: 'none', B: 'none' } });
     toAct(off, 3);
     expect(off.state.relics.held.A).toHaveLength(0);
