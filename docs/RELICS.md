@@ -1,6 +1,6 @@
 # Relic draft (proposal, 2026-10-10)
 
-Status: **design for owner approval, nothing built.** Belongs to [CHESS.md](CHESS.md) (Act break). Numbers are starting guesses sized against `content/tuning.json` and `content/gambits.json`; the balance run sets the final ones.
+Status: **approved by Cheppy 2026-10-10 (all five open questions answered as recommended); not built yet.** Belongs to [CHESS.md](CHESS.md) (Act break). Numbers are starting guesses sized against `content/tuning.json` and `content/gambits.json`; the balance run sets the final ones.
 
 ## BLUF
 
@@ -118,7 +118,7 @@ Rally relics: Closed Position, King's Ransom, Compensation, Sortie (one in each 
 - **Runs:** `npm run balance -- --matches 800 --seed 29000 --quiet` with `--relics A=ai,B=ai`, then `A=none`, then `A=random`; one `--relic-pool` run per family.
 - **Tests (light):** one unit test per relic effect; same seed gives the same offers and picks; a headless break resolves both picks; one Playwright test: open the Relics tab, pick, aim, resume.
 
-## Open questions for the owner
+## Owner decisions (2026-10-10, all as recommended)
 
 1. **Name clash:** tier 3 items are already called **Relics** (ITEMS.md). Recommend: keep "Relics" for the draft (the bigger new system) and rename the item tier to **Masterwork** (labels only, no rule change).
 2. **A draft at setup too?** Recommend **no** for now: setup already has the Opening, five paths and lanes, and Act 1 is when you learn Black's plan. Revisit if 2–3 relics a match feels thin.
