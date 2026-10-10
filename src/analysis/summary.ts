@@ -367,9 +367,12 @@ function forkName(
   rank: number,
   id: string,
 ): string {
+  if (rank === 4) {
+    const name = content?.pieceById.get(piece as PieceId)?.styles.find((x) => x.id === id)?.name;
+    return name ?? id.replace(/_/g, ' ');
+  }
   const st = content?.styleByKey.get(`${piece}/${style}`);
-  const opts = rank === 8 ? st?.forks['8'] : st?.forks['4'];
-  return opts?.find((o) => o.id === id)?.name ?? id.replace(/_/g, ' ');
+  return st?.forks['8'].find((o) => o.id === id)?.name ?? id.replace(/_/g, ' ');
 }
 
 export function buildSummary(input: AnalysisInput): MatchSummary {
@@ -716,7 +719,9 @@ export function buildSummary(input: AnalysisInput): MatchSummary {
       pieceName: pieceName(r.def),
       name: nameOf(r.id),
       style: r.style,
-      styleName: content?.styleByKey.get(`${r.def}/${r.style}`)?.name ?? cap(r.style),
+      styleName: r.style
+        ? (content?.styleByKey.get(`${r.def}/${r.style}`)?.name ?? cap(r.style))
+        : 'Generic',
       path: r.path,
       startLane: startLane.get(r.id) ?? null,
       lane: curLane.get(r.id) ?? null,

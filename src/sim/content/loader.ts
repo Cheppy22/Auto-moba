@@ -7,6 +7,7 @@ import {
   GambitFileSchema,
   ItemFileSchema,
   MapSchema,
+  OpeningFileSchema,
   PressureSchema,
   PieceSchema,
   TuningSchema,
@@ -23,6 +24,7 @@ import {
   type HolyItemDef,
   type ItemDef,
   type MapDef,
+  type OpeningDef,
   type PressureDef,
   type Tuning,
 } from './schema';
@@ -30,6 +32,7 @@ import {
 export interface RawContentFiles {
   pieces: unknown[];
   gambits: unknown;
+  openings: unknown;
   items: unknown[];
   biomes: unknown[];
   events: unknown[];
@@ -49,6 +52,8 @@ export interface Content {
   kitByKey: Map<string, AbilityDef[]>;
   gambits: GambitDef[];
   gambitById: Map<string, GambitDef>;
+  openings: OpeningDef[];
+  openingById: Map<string, OpeningDef>;
   items: ItemDef[];
   itemById: Map<string, ItemDef>;
   cursed: CursedItemDef[];
@@ -110,7 +115,7 @@ export function validateRefs(c: Content): string[] {
       }
       if (styleIds.has(st.id)) errs.push(`piece ${p.id}: duplicate style ${st.id}`);
       styleIds.add(st.id);
-      const forkIds = [...st.forks['4'], ...st.forks['8']].map((f) => f.id);
+      const forkIds = st.forks['8'].map((f) => f.id);
       if (new Set(forkIds).size !== forkIds.length)
         errs.push(`piece ${p.id}/${st.id}: fork option ids must be unique`);
     }
@@ -123,6 +128,7 @@ export function validateRefs(c: Content): string[] {
     if (!(GAMBIT_EFFECTS as readonly string[]).includes(eff))
       errs.push(`gambit ${g.id}: unknown effect ${eff}`);
   }
+  if (!c.openingById.has('italian')) errs.push('openings: needs the balanced "italian" opening');
   if (!c.gambits.some((g) => g.piece === null && g.weight > 0))
     errs.push('gambits: needs at least one universal card');
   for (const b of c.biomes) {
@@ -157,6 +163,7 @@ export function validateRefs(c: Content): string[] {
 export function loadContent(raw: RawContentFiles): Content {
   const pieces = raw.pieces.map((p) => PieceSchema.parse(p));
   const gambits = GambitFileSchema.parse(raw.gambits).gambits;
+  const openings = OpeningFileSchema.parse(raw.openings);
   const itemFiles = raw.items.map((f) => ItemFileSchema.parse(f));
   const items = itemFiles.flatMap((f) => f.items);
   const cursed = itemFiles.flatMap((f) => f.cursed);
@@ -184,6 +191,8 @@ export function loadContent(raw: RawContentFiles): Content {
     kitByKey,
     gambits,
     gambitById: byId(gambits, 'gambit'),
+    openings,
+    openingById: byId(openings, 'opening'),
     items,
     itemById: byId(items, 'item'),
     cursed,

@@ -31,7 +31,8 @@ const KILLER: Record<string, string> = {
 
 function forkName(c: Content, h: HeroModel, rank: number, optionId: string): string {
   for (const st of c.pieceById.get(h.def as PieceId)?.styles ?? []) {
-    const o = st.forks[String(rank) as '4' | '8']?.find((f) => f.id === optionId);
+    if (rank === 4 && st.id === optionId) return st.name;
+    const o = rank === 8 ? st.forks['8'].find((f) => f.id === optionId) : undefined;
     if (o) return o.name;
   }
   return optionId;

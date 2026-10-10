@@ -287,6 +287,10 @@ export class Session {
       const g = this.view.pickGround(clientX, clientY);
       if (!g) return this.toast('Tap the board to choose a spot');
       r = this.issue({ type: 'playGambit', slot: aim.slot, x: g.x, y: g.y });
+    } else if (card.target === 'ally') {
+      const targetId = this.pickAlly(clientX, clientY);
+      if (targetId === null) return this.toast('Tap one of your pieces');
+      r = this.issue({ type: 'playGambit', slot: aim.slot, targetId });
     } else if (card.target === 'enemy') {
       const wantStructure = card.cardId === 'siege';
       const targetId = this.pickEnemy(clientX, clientY, wantStructure);
@@ -295,6 +299,50 @@ export class Session {
       r = this.issue({ type: 'playGambit', slot: aim.slot, targetId });
     }
     if (r?.ok) this.setUi({ aim: null });
+  }
+
+  /** A White portrait tapped while an ally card is being aimed: plays the card on that piece. */
+  aimUnit(id: number): boolean {
+    const aim = this.ui.aim;
+    const m = this.match;
+    if (!aim || aim.kind !== 'gambit' || !m) return false;
+    const card = m.snapshot().hand[aim.slot];
+    if (!card || card.cardId !== aim.cardId || card.target !== 'ally') return false;
+    const r = this.issue({ type: 'playGambit', slot: aim.slot, targetId: id });
+    if (r.ok) this.setUi({ aim: null });
+    return true;
+  }
+
+  /** True while an ally card (Exchange) waits for one of White's pieces to be tapped. */
+  aimingAlly(): boolean {
+    const aim = this.ui.aim;
+    if (!aim || aim.kind !== 'gambit' || !this.match) return false;
+    return this.match.snapshot().hand[aim.slot]?.target === 'ally';
+  }
+
+  /** One of White's pieces under a tap, or the nearest one around the tapped ground. */
+  private pickAlly(clientX: number, clientY: number): number | null {
+    const m = this.match!;
+    const view = this.view!;
+    const good = (id: number | null): boolean => {
+      const u = id === null ? undefined : m.unitById(id);
+      return !!u && u.alive && u.team === 'A' && !!u.hero;
+    };
+    const direct = view.pickUnit(clientX, clientY);
+    if (good(direct)) return direct;
+    const g = view.pickGround(clientX, clientY);
+    if (!g) return null;
+    let best: number | null = null;
+    let bestD = NEAR_PICK;
+    for (const u of m.state.units) {
+      if (!good(u.id)) continue;
+      const d = Math.hypot(u.x - g.x, u.y - g.y);
+      if (d < bestD) {
+        bestD = d;
+        best = u.id;
+      }
+    }
+    return best;
   }
 
   /** The enemy unit under a tap; falls back to the nearest valid one around the tapped ground. */
@@ -418,9 +466,13 @@ export class Session {
             ),
           );
         } else {
-          const st = this.content.styleByKey.get(`${u.hero.defId}/${u.hero.style}`);
-          const forks = st?.forks[String(e.payload.rank) as '4' | '8'] ?? [];
-          const name = forks.find((f) => f.id === e.payload.optionId)?.name ?? '';
+          const name = forkOptionName(
+            this.content,
+            u.hero.defId,
+            u.hero.style,
+            e.payload.rank,
+            e.payload.optionId,
+          );
           fresh.unshift(
             this.chip(
               {
@@ -453,6 +505,19 @@ export class Session {
       this.notify();
     }
   }
+}
+
+/** The name of a fork option taken: a style at Rank 4, a skill path of the chosen style at Rank 8. */
+export function forkOptionName(
+  c: Content,
+  piece: string,
+  style: string | null,
+  rank: number,
+  optionId: string,
+): string {
+  if (rank === 4) return c.styleByKey.get(`${piece}/${optionId}`)?.name ?? '';
+  const st = style ? c.styleByKey.get(`${piece}/${style}`) : undefined;
+  return st?.forks['8'].find((f) => f.id === optionId)?.name ?? '';
 }
 
 export function useEscape(active: boolean, close: () => void): void {

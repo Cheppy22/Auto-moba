@@ -38,8 +38,10 @@ function equipment(ctx: Ctx, u: Unit): { mods: TaggedMod[]; trigs: TrigInst[] } 
   const pd = pieceDef(ctx.c, h);
   pd.passives.forEach((def, idx) => trigs.push({ src: `piece:${pd.id}`, idx, def }));
   const st = styleDef(ctx.c, h);
-  for (const m of st.mods) mods.push({ ...m, tags: [] });
-  st.passives.forEach((def, idx) => trigs.push({ src: `style:${pd.id}/${st.id}`, idx, def }));
+  if (st) {
+    for (const m of st.mods) mods.push({ ...m, tags: [] });
+    st.passives.forEach((def, idx) => trigs.push({ src: `style:${pd.id}/${st.id}`, idx, def }));
+  }
   perksOf(ctx.c, h).forEach((perk, n) => {
     for (const m of perk.mods) mods.push({ ...m, tags: [] });
     perk.triggers.forEach((def, idx) => trigs.push({ src: `perk:${pd.id}/${n}`, idx, def }));

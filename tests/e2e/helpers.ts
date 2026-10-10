@@ -19,7 +19,8 @@ export interface TestSnap {
   forks: {
     heroId: number;
     piece: string;
-    style: string;
+    kind: 'archetype' | 'skill';
+    style: string | null;
     rank: number;
     options: { id: string; name: string }[];
     ticksLeft: number | null;

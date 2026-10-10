@@ -64,7 +64,7 @@ for (const v of views) {
       for (const id of ['begin', 'zone-top', 'zone-mid', 'zone-bot', 'chip-king', 'chip-queen']) {
         await bigEnough(page, id);
       }
-      for (const el of await page.locator('[data-testid^="style-"][role="radio"]').all())
+      for (const el of await page.locator('[data-testid^="opening-"][role="radio"]').all())
         expect((await el.boundingBox())!.height).toBeGreaterThanOrEqual(40);
       for (const el of await page.locator('[data-testid^="path-"][role="radio"]').all())
         expect((await el.boundingBox())!.height).toBeGreaterThanOrEqual(40);
@@ -105,10 +105,10 @@ for (const v of views) {
         await bigEnough(page, `roster-A-${piece}`);
         await bigEnough(page, `roster-B-${piece}`);
       }
-      // calm HUD: a rank numeral and a style emblem on every portrait of both teams, no pips
+      // calm HUD: a rank numeral on every portrait of both teams, no pips, no emblem until Rank 4
       await expect(page.locator('.roster .rank-pips')).toHaveCount(0);
       await expect(page.locator('.roster .rank-num')).toHaveCount(10);
-      await expect(page.locator('.roster .style-badge')).toHaveCount(10);
+      await expect(page.locator('.roster .style-badge')).toHaveCount(0);
       // the gambit cards show a name and a cost only
       await expect(page.locator('.gcard .gdesc')).toHaveCount(0);
       // the speed chip and the camera button each replace a row of buttons

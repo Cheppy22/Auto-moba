@@ -1,12 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { Match } from '../src/sim';
-import type { Command, GambitDef, LaneId, PlayTeam, SetupEntry, Unit } from '../src/sim';
+import type { Command, GambitDef, LaneId, PlayTeam, SetupEntry, TeamSetup, Unit } from '../src/sim';
 import { applyEffect, tryCast } from '../src/sim/combat';
 import { gambitEffect } from '../src/sim/content/loader';
 import { pawnCap, pawnsAlive } from '../src/sim/pawns';
-import { buildListOf, attackKindOf } from '../src/sim/pieces';
+import { buildListOf, attackKindOf, kitOf } from '../src/sim/pieces';
 import { aiForkPick } from '../src/sim/ranks';
 import { aiSetup } from '../src/sim/setup';
+import { stepToward } from '../src/sim/behavior';
+import { findPath, lanePoint } from '../src/sim/world/map';
+import { walkable } from '../src/sim/world/terrain';
 import { seedStreams } from '../src/sim/core/rng';
 import { giveGold } from '../src/sim/shop';
 import { content, liveMatch, logHash, piece } from './helpers';
@@ -40,14 +43,16 @@ const cardOf = (effect: string): GambitDef =>
   content.gambits.find((g) => gambitEffect(g) === effect)!;
 
 describe('setup', () => {
-  const base = (): SetupEntry[] => Match.create(content, { seed: 1 }).defaultSetup();
+  const base = (): SetupEntry[] => Match.create(content, { seed: 1 }).defaultSetup().pieces;
+  const opening = 'italian';
 
   it('pre-fills a valid White setup and seeds Black from the AI pick', () => {
     const a = Match.create(content, { seed: 12 });
     const b = Match.create(content, { seed: 12 });
     expect(a.defaultSetup()).toEqual(b.defaultSetup());
     expect(a.state.setup.B).toEqual(b.state.setup.B);
-    const lanes = a.defaultSetup().map((e) => e.lane);
+    expect(content.openingById.has(a.defaultSetup().opening)).toBe(true);
+    const lanes = a.defaultSetup().pieces.map((e) => e.lane);
     expect(lanes.filter((l) => l === 'top')).toHaveLength(2);
     expect(lanes.filter((l) => l === 'bot')).toHaveLength(2);
     expect(lanes.filter((l) => l === 'mid')).toHaveLength(1);
@@ -58,40 +63,55 @@ describe('setup', () => {
     const bad: [SetupEntry[], RegExp][] = [
       [base().slice(0, 4), /five/],
       [base().map((e, i) => (i === 1 ? { ...e, piece: base()[0].piece } : e)), /twice/],
-      [base().map((e, i) => (i === 0 ? { ...e, style: 'nope' } : e)), /style/],
       [base().map((e, i) => (i === 0 ? { ...e, path: 'nope' as never } : e)), /path/],
       [base().map((e) => ({ ...e, lane: 'mid' as LaneId })), /lanes/],
     ];
     for (const [pieces, why] of bad) {
-      const r = m.issue({ type: 'setupTeam', pieces });
+      const r = m.issue({ type: 'setupTeam', opening, pieces });
       expect(r.ok).toBe(false);
       expect(r.reason).toMatch(why);
     }
+    expect(m.issue({ type: 'setupTeam', opening: 'nope', pieces: base() }).reason).toMatch(
+      /opening/,
+    );
     expect(m.state.phase.kind).toBe('setup');
-    const mine = base().map((e) => (e.piece === 'queen' ? { ...e, style: 'duelist' } : e));
-    expect(m.issue({ type: 'setupTeam', pieces: mine }).ok).toBe(true);
-    expect(piece(m, 'A', 'queen').hero!.style).toBe('duelist');
+    const mine = base().map((e) => (e.piece === 'queen' ? { ...e, path: 'defense' as const } : e));
+    expect(m.issue({ type: 'setupTeam', opening: 'french', pieces: mine }).ok).toBe(true);
+    expect(piece(m, 'A', 'queen').hero!.path).toBe('defense');
+    expect(piece(m, 'A', 'queen').hero!.style).toBeNull();
+    expect(m.snapshot().opening).toEqual({ A: 'french', B: m.state.setup.B.opening });
   });
 
   it('MatchConfig.setup fixes either side and starts live', () => {
     const B = aiSetup(content, seedStreams(99));
-    const m = Match.create(content, { seed: 3, setup: { A: base(), B } });
+    const A: TeamSetup = { opening, pieces: base() };
+    const m = Match.create(content, { seed: 3, setup: { A, B } });
     expect(m.state.phase.kind).toBe('live');
-    for (const e of B) {
+    for (const e of B.pieces) {
       const u = piece(m, 'B', e.piece);
-      expect([u.hero!.style, u.hero!.path, u.hero!.lane]).toEqual([e.style, e.path, e.lane]);
+      expect([u.hero!.path, u.hero!.lane]).toEqual([e.path, e.lane]);
     }
-    expect(() => Match.create(content, { seed: 3, setup: { A: base().slice(1) } })).toThrow();
+    expect(m.state.opening.B).toBe(B.opening);
+    expect(() =>
+      Match.create(content, { seed: 3, setup: { A: { opening, pieces: base().slice(1) } } }),
+    ).toThrow();
   });
 
-  it('a style can override build lists and attack kind', () => {
+  it('a piece is generic until Rank 4, then a style can override build lists and attack kind', () => {
     const m = playerMatch(4);
     for (const id of m.state.teams.A.heroIds) {
       const h = m.unitById(id)!.hero!;
-      const st = content.styleByKey.get(`${h.defId}/${h.style}`)!;
       const pd = content.pieceById.get(h.defId)!;
+      expect(h.style).toBeNull();
+      expect(buildListOf(content, h)).toEqual(pd.paths[h.path]);
+      expect(attackKindOf(content, h)).toBe(pd.attackKind);
+      expect(kitOf(content, h)).toHaveLength(3);
+      h.style = pd.styles[0].id;
+      const st = pd.styles[0];
+      expect(kitOf(content, h)).toHaveLength(4);
       expect(buildListOf(content, h)).toEqual(st.paths?.[h.path] ?? pd.paths[h.path]);
       expect(attackKindOf(content, h)).toBe(st.attackKind ?? pd.attackKind);
+      h.style = null;
     }
     const snapPiece = m.snapshot().units.find((u) => u.piece === 'queen' && u.team === 'A')!;
     expect(snapPiece.attackKind).toBe(attackKindOf(content, piece(m, 'A', 'queen').hero!));
@@ -174,7 +194,7 @@ describe('pawnlings and pawns', () => {
 });
 
 describe('ranks and forks', () => {
-  it('climbs ranks from lifetime gold and applies the style bonus', () => {
+  it('climbs ranks from lifetime gold and applies the generic bonus', () => {
     const m = playerMatch(10);
     const u = piece(m, 'A', 'bishop');
     const th = content.tuning.ranks.goldThresholds;
@@ -183,8 +203,8 @@ describe('ranks and forks', () => {
     expect(u.hero!.rank).toBe(3);
     const ups = m.events.filter((e) => e.type === 'rankUp' && e.payload.id === u.id);
     expect(ups.map((e) => (e.type === 'rankUp' ? e.payload.rank : 0))).toEqual([2, 3]);
-    const st = content.styleByKey.get(`bishop/${u.hero!.style}`)!;
-    expect(ups[0].type === 'rankUp' && ups[0].payload.bonus).toBe(st.ranks['2'].name);
+    const gen = content.pieceById.get('bishop')!.generic;
+    expect(ups[0].type === 'rankUp' && ups[0].payload.bonus).toBe(gen['2'].name);
     expect(u.hero!.perks).toEqual([
       { rank: 2, optionId: null },
       { rank: 3, optionId: null },
@@ -200,13 +220,23 @@ describe('ranks and forks', () => {
     expect(u.hero!.rank).toBe(4);
     const f = m.snapshot().forks;
     expect(f).toHaveLength(1);
-    expect(f[0]).toMatchObject({ heroId: u.id, piece: 'queen', rank: 4 });
-    expect(f[0].options).toHaveLength(2);
+    expect(f[0]).toMatchObject({
+      heroId: u.id,
+      piece: 'queen',
+      rank: 4,
+      kind: 'archetype',
+      style: null,
+    });
+    expect(f[0].options.map((o) => o.id)).toEqual(
+      content.pieceById.get('queen')!.styles.map((s) => s.id),
+    );
     expect(m.snapshot().units.find((x) => x.id === u.id)!.forkPending).toBe(true);
     const want = aiForkPick(m.ctx, u, 4);
     m.step(content.tuning.ranks.forkSec * TPS + 1);
     expect(m.snapshot().forks).toHaveLength(0);
     expect(u.hero!.perks).toContainEqual({ rank: 4, optionId: want });
+    expect(u.hero!.style).toBe(want);
+    expect(kitOf(content, u.hero!)).toHaveLength(4);
     const ev = m.events.find((e) => e.type === 'fork' && e.payload.id === u.id);
     expect(ev?.type === 'fork' && ev.payload.auto).toBe(true);
   });
@@ -217,14 +247,25 @@ describe('ranks and forks', () => {
     giveGold(m.ctx, u, content.tuning.ranks.goldThresholds[7], 'test');
     expect(u.hero!.rank).toBe(8);
     expect(m.snapshot().forks.map((f) => f.rank)).toEqual([4, 8]);
-    const opt8 = m.snapshot().forks[1].options[1].id;
+    expect(m.snapshot().forks.map((f) => f.kind)).toEqual(['archetype', 'skill']);
+    // The skill options exist once the archetype does.
+    expect(m.snapshot().forks[1].options).toHaveLength(0);
     expect(m.issue({ type: 'chooseFork', heroId: u.id, optionId: 'nope' }).ok).toBe(false);
+    expect(m.issue({ type: 'chooseFork', heroId: u.id, optionId: 'vanguard' }).ok).toBe(true);
+    expect(u.hero!.style).toBe('vanguard');
+    expect(m.snapshot().forks.map((f) => f.rank)).toEqual([8]);
+    const opt8 = m.snapshot().forks[0].options[1].id;
     expect(m.issue({ type: 'chooseFork', heroId: u.id, optionId: opt8 }).ok).toBe(true);
     expect(u.hero!.perks).toContainEqual({ rank: 8, optionId: opt8 });
-    expect(m.snapshot().forks.map((f) => f.rank)).toEqual([4]);
+    expect(m.snapshot().forks).toHaveLength(0);
+    // Rank 5-7 bonuses earned before the archetype count once it exists.
+    expect(u.hero!.perks.filter((p) => p.optionId === null).map((p) => p.rank)).toEqual([
+      2, 3, 5, 6, 7,
+    ]);
     const foe = piece(m, 'B', 'rook');
     giveGold(m.ctx, foe, content.tuning.ranks.goldThresholds[3], 'test');
     expect(foe.hero!.perks.some((p) => p.rank === 4 && p.optionId !== null)).toBe(true);
+    expect(foe.hero!.style).not.toBeNull();
     expect(m.issue({ type: 'chooseFork', heroId: foe.id, optionId: 'x' }).ok).toBe(false);
   });
 });
@@ -254,7 +295,8 @@ describe('pausing for forks', () => {
     expect(forks[0]).toMatchObject({
       heroId: u.id,
       piece: 'queen',
-      style: u.hero!.style,
+      kind: 'archetype',
+      style: null,
       rank: 4,
       ticksLeft: null,
     });
@@ -278,10 +320,11 @@ describe('pausing for forks', () => {
     expect(m.snapshot().forks.map((f) => f.rank)).toEqual([4, 8, 4]);
     expect(m.step(10)).toBe(0);
     const w4 = aiForkPick(m.ctx, u, 4);
-    const w8 = aiForkPick(m.ctx, u, 8);
     expect(m.issue({ type: 'autoForks' }).ok).toBe(true);
     expect(m.snapshot().forks).toHaveLength(0);
     expect(u.hero!.perks).toContainEqual({ rank: 4, optionId: w4 });
+    const w8 = aiForkPick(m.ctx, u, 8);
+    expect(w8).not.toBe('');
     expect(u.hero!.perks).toContainEqual({ rank: 8, optionId: w8 });
     const evs = m.events.filter((e) => e.type === 'fork');
     expect(evs.every((e) => e.type === 'fork' && e.payload.auto)).toBe(true);
@@ -574,6 +617,162 @@ describe('gambits', () => {
   });
 });
 
+describe('wave-1 gambits', () => {
+  const tower = (m: Match, lane: LaneId): Unit => m.ctx.towers.B[lane][0]!;
+  const play = (
+    m: Match,
+    effect: string,
+    extra: Omit<Extract<Command, { type: 'playGambit' }>, 'type' | 'slot'> = {},
+  ) => {
+    hold(m, cardOf(effect).id);
+    regrid(m);
+    return m.issue({ type: 'playGambit', slot: 0, ...extra });
+  };
+
+  it('Pawn Sacrifice needs a pawn and a Bastion, then hits for twice the pawn past the cap', () => {
+    const m = playerMatch(50);
+    hold(m, 'pawn_sacrifice');
+    expect(m.snapshot().hand[0]).toMatchObject({ usable: false, school: 'sacrifice' });
+    m.issue({ type: 'fieldPawn', lane: 'top' });
+    const pawn = m.state.units.find((u) => u.pawn && u.team === 'A')!;
+    expect(play(m, 'pawn_sacrifice', { lane: 'bot' }).reason).toMatch(/pawn/);
+    const bastion = tower(m, 'top');
+    const hp = bastion.hp;
+    const hit = pawn.stats.maxHp * 2;
+    expect(hit).toBeGreaterThan(bastion.stats.maxHp * content.tuning.tower.maxHpPerSec);
+    expect(play(m, 'pawn_sacrifice', { lane: 'top' }).ok).toBe(true);
+    expect(hp - bastion.hp).toBeCloseTo(hit, 0);
+    expect(pawn.alive).toBe(false);
+    m.step(2);
+    expect(m.unitById(pawn.id)).toBeUndefined();
+  });
+
+  it('Exchange costs the piece a quarter of its health and lifts the whole team', () => {
+    const m = playerMatch(51);
+    const rook = piece(m, 'A', 'rook');
+    const hp = rook.hp;
+    expect(play(m, 'exchange', { targetId: piece(m, 'B', 'rook').id }).reason).toMatch(/your/);
+    expect(play(m, 'exchange', { targetId: rook.id }).ok).toBe(true);
+    expect(rook.hp).toBeCloseTo(hp * 0.75, 3);
+    const queen = piece(m, 'A', 'queen');
+    const foe = piece(m, 'B', 'rook');
+    foe.shields = [];
+    const dmg = (): number => {
+      const before = foe.hp;
+      applyEffect(
+        m.ctx,
+        { type: 'damage', dmgType: 'true', base: 100, bladeScale: 0, soulScale: 0 },
+        {
+          caster: queen,
+          target: foe,
+          powerMul: 1,
+          origin: 'test',
+        },
+      );
+      return before - foe.hp;
+    };
+    const boosted = dmg();
+    m.state.teamDamage.A = null;
+    expect(boosted / dmg()).toBeCloseTo(1.15, 2);
+  });
+
+  it('Poisoned Pawn slows its killer and drains their Tempo', () => {
+    const m = playerMatch(52, false);
+    m.state.tempo.A = 100;
+    m.issue({ type: 'fieldPawn', lane: 'mid' });
+    const pawn = m.state.units.find((u) => u.pawn && u.team === 'A')!;
+    expect(play(m, 'poisoned_pawn', { lane: 'mid' }).ok).toBe(true);
+    expect(m.snapshot().units.find((u) => u.id === pawn.id)!.poisoned).toBe(true);
+    const killer = piece(m, 'B', 'knight');
+    const tempo = m.state.tempo.B;
+    const pawnKill = content.tuning.gambits.tempoPawnKill;
+    kill(m, pawn, killer.id);
+    expect(killer.mods.find((x) => x.id.includes('poisoned_pawn:slow'))?.value).toBeCloseTo(0.6);
+    expect(m.state.tempo.B).toBeLessThanOrEqual(tempo + pawnKill - 10 + 1);
+  });
+
+  it('Barricade seals the nearest crossing so a march cannot pass, then falls', () => {
+    const m = playerMatch(53);
+    const t = m.ctx.world.terrain;
+    const w = m.ctx.world.lanes.mid;
+    const c = lanePoint(w, 0.5);
+    expect(play(m, 'barricade', { x: c.x, y: c.y }).ok).toBe(true);
+    const z = m.snapshot().zones.find((x) => x.kind === 'barricade')!;
+    expect(z).toMatchObject({ team: 'A', ticksLeft: 20 * TPS });
+    expect(walkable(t, m.ctx.open, z.x, z.y)).toBe(false);
+    // A walker pushed straight at the wall never gets through it.
+    const king = piece(m, 'A', 'king');
+    const ahead = {
+      x: z.x + Math.cos(z.angle! + Math.PI / 2) * 120,
+      y: z.y + Math.sin(z.angle! + Math.PI / 2) * 120,
+    };
+    const sx = z.x - (ahead.x - z.x);
+    const sy = z.y - (ahead.y - z.y);
+    king.x = sx;
+    king.y = sy;
+    const side = Math.sign((ahead.x - z.x) * (sx - z.x) + (ahead.y - z.y) * (sy - z.y));
+    for (let i = 0; i < 400; i++) stepToward(m.ctx, king, ahead.x, ahead.y, 1, true);
+    const now = Math.sign((ahead.x - z.x) * (king.x - z.x) + (ahead.y - z.y) * (king.y - z.y));
+    expect(now).toBe(side);
+    expect(findPath(m.ctx.world, { x: sx, y: sy }, ahead, m.ctx.open).length).toBeLessThanOrEqual(
+      2,
+    );
+    m.step(20 * TPS + 2);
+    expect(m.snapshot().zones).toHaveLength(0);
+    expect(walkable(t, m.ctx.open, z.x, z.y)).toBe(true);
+  });
+
+  it('Open File speeds up your units in that lane only', () => {
+    const m = playerMatch(54);
+    expect(play(m, 'open_file', { lane: 'top' }).ok).toBe(true);
+    m.step(10);
+    expect(m.snapshot().zones[0]).toMatchObject({ kind: 'openFile', lane: 'top', team: 'A' });
+    const speedy = (u: Unit): number | undefined =>
+      u.mods.find((x) => x.id === 'gambit:open_file')?.value;
+    const top = m.state.units.filter((u) => u.team === 'A' && u.hero?.lane === 'top');
+    const bot = m.state.units.filter((u) => u.team === 'A' && u.hero?.lane === 'bot');
+    expect(top.length).toBeGreaterThan(0);
+    for (const u of top) expect(speedy(u)).toBeCloseTo(1.25);
+    for (const u of bot) expect(speedy(u)).toBeUndefined();
+    const foes = m.state.units.filter((u) => u.team === 'B' && u.hero?.lane === 'top');
+    for (const u of foes) expect(speedy(u)).toBeUndefined();
+  });
+
+  it('Outpost arms nearby units and needs units to be near the banner', () => {
+    const m = playerMatch(55);
+    const q = piece(m, 'A', 'queen');
+    expect(play(m, 'outpost', { x: 975, y: 975 }).reason).toMatch(/near/);
+    expect(play(m, 'outpost', { x: q.x, y: q.y }).ok).toBe(true);
+    m.step(10);
+    const armor = q.mods.find((x) => x.id === 'gambit:outpost:a');
+    expect(armor).toMatchObject({ stat: 'armor', kind: 'add', value: 20 });
+    expect(q.mods.find((x) => x.id === 'gambit:outpost:r')?.value).toBe(20);
+    expect(m.snapshot().zones[0]).toMatchObject({ kind: 'outpost', team: 'A' });
+    q.x = 40;
+    q.y = 40;
+    m.step(TPS * 2);
+    expect(q.mods.some((x) => x.id.startsWith('gambit:outpost'))).toBe(false);
+  });
+
+  it("an opening doubles the draw weight of its schools' cards", () => {
+    const share = (opening: string): number => {
+      let hit = 0;
+      let all = 0;
+      const schools = content.openingById.get('kings_gambit')!.schools as string[];
+      for (let seed = 1; seed <= 80; seed++) {
+        const base = Match.create(content, { seed }).defaultSetup();
+        const m = Match.create(content, { seed, setup: { A: { ...base, opening } } });
+        for (const h of m.snapshot().hand) {
+          all++;
+          if (schools.includes(h.school!)) hit++;
+        }
+      }
+      return hit / all;
+    };
+    expect(share('kings_gambit')).toBeGreaterThan(share('italian') + 0.05);
+  });
+});
+
 describe('engine effects', () => {
   it('stun stops moving, attacking and casting; taunt forces the target onto the caster', () => {
     const m = playerMatch(30);
@@ -653,7 +852,7 @@ describe('engine effects', () => {
   it('ally skills count nearby enemies for minEnemyHeroes', () => {
     const m = playerMatch(32);
     const caster = piece(m, 'A', 'king');
-    const kit = content.kitByKey.get(`king/${caster.hero!.style}`)!;
+    const kit = kitOf(content, caster.hero!);
     const idx = kit.findIndex((a) => a.target === 'allyArea');
     expect(idx).toBeGreaterThanOrEqual(0);
     const saved = kit[idx];
@@ -683,7 +882,7 @@ describe('determinism with the chess systems', () => {
   it('same seed and commands give the same log hash', () => {
     const run = (): string => {
       const m = Match.create(content, { seed: 40 });
-      m.issue({ type: 'setupTeam', pieces: m.defaultSetup() });
+      m.issue({ type: 'setupTeam', ...m.defaultSetup() });
       m.step(400);
       m.issue({ type: 'fieldPawn', lane: 'bot' });
       m.step(ACT);

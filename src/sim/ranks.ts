@@ -3,13 +3,13 @@ import type { Ctx } from './ctx';
 import type {
   AbilityDef,
   EffectDef,
-  ForkOptionDef,
   ModDef,
   Path,
   PerkDef,
   StatKey,
+  StyleDef,
 } from './content/schema';
-import { kitOf, styleDef } from './pieces';
+import { kitOf, perkOf, pieceDef, styleDef } from './pieces';
 import type { CommandResult, PlayTeam, Unit } from './types';
 
 /** Typical size of one point of each stat, so add-mods compare with mul-mods. */
@@ -109,13 +109,88 @@ export function perkScore(p: PerkDef, path: Path, kit: AbilityDef[] = []): numbe
   return ax[0] * w[0] + ax[1] * w[1] + ax[2] * w[2];
 }
 
-export function forkOptions(ctx: Ctx, u: Unit, rank: 4 | 8): ForkOptionDef[] {
+/** One choice on a fork sheet: a style at Rank 4, a perk at Rank 8. */
+export interface ForkChoice {
+  id: string;
+  name: string;
+  desc: string;
+}
+
+/** Rank 4 offers the piece's three styles (the archetype); Rank 8 the style's two options. */
+export function forkOptions(ctx: Ctx, u: Unit, rank: 4 | 8): ForkChoice[] {
+  if (rank === 4)
+    return pieceDef(ctx.c, u.hero!).styles.map((st) => ({
+      id: st.id,
+      name: st.name,
+      desc: st.desc,
+    }));
   const st = styleDef(ctx.c, u.hero!);
-  return rank === 4 ? st.forks['4'] : st.forks['8'];
+  return st ? st.forks['8'] : [];
+}
+
+/** What a style leans toward: its signature skill, stat tilt and passives (for the AI's pick). */
+function styleAxes(st: StyleDef): Axes {
+  const out: Axes = [0, 0, 0];
+  const sig = abilityAxes(st.ability);
+  for (let i = 0; i < 3; i++) out[i] += sig[i];
+  for (const m of st.mods) out[statAxis(m.stat)] += modValue(m);
+  for (const t of st.passives)
+    for (const e of t.effects) effectAxes(e, out, 0.12 / Math.max(1, t.effects.length));
+  return out;
+}
+
+/**
+ * Black's archetype: a seeded weighted pick that favours the styles fitting the piece's build path
+ * and what its team lacks (its teammates' chosen styles already cover), yet leaves every style a
+ * real chance so all of them stay in use.
+ */
+export function aiArchetypePick(ctx: Ctx, u: Unit): string {
+  const h = u.hero!;
+  const styles = pieceDef(ctx.c, h).styles;
+  const forced = ctx.s.forceStyles[u.team as PlayTeam][h.defId];
+  if (forced && styles.some((x) => x.id === forced)) return forced;
+  const have: Axes = [0, 0, 0];
+  for (const id of ctx.s.teams[u.team as PlayTeam].heroIds) {
+    const mate = ctx.unit(id);
+    const st = mate && mate !== u && mate.hero ? styleDef(ctx.c, mate.hero) : undefined;
+    if (!st) continue;
+    const ax = styleAxes(st);
+    for (let i = 0; i < 3; i++) have[i] += ax[i];
+  }
+  const need: Axes = [1 / (1 + have[0]), 1 / (1 + have[1]), 1 / (1 + have[2])];
+  const needSum = need[0] + need[1] + need[2];
+  const w = WEIGHTS[h.path];
+  const scored = styles.map((st) => {
+    const ax = styleAxes(st);
+    const fit = ax[0] * w[0] + ax[1] * w[1] + ax[2] * w[2];
+    const lack = (ax[0] * need[0] + ax[1] * need[1] + ax[2] * need[2]) / needSum;
+    return { id: st.id, score: fit + 0.6 * lack };
+  });
+  const top = Math.max(...scored.map((x) => x.score));
+  const weights = scored.map((x) => Math.max(0.5, 1 + (x.score - top)));
+  // A seeded roll per piece (not a shared stream), so asking for the pick never changes it.
+  let roll = unitRoll(ctx.s.seed, u.id) * weights.reduce((a, b) => a + b, 0);
+  for (let i = 0; i < scored.length; i++) {
+    roll -= weights[i];
+    if (roll <= 0) return scored[i].id;
+  }
+  return scored[scored.length - 1].id;
+}
+
+/** A deterministic number in [0, 1) from the match seed and a unit id. */
+function unitRoll(seed: number, id: number): number {
+  let x = (seed ^ Math.imul(id + 1, 0x9e3779b1)) >>> 0;
+  x = Math.imul(x ^ (x >>> 16), 0x45d9f3b) >>> 0;
+  x = Math.imul(x ^ (x >>> 16), 0x45d9f3b) >>> 0;
+  x = (x ^ (x >>> 16)) >>> 0;
+  return x / 4294967296;
 }
 
 export function aiForkPick(ctx: Ctx, u: Unit, rank: 4 | 8): string {
-  const opts = forkOptions(ctx, u, rank);
+  if (rank === 4) return aiArchetypePick(ctx, u);
+  const st = styleDef(ctx.c, u.hero!);
+  if (!st) return '';
+  const opts = st.forks['8'];
   let best = opts[0];
   let bestScore = -Infinity;
   const kit = kitOf(ctx.c, u.hero!);
@@ -130,7 +205,14 @@ export function aiForkPick(ctx: Ctx, u: Unit, rank: 4 | 8): string {
 }
 
 function applyFork(ctx: Ctx, u: Unit, rank: 4 | 8, optionId: string, auto: boolean): void {
-  u.hero!.perks.push({ rank, optionId });
+  const h = u.hero!;
+  if (rank === 8 && h.style === null) {
+    // The skill fork can only follow an archetype: settle that first.
+    applyFork(ctx, u, 4, aiArchetypePick(ctx, u), true);
+    optionId = aiForkPick(ctx, u, 8);
+  }
+  if (rank === 4) h.style = optionId;
+  h.perks.push({ rank, optionId });
   u.dirty = true;
   ctx.emit('fork', { id: u.id, rank, optionId, auto });
 }
@@ -156,9 +238,9 @@ function rankTo(ctx: Ctx, u: Unit, rank: number): void {
     } else applyFork(ctx, u, rank, aiForkPick(ctx, u, rank), true);
     return;
   }
-  h.perks.push({ rank, optionId: null });
-  const st = styleDef(ctx.c, h);
-  const perk = st.ranks[String(rank) as keyof typeof st.ranks];
+  const ref = { rank, optionId: null };
+  h.perks.push(ref);
+  const perk = perkOf(pieceDef(ctx.c, h), styleDef(ctx.c, h), ref);
   ctx.emit('rankUp', { id: u.id, rank, bonus: perk?.name ?? '' });
 }
 

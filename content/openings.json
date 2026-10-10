@@ -1,0 +1,26 @@
+[
+  {
+    "id": "italian",
+    "name": "Italian Game",
+    "desc": "Balanced. The hand draws every school evenly.",
+    "schools": []
+  },
+  {
+    "id": "sicilian",
+    "name": "Sicilian Defence",
+    "desc": "Sharp and active: Initiative and March cards come up twice as often.",
+    "schools": ["initiative", "march"]
+  },
+  {
+    "id": "french",
+    "name": "French Defence",
+    "desc": "Solid and patient: Fortress and Position cards come up twice as often.",
+    "schools": ["fortress", "position"]
+  },
+  {
+    "id": "kings_gambit",
+    "name": "King's Gambit",
+    "desc": "Bold and costly: Sacrifice and March cards come up twice as often.",
+    "schools": ["sacrifice", "march"]
+  }
+]

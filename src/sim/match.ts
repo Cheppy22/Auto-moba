@@ -11,7 +11,7 @@ import { seedStreams } from './core/rng';
 import { strategicUpdate } from './ai/strategic';
 import { updateFronts } from './ai/lanes';
 import { tickEvents } from './events';
-import { cardBlock, initHands, tickGambits } from './gambits';
+import { POISON_MOD, cardBlock, initHands, tickGambits } from './gambits';
 import { createKeeper } from './keeper';
 import { tickObelisks } from './obelisks';
 import { pawnCap, pawnsAlive } from './pawns';
@@ -45,10 +45,10 @@ import type {
   Recorder,
   Replay,
   ReplayOp,
-  SetupEntry,
   SnapGambit,
   SnapUnit,
   Snapshot,
+  TeamSetup,
   Unit,
 } from './types';
 
@@ -101,6 +101,9 @@ function initialState(content: Content, config: MatchConfig): MatchState {
     nextWaveTick: 0,
     obeliskSchedule: [],
     setup: { A: config.setup?.A ?? defaultA, B: config.setup?.B ?? pickB },
+    opening: { A: (config.setup?.A ?? defaultA).opening, B: (config.setup?.B ?? pickB).opening },
+    teamDamage: { A: null, B: null },
+    forceStyles: { A: config.forceStyles?.A ?? {}, B: config.forceStyles?.B ?? {} },
     autoGambits: { A: config.autoGambits?.A ?? false, B: config.autoGambits?.B ?? true },
     autoForks: {
       A: config.autoForks?.A ?? config.autoGambits?.A ?? false,
@@ -156,9 +159,10 @@ function buildCtx(content: Content, state: MatchState, pauseForForks: boolean): 
   return ctx;
 }
 
-function startMatch(ctx: Ctx, white: SetupEntry[]): void {
+function startMatch(ctx: Ctx, white: TeamSetup): void {
   const s = ctx.s;
   s.setup.A = white;
+  s.opening = { A: white.opening, B: s.setup.B.opening };
   for (const team of ['A', 'B'] as PlayTeam[]) {
     for (const lane of LANES) {
       makeTower(ctx, team, lane as LaneId, 0);
@@ -167,8 +171,8 @@ function startMatch(ctx: Ctx, white: SetupEntry[]): void {
     makeGuardian(ctx, team);
   }
   createKeeper(ctx);
-  placeTeam(ctx, 'A', s.setup.A);
-  placeTeam(ctx, 'B', s.setup.B);
+  placeTeam(ctx, 'A', s.setup.A.pieces);
+  placeTeam(ctx, 'B', s.setup.B.pieces);
   initAuction(ctx);
   const heroes = [...s.teams.A.heroIds, ...s.teams.B.heroIds].map((id) => {
     const u = ctx.unit(id)!;
@@ -250,8 +254,9 @@ export class Match {
   }
 
   /** White's pre-filled setup (the AI default), for the setup board and headless runs. */
-  defaultSetup(): SetupEntry[] {
-    return this.ctx.s.setup.A.map((e) => ({ ...e }));
+  defaultSetup(): TeamSetup {
+    const d = this.ctx.s.setup.A;
+    return { opening: d.opening, pieces: d.pieces.map((e) => ({ ...e })) };
   }
 
   get state(): MatchState {
@@ -295,7 +300,7 @@ export class Match {
   /** Runs to checkmate (or the Act limit). A match still in setup starts with White's default. */
   runToEnd(maxPhases = 12): void {
     if (this.ctx.s.phase.kind === 'setup')
-      this.issue({ type: 'setupTeam', pieces: this.defaultSetup() });
+      this.issue({ type: 'setupTeam', ...this.defaultSetup() });
     const act = actTicks(this.ctx);
     while (this.ctx.s.phase.kind === 'live' && this.ctx.s.phase.n <= maxPhases) {
       if (this.step(act) === 0) break;
@@ -364,6 +369,7 @@ export class Match {
         lane: h ? h.lane : u.lane,
         role: h ? h.role : null,
         marked: u.mods.some((m) => m.id === 'gambit:check'),
+        poisoned: u.mods.some((m) => m.id === POISON_MOD),
         stunned: u.stunUntil !== undefined && u.stunUntil > s.tick,
         attackKind: h ? attackKindOf(c, h) : null,
         recalling: !!h?.recall,
@@ -387,6 +393,7 @@ export class Match {
       return {
         slot: i,
         cardId: def ? def.id : '',
+        school: def ? def.school : null,
         name: def ? def.name : '',
         desc: def ? def.desc : '',
         cost: def ? def.cost : 0,
@@ -453,6 +460,7 @@ export class Match {
           return {
             heroId: f.heroId,
             piece: u.hero!.defId,
+            kind: f.rank === 4 ? ('archetype' as const) : ('skill' as const),
             style: u.hero!.style,
             rank: f.rank,
             options: forkOptions(this.ctx, u, f.rank).map((o) => ({
@@ -465,13 +473,20 @@ export class Match {
         }),
       check: { ...s.check },
       throneDown: { ...s.throneDown },
-      zones: s.zones.map((z) => ({
-        team: z.team,
-        x: z.x,
-        y: z.y,
-        radius: z.radius,
-        ticksLeft: Math.max(0, z.endTick - s.tick),
-      })),
+      opening: s.phase.kind === 'setup' ? { A: null, B: null } : { ...s.opening },
+      zones: s.zones.map((z) => {
+        const wall = z.wall;
+        return {
+          kind: z.kind,
+          team: z.team,
+          ...(z.lane ? { lane: z.lane } : {}),
+          x: z.x,
+          y: z.y,
+          radius: z.radius,
+          ...(wall ? { angle: Math.atan2(wall.by - wall.ay, wall.bx - wall.ax) } : {}),
+          ticksLeft: Math.max(0, z.endTick - s.tick),
+        };
+      }),
     };
   }
 

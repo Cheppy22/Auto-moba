@@ -10,7 +10,7 @@ export function Aim(props: { snap: Snapshot }) {
   if (!aim) return null;
   let title = 'Field a Pawn';
   let desc = 'It spawns at your base and marches the lane you pick.';
-  let kind: 'lane' | 'point' | 'enemy' = 'lane';
+  let kind: 'lane' | 'point' | 'enemy' | 'ally' = 'lane';
   if (aim.kind === 'gambit') {
     const c = props.snap.hand[aim.slot];
     if (!c || c.cardId !== aim.cardId) return null;
@@ -21,11 +21,13 @@ export function Aim(props: { snap: Snapshot }) {
   const hint =
     kind === 'point'
       ? 'Tap the board to choose a spot'
-      : kind === 'enemy'
-        ? aim.kind === 'gambit' && aim.cardId === 'siege'
-          ? 'Tap a Black Bastion or the Black Throne'
-          : 'Tap a Black piece'
-        : 'Choose a lane';
+      : kind === 'ally'
+        ? 'Tap one of your pieces'
+        : kind === 'enemy'
+          ? aim.kind === 'gambit' && aim.cardId === 'siege'
+            ? 'Tap a Black Bastion or the Black Throne'
+            : 'Tap a Black piece'
+          : 'Choose a lane';
   return (
     <div class={`aim glass ${kind}`} data-testid="aim" role="group" aria-label={`Aim ${title}`}>
       <div class="aim-head">

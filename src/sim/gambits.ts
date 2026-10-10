@@ -1,5 +1,5 @@
 import { TPS } from './combat';
-import { healUnit, stunUnit } from './combat';
+import { dealDamage, healUnit, stunUnit } from './combat';
 import { gambitEffect } from './content/loader';
 import type { GambitDef, LaneId } from './content/schema';
 import { dist } from './core/math';
@@ -9,10 +9,13 @@ import { enemyTowerTarget } from './ai/lanes';
 import { fieldPawn, pawnCap, pawnsAlive } from './pawns';
 import { teamPiece } from './pieces';
 import { addMod } from './stats';
-import { LANES } from './world/map';
-import { confine, walkable } from './world/terrain';
-import type { CommandResult, GambitOrder, Modifier, PlayTeam, Unit } from './types';
+import { LANES, lanePoint } from './world/map';
+import { confine, shapeDist, walkable, type WalkShape } from './world/terrain';
+import type { CommandResult, GambitOrder, Modifier, PlayTeam, Unit, ZoneState } from './types';
 import { other } from './types';
+
+/** The mod that marks a Poisoned Pawn (a no-op multiplier; its presence is the mark). */
+export const POISON_MOD = 'gambit:poisoned_pawn';
 
 export interface GambitTarget {
   lane?: LaneId;
@@ -49,7 +52,14 @@ function drawCard(ctx: Ctx, team: PlayTeam): string | null {
   const fresh = deck.filter((g) => !held.has(g.id));
   const pool = fresh.length > 0 ? fresh : deck;
   if (pool.length === 0) return null;
-  return weightedPick(ctx.s.rng, 'gambit', pool, (g) => g.weight).id;
+  // The opening's two schools come up twice as often.
+  const favoured = ctx.c.openingById.get(ctx.s.opening[team])?.schools ?? [];
+  return weightedPick(
+    ctx.s.rng,
+    'gambit',
+    pool,
+    (g) => g.weight * (favoured.includes(g.school) ? 2 : 1),
+  ).id;
 }
 
 function deal(ctx: Ctx, team: PlayTeam, slot: number): void {
@@ -79,7 +89,9 @@ export function cardBlock(ctx: Ctx, team: PlayTeam, slot: number): string {
     if (!u?.alive) return `${ctx.c.pieceById.get(def.piece)!.name} is down`;
   }
   if (ctx.s.tempo[team] < def.cost) return 'not enough Tempo';
-  if (gambitEffect(def) === 'castle' && !teamPiece(ctx, team, 'rook')?.alive) return 'Rook is down';
+  const eff = gambitEffect(def);
+  if (eff === 'castle' && !teamPiece(ctx, team, 'rook')?.alive) return 'Rook is down';
+  if (eff === 'pawn_sacrifice' && pawnsAlive(ctx, team) === 0) return 'no pawn to sacrifice';
   return '';
 }
 
@@ -121,6 +133,91 @@ function laneUnits(ctx: Ctx, team: PlayTeam, lane: LaneId, pieces: boolean): Uni
   return out;
 }
 
+/** Your front-most elite pawn in a lane: the one nearest the enemy's front Bastion. */
+function frontPawn(ctx: Ctx, team: PlayTeam, lane: LaneId): Unit | null {
+  const aim = enemyTowerTarget(ctx, team, lane) ?? ctx.guardians[other(team)];
+  let best: Unit | null = null;
+  let bestD = Infinity;
+  for (const u of ctx.s.units) {
+    if (!u.alive || !u.pawn || u.team !== team || u.lane !== lane) continue;
+    const d = aim ? dist(u.x, u.y, aim.x, aim.y) : 0;
+    if (d < bestD) {
+      bestD = d;
+      best = u;
+    }
+  }
+  return best;
+}
+
+/** Pawn Sacrifice: the pawn that goes and the enemy Bastion in that lane nearest to it. */
+function sacrificePlan(
+  ctx: Ctx,
+  team: PlayTeam,
+  lane: LaneId,
+): { pawn: Unit; tower: Unit } | string {
+  const pawn = frontPawn(ctx, team, lane);
+  if (!pawn) return 'no elite pawn of yours in that lane';
+  let tower: Unit | null = null;
+  let bestD = Infinity;
+  for (const tw of ctx.towers[other(team)][lane]) {
+    if (!tw?.alive) continue;
+    const d = dist(pawn.x, pawn.y, tw.x, tw.y);
+    if (d < bestD) {
+      bestD = d;
+      tower = tw;
+    }
+  }
+  if (!tower) return 'no enemy Bastion left in that lane';
+  return { pawn, tower };
+}
+
+/** The wall a Barricade raises: across the gate path or lane corridor nearest to the point. */
+function wallFor(
+  ctx: Ctx,
+  def: GambitDef,
+  x: number,
+  y: number,
+): NonNullable<ZoneState['wall']> | null {
+  const k = ctx.world.k;
+  let best: WalkShape | null = null;
+  let bestD = Infinity;
+  for (const sh of ctx.world.terrain.shapes) {
+    if (sh.kind !== 'lane' && sh.kind !== 'port') continue;
+    if (sh.slot !== null && !ctx.open.has(sh.slot)) continue;
+    const d = shapeDist(sh, x, y) + sh.r;
+    if (d < bestD) {
+      bestD = d;
+      best = sh;
+    }
+  }
+  if (!best || bestD > p(def, 'reach', 300) * k) return null;
+  const dx = best.bx - best.ax;
+  const dy = best.by - best.ay;
+  const l2 = dx * dx + dy * dy;
+  if (l2 === 0) return null;
+  const lo = best.kind === 'port' ? 0.25 : 0;
+  const hi = best.kind === 'port' ? 0.75 : 1;
+  const f = Math.max(lo, Math.min(hi, ((x - best.ax) * dx + (y - best.ay) * dy) / l2));
+  const cx = best.ax + dx * f;
+  const cy = best.ay + dy * f;
+  const l = Math.sqrt(l2);
+  const nx = -dy / l;
+  const ny = dx / l;
+  const half = best.r + p(def, 'margin', 12);
+  return {
+    ax: cx - nx * half,
+    ay: cy - ny * half,
+    bx: cx + nx * half,
+    by: cy + ny * half,
+    r: p(def, 'thickness', 14),
+  };
+}
+
+/** Keeps the terrain's walls in step with the Barricades that stand. */
+function syncWalls(ctx: Ctx): void {
+  ctx.world.terrain.blocks = ctx.s.zones.flatMap((z) => (z.wall ? [z.wall] : []));
+}
+
 function validTarget(
   ctx: Ctx,
   team: PlayTeam,
@@ -128,9 +225,19 @@ function validTarget(
   t: GambitTarget,
 ): string | GambitTarget {
   switch (def.target) {
-    case 'lane':
+    case 'lane': {
       if (!t.lane || !LANES.includes(t.lane)) return 'pick a lane';
+      const eff = gambitEffect(def);
+      if (eff === 'pawn_sacrifice') {
+        const plan = sacrificePlan(ctx, team, t.lane);
+        return typeof plan === 'string' ? plan : { lane: t.lane, targetId: plan.pawn.id };
+      }
+      if (eff === 'poisoned_pawn') {
+        const pawn = frontPawn(ctx, team, t.lane);
+        return pawn ? { lane: t.lane, targetId: pawn.id } : 'no elite pawn of yours in that lane';
+      }
       return { lane: t.lane };
+    }
     case 'point': {
       const size = ctx.world.map.size;
       if (t.x === undefined || t.y === undefined || !Number.isFinite(t.x) || !Number.isFinite(t.y))
@@ -139,7 +246,30 @@ function validTarget(
       const q = walkable(ctx.world.terrain, ctx.open, t.x, t.y)
         ? { x: t.x, y: t.y }
         : confine(ctx.world.terrain, ctx.open, t.x, t.y);
+      const eff = gambitEffect(def);
+      if (eff === 'barricade') {
+        const w = wallFor(ctx, def, q.x, q.y);
+        if (!w) return 'no gate path or crossing near that point';
+        return { x: (w.ax + w.bx) / 2, y: (w.ay + w.by) / 2 };
+      }
+      if (eff === 'outpost') {
+        const reach = p(def, 'reach', 260) * ctx.world.k;
+        const mine = countNear(
+          ctx,
+          team,
+          q.x,
+          q.y,
+          reach,
+          (u) => u.kind === 'hero' || u.kind === 'minion',
+        );
+        if (mine === 0) return 'none of your units are near that point';
+      }
       return { x: q.x, y: q.y };
+    }
+    case 'ally': {
+      const u = t.targetId !== undefined ? ctx.unit(t.targetId) : undefined;
+      if (!u || !u.alive || u.team !== team || !u.hero) return 'pick one of your pieces';
+      return { targetId: u.id };
     }
     case 'enemy': {
       const u = t.targetId !== undefined ? ctx.unit(t.targetId) : undefined;
@@ -281,12 +411,73 @@ function applyCard(ctx: Ctx, team: PlayTeam, def: GambitDef, t: GambitTarget): v
     }
     case 'sanctuary':
       s.zones.push({
+        kind: 'sanctuary',
         team,
         cardId: def.id,
         x: t.x!,
         y: t.y!,
         radius: p(def, 'radius', 140),
-        healPctPerSec: p(def, 'healPctPerSec', 0.04),
+        endTick: until,
+      });
+      break;
+    case 'pawn_sacrifice': {
+      const plan = sacrificePlan(ctx, team, t.lane!);
+      if (typeof plan === 'string') break;
+      const { pawn, tower } = plan;
+      // The pawn spends itself: one hit of twice its health, past the structure damage cap.
+      dealDamage(ctx, pawn, tower, pawn.stats.maxHp * p(def, 'hpMul', 2), 'true', tag, true);
+      pawn.alive = false;
+      pawn.hp = 0;
+      break;
+    }
+    case 'exchange': {
+      const u = ctx.unit(t.targetId!)!;
+      u.hp = Math.max(1, u.hp * (1 - p(def, 'healthLoss', 0.25)));
+      s.teamDamage[team] = { value: p(def, 'damageMul', 1.15), untilTick: until };
+      break;
+    }
+    case 'poisoned_pawn':
+      timedMod(ctx, ctx.unit(t.targetId!)!, POISON_MOD, 'damageTakenMult', 1, dur);
+      break;
+    case 'barricade': {
+      const wall = wallFor(ctx, def, t.x!, t.y!);
+      if (!wall) break;
+      s.zones.push({
+        kind: 'barricade',
+        team,
+        cardId: def.id,
+        x: (wall.ax + wall.bx) / 2,
+        y: (wall.ay + wall.by) / 2,
+        radius: Math.hypot(wall.bx - wall.ax, wall.by - wall.ay) / 2,
+        wall,
+        endTick: until,
+      });
+      syncWalls(ctx);
+      break;
+    }
+    case 'open_file': {
+      const lane = t.lane!;
+      const mid = lanePoint(ctx.world.lanes[lane], 0.5);
+      s.zones.push({
+        kind: 'openFile',
+        team,
+        cardId: def.id,
+        lane,
+        x: mid.x,
+        y: mid.y,
+        radius: 0,
+        endTick: until,
+      });
+      break;
+    }
+    case 'outpost':
+      s.zones.push({
+        kind: 'outpost',
+        team,
+        cardId: def.id,
+        x: t.x!,
+        y: t.y!,
+        radius: p(def, 'radius', 160) * ctx.world.k,
         endTick: until,
       });
       break;
@@ -371,8 +562,46 @@ export function tickGambits(ctx: Ctx): void {
     }
   }
   if (s.zones.length) {
+    const standing = s.zones.length;
     s.zones = s.zones.filter((z) => z.endTick > s.tick);
-    for (const z of s.zones) {
+    if (s.zones.length !== standing) syncWalls(ctx);
+    for (const z of s.zones) tickZone(ctx, z);
+  }
+  for (const team of ['A', 'B'] as PlayTeam[]) {
+    if (!s.autoGambits[team]) continue;
+    if (s.tick % TPS === (team === 'A' ? 5 : 15)) aiGambits(ctx, team);
+  }
+}
+
+/** Holds a mod on a unit while a zone covers it (a short expiry the zone keeps renewing). */
+function holdMod(
+  ctx: Ctx,
+  u: Unit,
+  z: ZoneState,
+  id: string,
+  stat: Modifier['stat'],
+  kind: Modifier['kind'],
+  value: number,
+): void {
+  const have = u.mods.find((m) => m.id === id);
+  if (have && have.expiresTick !== null && have.expiresTick - ctx.s.tick > 6) return;
+  addMod(ctx, u, {
+    id,
+    stat,
+    kind,
+    value,
+    source: id,
+    tags: [],
+    expiresTick: Math.min(z.endTick, ctx.s.tick + 12),
+  });
+}
+
+function tickZone(ctx: Ctx, z: ZoneState): void {
+  const s = ctx.s;
+  const def = ctx.c.gambitById.get(z.cardId);
+  if (!def) return;
+  switch (z.kind) {
+    case 'sanctuary':
       for (const u of ctx.grid.query(z.x, z.y, z.radius)) {
         if (!u.alive || u.team !== z.team || (u.kind !== 'hero' && u.kind !== 'minion')) continue;
         if (dist(u.x, u.y, z.x, z.y) > z.radius) continue;
@@ -380,17 +609,56 @@ export function tickGambits(ctx: Ctx): void {
           ctx,
           null,
           u,
-          (u.stats.maxHp * z.healPctPerSec) / TPS,
+          (u.stats.maxHp * p(def, 'healPctPerSec', 0.04)) / TPS,
           `gambit:${z.cardId}`,
           false,
         );
       }
-    }
+      break;
+    case 'outpost':
+      if (s.tick % 5 !== 0) break;
+      for (const u of ctx.grid.query(z.x, z.y, z.radius)) {
+        if (!u.alive || u.team !== z.team || (u.kind !== 'hero' && u.kind !== 'minion')) continue;
+        if (u.ev || dist(u.x, u.y, z.x, z.y) > z.radius) continue;
+        holdMod(ctx, u, z, `gambit:${z.cardId}:a`, 'armor', 'add', p(def, 'armor', 20));
+        holdMod(ctx, u, z, `gambit:${z.cardId}:r`, 'resist', 'add', p(def, 'resist', 20));
+      }
+      break;
+    case 'openFile':
+      if (s.tick % 5 !== 0) break;
+      for (const u of s.units) {
+        if (!u.alive || u.team !== z.team || u.ev) continue;
+        const lane = u.hero ? u.hero.lane : u.kind === 'minion' ? u.lane : null;
+        if (lane !== z.lane) continue;
+        holdMod(ctx, u, z, `gambit:${z.cardId}`, 'moveSpeed', 'mul', p(def, 'moveSpeedMul', 1.25));
+      }
+      break;
+    case 'barricade':
+      break;
   }
-  for (const team of ['A', 'B'] as PlayTeam[]) {
-    if (!s.autoGambits[team]) continue;
-    if (s.tick % TPS === (team === 'A' ? 5 : 15)) aiGambits(ctx, team);
-  }
+}
+
+/**
+ * Poisoned Pawn: whoever kills the marked pawn is slowed, and their team loses Tempo. Called for
+ * every unit that dies (a no-op unless it carries the mark).
+ */
+export function onPoisonedDeath(ctx: Ctx, victim: Unit, killer: Unit | null): void {
+  const mark = victim.mods.find((m) => m.id === POISON_MOD);
+  if (!mark || (mark.expiresTick !== null && mark.expiresTick <= ctx.s.tick)) return;
+  if (!killer || killer.team === 'neutral' || killer.team === victim.team) return;
+  const def = ctx.c.gambitById.get('poisoned_pawn');
+  if (!def) return;
+  const team = killer.team;
+  ctx.s.tempo[team] = Math.max(0, ctx.s.tempo[team] - p(def, 'tempoLoss', 10));
+  if (killer.kind === 'hero' || killer.kind === 'minion')
+    timedMod(
+      ctx,
+      killer,
+      `${POISON_MOD}:slow`,
+      'moveSpeed',
+      p(def, 'slowMul', 0.6),
+      p(def, 'slowSec', 4),
+    );
 }
 
 // ---------------------------------------------------------------- AI
@@ -575,6 +843,115 @@ function plan(ctx: Ctx, team: PlayTeam, def: GambitDef): Plan | null {
         const guards = countNear(ctx, foe, e.x, e.y, 350, isPiece);
         const score = 0.5 + (1 - hpPct(e)) * 0.9 + 0.2 * allies - 0.2 * Math.max(0, guards - 1);
         if (!best || score > best.score) best = { score, target: { targetId: e.id } };
+      }
+      return best;
+    }
+    case 'pawn_sacrifice': {
+      let best: Plan | null = null;
+      for (const lane of LANES) {
+        const sp = sacrificePlan(ctx, team, lane);
+        if (typeof sp === 'string') continue;
+        const hit = sp.pawn.stats.maxHp * p(def, 'hpMul', 2);
+        const frac = Math.min(1, hit / Math.max(1, sp.tower.hp));
+        if (frac < 0.5) continue;
+        const allies = countNear(ctx, team, sp.tower.x, sp.tower.y, 700 * ctx.world.k, isPiece);
+        const score =
+          0.35 + 1.1 * frac + 0.15 * Math.min(3, allies) + (hit >= sp.tower.hp ? 0.4 : 0);
+        if (!best || score > best.score) best = { score, target: { lane } };
+      }
+      return best;
+    }
+    case 'exchange': {
+      const fighting = mine.filter((u) => inFight(ctx, u));
+      if (fighting.length < 2) return null;
+      let foes = 0;
+      for (const e of theirs) if (inFight(ctx, e)) foes++;
+      if (foes < 2) return null;
+      let giver: Unit | null = null;
+      for (const u of fighting) {
+        if (hpPct(u) < 0.6) continue;
+        if (!giver || u.stats.maxHp * hpPct(u) > giver.stats.maxHp * hpPct(giver)) giver = u;
+      }
+      if (!giver) return null;
+      return {
+        score: 0.4 + 0.3 * fighting.length + 0.1 * foes,
+        target: { targetId: giver.id },
+      };
+    }
+    case 'poisoned_pawn': {
+      let best: Plan | null = null;
+      for (const lane of LANES) {
+        const pawn = frontPawn(ctx, team, lane);
+        if (!pawn) continue;
+        const e = countNear(ctx, foe, pawn.x, pawn.y, 400 * ctx.world.k, isPiece);
+        if (e === 0) continue;
+        const score = 0.45 + 0.35 * e + (1 - hpPct(pawn)) * 0.5;
+        if (!best || score > best.score) best = { score, target: { lane } };
+      }
+      return best;
+    }
+    case 'barricade': {
+      const k = ctx.world.k;
+      let best: Plan | null = null;
+      for (const lane of LANES) {
+        const [o, i] = ctx.towers[team][lane];
+        const st = o?.alive ? o : i?.alive ? i : ctx.guardians[team];
+        if (!st || !st.alive) continue;
+        let n = 0;
+        let pieces = 0;
+        let cx = 0;
+        let cy = 0;
+        for (const u of ctx.grid.query(st.x, st.y, 900 * k)) {
+          if (!u.alive || u.team !== foe || u.lane !== lane || u.ev) continue;
+          if (u.kind !== 'minion' && u.kind !== 'hero') continue;
+          n++;
+          if (u.kind === 'hero') pieces++;
+          cx += u.x;
+          cy += u.y;
+        }
+        if (n < 4) continue;
+        cx /= n;
+        cy /= n;
+        const d = dist(cx, cy, st.x, st.y) || 1;
+        // A wall just ahead of the column, on the way to our Bastion.
+        const ahead = Math.min(d * 0.5, 160 * k);
+        const target = { x: cx + ((st.x - cx) / d) * ahead, y: cy + ((st.y - cy) / d) * ahead };
+        const score = 0.1 * n + 0.25 * pieces;
+        if (!best || score > best.score) best = { score, target };
+      }
+      return best;
+    }
+    case 'open_file': {
+      let best: Plan | null = null;
+      for (const lane of LANES) {
+        if (!enemyTowerTarget(ctx, team, lane) && !ctx.guardians[foe]?.alive) continue;
+        let n = 0;
+        for (const u of ctx.s.units) {
+          if (!u.alive || u.team !== team || u.ev) continue;
+          if ((u.hero ? u.hero.lane : u.kind === 'minion' ? u.lane : null) === lane) n++;
+        }
+        const score = 0.1 * n;
+        if (!best || score > best.score) best = { score, target: { lane } };
+      }
+      return best;
+    }
+    case 'outpost': {
+      const reach = p(def, 'radius', 160) * ctx.world.k;
+      let best: Plan | null = null;
+      for (const u of mine) {
+        if (!inFight(ctx, u)) continue;
+        const n = countNear(
+          ctx,
+          team,
+          u.x,
+          u.y,
+          reach,
+          (v) => v.kind === 'hero' || (v.kind === 'minion' && !v.ev),
+        );
+        const e = countNear(ctx, foe, u.x, u.y, reach * 1.5, isPiece);
+        if (n < 3 || e === 0) continue;
+        const score = 0.25 * n + 0.2 * e;
+        if (!best || score > best.score) best = { score, target: { x: u.x, y: u.y } };
       }
       return best;
     }

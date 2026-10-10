@@ -69,7 +69,7 @@ export function makeHero(ctx: Ctx, team: PlayTeam, slot: number, entry: SetupEnt
   u.lane = role;
   const hero: HeroState = {
     defId,
-    style: entry.style,
+    style: null,
     path: entry.path,
     rank: 1,
     perks: [],

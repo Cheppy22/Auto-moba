@@ -16,6 +16,7 @@ import { Arena } from './arena';
 import { CameraRig } from './camera';
 import { BadgeBatch, BarBatch, EventRing, StreakPool } from './fx';
 import { GambitFx } from './gambit';
+import { ZoneFx } from './zones';
 import { hash, Kit, STONE, STONE_DARK } from './kit';
 import {
   BastionModel,
@@ -150,6 +151,7 @@ export class BroadcastView {
   private readonly bars: BarBatch;
   private readonly badges: BadgeBatch;
   private readonly gambits: GambitFx;
+  private readonly zones: ZoneFx;
   private readonly streaks: StreakPool;
   private readonly unitGroup = new Group();
   private readonly views = new Map<number, UnitView>();
@@ -246,6 +248,7 @@ export class BroadcastView {
     this.bars = new BarBatch(this.kit);
     this.badges = new BadgeBatch(this.kit);
     this.gambits = new GambitFx(this.kit);
+    this.zones = new ZoneFx(this.kit, content.map.lanes);
     this.streaks = new StreakPool(this.kit);
     this.unitGroup.add(this.minions.group);
     this.scene.add(
@@ -254,6 +257,7 @@ export class BroadcastView {
       this.physics.group,
       this.streaks.group,
       this.gambits.group,
+      this.zones.group,
       this.bars.group,
       this.badges.group,
     );
@@ -357,7 +361,7 @@ export class BroadcastView {
     this.badges.end(this.time);
     this.syncRings(snap);
     this.zonesFromSnap = Array.isArray(snap.zones);
-    if (snap.zones) this.gambits.setZones(snap.zones, this.half, this.zoneGround, this.time);
+    if (snap.zones) this.zones.setZones(snap.zones, this.half, this.zoneGround, this.time, dt);
     this.gambits.update(dt, this.time, this.unitPos);
     this.streaks.update(dt);
     this.physics.update(frame.dtMs);
@@ -1027,6 +1031,7 @@ export class BroadcastView {
     this.physics.clear();
     this.streaks.clear();
     this.gambits.clear();
+    this.zones.clear();
     this.drawn = 0;
   }
 

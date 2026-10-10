@@ -106,7 +106,7 @@ for (let k = 0; k < N; k++) {
   const fightStart = new Map<number, { tick: number; hp: number }>();
   for (let guard = 0; guard < 60 && ctx.s.phase.kind !== 'end'; guard++) {
     if (ctx.s.phase.kind !== 'live') {
-      m.issue({ type: 'setupTeam', pieces: m.defaultSetup() });
+      m.issue({ type: 'setupTeam', ...m.defaultSetup() });
       continue;
     }
     while (ctx.s.phase.kind === 'live') {

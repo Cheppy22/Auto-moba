@@ -1,7 +1,7 @@
-// Style check: for one piece, force White to each style in turn (Black keeps its AI pick) and
-// report White's win rate per style. Usage: tsx tools/pairwise.ts <piece> [matches per style]
+// Archetype check: for one piece, force White to each archetype at Rank 4 in turn (Black keeps its
+// AI pick) and report White's win rate per style. Usage: tsx tools/pairwise.ts <piece> [matches per style]
 import { loadNodeContent } from './content-node';
-import { Match, type PieceId } from '../src/sim';
+import type { PieceId } from '../src/sim';
 import { simulateMatch } from './simulate';
 
 const piece = (process.argv[2] ?? 'knight') as PieceId;
@@ -17,10 +17,7 @@ for (const style of def.styles) {
   const mins: number[] = [];
   for (let k = 0; k < per; k++) {
     const seed = 9000 + k;
-    const A = Match.create(content, { seed })
-      .defaultSetup()
-      .map((e) => (e.piece === piece ? { ...e, style: style.id } : e));
-    const r = simulateMatch(content, seed, { setup: { A } });
+    const r = simulateMatch(content, seed, { forceStyles: { A: { [piece]: style.id } } });
     if (r.winner) {
       n++;
       if (r.winner === 'A') w++;

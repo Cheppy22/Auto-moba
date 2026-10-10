@@ -2,23 +2,32 @@ import { useState } from 'preact/hooks';
 import type { Path, PieceId, SetupEntry } from '../sim';
 import { LaneBoard } from './LaneBoard';
 import { PATHS, PATH_HINT, PATH_LABEL, PIECE_ORDER, PieceGlyph, LANE_LABEL } from './pieces';
+import { SchoolChip } from './schools';
 import { useSession } from './session';
 
-/** The setup board: a style and a build path for each of White's five pieces, then the lanes. */
+/** The setup board: an Opening, a build path for each of White's five pieces, then the lanes. */
 export function Setup() {
   const s = useSession();
   const m = s.match!;
   const [entries, setEntries] = useState<SetupEntry[]>(() => {
     const d = m.defaultSetup();
-    return PIECE_ORDER.map((p) => d.find((e) => e.piece === p)!);
+    return PIECE_ORDER.map((p) => d.pieces.find((e) => e.piece === p)!);
   });
   const [selected, setSelected] = useState<PieceId | null>(null);
+  const openings = s.content.openings;
+  const [opening, setOpening] = useState<string>(
+    () => (openings.find((o) => o.id === 'italian') ?? openings[0])?.id ?? 'italian',
+  );
   const names: Record<string, string> = {};
   for (const p of s.content.pieces) names[p.id] = p.name;
   const patch = (piece: PieceId, change: Partial<SetupEntry>): void =>
     setEntries(entries.map((e) => (e.piece === piece ? { ...e, ...change } : e)));
   const begin = (): void => {
-    s.issue({ type: 'setupTeam', pieces: entries });
+    s.issue({
+      type: 'setupTeam',
+      opening,
+      pieces: entries.map(({ piece, path, lane }) => ({ piece, path, lane })),
+    });
   };
   return (
     <div class="overlay setup" data-testid="setup">
@@ -27,8 +36,8 @@ export function Setup() {
           <div class="setup-title">
             <h2>Set the board</h2>
             <p class="dim small">
-              Choose each piece’s style and build path, then tap a piece and a lane. Black’s court
-              is chosen in secret.
+              Pick an Opening and each piece’s build path, then tap a piece and a lane. Black’s
+              court is chosen in secret.
             </p>
           </div>
           <LaneBoard
@@ -38,11 +47,32 @@ export function Setup() {
             onSelect={setSelected}
             onChange={(next) => setEntries(next as SetupEntry[])}
           />
+          <div class="openings" role="radiogroup" aria-label="Opening" data-testid="openings">
+            {openings.map((o) => (
+              <button
+                key={o.id}
+                class={`opening ${opening === o.id ? 'on' : ''}`}
+                role="radio"
+                aria-checked={opening === o.id}
+                data-testid={`opening-${o.id}`}
+                onClick={() => setOpening(o.id)}
+              >
+                <b class="opening-name">{o.name}</b>
+                <span class="opening-desc tiny dim">{o.desc}</span>
+                <span class="opening-schools">
+                  {o.schools.length === 0 ? (
+                    <span class="school-chip balanced">Balanced</span>
+                  ) : (
+                    o.schools.map((sc) => <SchoolChip key={sc} school={sc} />)
+                  )}
+                </span>
+              </button>
+            ))}
+          </div>
         </header>
         <div class="setup-cards" data-testid="setup-cards">
           {entries.map((e) => {
             const def = s.content.pieceById.get(e.piece)!;
-            const style = def.styles.find((x) => x.id === e.style) ?? def.styles[0];
             return (
               <section
                 key={e.piece}
@@ -64,22 +94,8 @@ export function Setup() {
                   </span>
                   <span class="chip gold piece-lane">{LANE_LABEL[e.lane]}</span>
                 </button>
-                <div class="seg styles" role="radiogroup" aria-label={`${def.name} style`}>
-                  {def.styles.map((st) => (
-                    <button
-                      key={st.id}
-                      class={`btn small ${e.style === st.id ? 'on' : ''}`}
-                      role="radio"
-                      aria-checked={e.style === st.id}
-                      data-testid={`style-${e.piece}-${st.id}`}
-                      onClick={() => patch(e.piece, { style: st.id })}
-                    >
-                      {st.name}
-                    </button>
-                  ))}
-                </div>
-                <p class="style-desc small dim" data-testid={`style-desc-${e.piece}`}>
-                  {style.desc}
+                <p class="style-desc tiny dim" data-testid={`style-desc-${e.piece}`}>
+                  Chooses its archetype at Rank 4
                 </p>
                 <div class="path-label tiny dim">
                   <b>Build path</b> <span>{PATH_HINT[e.path]}</span>

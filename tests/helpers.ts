@@ -7,7 +7,7 @@ export const content = loadNodeContent();
 /** A live match (White's default setup), AI on both sides unless the config says otherwise. */
 export function liveMatch(seed: number, config: Partial<MatchConfig> = {}): Match {
   const m = Match.create(content, { seed, autoGambits: { A: true, B: true }, ...config });
-  if (m.state.phase.kind === 'setup') m.issue({ type: 'setupTeam', pieces: m.defaultSetup() });
+  if (m.state.phase.kind === 'setup') m.issue({ type: 'setupTeam', ...m.defaultSetup() });
   return m;
 }
 

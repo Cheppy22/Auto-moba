@@ -175,23 +175,6 @@
         }
       ],
       "ranks": {
-        "2": {
-          "name": "Wider Decree",
-          "desc": "Decree of Ruin covers 15% more ground.",
-          "ability": 3,
-          "radiusMul": 1.15
-        },
-        "3": {
-          "name": "Royal Library",
-          "desc": "+10% Soul power.",
-          "mods": [
-            {
-              "stat": "soulPower",
-              "kind": "mul",
-              "value": 1.1
-            }
-          ]
-        },
         "5": {
           "name": "Edict",
           "desc": "Sweeping Decree hits 30% harder and 20% wider.",
@@ -218,35 +201,6 @@
         }
       },
       "forks": {
-        "4": [
-          {
-            "id": "regent_throne",
-            "name": "Distant Throne",
-            "desc": "Decree of Ruin reaches 35% farther and her attacks +15 range. Safer, from the back. Also +5% max health.",
-            "ability": 3,
-            "rangeMul": 1.35,
-            "mods": [
-              {
-                "stat": "range",
-                "kind": "add",
-                "value": 15
-              },
-              {
-                "stat": "maxHp",
-                "kind": "mul",
-                "value": 1.05
-              }
-            ]
-          },
-          {
-            "id": "regent_cataclysm",
-            "name": "Cataclysm",
-            "desc": "Decree of Ruin hits 25% harder and 10% wider. More damage, same danger.",
-            "ability": 3,
-            "powerMul": 1.25,
-            "radiusMul": 1.1
-          }
-        ],
         "8": [
           {
             "id": "regent_endless",
@@ -446,23 +400,6 @@
         }
       ],
       "ranks": {
-        "2": {
-          "name": "Footwork",
-          "desc": "+4 move speed.",
-          "mods": [
-            {
-              "stat": "moveSpeed",
-              "kind": "add",
-              "value": 4
-            }
-          ]
-        },
-        "3": {
-          "name": "Sharpened",
-          "desc": "En Garde hits 20% harder.",
-          "ability": 3,
-          "powerMul": 1.2
-        },
         "5": {
           "name": "Quick Lunge",
           "desc": "Royal Lunge recharges 20% faster.",
@@ -493,46 +430,6 @@
         }
       },
       "forks": {
-        "4": [
-          {
-            "id": "duelist_fleche",
-            "name": "Flèche",
-            "desc": "En Garde reaches 30% farther: she picks her duel from across the fight.",
-            "ability": 3,
-            "rangeMul": 1.3,
-            "cooldownMul": 1
-          },
-          {
-            "id": "duelist_breath",
-            "name": "Second Breath",
-            "desc": "Heals for 12% of her attack damage: she wins the long duels instead. Also +150 max health, +5 armor.",
-            "triggers": [
-              {
-                "on": "hit",
-                "target": "self",
-                "effects": [
-                  {
-                    "type": "heal",
-                    "fractionOfDamage": 0.12
-                  }
-                ],
-                "desc": "Second Breath: heals for 12% of attack damage."
-              }
-            ],
-            "mods": [
-              {
-                "stat": "maxHp",
-                "kind": "add",
-                "value": 150
-              },
-              {
-                "stat": "armor",
-                "kind": "add",
-                "value": 5
-              }
-            ]
-          }
-        ],
         "8": [
           {
             "id": "duelist_cuts",
@@ -717,23 +614,6 @@
         }
       ],
       "ranks": {
-        "2": {
-          "name": "Keen Eye",
-          "desc": "+10 attack range.",
-          "mods": [
-            {
-              "stat": "range",
-              "kind": "add",
-              "value": 10
-            }
-          ]
-        },
-        "3": {
-          "name": "Barbed Arrow",
-          "desc": "Long Shot hits 20% harder.",
-          "ability": 3,
-          "powerMul": 1.2
-        },
         "5": {
           "name": "Quick Draw",
           "desc": "+0.1 attack speed.",
@@ -764,41 +644,6 @@
         }
       },
       "forks": {
-        "4": [
-          {
-            "id": "huntress_eagle",
-            "name": "Eagle Eye",
-            "desc": "Long Shot reaches 25% farther and her attacks +20 range. Also +6% Blade damage.",
-            "ability": 3,
-            "rangeMul": 1.25,
-            "mods": [
-              {
-                "stat": "range",
-                "kind": "add",
-                "value": 20
-              },
-              {
-                "stat": "bladeDmg",
-                "kind": "mul",
-                "value": 1.06
-              }
-            ]
-          },
-          {
-            "id": "huntress_feet",
-            "name": "Light Feet",
-            "desc": "Withdraw recharges 25% faster: she kites instead of out-ranging. Also +4% max health.",
-            "ability": 2,
-            "cooldownMul": 0.75,
-            "mods": [
-              {
-                "stat": "maxHp",
-                "kind": "mul",
-                "value": 1.04
-              }
-            ]
-          }
-        ],
         "8": [
           {
             "id": "huntress_kill",
@@ -882,6 +727,40 @@
       }
     }
   ],
+  "generic": {
+    "2": {
+      "name": "Sharpened Edge",
+      "desc": "+5% Blade damage and Soul power.",
+      "mods": [
+        {
+          "stat": "bladeDmg",
+          "kind": "mul",
+          "value": 1.05
+        },
+        {
+          "stat": "soulPower",
+          "kind": "mul",
+          "value": 1.05
+        }
+      ]
+    },
+    "3": {
+      "name": "Light Step",
+      "desc": "+3 move speed and +4% cooldown reduction.",
+      "mods": [
+        {
+          "stat": "moveSpeed",
+          "kind": "add",
+          "value": 3
+        },
+        {
+          "stat": "cdr",
+          "kind": "add",
+          "value": 0.04
+        }
+      ]
+    }
+  },
   "paths": {
     "offense": [
       "wanderer_boots",

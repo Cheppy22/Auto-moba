@@ -194,18 +194,6 @@
         }
       ],
       "ranks": {
-        "2": {
-          "name": "Devotion",
-          "desc": "Blessing heals 20% more.",
-          "ability": 1,
-          "powerMul": 1.2
-        },
-        "3": {
-          "name": "Choir",
-          "desc": "Radiance covers 15% more ground.",
-          "ability": 3,
-          "radiusMul": 1.15
-        },
         "5": {
           "name": "Litany",
           "desc": "Blessing recharges 20% faster.",
@@ -236,52 +224,6 @@
         }
       },
       "forks": {
-        "4": [
-          {
-            "id": "light_long",
-            "name": "Long Blessing",
-            "desc": "Blessing reaches 30% farther. Heal across the lane from safety.",
-            "ability": 1,
-            "rangeMul": 1.3,
-            "cooldownMul": 1
-          },
-          {
-            "id": "light_ward",
-            "name": "Penitent Ward",
-            "desc": "When a piece hits her, allies within 160 gain a 40 + 40% Soul shield for 3s (12s). Prevent instead of cure. Also +10 resist, +6% max health.",
-            "triggers": [
-              {
-                "on": "damaged",
-                "vs": "hero",
-                "cooldownSec": 12,
-                "target": "allyArea",
-                "radius": 160,
-                "effects": [
-                  {
-                    "type": "shield",
-                    "base": 40,
-                    "bladeScale": 0,
-                    "soulScale": 0.4,
-                    "durationSec": 3
-                  }
-                ],
-                "desc": "Penitent Ward: when a piece hits her, allies within 160 gain a 40 + 40% Soul shield for 3s (12s)."
-              }
-            ],
-            "mods": [
-              {
-                "stat": "resist",
-                "kind": "add",
-                "value": 10
-              },
-              {
-                "stat": "maxHp",
-                "kind": "mul",
-                "value": 1.06
-              }
-            ]
-          }
-        ],
         "8": [
           {
             "id": "light_miracle",
@@ -432,23 +374,6 @@
         }
       ],
       "ranks": {
-        "2": {
-          "name": "Deeper Dark",
-          "desc": "Black Diagonal burns 20% harder.",
-          "ability": 3,
-          "powerMul": 1.2
-        },
-        "3": {
-          "name": "Long Shadow",
-          "desc": "+10 attack range.",
-          "mods": [
-            {
-              "stat": "range",
-              "kind": "add",
-              "value": 10
-            }
-          ]
-        },
         "5": {
           "name": "Eclipse",
           "desc": "Diagonal Beam hits 25% harder.",
@@ -474,50 +399,6 @@
         }
       },
       "forks": {
-        "4": [
-          {
-            "id": "shadow_plague",
-            "name": "Plague",
-            "desc": "Black Diagonal covers 25% more ground. Curse the whole fight.",
-            "ability": 3,
-            "radiusMul": 1.25
-          },
-          {
-            "id": "shadow_wither",
-            "name": "Wither",
-            "desc": "Her attacks on a piece cut its Blade damage by 15% for 3s (4s). Cripple the carry. Also +6% max health, +8 resist.",
-            "triggers": [
-              {
-                "on": "hit",
-                "vs": "hero",
-                "cooldownSec": 4,
-                "target": "victim",
-                "effects": [
-                  {
-                    "type": "statMod",
-                    "stat": "bladeDmg",
-                    "kind": "mul",
-                    "value": 0.85,
-                    "durationSec": 3
-                  }
-                ],
-                "desc": "Wither: her hits on a piece cut its Blade damage 15% for 3s (4s)."
-              }
-            ],
-            "mods": [
-              {
-                "stat": "maxHp",
-                "kind": "mul",
-                "value": 1.06
-              },
-              {
-                "stat": "resist",
-                "kind": "add",
-                "value": 8
-              }
-            ]
-          }
-        ],
         "8": [
           {
             "id": "shadow_endless",
@@ -688,23 +569,6 @@
         }
       ],
       "ranks": {
-        "2": {
-          "name": "Mace",
-          "desc": "+6 Blade damage.",
-          "mods": [
-            {
-              "stat": "bladeDmg",
-              "kind": "add",
-              "value": 6
-            }
-          ]
-        },
-        "3": {
-          "name": "Litany of Wrath",
-          "desc": "Crusade recharges 15% faster.",
-          "ability": 3,
-          "cooldownMul": 0.85
-        },
         "5": {
           "name": "Holy Fire",
           "desc": "Diagonal Beam hits 30% harder.",
@@ -735,66 +599,6 @@
         }
       },
       "forks": {
-        "4": [
-          {
-            "id": "zealot_sermon",
-            "name": "Sermon",
-            "desc": "Every 6s, allied pieces within 150 heal 15 + 20% Soul. More priest. Also +5% max health.",
-            "triggers": [
-              {
-                "on": "periodic",
-                "everySec": 6,
-                "target": "allyArea",
-                "radius": 150,
-                "effects": [
-                  {
-                    "type": "heal",
-                    "base": 15,
-                    "bladeScale": 0,
-                    "soulScale": 0.2
-                  }
-                ],
-                "desc": "Sermon: every 6s, allied pieces within 150 heal 15 + 20% Soul."
-              }
-            ],
-            "mods": [
-              {
-                "stat": "maxHp",
-                "kind": "mul",
-                "value": 1.05
-              }
-            ]
-          },
-          {
-            "id": "zealot_smite",
-            "name": "Smite",
-            "desc": "Every 3rd hit deals 15 + 35% Soul bonus damage. More battle. Also +5% Blade damage.",
-            "triggers": [
-              {
-                "on": "hit",
-                "everyNth": 3,
-                "target": "victim",
-                "effects": [
-                  {
-                    "type": "damage",
-                    "dmgType": "soul",
-                    "base": 15,
-                    "bladeScale": 0,
-                    "soulScale": 0.35
-                  }
-                ],
-                "desc": "Smite: every 3rd hit deals 15 + 35% Soul bonus damage."
-              }
-            ],
-            "mods": [
-              {
-                "stat": "bladeDmg",
-                "kind": "mul",
-                "value": 1.05
-              }
-            ]
-          }
-        ],
         "8": [
           {
             "id": "zealot_vow",
@@ -883,6 +687,35 @@
       }
     }
   ],
+  "generic": {
+    "2": {
+      "name": "Fine Study",
+      "desc": "+6% Soul power.",
+      "mods": [
+        {
+          "stat": "soulPower",
+          "kind": "mul",
+          "value": 1.06
+        }
+      ]
+    },
+    "3": {
+      "name": "Quiet Hours",
+      "desc": "+5% cooldown reduction and +1 health regeneration.",
+      "mods": [
+        {
+          "stat": "cdr",
+          "kind": "add",
+          "value": 0.05
+        },
+        {
+          "stat": "hpRegen",
+          "kind": "add",
+          "value": 1
+        }
+      ]
+    }
+  },
   "paths": {
     "offense": [
       "wanderer_boots",

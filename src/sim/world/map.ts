@@ -1,7 +1,7 @@
 import { dist, sqrt } from '../core/math';
 import type { LaneId, MapDef } from '../content/schema';
 import type { PlayTeam } from '../types';
-import { buildTerrain, type Terrain } from './terrain';
+import { buildTerrain, segmentBlocked, type Terrain } from './terrain';
 
 export interface Pt {
   x: number;
@@ -283,6 +283,11 @@ export function findPath(
     for (const e of world.nodes[u].edges) {
       const node = world.nodes[e.to];
       if (node.slot && !open.has(node.slot)) continue;
+      if (
+        world.terrain.blocks.length &&
+        segmentBlocked(world.terrain, world.nodes[u].x, world.nodes[u].y, node.x, node.y)
+      )
+        continue;
       if (d[u] + e.w < d[e.to]) {
         d[e.to] = d[u] + e.w;
         prev[e.to] = u;

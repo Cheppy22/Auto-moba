@@ -24,6 +24,7 @@ export interface RosterEntry {
   /** Piece id (king, queen, rook, bishop, knight). */
   def: string;
   role: string;
+  /** The archetype picked at Rank 4; '' while the piece is still generic. */
   style: string;
   path: string;
 }
@@ -270,13 +271,17 @@ const WINDOW_BEFORE_DEATH = 120;
 export function buildReport(input: AnalysisInput, scope: Scope, viewer?: PlayTeam): Report {
   const events = input.events;
   const matchStart = events.find((e) => e.type === 'matchStart');
+  // A piece starts generic; its style is the archetype it picked at its Rank 4 fork ('' if none).
+  const archetype = new Map<number, string>();
+  for (const e of events)
+    if (e.type === 'fork' && e.payload.rank === 4) archetype.set(e.payload.id, e.payload.optionId);
   const roster: RosterEntry[] = matchStart
     ? matchStart.payload.heroes.map((h) => ({
         id: h.id,
         team: h.team as PlayTeam,
         def: h.def,
         role: h.role,
-        style: h.style,
+        style: archetype.get(h.id) ?? h.style ?? '',
         path: h.path,
       }))
     : [];

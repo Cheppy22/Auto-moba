@@ -1,12 +1,22 @@
 import type { Snapshot, SnapGambit } from '../../sim';
 import { PieceGlyph, pieceLabel } from '../pieces';
 import { longPress, longPressed } from '../press';
+import {
+  COUNTERED_BY,
+  COUNTERS,
+  SCHOOL_COLOR,
+  SCHOOL_JOB,
+  SCHOOL_NAME,
+  SchoolGlyph,
+  schoolNames,
+} from '../schools';
 import { useEscape, useSession } from '../session';
 
 export const TARGET_TAG: Record<SnapGambit['target'], string> = {
   lane: 'Pick a lane',
   point: 'Pick a spot',
   enemy: 'Pick a target',
+  ally: 'Pick one of your pieces',
   none: 'Instant',
 };
 
@@ -41,6 +51,8 @@ export function GambitSheet(props: { snap: Snapshot }) {
       <section
         class={`gsheet ${c.piece ? 'sig' : ''}`}
         data-testid="gambit-info"
+        data-school={c.school}
+        style={c.school ? { '--school': SCHOOL_COLOR[c.school] } : undefined}
         data-card={c.cardId}
         role="dialog"
         aria-modal="true"
@@ -68,6 +80,21 @@ export function GambitSheet(props: { snap: Snapshot }) {
         <p class="gs-desc" data-testid="gambit-info-desc">
           {c.desc}
         </p>
+        {c.school && (
+          <div class="gs-school" data-testid="gambit-info-school">
+            <b class="gs-school-name">
+              <SchoolGlyph school={c.school} size={18} />
+              {SCHOOL_NAME[c.school]} school
+            </b>
+            <span class="gs-school-job">{SCHOOL_JOB[c.school]}</span>
+            <span class="gs-school-row">
+              <i>Counters</i> {schoolNames(COUNTERS[c.school])}
+            </span>
+            <span class="gs-school-row">
+              <i>Countered by</i> {schoolNames(COUNTERED_BY[c.school])}
+            </span>
+          </div>
+        )}
         <ul class="gs-facts">
           <li data-testid="gambit-info-target">{TARGET_TAG[c.target]}</li>
           <li data-testid="gambit-info-expiry">{expiryText(c.ticksLeft)}</li>
@@ -129,10 +156,12 @@ export function Hand(props: { snap: Snapshot }) {
             class={`gcard ${c.usable ? 'usable' : 'off'} ${aimSlot === c.slot ? 'aiming' : ''} ${c.piece ? 'sig' : ''}`}
             data-testid={`gambit-${c.slot}`}
             data-card={c.cardId}
+            data-school={c.school}
+            style={c.school ? { '--school': SCHOOL_COLOR[c.school] } : undefined}
             data-usable={c.usable}
             aria-disabled={!c.usable}
             aria-pressed={aimSlot === c.slot}
-            title={`${c.name} (${c.cost} Tempo): ${c.desc}${c.usable ? '' : ` Not now: ${c.reason}.`}`}
+            title={`${c.name} (${c.school ? `${SCHOOL_NAME[c.school]}, ` : ''}${c.cost} Tempo): ${c.desc}${c.usable ? '' : ` Not now: ${c.reason}.`}`}
             onClick={() => {
               if (longPressed()) return;
               s.closeInfo();
@@ -141,6 +170,7 @@ export function Hand(props: { snap: Snapshot }) {
             {...longPress(() => s.showInfo(c.slot))}
           >
             <span class="ghead">
+              {c.school && <SchoolGlyph school={c.school} size={14} class="gschool" />}
               {c.piece && <PieceGlyph piece={c.piece} team="A" size={16} class="gsig" />}
               <span class="gname">{c.name}</span>
               <span class="gcost" aria-label={`${c.cost} Tempo`}>

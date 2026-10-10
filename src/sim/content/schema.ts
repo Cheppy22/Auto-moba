@@ -178,6 +178,9 @@ const PathListsSchema = z.object({
   utility: z.array(z.string()),
 });
 
+/** The two generic rank bonuses a piece earns before it chooses its archetype (Ranks 2 and 3). */
+export const GenericRanksSchema = z.object({ '2': PerkSchema, '3': PerkSchema });
+
 export const StyleSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -191,15 +194,14 @@ export const StyleSchema = z.object({
   /** Stat tilt applied for the whole match. */
   mods: z.array(ModSchema).default([]),
   passives: z.array(TriggerSchema).default([]),
+  /** Style rank bonuses (Ranks 5-7; Ranks 2 and 3 are the piece's generic bonuses). */
   ranks: z.object({
-    '2': PerkSchema,
-    '3': PerkSchema,
     '5': PerkSchema,
     '6': PerkSchema,
     '7': PerkSchema,
   }),
+  /** Rank 4 is the archetype choice itself (the piece's three styles); this is the Rank 8 fork. */
   forks: z.object({
-    '4': z.array(ForkOptionSchema).length(2),
     '8': z.array(ForkOptionSchema).length(2),
   }),
 });
@@ -218,13 +220,26 @@ export const PieceSchema = z.object({
   /** Auto attacks add this fraction of Soul power. */
   autoSoulScale: z.number().default(0),
   styles: z.array(StyleSchema).length(3),
+  /** Rank 2 and 3 bonuses while the piece is still generic (before the Rank 4 archetype). */
+  generic: GenericRanksSchema,
   /** Build path the AI prefers (and the setup board pre-fills); derived from disposition if absent. */
   defaultPath: PathSchema.optional(),
   /** Item build list per build path (item ids, in buy order). */
   paths: PathListsSchema,
 });
 
-export const GambitTargetSchema = z.enum(['lane', 'point', 'enemy', 'none']);
+/** `ally` targets one of the team's own pieces. */
+export const GambitTargetSchema = z.enum(['lane', 'point', 'enemy', 'ally', 'none']);
+
+export const SCHOOLS = [
+  'march',
+  'initiative',
+  'fortress',
+  'sacrifice',
+  'position',
+  'clock',
+] as const;
+export const SchoolSchema = z.enum(SCHOOLS);
 
 /** Effect families the sim implements; a card's `effect` defaults to its id. */
 export const GAMBIT_EFFECTS = [
@@ -238,12 +253,19 @@ export const GAMBIT_EFFECTS = [
   'siege',
   'sanctuary',
   'fork',
+  'pawn_sacrifice',
+  'exchange',
+  'poisoned_pawn',
+  'barricade',
+  'open_file',
+  'outpost',
 ] as const;
 
 export const GambitSchema = z.object({
   id: z.string(),
   name: z.string(),
   desc: z.string().default(''),
+  school: SchoolSchema,
   cost: z.number().min(0),
   target: GambitTargetSchema,
   /** Signature card of this piece (only usable while it lives), or null for universal cards. */
@@ -255,6 +277,16 @@ export const GambitSchema = z.object({
 });
 
 export const GambitFileSchema = z.object({ gambits: z.array(GambitSchema).min(1) });
+
+/** An opening: the schools whose cards the hand draws twice as often. */
+export const OpeningSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  desc: z.string().default(''),
+  schools: z.array(SchoolSchema),
+});
+
+export const OpeningFileSchema = z.array(OpeningSchema).min(1);
 
 export const ItemSchema = z.object({
   id: z.string(),
@@ -739,6 +771,7 @@ export const TuningSchema = z.object({
 export const ContentSchema = z.object({
   pieces: z.array(PieceSchema).length(5),
   gambits: z.array(GambitSchema),
+  openings: z.array(OpeningSchema),
   items: z.array(ItemSchema),
   cursed: z.array(CursedItemSchema),
   holy: z.array(HolyItemSchema),
@@ -769,6 +802,9 @@ export type PerkDef = z.infer<typeof PerkSchema>;
 export type ForkOptionDef = z.infer<typeof ForkOptionSchema>;
 export type GambitDef = z.infer<typeof GambitSchema>;
 export type GambitTarget = z.infer<typeof GambitTargetSchema>;
+export type School = z.infer<typeof SchoolSchema>;
+export type OpeningDef = z.infer<typeof OpeningSchema>;
+export type GenericRanks = z.infer<typeof GenericRanksSchema>;
 export type GambitEffect = (typeof GAMBIT_EFFECTS)[number];
 export type ItemDef = z.infer<typeof ItemSchema>;
 export type FlawDef = z.infer<typeof FlawSchema>;

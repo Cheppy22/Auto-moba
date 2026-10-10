@@ -11,7 +11,7 @@ import {
   styleDesc,
   styleLabel,
 } from '../pieces';
-import { useEscape, useSession } from '../session';
+import { forkOptionName, useEscape, useSession } from '../session';
 
 const RANKS = [1, 2, 3, 4, 5, 6, 7, 8];
 
@@ -28,7 +28,7 @@ export function PieceCard() {
   if (!u || !u.hero) return null;
   const h = u.hero;
   const team = u.team === 'B' ? 'B' : 'A';
-  const style = s.content.styleByKey.get(`${h.defId}/${h.style}`);
+  const style = h.style ? s.content.styleByKey.get(`${h.defId}/${h.style}`) : undefined;
   const itemName = (item: string): string =>
     (s.content.itemById.get(item) ?? s.content.cursedById.get(item) ?? s.content.holyById.get(item))
       ?.name ?? item;
@@ -36,7 +36,7 @@ export function PieceCard() {
     .filter((p) => p.optionId)
     .map((p) => ({
       rank: p.rank,
-      name: style?.forks[String(p.rank) as '4' | '8']?.find((o) => o.id === p.optionId)?.name ?? '',
+      name: forkOptionName(s.content, h.defId, h.style, p.rank, p.optionId ?? ''),
     }))
     .filter((p) => p.name);
   const waiting = m.snapshot().forks.some((f) => f.heroId === u.id);
@@ -45,8 +45,14 @@ export function PieceCard() {
     next > 8
       ? 'Top rank reached.'
       : next === 4 || next === 8
-        ? `Rank ${next}: a fork (two paths)`
-        : `Rank ${next}: ${style?.ranks[String(next) as '2' | '3' | '5' | '6' | '7']?.name ?? ''}`;
+        ? next === 4
+          ? 'Rank 4: choose an archetype'
+          : `Rank ${next}: a fork (two paths)`
+        : `Rank ${next}: ${
+            next <= 3
+              ? (s.content.pieceById.get(h.defId)?.generic[String(next) as '2' | '3']?.name ?? '')
+              : (style?.ranks[String(next) as '5' | '6' | '7']?.name ?? '')
+          }`;
   return (
     <div
       class={`ucard side-${team}`}
@@ -54,8 +60,8 @@ export function PieceCard() {
       data-team={team}
       data-piece={h.defId}
       role="dialog"
-      aria-label={`${pieceLabel(s.content, h.defId)}, ${styleLabel(s.content, h.defId, h.style)}`}
-      style={{ '--sty': styleColor(h.style) }}
+      aria-label={`${pieceLabel(s.content, h.defId)}, ${h.style ? styleLabel(s.content, h.defId, h.style) : 'Generic'}`}
+      style={{ '--sty': h.style ? styleColor(h.style) : '#c9a35a' }}
     >
       <header class="ucard-head">
         <PieceGlyph piece={h.defId} team={team} size={30} />
@@ -65,8 +71,14 @@ export function PieceCard() {
             <span class="dim"> · {team === 'A' ? 'White' : 'Black'}</span>
           </b>
           <span class="ucard-style" data-testid="unit-card-style">
-            <StyleBadge style={h.style} team={team} size={16} />
-            {styleLabel(s.content, h.defId, h.style)}
+            {h.style ? (
+              <>
+                <StyleBadge style={h.style} team={team} size={16} />
+                {styleLabel(s.content, h.defId, h.style)}
+              </>
+            ) : (
+              'Generic'
+            )}
           </span>
         </div>
         <button
@@ -78,7 +90,11 @@ export function PieceCard() {
           ×
         </button>
       </header>
-      <p class="ucard-desc">{styleDesc(s.content, h.defId, h.style)}</p>
+      <p class="ucard-desc">
+        {h.style
+          ? styleDesc(s.content, h.defId, h.style)
+          : 'Uses its base kit until Rank 4, then chooses an archetype.'}
+      </p>
       <div class="ucard-meta">
         <span class="chip">{PATH_LABEL[h.path]}</span>
         <span class="chip">{LANE_LABEL[h.lane ?? 'mid']}</span>
@@ -99,7 +115,10 @@ export function PieceCard() {
       </p>
       {taken.map((t) => (
         <p class="ucard-fork tiny" key={t.rank}>
-          <span class="dim">Rank {t.rank} fork:</span> {t.name}
+          <span class="dim">
+            Rank {t.rank} {t.rank === 4 ? 'archetype' : 'fork'}:
+          </span>{' '}
+          {t.name}
         </p>
       ))}
       <div class="ucard-items" data-testid="unit-card-items">

@@ -4,6 +4,13 @@ Newest first. One entry per change: what changed, why, and any measured effect. 
 
 ## 2026-10-10
 
+- **Gambit schools wave 1, Openings, archetype at Rank 4** (branch `test-product-2`). Why: Cheppy approved the six schools, Openings and moving archetypes to Rank 4.
+  - Every card has a school (March, Initiative, Fortress, Sacrifice, Position, Clock) with colour and glyph markings; the long-press sheet lists counters. Counters come from card effects only.
+  - New cards: Pawn Sacrifice, Exchange, Poisoned Pawn (Sacrifice); Barricade, Open File, Outpost (Position), with 3D visuals for Barricade, Outpost and Open File.
+  - Openings at setup (Italian default, Sicilian, French, King's Gambit) weight the hand ×2 toward two schools; Black picks one too.
+  - Pieces are generic until Rank 4 (base kit plus generic Rank 2–3 bonuses); Rank 4 is a 3-option archetype choice; Rank 8 keeps a 2-option fork. Setup no longer picks styles.
+  - Balance tool: `--schools a,b` restricts both decks for focused testing.
+  - Measured (200 matches, sanity only): White 50.5%, median 14.9 min. Light testing; full pass later (Barricade not stuck-checked).
 - **Map ×1.5, humanoid pieces, combat flash, lane tag, gambit long-press** (branch `test-product-2`). Why: Cheppy's requests.
   - Map size 1950 (×1.5); lanes ×1.25 (half-width 90); unit sizes unchanged; `movement.speedMul` 1.5 so travel time is about the same.
   - Pieces are humanoids with a unique design each (King, Queen, Rook, Bishop, Knight); each style adds a large style-colour area and a signature prop; pieces look generic until a style is chosen, with a transformation flare.

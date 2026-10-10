@@ -7,38 +7,48 @@ export function pieceDef(c: Content, h: HeroState): PieceDef {
   return c.pieceById.get(h.defId)!;
 }
 
-export function styleDef(c: Content, h: HeroState): StyleDef {
-  return c.styleByKey.get(`${h.defId}/${h.style}`)!;
+/** The piece's chosen archetype, or undefined while it is still generic (before Rank 4). */
+export function styleDef(c: Content, h: HeroState): StyleDef | undefined {
+  return h.style === null ? undefined : c.styleByKey.get(`${h.defId}/${h.style}`);
 }
 
-/** The piece's four abilities: three base skills plus its style's signature. */
+/** The piece's abilities: three base skills, plus its style's signature once it has one. */
 export function kitOf(c: Content, h: HeroState): AbilityDef[] {
-  return c.kitByKey.get(`${h.defId}/${h.style}`)!;
+  return h.style === null ? pieceDef(c, h).abilities : c.kitByKey.get(`${h.defId}/${h.style}`)!;
 }
 
 /** The build list for the piece's current path (its style's list when the style has one). */
 export function buildListOf(c: Content, h: HeroState): string[] {
-  return styleDef(c, h).paths?.[h.path] ?? pieceDef(c, h).paths[h.path];
+  return styleDef(c, h)?.paths?.[h.path] ?? pieceDef(c, h).paths[h.path];
 }
 
 export function attackKindOf(c: Content, h: HeroState): 'melee' | 'ranged' {
-  return styleDef(c, h).attackKind ?? pieceDef(c, h).attackKind;
+  return styleDef(c, h)?.attackKind ?? pieceDef(c, h).attackKind;
 }
 
-export function perkOf(style: StyleDef, ref: PerkRef): PerkDef | undefined {
-  if (ref.optionId !== null) {
-    const opts = ref.rank === 4 ? style.forks['4'] : ref.rank === 8 ? style.forks['8'] : [];
-    return opts.find((o) => o.id === ref.optionId);
-  }
-  const key = String(ref.rank) as keyof StyleDef['ranks'];
-  return style.ranks[key];
+/**
+ * The bonus a perk reference stands for: the piece's generic bonus (Ranks 2-3), the style's rank
+ * bonus (5-7) or the chosen Rank 8 option. Rank 4 is the archetype choice and has no bonus of its
+ * own. Style bonuses are undefined until the style exists.
+ */
+export function perkOf(
+  piece: PieceDef,
+  style: StyleDef | undefined,
+  ref: PerkRef,
+): PerkDef | undefined {
+  if (ref.rank === 2 || ref.rank === 3) return piece.generic[String(ref.rank) as '2' | '3'];
+  if (!style || ref.rank === 4) return undefined;
+  if (ref.optionId !== null)
+    return ref.rank === 8 ? style.forks['8'].find((o) => o.id === ref.optionId) : undefined;
+  return style.ranks[String(ref.rank) as keyof StyleDef['ranks']];
 }
 
 export function perksOf(c: Content, h: HeroState): PerkDef[] {
+  const piece = pieceDef(c, h);
   const st = styleDef(c, h);
   const out: PerkDef[] = [];
   for (const ref of h.perks) {
-    const p = perkOf(st, ref);
+    const p = perkOf(piece, st, ref);
     if (p) out.push(p);
   }
   return out;

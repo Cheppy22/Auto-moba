@@ -42,6 +42,7 @@ export function StyleBadge(props: {
   size?: number;
   class?: string;
 }) {
+  if (!props.style) return null;
   const size = props.size ?? 18;
   const d = styleEmblemDescriptor(props.style, props.team ?? null);
   return (

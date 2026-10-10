@@ -1,10 +1,11 @@
-import { Match, type Content, type PlayTeam, type SetupEntry } from '../src/sim';
+import { Match, type Content, type PieceId, type PlayTeam, type TeamSetup } from '../src/sim';
 import { teamNetWorth } from '../src/sim/curses';
 
 export interface HeroResult {
   team: PlayTeam;
   /** Piece id. */
   def: string;
+  /** The archetype the piece chose at Rank 4; '' if it never reached Rank 4. */
   style: string;
   path: string;
   role: string;
@@ -55,7 +56,9 @@ export interface SimOptions {
   noGambitsA?: boolean;
   /** Black never plays gambits or fields pawns. */
   noGambitsB?: boolean;
-  setup?: { A?: SetupEntry[]; B?: SetupEntry[] };
+  setup?: { A?: TeamSetup; B?: TeamSetup };
+  /** Force archetypes at Rank 4 (per team and piece). */
+  forceStyles?: { A?: Partial<Record<PieceId, string>>; B?: Partial<Record<PieceId, string>> };
 }
 
 export function simulateMatch(content: Content, seed: number, opts: SimOptions = {}): MatchSummary {
@@ -64,11 +67,12 @@ export function simulateMatch(content: Content, seed: number, opts: SimOptions =
   const m = Match.create(content, {
     seed,
     setup: opts.setup,
+    forceStyles: opts.forceStyles,
     autoGambits: { A: !opts.noGambitsA, B: !opts.noGambitsB },
     // The baseline removes Tempo spending only; forks still pick at once as the AI does.
     autoForks: { A: true, B: true },
   });
-  if (m.state.phase.kind === 'setup') m.issue({ type: 'setupTeam', pieces: m.defaultSetup() });
+  if (m.state.phase.kind === 'setup') m.issue({ type: 'setupTeam', ...m.defaultSetup() });
   const act = content.tuning.phaseSeconds * content.tuning.tickRate;
   m.step(act);
   let lead1: PlayTeam | null = null;
@@ -87,7 +91,7 @@ export function simulateMatch(content: Content, seed: number, opts: SimOptions =
       heroes.push({
         team,
         def: h.defId,
-        style: h.style,
+        style: h.style ?? '',
         path: h.path,
         role: h.role,
         won: winner === team,

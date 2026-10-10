@@ -63,6 +63,7 @@ const snap = (tick: number, units: SnapUnit[] = [], o: Partial<Snapshot> = {}): 
   forks: [],
   check: { A: false, B: false },
   throneDown: { A: false, B: false },
+  opening: { A: null, B: null },
   zones: [],
   ...o,
 });

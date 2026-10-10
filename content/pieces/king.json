@@ -222,23 +222,6 @@
         }
       ],
       "ranks": {
-        "2": {
-          "name": "Drilled Ranks",
-          "desc": "Banner of War reaches 15% farther.",
-          "ability": 3,
-          "radiusMul": 1.15
-        },
-        "3": {
-          "name": "Iron Crown",
-          "desc": "+6 armor.",
-          "mods": [
-            {
-              "stat": "armor",
-              "kind": "add",
-              "value": 6
-            }
-          ]
-        },
         "5": {
           "name": "Warhorn",
           "desc": "Banner of War recharges 15% faster.",
@@ -264,65 +247,6 @@
         }
       },
       "forks": {
-        "4": [
-          {
-            "id": "warlord_march",
-            "name": "Forced March",
-            "desc": "Pieces and pawns within 170 move +8 faster. The court rotates and chases as one. Also +2 move speed.",
-            "triggers": [
-              {
-                "on": "periodic",
-                "everySec": 1,
-                "target": "self",
-                "effects": [
-                  {
-                    "type": "aura",
-                    "radius": 170,
-                    "target": "ally",
-                    "stat": "moveSpeed",
-                    "kind": "add",
-                    "value": 8
-                  }
-                ],
-                "desc": "Forced March: allies within 170 move +8 faster."
-              }
-            ],
-            "mods": [
-              {
-                "stat": "moveSpeed",
-                "kind": "add",
-                "value": 2
-              }
-            ]
-          },
-          {
-            "id": "warlord_oath",
-            "name": "Blood Oath",
-            "desc": "Each enemy piece he kills heals every allied piece within 190 for 8% max health. Also +4% max health.",
-            "triggers": [
-              {
-                "on": "kill",
-                "vs": "hero",
-                "target": "allyArea",
-                "radius": 190,
-                "effects": [
-                  {
-                    "type": "heal",
-                    "maxHpPct": 0.08
-                  }
-                ],
-                "desc": "Blood Oath: his piece kills heal allies within 190 for 8% max health."
-              }
-            ],
-            "mods": [
-              {
-                "stat": "maxHp",
-                "kind": "mul",
-                "value": 1.04
-              }
-            ]
-          }
-        ],
         "8": [
           {
             "id": "warlord_conquest",
@@ -501,23 +425,6 @@
         }
       ],
       "ranks": {
-        "2": {
-          "name": "Gilded Aegis",
-          "desc": "Aegis of the Crown shields 15% more.",
-          "ability": 3,
-          "powerMul": 1.15
-        },
-        "3": {
-          "name": "Court Mage",
-          "desc": "+12 Soul power.",
-          "mods": [
-            {
-              "stat": "soulPower",
-              "kind": "add",
-              "value": 12
-            }
-          ]
-        },
         "5": {
           "name": "Swift Decree",
           "desc": "Aegis of the Crown recharges 15% faster.",
@@ -548,49 +455,6 @@
         }
       },
       "forks": {
-        "4": [
-          {
-            "id": "sovereign_dominion",
-            "name": "Wide Dominion",
-            "desc": "Aegis of the Crown covers 25% more ground: shield the whole team.",
-            "ability": 3,
-            "radiusMul": 1.25
-          },
-          {
-            "id": "sovereign_restore",
-            "name": "Restoration",
-            "desc": "Every 6s, allies within 170 heal 15 + 20% Soul. Slow, steady sustain instead of bursts. Also +6% max health, +2 health regeneration.",
-            "triggers": [
-              {
-                "on": "periodic",
-                "everySec": 6,
-                "target": "allyArea",
-                "radius": 170,
-                "effects": [
-                  {
-                    "type": "heal",
-                    "base": 15,
-                    "bladeScale": 0,
-                    "soulScale": 0.2
-                  }
-                ],
-                "desc": "Restoration: every 6s, allies within 170 heal 15 + 20% Soul."
-              }
-            ],
-            "mods": [
-              {
-                "stat": "maxHp",
-                "kind": "mul",
-                "value": 1.06
-              },
-              {
-                "stat": "hpRegen",
-                "kind": "add",
-                "value": 2
-              }
-            ]
-          }
-        ],
         "8": [
           {
             "id": "sovereign_divine",
@@ -758,34 +622,6 @@
         }
       ],
       "ranks": {
-        "2": {
-          "name": "Greedy Hands",
-          "desc": "Seize the Crown reaches 15% wider.",
-          "ability": 3,
-          "radiusMul": 1.15
-        },
-        "3": {
-          "name": "Pretender's Grip",
-          "desc": "Enemies within 150 lose 4 health regeneration.",
-          "triggers": [
-            {
-              "on": "periodic",
-              "everySec": 1,
-              "target": "self",
-              "effects": [
-                {
-                  "type": "aura",
-                  "radius": 150,
-                  "target": "enemy",
-                  "stat": "hpRegen",
-                  "kind": "add",
-                  "value": -4
-                }
-              ],
-              "desc": "Pretender's Grip: enemies within 150 regenerate 4 less health per second."
-            }
-          ]
-        },
         "5": {
           "name": "Bloody Scepter",
           "desc": "One Step hits 30% harder.",
@@ -811,63 +647,6 @@
         }
       },
       "forks": {
-        "4": [
-          {
-            "id": "usurper_tyrant",
-            "name": "Tyrant",
-            "desc": "Every 3rd hit on a piece adds 20 + 40% Soul damage. More kill pressure. Also +4% Blade damage.",
-            "triggers": [
-              {
-                "on": "hit",
-                "vs": "hero",
-                "everyNth": 3,
-                "target": "victim",
-                "effects": [
-                  {
-                    "type": "damage",
-                    "dmgType": "soul",
-                    "base": 20,
-                    "bladeScale": 0,
-                    "soulScale": 0.4
-                  }
-                ],
-                "desc": "Tyrant: every 3rd hit on a piece deals 20 + 40% Soul damage."
-              }
-            ],
-            "mods": [
-              {
-                "stat": "bladeDmg",
-                "kind": "mul",
-                "value": 1.04
-              }
-            ]
-          },
-          {
-            "id": "usurper_leech",
-            "name": "Leech Lord",
-            "desc": "Heals for a further 10% of attack damage. He outlasts anyone in a long fight. Also +4% max health.",
-            "triggers": [
-              {
-                "on": "hit",
-                "target": "self",
-                "effects": [
-                  {
-                    "type": "heal",
-                    "fractionOfDamage": 0.1
-                  }
-                ],
-                "desc": "Leech Lord: heals for a further 10% of attack damage."
-              }
-            ],
-            "mods": [
-              {
-                "stat": "maxHp",
-                "kind": "mul",
-                "value": 1.04
-              }
-            ]
-          }
-        ],
         "8": [
           {
             "id": "usurper_regicide",
@@ -947,6 +726,35 @@
       }
     }
   ],
+  "generic": {
+    "2": {
+      "name": "Drilled Ranks",
+      "desc": "+6% max health.",
+      "mods": [
+        {
+          "stat": "maxHp",
+          "kind": "mul",
+          "value": 1.06
+        }
+      ]
+    },
+    "3": {
+      "name": "Iron Crown",
+      "desc": "+5 armor and +5 resist.",
+      "mods": [
+        {
+          "stat": "armor",
+          "kind": "add",
+          "value": 5
+        },
+        {
+          "stat": "resist",
+          "kind": "add",
+          "value": 5
+        }
+      ]
+    }
+  },
   "paths": {
     "offense": [
       "wanderer_boots",

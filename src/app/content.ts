@@ -12,6 +12,9 @@ export function loadBrowserContent(): Content {
     gambits: Object.values(
       import.meta.glob('/content/gambits.json', { eager: true, import: 'default' }),
     )[0],
+    openings: Object.values(
+      import.meta.glob('/content/openings.json', { eager: true, import: 'default' }),
+    )[0],
     items: dir(import.meta.glob('/content/items/*.json', { eager: true, import: 'default' })),
     events: dir(import.meta.glob('/content/events/*.json', { eager: true, import: 'default' })),
     biomes: dir(import.meta.glob('/content/biomes/*.json', { eager: true, import: 'default' })),

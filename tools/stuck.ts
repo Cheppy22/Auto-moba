@@ -18,7 +18,7 @@ for (const seed of seeds) {
     const s = m.state;
     if (s.phase.kind === 'end') break;
     if (s.phase.kind !== 'live') {
-      if (!m.issue({ type: 'setupTeam', pieces: m.defaultSetup() }).ok) break;
+      if (!m.issue({ type: 'setupTeam', ...m.defaultSetup() }).ok) break;
       continue;
     }
     while (m.state.phase.kind === 'live') {

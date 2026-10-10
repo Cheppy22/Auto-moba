@@ -8,6 +8,7 @@ import type {
   PieceId,
   Posture,
   Role,
+  School,
   StatKey,
   Stats,
 } from './content/schema';
@@ -21,6 +22,7 @@ export type {
   PieceId,
   Posture,
   Role,
+  School,
   StatKey,
   Stats,
 };
@@ -104,7 +106,8 @@ export interface GambitOrder {
 export interface HeroState {
   /** Piece id (also the unit's defId). */
   defId: PieceId;
-  style: string;
+  /** The archetype chosen at Rank 4; null while the piece is still generic (Ranks 1-3). */
+  style: string | null;
   path: Path;
   rank: number;
   perks: PerkRef[];
@@ -305,9 +308,14 @@ export interface PhaseState {
 
 export interface SetupEntry {
   piece: PieceId;
-  style: string;
   path: Path;
   lane: LaneId;
+}
+
+/** One side's setup: its opening and its five pieces (path and lane each). */
+export interface TeamSetup {
+  opening: string;
+  pieces: SetupEntry[];
 }
 
 export interface HandSlot {
@@ -320,19 +328,23 @@ export interface HandSlot {
 
 export interface PendingFork {
   heroId: number;
+  /** Rank 4 is the archetype choice, Rank 8 the style's two-option fork. */
   rank: 4 | 8;
   /** Tick the AI picks for the player; null when the game pauses for forks (no timeout). */
   deadlineTick: number | null;
 }
 
-/** Sanctuary zone: heals allies inside it every tick. */
+/** A timed gambit zone: Sanctuary heals, Outpost armours, Open File speeds a lane, Barricade walls. */
 export interface ZoneState {
+  kind: ZoneKind;
   team: PlayTeam;
   cardId: string;
+  lane?: LaneId;
   x: number;
   y: number;
   radius: number;
-  healPctPerSec: number;
+  /** Barricade: the wall's endpoints (also written into the terrain's blocks). */
+  wall?: { ax: number; ay: number; bx: number; by: number; r: number };
   endTick: number;
 }
 
@@ -366,7 +378,13 @@ export interface MatchState {
   nextWaveTick: number;
   obeliskSchedule: number[];
   /** White's chosen setup (pre-filled with the AI default) and Black's AI pick. */
-  setup: Record<PlayTeam, SetupEntry[]>;
+  setup: Record<PlayTeam, TeamSetup>;
+  /** Each side's opening (set when the match starts). */
+  opening: Record<PlayTeam, string>;
+  /** Exchange: a team-wide damage multiplier until the tick (null when none). */
+  teamDamage: Record<PlayTeam, { value: number; untilTick: number } | null>;
+  /** `MatchConfig.forceStyles`. */
+  forceStyles: Record<PlayTeam, Partial<Record<PieceId, string>>>;
   autoGambits: Record<PlayTeam, boolean>;
   autoForks: Record<PlayTeam, boolean>;
   tempo: Record<PlayTeam, number>;
@@ -400,7 +418,7 @@ export interface EventPayloads {
       team: string;
       def: string;
       role: string;
-      style: string;
+      style: string | null;
       path: string;
     }[];
   };
@@ -558,7 +576,7 @@ export type Recorder = {
 };
 
 export type Command =
-  | { type: 'setupTeam'; pieces: SetupEntry[] }
+  | { type: 'setupTeam'; opening: string; pieces: SetupEntry[] }
   /** `optionId: 'auto'` takes the AI's pick for that piece's oldest pending fork. */
   | { type: 'chooseFork'; heroId: number; optionId: string }
   /** Resolves every pending White fork with the AI's pick ("Let the AI choose"). */
@@ -578,11 +596,13 @@ export type ReplayOp = { op: 'issue'; cmd: Command } | { op: 'step'; ticks: numb
 export interface MatchConfig {
   seed: number;
   /** Fix either side's setup (tests, tools). With A given the match starts live at once. */
-  setup?: { A?: SetupEntry[]; B?: SetupEntry[] };
+  setup?: { A?: TeamSetup; B?: TeamSetup };
   /** Which teams the gambit/pawn AI plays for (Black always in the browser). Default A off, B on. */
   autoGambits?: { A: boolean; B: boolean };
   /** Internal (tools): forks pick at once without the player wait. Defaults to `autoGambits`. */
   autoForks?: { A: boolean; B: boolean };
+  /** Internal (tools): archetypes the AI must pick at Rank 4, per team and piece. */
+  forceStyles?: { A?: Partial<Record<PieceId, string>>; B?: Partial<Record<PieceId, string>> };
   /**
    * Interactive play: `Match.step` stops the moment a White fork opens and does nothing (returns 0)
    * while one is pending, and White's forks have no timeout (answer with `chooseFork` or
@@ -623,6 +643,8 @@ export interface SnapUnit {
   role: Role | null;
   /** Marked by the Check gambit (takes more damage). */
   marked: boolean;
+  /** Marked by the Poisoned Pawn gambit (its killer is slowed and the killer's team loses Tempo). */
+  poisoned?: boolean;
   stunned: boolean;
   /** Final melee/ranged for a piece (its style can override the piece). */
   attackKind: 'melee' | 'ranged' | null;
@@ -666,13 +688,33 @@ export interface Snapshot {
   forks: SnapFork[];
   check: Record<PlayTeam, boolean>;
   throneDown: Record<PlayTeam, boolean>;
-  /** Active Sanctuary zones. */
-  zones: { team: PlayTeam; x: number; y: number; radius: number; ticksLeft: number }[];
+  /** White's and Black's openings (null before the match starts). */
+  opening: Record<PlayTeam, string | null>;
+  /** Active gambit zones: Sanctuary, Barricade, Outpost and Open File. */
+  zones: SnapZone[];
+}
+
+export type ZoneKind = 'sanctuary' | 'barricade' | 'outpost' | 'openFile';
+
+export interface SnapZone {
+  kind: ZoneKind;
+  team: PlayTeam;
+  /** Open File: the lane it covers. */
+  lane?: LaneId;
+  /** Centre (Open File: the lane's midpoint). */
+  x: number;
+  y: number;
+  /** Sanctuary and Outpost: the area. Barricade: half the wall's length. Open File: 0. */
+  radius: number;
+  /** Barricade: the wall's direction in radians (the wall runs along this angle). */
+  angle?: number;
+  ticksLeft: number;
 }
 
 export interface SnapGambit {
   slot: number;
   cardId: string;
+  school: School | null;
   name: string;
   desc: string;
   cost: number;
@@ -687,8 +729,10 @@ export interface SnapGambit {
 export interface SnapFork {
   heroId: number;
   piece: PieceId;
-  /** The piece's style key (as `SnapUnit.style`). */
-  style: string;
+  /** 'archetype' at Rank 4 (options are the piece's three styles), 'skill' at Rank 8. */
+  kind: 'archetype' | 'skill';
+  /** The piece's style key (as `SnapUnit.style`); null for an archetype fork. */
+  style: string | null;
   rank: 4 | 8;
   options: { id: string; name: string; desc: string }[];
   /** Ticks until the AI picks; null when there is no timeout (`pauseForForks`). */

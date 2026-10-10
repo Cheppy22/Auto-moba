@@ -22,7 +22,7 @@ import { other } from './types';
 import { onCampUnitDeath } from './camps';
 import { endAllEvents, onEventUnitDeath } from './events';
 import { removeBoardClaim } from './ai/claims';
-import { addTempo } from './gambits';
+import { addTempo, onPoisonedDeath } from './gambits';
 
 export function spawnWaves(ctx: Ctx): void {
   const w = ctx.t.waves;
@@ -155,6 +155,7 @@ function killUnit(ctx: Ctx, u: Unit): void {
   u.hp = 0;
   u.pendingKill = null;
   u.targetId = null;
+  onPoisonedDeath(ctx, u, killer);
   switch (u.kind) {
     case 'hero': {
       const h = u.hero!;

@@ -28,10 +28,11 @@ describe('determinism', () => {
 
   it('player commands are part of the replay', () => {
     const m = Match.create(content, { seed: 3 });
-    const setup = m
-      .defaultSetup()
-      .map((e) => (e.piece === 'knight' ? { ...e, path: 'utility' as const } : e));
-    expect(m.issue({ type: 'setupTeam', pieces: setup }).ok).toBe(true);
+    const setup = m.defaultSetup();
+    const pieces = setup.pieces.map((e) =>
+      e.piece === 'knight' ? { ...e, path: 'utility' as const } : e,
+    );
+    expect(m.issue({ type: 'setupTeam', opening: setup.opening, pieces }).ok).toBe(true);
     m.step(600);
     expect(m.issue({ type: 'fieldPawn', lane: 'top' }).ok).toBe(true);
     const slot = m.snapshot().hand.findIndex((h) => h.usable && h.target === 'lane');

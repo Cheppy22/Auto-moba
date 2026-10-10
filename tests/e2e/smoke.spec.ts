@@ -26,19 +26,20 @@ test('title, setup, gambits, pawn, fork, adjourn, checkmate and report', async (
   await expect(page.getByTestId('setup')).toBeVisible();
   await expect(page.locator('[data-testid^="piece-"]')).toHaveCount(5);
   for (const piece of ['king', 'queen', 'rook', 'bishop', 'knight']) {
-    await expect(page.locator(`[data-testid^="style-${piece}-"]`)).toHaveCount(3);
+    await expect(page.locator(`[data-testid^="style-${piece}-"]`)).toHaveCount(0);
+    await expect(page.getByTestId(`style-desc-${piece}`)).toContainText('archetype at Rank 4');
     await expect(page.locator(`[data-testid^="path-${piece}-"]`)).toHaveCount(3);
   }
   await expect(page.getByTestId('zone-top')).toContainText('2/2');
   await expect(page.getByTestId('zone-mid')).toContainText('1/1');
   await expect(page.getByTestId('zone-bot')).toContainText('2/2');
-  // everything is pre-filled: exactly one style and one path is on for each piece
-  await expect(page.locator('.piece-card .styles .on')).toHaveCount(5);
+  // everything is pre-filled: the Italian Opening and one path for each piece
+  await expect(page.locator('[data-testid^="opening-"]')).toHaveCount(4);
+  await expect(page.getByTestId('opening-italian')).toHaveClass(/on/);
   await expect(page.locator('.piece-card .paths .on')).toHaveCount(5);
-  // pick a style and a path, then swap the King into Mid
-  await page.getByTestId('style-king-sovereign').click();
-  await expect(page.getByTestId('style-king-sovereign')).toHaveClass(/on/);
-  await expect(page.getByTestId('style-desc-king')).toContainText('ranged scepter');
+  // pick an Opening and a path, then swap the King into Mid
+  await page.getByTestId('opening-french').click();
+  await expect(page.getByTestId('opening-french')).toHaveClass(/on/);
   await page.getByTestId('path-queen-utility').click();
   await expect(page.getByTestId('path-queen-utility')).toHaveClass(/on/);
   await page.getByTestId('chip-king').click();
@@ -59,16 +60,16 @@ test('title, setup, gambits, pawn, fork, adjourn, checkmate and report', async (
   await expect(page.getByTestId('no-webgl')).toHaveCount(0);
   await expect(page.locator('[data-testid="roster"] .roster-cell')).toHaveCount(5);
   await expect(page.locator('[data-testid="roster-enemy"] .roster-cell')).toHaveCount(5);
-  await expect(page.getByTestId('roster-A-king')).toHaveAttribute('aria-label', /Sovereign.*Mid/);
+  await expect(page.getByTestId('roster-A-king')).toHaveAttribute('aria-label', /Generic.*Mid/);
   await expect(page.getByTestId('roster-A-king')).toHaveAttribute('data-rank', '1');
   await expect(page.locator('[data-testid^="gambit-"]')).toHaveCount(3);
   await expect(page.getByTestId('tempo-value')).toHaveText('30');
   await expect(page.getByTestId('pawn-count')).toContainText('0/8 · 15');
   await expect(page.getByTestId('status-A')).toHaveAttribute('data-state', '');
-  // calm HUD: portraits show the rank numeral only (no pips), and both teams show their style
+  // calm HUD: portraits show the rank numeral only (no pips); pieces are generic until Rank 4
   await expect(page.locator('.roster .rank-pips')).toHaveCount(0);
-  await expect(page.locator('.roster-cell .style-badge')).toHaveCount(10);
-  await expect(page.getByTestId('roster-A-king')).toHaveAttribute('data-style', 'sovereign');
+  await expect(page.locator('.roster-cell .style-badge')).toHaveCount(0);
+  await expect(page.getByTestId('roster-A-king')).not.toHaveAttribute('data-style', /.+/);
   // gambit cards show a name and a cost, not the full text
   await expect(page.locator('.gdesc')).toHaveCount(0);
 
@@ -167,7 +168,10 @@ test('title, setup, gambits, pawn, fork, adjourn, checkmate and report', async (
   const sheet = page.getByTestId('forks');
   await expect(sheet).toBeVisible();
   await expect(sheet).toContainText(`Rank ${fork.rank}`);
-  await expect(sheet).toContainText('Choose a path');
+  await expect(sheet).toContainText(
+    fork.kind === 'archetype' ? 'Choose an archetype' : 'Choose a path',
+  );
+  if (fork.kind === 'archetype') expect(fork.options).toHaveLength(3);
   for (const o of fork.options)
     await expect(page.getByTestId(`fork-opt-${fork.heroId}-${o.id}`)).toContainText(o.name);
   await expect(page.getByTestId('fork-auto')).toBeVisible();

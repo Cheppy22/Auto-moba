@@ -28,11 +28,11 @@ describe('setup and Acts', () => {
     expect(m.state.phase.kind).toBe('setup');
     expect(m.state.units).toHaveLength(0);
     expect(m.step(10)).toBe(0);
-    expect(m.issue({ type: 'setupTeam', pieces: m.defaultSetup() }).ok).toBe(true);
+    expect(m.issue({ type: 'setupTeam', ...m.defaultSetup() }).ok).toBe(true);
     expect(m.state.phase).toMatchObject({ kind: 'live', n: 1 });
     expect(m.state.teams.A.heroIds).toHaveLength(5);
     expect(m.state.teams.B.heroIds).toHaveLength(5);
-    expect(m.issue({ type: 'setupTeam', pieces: m.defaultSetup() }).ok).toBe(false);
+    expect(m.issue({ type: 'setupTeam', ...m.defaultSetup() }).ok).toBe(false);
   });
 
   it('runs Acts back to back with no pause between them', () => {

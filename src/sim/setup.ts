@@ -3,7 +3,7 @@ import { PATHS, PIECE_IDS, type LaneId, type Path, type PieceDef } from './conte
 import { pick, rand, shuffle, type RngState } from './core/rng';
 import type { Ctx } from './ctx';
 import { makeHero } from './units';
-import type { PlayTeam, SetupEntry } from './types';
+import type { PlayTeam, SetupEntry, TeamSetup } from './types';
 
 const LANE_COUNT: Record<LaneId, number> = { top: 2, bot: 2, mid: 1 };
 const LANE_ORDER: LaneId[] = ['top', 'bot', 'mid'];
@@ -16,20 +16,20 @@ export function naturalPath(p: PieceDef): Path {
 }
 
 /**
- * The AI's seeded setup (Black's pick, and White's pre-filled default): a random style per piece,
- * mostly its natural build path, an attacker in Mid where possible and side lanes paired so each
- * holds different dispositions.
+ * The AI's seeded setup (Black's pick, and White's pre-filled default): a random opening, mostly
+ * each piece's natural build path, an attacker in Mid where possible and side lanes paired so each
+ * holds different dispositions. (Styles are chosen later, at Rank 4.)
  */
-export function aiSetup(c: Content, rng: RngState): SetupEntry[] {
+export function aiSetup(c: Content, rng: RngState): TeamSetup {
+  const opening = pick(rng, 'draft', c.openings).id;
   const out: SetupEntry[] = [];
   for (const id of PIECE_IDS) {
     const p = c.pieceById.get(id)!;
-    const style = pick(rng, 'draft', p.styles).id;
     const nat = naturalPath(p);
     const roll = rand(rng, 'draft');
     const others = PATHS.filter((x) => x !== nat);
     const path = roll < 0.5 ? nat : roll < 0.75 ? others[0] : others[1];
-    out.push({ piece: id, style, path, lane: 'mid' });
+    out.push({ piece: id, path, lane: 'mid' });
   }
   const disp = (e: SetupEntry): string => c.pieceById.get(e.piece)!.disposition;
   let rest = shuffle(rng, 'draft', out);
@@ -44,10 +44,14 @@ export function aiSetup(c: Content, rng: RngState): SetupEntry[] {
     const [second] = rest.splice(i >= 0 ? i : 0, 1);
     second.lane = lane;
   }
-  return out;
+  return { opening, pieces: out };
 }
 
-export function validateSetup(c: Content, entries: unknown): string | null {
+export function validateSetup(c: Content, setup: unknown): string | null {
+  const t = setup as TeamSetup | null;
+  if (!t || typeof t.opening !== 'string' || !c.openingById.has(t.opening))
+    return 'pick an opening';
+  const entries: unknown = t.pieces;
   if (!Array.isArray(entries) || entries.length !== 5) return 'pick all five pieces';
   const seen = new Set<string>();
   const lanes: Record<string, number> = { top: 0, mid: 0, bot: 0 };
@@ -56,7 +60,6 @@ export function validateSetup(c: Content, entries: unknown): string | null {
     if (!p) return 'unknown piece';
     if (seen.has(p.id)) return `${p.name} is listed twice`;
     seen.add(p.id);
-    if (!p.styles.some((s) => s.id === e.style)) return `${p.name} has no style ${String(e.style)}`;
     if (!(PATHS as readonly string[]).includes(e.path)) return 'unknown build path';
     if (!(e.lane in lanes)) return 'unknown lane';
     lanes[e.lane]++;

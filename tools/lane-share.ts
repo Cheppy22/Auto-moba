@@ -83,7 +83,7 @@ export function measureLaneShare(content: Content, seed: number, maxPhases = 10)
       continue;
     }
     if (s.phase.n > maxPhases) break;
-    if (!m.issue({ type: 'setupTeam', pieces: m.defaultSetup() }).ok) break;
+    if (!m.issue({ type: 'setupTeam', ...m.defaultSetup() }).ok) break;
   }
   drain();
   return out;

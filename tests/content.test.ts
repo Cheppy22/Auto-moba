@@ -21,7 +21,6 @@ describe('content', () => {
       expect(p.styles).toHaveLength(3);
       for (const st of p.styles) {
         expect(content.kitByKey.get(`${p.id}/${st.id}`)).toHaveLength(4);
-        expect(st.forks['4']).toHaveLength(2);
         expect(st.forks['8']).toHaveLength(2);
       }
     }
@@ -37,18 +36,36 @@ describe('content', () => {
     ]);
   });
 
-  it('has the ten starting gambit cards, one signature card per piece', () => {
+  it('has the sixteen gambit cards, one signature card per piece, each in a school', () => {
     expect(content.gambits.map((g) => g.effect ?? g.id).sort()).toEqual([
       'advance',
+      'barricade',
       'castle',
       'check',
+      'exchange',
       'fork',
       'hold_the_file',
+      'open_file',
+      'outpost',
+      'pawn_sacrifice',
       'pawn_storm',
+      'poisoned_pawn',
       'queens_gambit',
       'regroup',
       'sanctuary',
       'siege',
+    ]);
+    const school = (id: string): string => content.gambitById.get(id)!.school;
+    expect(['advance', 'pawn_storm', 'siege'].map(school)).toEqual(['march', 'march', 'march']);
+    expect(['check', 'fork'].map(school)).toEqual(['initiative', 'initiative']);
+    expect(['hold_the_file', 'castle', 'sanctuary'].map(school)).toEqual(Array(3).fill('fortress'));
+    expect(school('queens_gambit')).toBe('sacrifice');
+    expect(school('regroup')).toBe('position');
+    expect(content.openings.map((o) => o.id)).toEqual([
+      'italian',
+      'sicilian',
+      'french',
+      'kings_gambit',
     ]);
     const sig = content.gambits.filter((g) => g.piece !== null).map((g) => g.piece);
     expect(sig.sort()).toEqual(['bishop', 'king', 'knight', 'queen', 'rook']);
@@ -79,8 +96,9 @@ describe('content', () => {
         ...p.styles.flatMap((st) => [
           ...st.passives,
           ...Object.values(st.ranks).flatMap((r) => r.triggers),
-          ...[...st.forks['4'], ...st.forks['8']].flatMap((f) => f.triggers),
+          ...st.forks['8'].flatMap((f) => f.triggers),
         ]),
+        ...Object.values(p.generic).flatMap((r) => r.triggers),
       ]),
     ];
     for (const t of all) if (t.custom) expect(names.has(t.custom)).toBe(true);

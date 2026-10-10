@@ -74,6 +74,8 @@ export function dealDamage(
   raw: number,
   dtype: DamageType,
   origin: string,
+  /** Pawn Sacrifice: the hit is not held to the structure's per-second damage cap. */
+  ignoreCap = false,
 ): number {
   if (!tgt.alive || tgt.pendingKill || raw <= 0) return 0;
   const structure = tgt.kind === 'tower' || tgt.kind === 'guardian';
@@ -84,6 +86,10 @@ export function dealDamage(
   }
   if (tgt.kind === 'guardian') raw *= ctx.s.tagMult.throneDamage ?? 1;
   if (src && src.team !== 'neutral' && ctx.s.check[src.team]) raw *= ctx.t.check.damageMul;
+  if (src && src.team !== 'neutral') {
+    const td = ctx.s.teamDamage[src.team];
+    if (td && td.untilTick > ctx.s.tick) raw *= td.value;
+  }
   let dmg = Math.max(1, mitigate(tgt, raw, dtype));
   let absorbed = 0;
   if (tgt.shields.length) {
@@ -96,7 +102,7 @@ export function dealDamage(
     }
     tgt.shields = tgt.shields.filter((sh) => sh.amount > 0);
   }
-  if (tgt.kind === 'tower' || tgt.kind === 'guardian') {
+  if (!ignoreCap && (tgt.kind === 'tower' || tgt.kind === 'guardian')) {
     const w = tgt.structWindow ?? (tgt.structWindow = { tick: ctx.s.tick, taken: 0 });
     if (ctx.s.tick - w.tick >= TPS) {
       w.tick = ctx.s.tick;

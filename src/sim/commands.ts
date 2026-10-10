@@ -5,10 +5,10 @@ import { fieldPawn } from './pawns';
 import { autoForks, chooseFork } from './ranks';
 import { assignJunglers, validateSetup } from './setup';
 import { LANES } from './world/map';
-import type { Command, CommandResult, SetupEntry, Unit } from './types';
+import type { Command, CommandResult, TeamSetup, Unit } from './types';
 
 /** Starts the match from the setup board (White's entries replace the pre-filled default). */
-export type StartMatchFn = (ctx: Ctx, white: SetupEntry[]) => void;
+export type StartMatchFn = (ctx: Ctx, white: TeamSetup) => void;
 
 export function applyCommand(ctx: Ctx, cmd: Command, startMatch: StartMatchFn): CommandResult {
   const r = run(ctx, cmd, startMatch);
@@ -28,12 +28,12 @@ function run(ctx: Ctx, cmd: Command, startMatch: StartMatchFn): CommandResult {
   if (kind === 'end') return { ok: false, reason: 'match is over' };
   if (cmd.type === 'setupTeam') {
     if (kind !== 'setup') return { ok: false, reason: 'setup is over' };
-    const err = validateSetup(ctx.c, cmd.pieces);
+    const err = validateSetup(ctx.c, cmd);
     if (err) return { ok: false, reason: err };
-    startMatch(
-      ctx,
-      cmd.pieces.map((e) => ({ piece: e.piece, style: e.style, path: e.path, lane: e.lane })),
-    );
+    startMatch(ctx, {
+      opening: cmd.opening,
+      pieces: cmd.pieces.map((e) => ({ piece: e.piece, path: e.path, lane: e.lane })),
+    });
     return { ok: true };
   }
   if (kind !== 'live') return { ok: false, reason: 'the match has not started' };

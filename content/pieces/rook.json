@@ -214,23 +214,6 @@
         }
       ],
       "ranks": {
-        "2": {
-          "name": "Thick Walls",
-          "desc": "+6 armor.",
-          "mods": [
-            {
-              "stat": "armor",
-              "kind": "add",
-              "value": 6
-            }
-          ]
-        },
-        "3": {
-          "name": "Mortar",
-          "desc": "Stone Skin shields 30% more.",
-          "ability": 1,
-          "powerMul": 1.3
-        },
         "5": {
           "name": "Long Wall",
           "desc": "Hold the Line covers 20% more ground.",
@@ -256,68 +239,6 @@
         }
       },
       "forks": {
-        "4": [
-          {
-            "id": "bastion_curtain",
-            "name": "Curtain Wall",
-            "desc": "When a piece hits him, allies within 160 gain a 60 + 40% Blade shield for 3s (12s). He protects others. Also +5 resist.",
-            "triggers": [
-              {
-                "on": "damaged",
-                "vs": "hero",
-                "cooldownSec": 12,
-                "target": "allyArea",
-                "radius": 160,
-                "effects": [
-                  {
-                    "type": "shield",
-                    "base": 60,
-                    "bladeScale": 0.4,
-                    "soulScale": 0,
-                    "durationSec": 3
-                  }
-                ],
-                "desc": "Curtain Wall: when a piece hits him, allies within 160 gain a 60 + 40% Blade shield for 3s (12s)."
-              }
-            ],
-            "mods": [
-              {
-                "stat": "resist",
-                "kind": "add",
-                "value": 5
-              }
-            ]
-          },
-          {
-            "id": "bastion_spikes",
-            "name": "Spiked Walls",
-            "desc": "Anything that hits him takes 20 + 25% Blade damage (1s). He punishes instead. Also +4% Blade damage.",
-            "triggers": [
-              {
-                "on": "damaged",
-                "cooldownSec": 1,
-                "target": "attacker",
-                "effects": [
-                  {
-                    "type": "damage",
-                    "dmgType": "blade",
-                    "base": 20,
-                    "bladeScale": 0.25,
-                    "soulScale": 0
-                  }
-                ],
-                "desc": "Spiked Walls: attackers take 20 + 25% Blade damage (1s)."
-              }
-            ],
-            "mods": [
-              {
-                "stat": "bladeDmg",
-                "kind": "mul",
-                "value": 1.04
-              }
-            ]
-          }
-        ],
         "8": [
           {
             "id": "bastion_immovable",
@@ -479,23 +400,6 @@
         }
       ],
       "ranks": {
-        "2": {
-          "name": "Iron Head",
-          "desc": "+6 Blade damage.",
-          "mods": [
-            {
-              "stat": "bladeDmg",
-              "kind": "add",
-              "value": 6
-            }
-          ]
-        },
-        "3": {
-          "name": "Momentum",
-          "desc": "File Charge recharges 20% faster.",
-          "ability": 0,
-          "cooldownMul": 0.8
-        },
         "5": {
           "name": "Relentless",
           "desc": "Ram recharges 15% faster.",
@@ -526,64 +430,6 @@
         }
       },
       "forks": {
-        "4": [
-          {
-            "id": "ram_demolisher",
-            "name": "Demolisher",
-            "desc": "Every 4th hit on a non-piece deals 80% Blade bonus damage. Bastions fall faster. Also +0.04 attack speed.",
-            "triggers": [
-              {
-                "on": "hit",
-                "vs": "other",
-                "everyNth": 4,
-                "target": "victim",
-                "effects": [
-                  {
-                    "type": "damage",
-                    "dmgType": "blade",
-                    "base": 0,
-                    "bladeScale": 0.8,
-                    "soulScale": 0
-                  }
-                ],
-                "desc": "Demolisher: every 4th hit on a pawnling, camp or structure deals 80% Blade bonus damage."
-              }
-            ],
-            "mods": [
-              {
-                "stat": "atkSpeed",
-                "kind": "add",
-                "value": 0.04
-              }
-            ]
-          },
-          {
-            "id": "ram_grit",
-            "name": "Pusher's Grit",
-            "desc": "Every pawnling or camp he kills heals him 2% max health. He can stay in a lane alone. Also +1 health regeneration.",
-            "triggers": [
-              {
-                "on": "kill",
-                "vs": "other",
-                "target": "self",
-                "effects": [
-                  {
-                    "type": "heal",
-                    "maxHpPct": 0.02
-                  }
-                ],
-                "desc": "Pusher's Grit: non-piece kills heal 2% max health."
-              }
-            ],
-            "mods": [
-              {
-                "stat": "hpRegen",
-                "kind": "add",
-                "value": 1
-              }
-            ]
-          }
-        ],
         "8": [
           {
             "id": "ram_breach",
@@ -775,23 +621,6 @@
         }
       ],
       "ranks": {
-        "2": {
-          "name": "Spurred",
-          "desc": "+4 move speed.",
-          "mods": [
-            {
-              "stat": "moveSpeed",
-              "kind": "add",
-              "value": 4
-            }
-          ]
-        },
-        "3": {
-          "name": "Heavy Impact",
-          "desc": "Breakthrough hits 25% harder.",
-          "ability": 3,
-          "powerMul": 1.25
-        },
         "5": {
           "name": "Shock Troops",
           "desc": "Rampart Slam covers 25% more ground.",
@@ -822,50 +651,6 @@
         }
       },
       "forks": {
-        "4": [
-          {
-            "id": "vanguard_lance",
-            "name": "Lance Line",
-            "desc": "Breakthrough reaches 30% farther. He picks fights from further away.",
-            "ability": 3,
-            "rangeMul": 1.3
-          },
-          {
-            "id": "vanguard_holdfast",
-            "name": "Hold Fast",
-            "desc": "His hits on a piece give him a 60 + 50% Blade shield for 2s (8s). He survives what he starts. Also +6 armor, +100 max health.",
-            "triggers": [
-              {
-                "on": "hit",
-                "vs": "hero",
-                "cooldownSec": 8,
-                "target": "self",
-                "effects": [
-                  {
-                    "type": "shield",
-                    "base": 60,
-                    "bladeScale": 0.5,
-                    "soulScale": 0,
-                    "durationSec": 2
-                  }
-                ],
-                "desc": "Hold Fast: hits on a piece grant a 60 + 50% Blade shield for 2s (8s)."
-              }
-            ],
-            "mods": [
-              {
-                "stat": "armor",
-                "kind": "add",
-                "value": 6
-              },
-              {
-                "stat": "maxHp",
-                "kind": "add",
-                "value": 100
-              }
-            ]
-          }
-        ],
         "8": [
           {
             "id": "vanguard_shockwave",
@@ -969,6 +754,35 @@
       }
     }
   ],
+  "generic": {
+    "2": {
+      "name": "Thick Masonry",
+      "desc": "+7% max health.",
+      "mods": [
+        {
+          "stat": "maxHp",
+          "kind": "mul",
+          "value": 1.07
+        }
+      ]
+    },
+    "3": {
+      "name": "Iron Course",
+      "desc": "+6 armor and +6 resist.",
+      "mods": [
+        {
+          "stat": "armor",
+          "kind": "add",
+          "value": 6
+        },
+        {
+          "stat": "resist",
+          "kind": "add",
+          "value": 6
+        }
+      ]
+    }
+  },
   "paths": {
     "offense": [
       "wanderer_boots",

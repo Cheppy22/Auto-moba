@@ -16,7 +16,11 @@ import {
   styleLabel,
 } from './pieces';
 import { n0 } from './format';
+import { SchoolChip } from './schools';
 import { useEscape, useSession } from './session';
+
+/** Black's Opening stays hidden for the first minute of play (20 ticks a second). */
+const REVEAL_TICKS = 60 * 20;
 
 type Tab = 'lanes' | 'paths' | 'armory';
 
@@ -88,7 +92,10 @@ function BlackCourt() {
             <PieceGlyph piece={h.defId} team="B" size={22} />
             <span class="grow">
               {pieceLabel(s.content, h.defId)}
-              <span class="dim"> · {styleLabel(s.content, h.defId, h.style)}</span>
+              <span class="dim">
+                {' '}
+                · {h.style ? styleLabel(s.content, h.defId, h.style) : 'Generic'}
+              </span>
             </span>
             <span class="dim">
               {LANE_LABEL[h.lane ?? 'mid']} · {PATH_LABEL[h.path]}
@@ -117,7 +124,7 @@ function Paths() {
               <div class="grow">
                 <b>{pieceLabel(s.content, h.defId)}</b>
                 <div class="dim tiny">
-                  {styleLabel(s.content, h.defId, h.style)} · Rank {h.rank} ·{' '}
+                  {h.style ? styleLabel(s.content, h.defId, h.style) : 'Generic'} · Rank {h.rank} ·{' '}
                   {LANE_LABEL[h.lane ?? 'mid']}
                 </div>
               </div>
@@ -225,6 +232,9 @@ function Mini() {
     <div class="mini" data-testid="mini-score">
       {(['A', 'B'] as const).map((t) => {
         const team = m.state.teams[t];
+        const id = snap.opening?.[t] ?? null;
+        const shown = id !== null && (t === 'A' || snap.tick >= REVEAL_TICKS);
+        const opening = shown ? s.content.openings.find((o) => o.id === id) : undefined;
         return (
           <div class={`mini-team ${t === 'A' ? 'a' : 'b'}`} key={t}>
             <b>{courtName(t)}</b>
@@ -234,6 +244,16 @@ function Mini() {
               {snap.pawns[t].alive}/{snap.pawns[t].cap}
               {snap.check[t] ? ' · In Check' : ''}
               {snap.throneDown[t] ? ' · Throne down' : ''}
+            </span>
+            <span class="mini-opening tiny" data-testid={`opening-${t}`}>
+              <span class="dim">Opening</span>{' '}
+              <b>{opening ? opening.name : shown ? id : 'Not yet seen'}</b>
+              {opening?.schools.map((sc) => (
+                <SchoolChip key={sc} school={sc} glyph={11} />
+              ))}
+              {opening && opening.schools.length === 0 && (
+                <span class="school-chip balanced">Balanced</span>
+              )}
             </span>
           </div>
         );

@@ -19,7 +19,6 @@ const FLARES = 14;
 const ARCS = 4;
 const ARC_DOTS = 14;
 const CROWNS = 3;
-const ZONES = 6;
 
 interface Flare {
   ring: Mesh;
@@ -63,7 +62,6 @@ export class GambitFx {
   private readonly flares: Flare[] = [];
   private readonly arcs: Arc[] = [];
   private readonly crowns: Crown[] = [];
-  private readonly zoneRings: { ring: Mesh; disc: Mesh; pillar: Mesh }[] = [];
   private nextFlare = 0;
   private nextArc = 0;
   private nextCrown = 0;
@@ -106,30 +104,6 @@ export class GambitFx {
         mode: 0,
         tall: 0,
       });
-    }
-    for (let i = 0; i < ZONES; i++) {
-      const ring = kit.decalRing('#8ff0b4', 1, false, 0.9);
-      const disc = kit.glowDisc('#8ff0b4', 1, 0.3);
-      const pillar = new Mesh(
-        kit.geo('pillar', () => new CylinderGeometry(1, 1, 1, 20, 1, true).translate(0, 0.5, 0)),
-        kit.own(
-          new MeshBasicMaterial({
-            map: beam,
-            color: '#8ff0b4',
-            transparent: true,
-            opacity: 0.3,
-            blending: AdditiveBlending,
-            depthWrite: false,
-            side: DoubleSide,
-            fog: false,
-          }),
-        ),
-      );
-      for (const m of [ring, disc, pillar]) {
-        m.visible = false;
-        this.group.add(m);
-      }
-      this.zoneRings.push({ ring, disc, pillar });
     }
     for (let i = 0; i < ARCS; i++) {
       const dots: Sprite[] = [];
@@ -233,36 +207,6 @@ export class GambitFx {
     f.pillar.position.set(x, y, z);
     f.ring.visible = f.disc.visible = true;
     f.pillar.visible = tall > 0;
-  }
-
-  /**
-   * Live healing zones from the snapshot (Sanctuary): a steady ring, disc and soft light pillar
-   * per zone. `ground` gives the surface height at a scene-space point.
-   */
-  setZones(
-    zones: readonly { x: number; y: number; radius: number }[],
-    half: number,
-    ground: (x: number, z: number) => number,
-    time: number,
-  ): void {
-    const pulse = 0.5 + 0.5 * Math.sin(time * 4);
-    for (let i = 0; i < ZONES; i++) {
-      const s = this.zoneRings[i];
-      const z = i < zones.length ? zones[i] : null;
-      s.ring.visible = s.disc.visible = s.pillar.visible = z !== null;
-      if (!z) continue;
-      const wx = z.x - half;
-      const wz = z.y - half;
-      const y = ground(wx, wz);
-      s.ring.position.set(wx, y + 1.5, wz);
-      s.disc.position.set(wx, y + 1.2, wz);
-      s.pillar.position.set(wx, y, wz);
-      s.ring.scale.set(z.radius * 2, 1, z.radius * 2);
-      s.ring.rotation.y = time * 0.5;
-      s.disc.scale.set(z.radius * 2.1, 1, z.radius * 2.1);
-      s.pillar.scale.set(z.radius * 0.8, 44, z.radius * 0.8);
-      (s.disc.material as MeshBasicMaterial).opacity = 0.25 + 0.12 * pulse;
-    }
   }
 
   /** A crown that pops above unit `id` for `life` seconds. */
@@ -372,6 +316,5 @@ export class GambitFx {
       a.age = a.life;
       for (const d of a.dots) d.visible = false;
     }
-    for (const z of this.zoneRings) z.ring.visible = z.disc.visible = z.pillar.visible = false;
   }
 }

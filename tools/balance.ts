@@ -19,6 +19,11 @@ const workers = Math.max(1, Math.min(arg('workers', cpus().length), total));
 const noGambitsA = flag('no-gambits-A');
 // --no-gambits-B: the same for Black (both flags = a Tempo-free control run).
 const noGambitsB = flag('no-gambits-B');
+// --schools a,b: restrict both decks to the cards of those schools (march, initiative, fortress,
+// sacrifice, position, clock). Workers read it from the environment.
+const schoolsIdx = process.argv.indexOf('--schools');
+const schools = schoolsIdx >= 0 ? process.argv[schoolsIdx + 1] : '';
+if (schools) process.env.BALANCE_SCHOOLS = schools;
 
 async function main(): Promise<void> {
   const seeds = Array.from({ length: total }, (_, i) => startSeed + i);
@@ -53,10 +58,11 @@ async function main(): Promise<void> {
   const { md, stats } = report(results, { noGambitsA, noGambitsB });
   const dir = new URL('../out/', import.meta.url);
   mkdirSync(dir, { recursive: true });
-  const name =
+  const base =
     noGambitsA || noGambitsB
       ? `balance-no-gambits-${noGambitsA ? 'A' : ''}${noGambitsB ? 'B' : ''}`
       : 'balance';
+  const name = schools ? `${base}-${schools.replace(/[^a-z,]/g, '').replace(/,/g, '-')}` : base;
   writeFileSync(new URL(`${name}.json`, dir), JSON.stringify({ stats, results }, null, 1));
   writeFileSync(new URL(`${name}.md`, dir), md);
   process.stdout.write(md);

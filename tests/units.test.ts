@@ -90,8 +90,9 @@ describe('damage and shop', () => {
   });
 
   it('rank bonuses and fork picks scale ability numbers', () => {
-    const st = content.styleByKey.get(`queen/${hero.hero!.style}`)!;
-    const bonus = [st.ranks['2'], st.ranks['3'], st.ranks['5'], st.ranks['6'], st.ranks['7']].find(
+    const st = content.pieceById.get('queen')!.styles[0];
+    hero.hero!.style = st.id;
+    const bonus = [st.ranks['5'], st.ranks['6'], st.ranks['7']].find(
       (r) => r.ability !== undefined && r.powerMul !== 1,
     );
     hero.hero!.perks = [];
@@ -102,10 +103,11 @@ describe('damage and shop', () => {
       hero.hero!.perks = [{ rank, optionId: null }];
       expect(abilityMods(m.ctx, hero, idx).powerMul).toBeCloseTo(before * bonus.powerMul);
     }
-    const opt = st.forks['4'][0];
-    hero.hero!.perks = [{ rank: 4, optionId: opt.id }];
+    const opt = st.forks['8'][0];
+    hero.hero!.perks = [{ rank: 8, optionId: opt.id }];
     if (opt.ability !== undefined)
       expect(abilityMods(m.ctx, hero, opt.ability).powerMul).toBeCloseTo(opt.powerMul);
     hero.hero!.perks = [];
+    hero.hero!.style = null;
   });
 });

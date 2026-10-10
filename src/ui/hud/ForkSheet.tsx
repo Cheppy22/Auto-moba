@@ -32,7 +32,7 @@ function lean(opt: ForkOptionDef | undefined): Path | null {
 }
 
 /**
- * The fork sheet: the match is paused. One piece at a time chooses between two paths; "Let the AI
+ * The fork sheet: the match is paused. One piece at a time chooses an archetype (three options, Rank 4) or a skill path (two, Rank 8); "Let the AI
  * choose" answers everything that waits. A bottom sheet on phones, a docked card on desktop.
  */
 export function ForkSheet(props: { forks: SnapFork[] }) {
@@ -40,8 +40,9 @@ export function ForkSheet(props: { forks: SnapFork[] }) {
   const f = props.forks[0];
   if (!f) return null;
   const more = props.forks.length - 1;
-  const styleDef = s.content.styleByKey.get(`${f.piece}/${f.style}`);
-  const defs = styleDef?.forks[String(f.rank) as '4' | '8'] ?? [];
+  const archetype = f.kind === 'archetype';
+  const styleDef = f.style ? s.content.styleByKey.get(`${f.piece}/${f.style}`) : undefined;
+  const defs = archetype ? [] : (styleDef?.forks['8'] ?? []);
   return (
     <>
       <div class="fork-scrim" aria-hidden="true" />
@@ -50,8 +51,9 @@ export function ForkSheet(props: { forks: SnapFork[] }) {
         data-testid="forks"
         role="dialog"
         aria-modal="true"
-        aria-label="Choose a path"
-        style={{ '--sty': styleColor(f.style) }}
+        aria-label={archetype ? 'Choose an archetype' : 'Choose a path'}
+        data-kind={f.kind}
+        style={{ '--sty': f.style ? styleColor(f.style) : '#c9a35a' }}
       >
         <header class="fs-head" data-testid={`fork-${f.heroId}`}>
           <PieceGlyph piece={f.piece} team="A" size={32} />
@@ -59,12 +61,18 @@ export function ForkSheet(props: { forks: SnapFork[] }) {
             <b>
               {pieceLabel(s.content, f.piece)}
               <span class="fs-style">
-                <StyleBadge style={f.style} team="A" size={16} />
-                {styleLabel(s.content, f.piece, f.style)}
+                {f.style ? (
+                  <>
+                    <StyleBadge style={f.style} team="A" size={16} />
+                    {styleLabel(s.content, f.piece, f.style)}
+                  </>
+                ) : (
+                  'Generic'
+                )}
               </span>
             </b>
             <span class="fs-sub">
-              Rank {f.rank} · Choose a path
+              Rank {f.rank} · {archetype ? 'Choose an archetype' : 'Choose a path'}
               {more > 0 && (
                 <span class="fs-more" data-testid="fork-more">
                   {' '}
@@ -77,8 +85,8 @@ export function ForkSheet(props: { forks: SnapFork[] }) {
             Paused
           </span>
         </header>
-        <p class="fs-style-desc">{styleDesc(s.content, f.piece, f.style)}</p>
-        <div class="fs-opts">
+        {!archetype && <p class="fs-style-desc">{styleDesc(s.content, f.piece, f.style)}</p>}
+        <div class={`fs-opts ${archetype ? 'archetypes' : ''}`}>
           {f.options.map((o) => {
             const tag = lean(defs.find((d) => d.id === o.id));
             return (
@@ -88,11 +96,14 @@ export function ForkSheet(props: { forks: SnapFork[] }) {
                 data-testid={`fork-opt-${f.heroId}-${o.id}`}
                 onClick={() => s.chooseFork(f.heroId, o.id)}
               >
-                <span class="fs-opt-top">
-                  <b>{o.name}</b>
-                  {tag && <i class={`fs-tag ${tag}`}>{PATH_LABEL[tag]}-leaning</i>}
+                {archetype && <StyleBadge style={o.id} team="A" size={30} class="fs-emblem" />}
+                <span class="fs-opt-text">
+                  <span class="fs-opt-top">
+                    <b>{o.name}</b>
+                    {tag && <i class={`fs-tag ${tag}`}>{PATH_LABEL[tag]}-leaning</i>}
+                  </span>
+                  <span class="fs-opt-desc">{o.desc}</span>
                 </span>
-                <span class="fs-opt-desc">{o.desc}</span>
               </button>
             );
           })}

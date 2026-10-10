@@ -59,9 +59,10 @@ export function Roster(props: { team: 'A' | 'B'; forks: number[]; snap: Snapshot
         const laneChanged = performance.now() - laneAt < LANE_FLASH_MS;
         const left = h.respawnAt === null ? null : Math.max(0, h.respawnAt - tick);
         const name = pieceLabel(s.content, h.defId);
-        const style = styleLabel(s.content, h.defId, h.style);
+        const style = h.style ? styleLabel(s.content, h.defId, h.style) : 'Generic';
         const tap = (): void => {
           if (longPressed()) return;
+          if (team === 'A' && s.aimingAlly() && s.aimUnit(u.id)) return;
           if (followed) s.openCard(u.id);
           else s.setUi({ cam: 'follow', follow: u.id, card: s.ui.card !== null ? u.id : null });
         };
@@ -91,7 +92,7 @@ export function Roster(props: { team: 'A' | 'B'; forks: number[]; snap: Snapshot
               <b class="rank-num" data-testid="rank-num">
                 {h.rank}
               </b>
-              <StyleBadge style={h.style} team={team} size={18} class="style-badge" />
+              {h.style && <StyleBadge style={h.style} team={team} size={18} class="style-badge" />}
               <i
                 class={`lane-tag ${laneChanged ? 'changed' : ''}`}
                 data-testid="lane-tag"
