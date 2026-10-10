@@ -90,7 +90,7 @@ function sideTags(ctx: Ctx, team: PlayTeam, report: ActReport): Set<string> {
   return tags;
 }
 
-interface Hint {
+export interface Hint {
   callout: Callout;
   family: RelicFamily;
   lane: LaneId | null;
@@ -131,42 +131,46 @@ function chooseCard(ctx: Ctx, team: PlayTeam, def: RelicDef): string {
 }
 
 /**
- * Where a relic goes by the AI's rule: offence at the lane that went best, defence at the one
- * that went worst; the carry or the most beaten piece. A coach hint (the problem the tailored
- * offer answers) wins over the rule.
+ * A coach hint aims a relic only when the relic fits it: a problem (a bad callout: a lane that
+ * bled, a piece that kept dying) aims a defensive or protecting relic; a strength (a Bastion
+ * taken, the top-damage piece) aims an offensive or carry relic. Otherwise the rule decides, so
+ * Crown Jewel or Development never lands on the piece that fed the most.
  */
-function aimFor(
+function hintFits(hint: Hint | null, defensive: boolean): hint is Hint {
+  return !!hint && (hint.callout.tone === 'bad') === defensive;
+}
+
+/**
+ * Where a relic goes by the AI's rule: offence at the lane that went best, defence at the one
+ * that went worst; the carry or the most beaten piece. A coach hint that fits the relic (see
+ * `hintFits`) wins over the rule.
+ */
+export function aimFor(
   ctx: Ctx,
   team: PlayTeam,
   def: RelicDef,
   report: ActReport,
-  hint: Pick<Hint, 'lane' | 'piece'> | null = null,
+  hint: Hint | null = null,
   keepCard: string | null = null,
 ): RelicAim {
   switch (def.bind) {
     case 'none':
       return NO_AIM;
-    case 'lane':
-      return {
-        ...NO_AIM,
-        lane:
-          hint?.lane ?? (def.aim === 'defense' ? worstLane(report, team) : bestLane(report, team)),
-      };
-    case 'piece':
-      return {
-        ...NO_AIM,
-        piece:
-          hint?.piece ??
-          (def.aim === 'protect' ? beatenPiece(report, team) : carryPiece(report, team)),
-      };
+    case 'lane': {
+      const defensive = def.aim === 'defense';
+      const rule = defensive ? worstLane(report, team) : bestLane(report, team);
+      return { ...NO_AIM, lane: (hintFits(hint, defensive) ? hint.lane : null) ?? rule };
+    }
+    case 'piece': {
+      const defensive = def.aim === 'protect';
+      const rule = defensive ? beatenPiece(report, team) : carryPiece(report, team);
+      return { ...NO_AIM, piece: (hintFits(hint, defensive) ? hint.piece : null) ?? rule };
+    }
     case 'laneCard': {
       const card = keepCard ?? chooseCard(ctx, team, def);
       const defensive = ctx.c.gambitById.get(card)?.school === 'fortress';
-      return {
-        ...NO_AIM,
-        card,
-        lane: hint?.lane ?? (defensive ? worstLane(report, team) : bestLane(report, team)),
-      };
+      const rule = defensive ? worstLane(report, team) : bestLane(report, team);
+      return { ...NO_AIM, card, lane: (hintFits(hint, defensive) ? hint.lane : null) ?? rule };
     }
   }
 }

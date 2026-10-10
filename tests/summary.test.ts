@@ -9,7 +9,7 @@ import {
 } from '../src/analysis';
 import { content, runAi } from './helpers';
 
-const m = runAi(3, 9);
+const m = runAi(4, 9);
 const input = inputFromMatch(m, content);
 const s = buildSummary(input);
 const TEAMS = ['A', 'B'] as const;
