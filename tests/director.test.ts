@@ -41,6 +41,7 @@ const unit = (id: number, team: 'A' | 'B', x: number, y: number, o: Partial<Snap
     holy: false,
     target: null,
     flash: false,
+    inCombat: false,
     ...o,
   }) satisfies SnapUnit;
 

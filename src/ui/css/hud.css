@@ -13,7 +13,7 @@
 .hud .clock,
 .hud .roster,
 .hud .ucard,
-.hud .ginfo {
+.hud .gsheet {
   pointer-events: auto;
 }
 .aim-layer {
@@ -280,6 +280,47 @@
 .roster-cell.down .style-badge {
   opacity: 0.7;
 }
+/* in combat: a red ring pulses round the portrait (steady under reduced motion) */
+.roster-cell.combat .hpring {
+  box-shadow:
+    0 0 0 2px var(--clock-hi),
+    0 0 8px 1px rgba(184, 57, 44, 0.7);
+  animation: combat-pulse 1.2s ease-in-out infinite;
+}
+.roster-cell.combat {
+  border-color: rgba(224, 103, 90, 0.7);
+}
+@keyframes combat-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 2px rgba(224, 103, 90, 0.45),
+      0 0 3px 0 rgba(184, 57, 44, 0.25);
+  }
+  50% {
+    box-shadow:
+      0 0 0 2px var(--clock-hi),
+      0 0 12px 3px rgba(224, 103, 90, 0.8);
+  }
+}
+/* a piece changed lane for good: the tag flashes brass for a moment */
+.lane-tag.changed {
+  color: #14110e;
+  background: var(--brass-hi);
+  border-color: var(--brass-hi);
+  animation: lane-flash 1.5s ease-out;
+}
+@keyframes lane-flash {
+  0%,
+  40% {
+    transform: scale(1.5);
+    box-shadow: 0 0 12px 4px var(--brass-hi);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
 .roster-cell.B .hpring .in {
   background: radial-gradient(circle, #8a7a5e, #4a3a2a);
 }
@@ -430,9 +471,6 @@
   order: 1;
   align-self: center;
 }
-.ginfo {
-  order: 2;
-}
 .aim {
   order: 3;
 }
@@ -456,30 +494,128 @@
     toast-up var(--t-med) var(--ease) both,
     fade-out 0.4s ease-in 2.2s forwards;
 }
-.ginfo {
+/* enlarged gambit card (long press): a centred sheet; the game is paused behind it */
+.gsheet-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  pointer-events: auto;
+  background: rgba(10, 8, 6, 0.55);
+  animation: veil-in var(--t-med) var(--ease) both;
+}
+.gsheet {
+  position: absolute;
+  z-index: 9;
+  left: 50%;
+  top: 50%;
+  width: min(calc(100% - 32px), 380px);
+  max-height: calc(100% - 32px);
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 6px 10px 7px;
-  cursor: pointer;
-  animation: toast-up var(--t-med) var(--ease) both;
+  gap: 10px;
+  padding: 14px 14px 14px;
+  pointer-events: auto;
+  background: linear-gradient(180deg, rgba(44, 35, 24, 0.99), rgba(26, 19, 14, 0.99));
+  border: 1px solid var(--brass);
+  border-top: 3px solid var(--brass-hi);
+  border-radius: var(--r-1);
+  box-shadow: var(--glow-brass), var(--sh-2);
+  transform: translate(-50%, -50%);
+  animation: gsheet-in 0.22s var(--ease) both;
 }
-.ginfo-top {
+@keyframes gsheet-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -46%) scale(0.94);
+  }
+}
+.gs-head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  gap: 10px;
 }
-.ginfo-top b {
-  font-family: var(--font-display);
-  font-weight: 400;
-  font-size: var(--fs-md);
-  letter-spacing: 0.04em;
+.gs-any {
+  flex: none;
+  font-size: 30px;
+  line-height: 1;
   color: var(--brass-hi);
 }
-.ginfo-desc {
+.gs-title {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+.gs-title b {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--fs-xl, 24px);
+  letter-spacing: 0.04em;
+  color: #f3e9d0;
+}
+.gs-sub {
   font-size: var(--fs-sm);
-  line-height: 1.3;
+  color: var(--brass-hi);
+}
+.gs-cost {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 46px;
+  padding: 3px 6px 4px;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: #1a1206;
+  background: linear-gradient(180deg, var(--brass-hi), var(--brass));
+  border-radius: 8px;
+}
+.gs-cost small {
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.gs-desc {
+  margin: 0;
+  font-size: var(--fs-md);
+  line-height: 1.4;
+  color: #f3e9d0;
+}
+.gs-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.gs-facts li {
+  padding: 2px 8px;
+  font-size: var(--fs-xs);
+  color: var(--brass-hi);
+  border: 1px solid var(--brass-dim);
+  border-radius: 3px;
+}
+.gs-facts .gs-paused {
+  color: var(--dim);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.gs-why {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: #f0a597;
+}
+.gs-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.gs-actions .btn {
+  min-height: 44px;
 }
 
 .hand {

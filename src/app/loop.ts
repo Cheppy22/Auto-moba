@@ -29,8 +29,8 @@ export class FrameClock {
   }
 
   /**
-   * The match never stops by itself; only Pause, the Adjourn panel and a waiting fork hold the
-   * sim. The fork pause and Adjourn are separate flags: closing one never releases the other.
+   * The match never stops by itself; only Pause, the Adjourn panel, a gambit sheet and a waiting
+   * fork hold the sim. They are separate flags: closing one never releases another.
    */
   private advance(now: number): void {
     const s = this.session;
@@ -39,7 +39,14 @@ export class FrameClock {
     const m = s.match;
     s.syncForks();
     const forkWait = !!m && m.state.forks.length > 0;
-    if (m && m.state.phase.kind === 'live' && s.ui.speed > 0 && !s.ui.adjourned && !forkWait) {
+    if (
+      m &&
+      m.state.phase.kind === 'live' &&
+      s.ui.speed > 0 &&
+      !s.ui.adjourned &&
+      !s.ui.info &&
+      !forkWait
+    ) {
       this.acc += (dt / 1000) * TPS * s.ui.speed;
       let n = Math.floor(this.acc);
       this.acc -= n;

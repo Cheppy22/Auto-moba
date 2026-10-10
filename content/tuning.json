@@ -51,7 +51,7 @@
     "extraMeleePerPhaseAfter": 1,
     "extraMeleeFromPhase": 2,
     "scalePerPhase": 0.3,
-    "midLeadUnits": 195
+    "midLeadUnits": 292.5
   },
   "minions": {
     "melee": {
@@ -107,7 +107,7 @@
   "gold": {
     "heroKill": 200,
     "assist": 80,
-    "shareRadius": 780,
+    "shareRadius": 1170,
     "minionShare": 6,
     "killBountyPerStreak": 20,
     "comebackBounty": 40
@@ -272,9 +272,9 @@
   "shop": {
     "slots": 6,
     "sellRefund": 0.5,
-    "baseRadius": 143,
-    "keeperRadius": 156,
-    "jungleRadius": 78,
+    "baseRadius": 214.5,
+    "keeperRadius": 234,
+    "jungleRadius": 117,
     "keeperStock": 3,
     "unlockDiscount": 0.25
   },
@@ -283,7 +283,7 @@
   },
   "movement": {
     "arriveDist": 12,
-    "speedMul": 1
+    "speedMul": 1.5
   },
   "collision": {
     "radius": {
@@ -318,12 +318,12 @@
     "allyRadius": 300,
     "shopAtBaseGold": 300,
     "recallBelowHp": 0.35,
-    "healBaseRadius": 130,
+    "healBaseRadius": 195,
     "baseHealPerSec": 0.12,
-    "wanderJitter": 32,
-    "pushWaveRadius": 338,
-    "defendRadius": 416,
-    "bidFraction": [0.3, 0.5, 1.0],
+    "wanderJitter": 48,
+    "pushWaveRadius": 507,
+    "defendRadius": 624,
+    "bidFraction": [0.3, 0.5, 1],
     "bidGoldFraction": 0.2,
     "curseAcceptBase": 0.55,
     "siegeStartHp": 0.55,
@@ -335,30 +335,30 @@
     "siegeAssignedBonus": 0.1,
     "siegeMidPenalty": 0.2,
     "siegeLaneStick": 0.6,
-    "laneHugRadius": 195,
-    "joinFightRadius": 585,
-    "defendOffLaneRadius": 780,
-    "guardianThreatRadius": 520,
+    "laneHugRadius": 292.5,
+    "joinFightRadius": 877.5,
+    "defendOffLaneRadius": 1170,
+    "guardianThreatRadius": 780,
     "suggestScore": 1.2,
     "shopTripGold": 700,
-    "shopTripRadius": 494,
+    "shopTripRadius": 741,
     "shopTripScore": 0.9,
-    "tier3TripRadius": 1690,
+    "tier3TripRadius": 2535,
     "swapAfterDeaths": 3,
     "dominatedGap": 3,
     "lossWindowTicks": 3600,
     "cautiousDeaths": 2,
     "cautiousTicks": 1800,
     "healSafeHp": 0.45,
-    "rescueRadius": 1170,
+    "rescueRadius": 1755,
     "rescueScore": 2.4,
-    "rescueRatio": 1.0,
+    "rescueRatio": 1,
     "commitBonus": 1.5,
     "easyKillHp": 0.4,
     "holdBraveCap": 1.2,
     "tier3TripScore": 1.1,
     "holdPatience": 400,
-    "huntRadius": 845,
+    "huntRadius": 1267.5,
     "huntScore": 0.8
   },
   "personalities": {
@@ -378,13 +378,13 @@
       "retreatHp": 0.28,
       "engageRatio": 0.9,
       "chase": 1.3,
-      "riskTaking": 1.0
+      "riskTaking": 1
     },
     "steadfast": {
       "retreatHp": 0.3,
-      "engageRatio": 1.0,
-      "chase": 1.0,
-      "riskTaking": 1.0
+      "engageRatio": 1,
+      "chase": 1,
+      "riskTaking": 1
     }
   },
   "posture": {
@@ -393,8 +393,8 @@
       "pushTower": 1.7,
       "defendTower": 0.7,
       "clearCamp": 0.8,
-      "joinFight": 1.0,
-      "takeObelisk": 1.0,
+      "joinFight": 1,
+      "takeObelisk": 1,
       "hunt": 1.5
     },
     "farm": {
@@ -403,11 +403,11 @@
       "defendTower": 0.9,
       "clearCamp": 1.4,
       "joinFight": 1.1,
-      "takeObelisk": 1.0,
+      "takeObelisk": 1,
       "hunt": 0.35
     },
     "defend": {
-      "farmLane": 1.0,
+      "farmLane": 1,
       "pushTower": 0.35,
       "defendTower": 1.9,
       "clearCamp": 0.8,
@@ -416,13 +416,13 @@
       "hunt": 0.25
     },
     "default": {
-      "farmLane": 1.0,
-      "pushTower": 1.0,
-      "defendTower": 1.0,
-      "clearCamp": 1.0,
-      "joinFight": 1.0,
-      "takeObelisk": 1.0,
-      "hunt": 1.0
+      "farmLane": 1,
+      "pushTower": 1,
+      "defendTower": 1,
+      "clearCamp": 1,
+      "joinFight": 1,
+      "takeObelisk": 1,
+      "hunt": 1
     }
   },
   "curse": {
@@ -438,7 +438,7 @@
   "obelisk": {
     "spawnSec": [50, 150],
     "claimSec": 5,
-    "radius": 85,
+    "radius": 127.5,
     "points": 3,
     "expireSec": 90,
     "rewards": [
@@ -475,12 +475,12 @@
   },
   "camps": {
     "respawnSec": 70,
-    "leash": 286,
+    "leash": 429,
     "aggro": 100
   },
   "fight": {
     "clusterGapSec": 4,
-    "clusterRadius": 286
+    "clusterRadius": 429
   },
   "events": {
     "firstSec": 40,

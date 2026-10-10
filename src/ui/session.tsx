@@ -43,7 +43,7 @@ export interface UiState {
   reportHero: number | null;
   /** The piece whose card is open (any team). */
   card: number | null;
-  /** The hand slot whose full text is showing (long-press on a gambit). */
+  /** The gambit sheet (long-press on a card): the hand slot shown enlarged. The game is paused while it is open. */
   info: { slot: number; cardId: string } | null;
 }
 
@@ -71,7 +71,6 @@ const RANK_CHIP_MS = 3200;
 const BANNER_MS = 2400;
 const MAX_RANK_CHIPS = 1;
 const MAX_BANNERS = 2;
-const INFO_MS = 7000;
 /** The run speeds the chip cycles through; 0 is paused. */
 const SPEEDS: Speed[] = [1, 2, 4, 8, 0];
 const CAMS: CamMode[] = ['auto', 'follow', 'free'];
@@ -89,9 +88,10 @@ export class Session {
   private chipId = 0;
   private seenSeq = -1;
   private toastTimer = 0;
-  private infoTimer = 0;
   /** Camera mode and target to restore when the fork sheet closes. */
   private forkCam: { cam: CamMode; follow: number | null } | null = null;
+  /** When the gambit sheet opened (ms), so the lifting finger cannot close it at once. */
+  infoAt = 0;
   private escapes: (() => void)[] = [];
   private listeners = new Set<() => void>();
   private frameListeners = new Set<(alpha: number) => void>();
@@ -195,17 +195,21 @@ export class Session {
     if (this.ui.card !== null) this.setUi({ card: null });
   }
 
-  /** Shows a gambit's full text for a few seconds (long-press on the card). */
+  /**
+   * Opens a gambit card enlarged (long-press or right-click). The loop holds the sim while
+   * `ui.info` is set; the speed is untouched, so closing the sheet resumes at the old speed.
+   */
   showInfo(slot: number): void {
-    const card = this.match?.snapshot().hand[slot];
+    const m = this.match;
+    if (!m || m.state.phase.kind !== 'live' || this.ui.adjourned || m.state.forks.length > 0)
+      return;
+    const card = m.snapshot().hand[slot];
     if (!card || card.cardId === '') return;
-    window.clearTimeout(this.infoTimer);
-    this.setUi({ info: { slot, cardId: card.cardId }, card: null });
-    this.infoTimer = window.setTimeout(() => this.setUi({ info: null }), INFO_MS);
+    this.infoAt = performance.now();
+    this.setUi({ info: { slot, cardId: card.cardId }, card: null, aim: null });
   }
 
   closeInfo(): void {
-    window.clearTimeout(this.infoTimer);
     if (this.ui.info) this.setUi({ info: null });
   }
 

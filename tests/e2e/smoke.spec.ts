@@ -104,14 +104,17 @@ test('title, setup, gambits, pawn, fork, adjourn, checkmate and report', async (
   let s = await stepUntil(page, { kind: 'card', target: 'lane' });
   const laneSlot = s.hand.find((c) => c.target === 'lane' && c.usable)!.slot;
   const before = await eventCount(page, 'gambit');
-  // holding a card shows its full text; nothing is played
+  // holding a card opens it enlarged with its full text; nothing is played
   const card = (await page.getByTestId(`gambit-${laneSlot}`).boundingBox())!;
   await page.mouse.move(card.x + card.width / 2, card.y + card.height / 2);
   await page.mouse.down();
   await expect(page.getByTestId('gambit-info')).toBeVisible({ timeout: 15_000 });
   await page.mouse.up();
+  await expect(page.getByTestId('gambit-info')).toBeVisible();
   await expect(page.getByTestId('aim')).toHaveCount(0);
   expect(await eventCount(page, 'gambit')).toBe(before);
+  await page.getByTestId('gambit-info-close').click();
+  await expect(page.getByTestId('gambit-info')).toHaveCount(0);
   await page.getByTestId(`gambit-${laneSlot}`).click();
   await expect(page.getByTestId('aim')).toBeVisible();
   await expect(page.getByTestId('aim-top')).toBeVisible();

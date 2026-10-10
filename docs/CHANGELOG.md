@@ -2,6 +2,14 @@
 
 Newest first. One entry per change: what changed, why, and any measured effect. How the game works _now_ is in [SOURCE_OF_TRUTH.md](SOURCE_OF_TRUTH.md); this file is history. Commit ids are on branch `test-product`.
 
+## 2026-10-10
+
+- **Map ×1.5, humanoid pieces, combat flash, lane tag, gambit long-press** (branch `test-product-2`). Why: Cheppy's requests.
+  - Map size 1950 (×1.5); lanes ×1.25 (half-width 90); unit sizes unchanged; `movement.speedMul` 1.5 so travel time is about the same.
+  - Pieces are humanoids with a unique design each (King, Queen, Rook, Bishop, Knight); each style adds a large style-colour area and a signature prop; pieces look generic until a style is chosen, with a transformation flare.
+  - Roster portraits pulse red while a piece is in combat; the lane tag follows permanent lane changes and flashes; holding a gambit card (or right-click) opens it enlarged and pauses the game.
+  - Measured (800 matches, seed 29000): White 45.8% (target 48–52, open), median 14.5 min, p90 23.8. Light testing per Cheppy; full testing pass later.
+
 ## 2026-10-09
 
 - **The Grand Board: chess look pass** (branch `test-product-2`, direction in [CHESS.md](CHESS.md) "Look"). Why: Cheppy found the game unpolished and still dressed in the old spirit-shop and Wonderland theme.

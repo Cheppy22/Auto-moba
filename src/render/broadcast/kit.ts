@@ -48,6 +48,10 @@ export interface Bit {
   at?: [number, number, number];
   rot?: [number, number, number];
   scale?: number | [number, number, number];
+  /** Drawn unlit in its own colour (needs a material that reads `aGlow`, see pieces.ts). */
+  glow?: boolean;
+  /** Which bone of a posed figure moves this part (needs a material that reads `aBone`). */
+  bone?: number;
 }
 
 const _mat = new Matrix4();
@@ -370,7 +374,7 @@ export class Kit {
     let h = this.hulls.get(geometry);
     if (!h) {
       const g = geometry.clone();
-      for (const name of ['normal', 'uv', 'color']) g.deleteAttribute(name);
+      for (const name of ['normal', 'uv', 'color', 'aGlow']) g.deleteAttribute(name);
       h = mergeVertices(g, 1e-3);
       h.computeVertexNormals();
       g.dispose();
@@ -391,6 +395,22 @@ export class Kit {
   /** Primitives baked into one vertex-colour geometry (one draw call instead of many). */
   merge(bits: Bit[]): BufferGeometry {
     let geos = bits.map(bake);
+    if (bits.some((b) => b.bone !== undefined))
+      geos.forEach((g, i) => {
+        const n = g.getAttribute('position').count;
+        g.setAttribute(
+          'aBone',
+          new Float32BufferAttribute(new Float32Array(n).fill(bits[i].bone ?? 0), 1),
+        );
+      });
+    if (bits.some((b) => b.glow))
+      geos.forEach((g, i) => {
+        const n = g.getAttribute('position').count;
+        g.setAttribute(
+          'aGlow',
+          new Float32BufferAttribute(new Float32Array(n).fill(bits[i].glow ? 1 : 0), 1),
+        );
+      });
     // polyhedra come unindexed; merge needs all-or-none
     if (geos.some((g) => g.index) && geos.some((g) => !g.index))
       geos = geos.map((g) => (g.index ? g.toNonIndexed() : g));

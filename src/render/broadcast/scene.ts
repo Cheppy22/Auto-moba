@@ -28,7 +28,7 @@ import {
   PAWN_SCALE,
   ThroneModel,
 } from './models';
-import { isPieceId, PIECE_IDS, PIECE_SCALE, PieceModel, type PieceId } from './pieces';
+import { isPieceId, PIECE_IDS, PIECE_SCALE, PieceModel, styleAccent, type PieceId } from './pieces';
 import { VisualPhysics } from './physics';
 import type { BroadcastFrame, NewEvents } from './types';
 
@@ -580,6 +580,7 @@ export class BroadcastView {
     for (const u of snap.units as ChessUnit[]) {
       if (!u.alive && u.kind !== 'hero') continue;
       let v = this.views.get(u.id);
+      let from: UnitView | null = null;
       if (
         v &&
         (v.kind !== u.kind ||
@@ -588,12 +589,16 @@ export class BroadcastView {
           v.style !== (u.style ?? null) ||
           (v.hero !== undefined && v.pieceId !== pieceOf(u)))
       ) {
+        // a generic piece that has just chosen its archetype keeps its place and heading
+        if (v.hero && v.style === null && u.style && v.kind === u.kind && v.pieceId === pieceOf(u))
+          from = v;
         this.drop(v);
         v = undefined;
       }
       if (!v) {
         v = this.create(u);
         this.views.set(u.id, v);
+        if (from) this.transform(u, v, from);
         if (v.elite && this.drawn > 0 && u.alive) this.spawnFlare(u, v);
       }
       v.stamp = this.stamp;
@@ -604,6 +609,27 @@ export class BroadcastView {
     this.stale.length = 0;
     for (const v of this.views.values()) if (v.stamp !== this.stamp) this.stale.push(v);
     for (const v of this.stale) this.drop(v);
+  }
+
+  /** The Rank 4 moment: the new look pops in with a burst of the style colour. */
+  private transform(u: ChessUnit, v: UnitView, from: UnitView): void {
+    v.placed = true;
+    v.x = from.x;
+    v.z = from.z;
+    v.yaw = from.yaw;
+    v.move = from.move;
+    v.phase = from.phase;
+    v.hp = from.hp;
+    v.lunge = from.lunge;
+    v.hero?.transform();
+    if (this.drawn === 0) return;
+    const color = styleAccent(u.style);
+    if (!color) return;
+    const gy = this.arena.field.heightW(from.x, from.z);
+    this.gambits.flare(from.x, gy, from.z, color, 46, 1.1, 95);
+    this.gambits.flare(from.x, gy, from.z, '#ffffff', 26, 0.6, 0);
+    this.physics.paperBurst(from.x, gy + 12, from.z, color);
+    if (this.focusNear(from.x, from.z, 420)) this.rig.kick(0.12);
   }
 
   /** A pillar of light where a freshly fielded pawn steps out. */

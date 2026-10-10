@@ -314,7 +314,7 @@ function eventUnitBehavior(ctx: Ctx, u: Unit): void {
   // boss: guards its spot like a camp
   const away = dist(u.x, u.y, ev.homeX, ev.homeY);
   const def = ctx.c.eventById.get(ctx.s.events.find((e) => e.id === ev.eventId)?.defId ?? '');
-  const leash = def?.leash ?? 338;
+  const leash = def?.leash ?? 507;
   if (t && away > leash) {
     u.targetId = null;
     t = null;

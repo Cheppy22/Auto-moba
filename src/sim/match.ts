@@ -224,6 +224,9 @@ function stepTick(ctx: Ctx): void {
   tickActClock(ctx);
 }
 
+/** A unit counts as in combat for 1.5 s after it deals or takes damage. */
+const COMBAT_TICKS = Math.round(1.5 * TPS);
+
 export class Match {
   readonly ctx: Ctx;
   private ops: ReplayOp[] = [];
@@ -371,6 +374,9 @@ export class Match {
         curse,
         holy,
         target: u.targetId,
+        inCombat:
+          s.tick - u.lastDamagedTick <= COMBAT_TICKS ||
+          (!!h && s.tick - h.lastDealtTick <= COMBAT_TICKS),
         flash: u.atkCd >= Math.max(1, Math.round(TPS / Math.max(0.2, u.stats.atkSpeed))) - 2,
       });
     }

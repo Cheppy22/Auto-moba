@@ -2,11 +2,24 @@
   "id": "foundry",
   "name": "Hollow Foundry",
   "era": "Victorian",
-  "palette": { "ground": "#2a1d18", "accent": "#c9732f", "glow": "#ffb66b" },
+  "palette": {
+    "ground": "#2a1d18",
+    "accent": "#c9732f",
+    "glow": "#ffb66b"
+  },
   "camps": [
-    { "dx": -52, "dy": -26 },
-    { "dx": 52, "dy": -13 },
-    { "dx": 0, "dy": 58 }
+    {
+      "dx": -78,
+      "dy": -39
+    },
+    {
+      "dx": 78,
+      "dy": -19.5
+    },
+    {
+      "dx": 0,
+      "dy": 87
+    }
   ],
   "campTypes": [
     {
@@ -29,7 +42,12 @@
       "count": 1,
       "gold": 120,
       "points": 1,
-      "buff": { "stat": "bladeDmg", "kind": "add", "value": 8, "durationSec": 60 }
+      "buff": {
+        "stat": "bladeDmg",
+        "kind": "add",
+        "value": 8,
+        "durationSec": 60
+      }
     },
     {
       "id": "boiler_wraith",
@@ -49,17 +67,32 @@
       "phaseMin": 1,
       "phaseMax": 2,
       "types": [
-        { "id": "cinder_imp", "weight": 3 },
-        { "id": "slag_golem", "weight": 1 }
+        {
+          "id": "cinder_imp",
+          "weight": 3
+        },
+        {
+          "id": "slag_golem",
+          "weight": 1
+        }
       ]
     },
     {
       "phaseMin": 3,
       "phaseMax": 99,
       "types": [
-        { "id": "slag_golem", "weight": 2 },
-        { "id": "boiler_wraith", "weight": 1 },
-        { "id": "cinder_imp", "weight": 1 }
+        {
+          "id": "slag_golem",
+          "weight": 2
+        },
+        {
+          "id": "boiler_wraith",
+          "weight": 1
+        },
+        {
+          "id": "cinder_imp",
+          "weight": 1
+        }
       ]
     }
   ],

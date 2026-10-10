@@ -2,11 +2,24 @@
   "id": "station",
   "name": "Midnight Station",
   "era": "1970s",
-  "palette": { "ground": "#1b1830", "accent": "#8a63d2", "glow": "#d6c2ff" },
+  "palette": {
+    "ground": "#1b1830",
+    "accent": "#8a63d2",
+    "glow": "#d6c2ff"
+  },
   "camps": [
-    { "dx": -39, "dy": -39 },
-    { "dx": 58, "dy": 0 },
-    { "dx": -13, "dy": 58 }
+    {
+      "dx": -58.5,
+      "dy": -58.5
+    },
+    {
+      "dx": 87,
+      "dy": 0
+    },
+    {
+      "dx": -19.5,
+      "dy": 87
+    }
   ],
   "campTypes": [
     {
@@ -31,7 +44,12 @@
       "count": 1,
       "gold": 85,
       "points": 2,
-      "buff": { "stat": "moveSpeed", "kind": "add", "value": 5, "durationSec": 60 }
+      "buff": {
+        "stat": "moveSpeed",
+        "kind": "add",
+        "value": 5,
+        "durationSec": 60
+      }
     },
     {
       "id": "last_train_phantom",
@@ -51,17 +69,32 @@
       "phaseMin": 1,
       "phaseMax": 2,
       "types": [
-        { "id": "platform_ghost", "weight": 3 },
-        { "id": "third_rail_serpent", "weight": 1 }
+        {
+          "id": "platform_ghost",
+          "weight": 3
+        },
+        {
+          "id": "third_rail_serpent",
+          "weight": 1
+        }
       ]
     },
     {
       "phaseMin": 3,
       "phaseMax": 99,
       "types": [
-        { "id": "third_rail_serpent", "weight": 2 },
-        { "id": "last_train_phantom", "weight": 1 },
-        { "id": "platform_ghost", "weight": 1 }
+        {
+          "id": "third_rail_serpent",
+          "weight": 2
+        },
+        {
+          "id": "last_train_phantom",
+          "weight": 1
+        },
+        {
+          "id": "platform_ghost",
+          "weight": 1
+        }
       ]
     }
   ],

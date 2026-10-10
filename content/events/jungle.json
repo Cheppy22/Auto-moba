@@ -10,7 +10,7 @@
       "warnSec": 10,
       "durationSec": 80,
       "siteMode": "any",
-      "radius": 70,
+      "radius": 105,
       "scalePerPhase": 0.2,
       "units": [
         {
@@ -43,7 +43,7 @@
         }
       ],
       "aiWeight": 0.75,
-      "aiRadius": 910,
+      "aiRadius": 1365,
       "aiMax": 2
     },
     {
@@ -56,7 +56,7 @@
       "warnSec": 10,
       "durationSec": 75,
       "siteMode": "any",
-      "radius": 120,
+      "radius": 180,
       "lanes": ["top", "bot"],
       "scalePerPhase": 0.2,
       "units": [
@@ -105,7 +105,7 @@
       "rewardPoints": 3,
       "rewardGoldTeam": 100,
       "aiWeight": 0.8,
-      "aiRadius": 910,
+      "aiRadius": 1365,
       "aiMax": 2
     },
     {
@@ -118,7 +118,7 @@
       "warnSec": 10,
       "durationSec": 70,
       "siteMode": "neutral",
-      "radius": 75,
+      "radius": 112.5,
       "holdSec": 8,
       "buffSec": 90,
       "buffs": [
@@ -135,7 +135,7 @@
       ],
       "rewardPoints": 1,
       "aiWeight": 1.1,
-      "aiRadius": 910,
+      "aiRadius": 1365,
       "aiMax": 2
     },
     {
@@ -148,10 +148,10 @@
       "warnSec": 10,
       "durationSec": 100,
       "siteMode": "neutral",
-      "radius": 90,
+      "radius": 135,
       "scalePerPhase": 0.2,
       "aggro": 170,
-      "leash": 338,
+      "leash": 507,
       "units": [
         {
           "id": "hungry_oni",
@@ -178,7 +178,7 @@
       "rewardGoldTeam": 150,
       "rewardPoints": 4,
       "aiWeight": 1.15,
-      "aiRadius": 910,
+      "aiRadius": 1365,
       "aiMax": 2
     },
     {
@@ -191,7 +191,7 @@
       "warnSec": 10,
       "durationSec": 70,
       "siteMode": "neutral",
-      "radius": 75,
+      "radius": 112.5,
       "holdSec": 8,
       "buffSec": 90,
       "buffs": [
@@ -208,7 +208,7 @@
       ],
       "rewardPoints": 1,
       "aiWeight": 1.1,
-      "aiRadius": 910,
+      "aiRadius": 1365,
       "aiMax": 2
     },
     {
@@ -221,10 +221,10 @@
       "warnSec": 10,
       "durationSec": 100,
       "siteMode": "neutral",
-      "radius": 90,
+      "radius": 135,
       "scalePerPhase": 0.2,
       "aggro": 170,
-      "leash": 338,
+      "leash": 507,
       "units": [
         {
           "id": "jabberwock",
@@ -251,7 +251,7 @@
       "rewardGoldTeam": 200,
       "rewardPoints": 5,
       "aiWeight": 1.15,
-      "aiRadius": 910,
+      "aiRadius": 1365,
       "aiMax": 2
     }
   ]

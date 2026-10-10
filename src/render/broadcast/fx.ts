@@ -388,7 +388,8 @@ export class BadgeBatch {
         this.pulses.setMatrixAt(this.np++, _m);
       }
       _v.copy(p.a).addScaledVector(p.r, -p.de).addScaledVector(up, p.lift);
-      this.quad(_v.x, _v.y, _v.z, p.es, EMBLEM_BASE + styleEmblemIndex(p.style), _white);
+      if (p.style)
+        this.quad(_v.x, _v.y, _v.z, p.es, EMBLEM_BASE + styleEmblemIndex(p.style), _white);
     }
     this.badges.count = this.n;
     this.pulses.count = this.np;

@@ -3,7 +3,7 @@ import type { CamMode } from '../render/broadcast/types';
 import { Aim } from './hud/Aim';
 import { Command } from './hud/Command';
 import { ForkSheet } from './hud/ForkSheet';
-import { GambitInfo, Hand } from './hud/Hand';
+import { GambitSheet, Hand } from './hud/Hand';
 import { PieceCard } from './hud/PieceCard';
 import { Roster } from './hud/Roster';
 import { courtName } from '../analysis/text';
@@ -158,8 +158,8 @@ export function Hud() {
         />
       )}
       <TopBar snap={snap} held={held} />
-      <Roster team="A" forks={forkIds} />
-      <Roster team="B" forks={[]} />
+      <Roster team="A" forks={forkIds} snap={snap} />
+      <Roster team="B" forks={[]} snap={snap} />
       <Notices />
       <PieceCard />
       <div class="dock">
@@ -169,7 +169,6 @@ export function Hud() {
               {s.ui.toast}
             </div>
           )}
-          <GambitInfo snap={snap} />
           <Aim snap={snap} />
           <Hand snap={snap} />
         </div>
@@ -178,6 +177,7 @@ export function Hud() {
         </div>
       </div>
       {held && !s.ui.adjourned && <ForkSheet forks={snap.forks} />}
+      {!held && !s.ui.adjourned && <GambitSheet snap={snap} />}
     </div>
   );
 }

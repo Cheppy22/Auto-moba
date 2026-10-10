@@ -618,6 +618,7 @@ export interface SnapUnit {
   forkPending: boolean;
   /** Elite pawn fielded with Tempo (pawnlings are false). */
   pawn: boolean;
+  /** A piece's assigned lane: changes with setLane and AI lane swaps, never from roaming. */
   lane: LaneId | null;
   role: Role | null;
   /** Marked by the Check gambit (takes more damage). */
@@ -634,6 +635,8 @@ export interface SnapUnit {
   holy: boolean;
   target: number | null;
   flash: boolean;
+  /** Dealt or took damage within the last 1.5 s (a piece's roster portrait flashes while true). */
+  inCombat: boolean;
 }
 
 export interface Snapshot {

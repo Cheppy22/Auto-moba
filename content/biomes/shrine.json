@@ -2,11 +2,24 @@
   "id": "shrine",
   "name": "Drowned Shrine",
   "era": "Heian",
-  "palette": { "ground": "#1a2630", "accent": "#4aa3a0", "glow": "#9ff3e6" },
+  "palette": {
+    "ground": "#1a2630",
+    "accent": "#4aa3a0",
+    "glow": "#9ff3e6"
+  },
   "camps": [
-    { "dx": -46, "dy": 20 },
-    { "dx": 46, "dy": 26 },
-    { "dx": 0, "dy": -52 }
+    {
+      "dx": -69,
+      "dy": 30
+    },
+    {
+      "dx": 69,
+      "dy": 39
+    },
+    {
+      "dx": 0,
+      "dy": -78
+    }
   ],
   "campTypes": [
     {
@@ -33,7 +46,12 @@
       "count": 1,
       "gold": 90,
       "points": 1,
-      "buff": { "stat": "soulPower", "kind": "add", "value": 10, "durationSec": 60 }
+      "buff": {
+        "stat": "soulPower",
+        "kind": "add",
+        "value": 10,
+        "durationSec": 60
+      }
     },
     {
       "id": "tide_priestess",
@@ -55,17 +73,32 @@
       "phaseMin": 1,
       "phaseMax": 2,
       "types": [
-        { "id": "lantern_fox", "weight": 3 },
-        { "id": "koi_guardian", "weight": 1 }
+        {
+          "id": "lantern_fox",
+          "weight": 3
+        },
+        {
+          "id": "koi_guardian",
+          "weight": 1
+        }
       ]
     },
     {
       "phaseMin": 3,
       "phaseMax": 99,
       "types": [
-        { "id": "koi_guardian", "weight": 2 },
-        { "id": "tide_priestess", "weight": 1 },
-        { "id": "lantern_fox", "weight": 1 }
+        {
+          "id": "koi_guardian",
+          "weight": 2
+        },
+        {
+          "id": "tide_priestess",
+          "weight": 1
+        },
+        {
+          "id": "lantern_fox",
+          "weight": 1
+        }
       ]
     }
   ],

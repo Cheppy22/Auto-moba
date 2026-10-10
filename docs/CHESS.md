@@ -225,5 +225,5 @@ New events: `rankUp { id, rank, bonus }`, `fork { id, rank, optionId, auto }`, `
 
 ## Map scale and spacing (2026-10-09)
 
-- The map is 1300 units across (scaled ×1.3 from 1000). Lanes are 144 wide (half-width 72), enough for 3–4 units side by side.
+- The map is 1950 units across (×1.5 again on 2026-10-10). Lanes are 180 wide (half-width 90). Unit sizes are unchanged; `movement.speedMul` 1.5 keeps travel time about the same.
 - Units have body radii and push each other apart (`collision` in `content/tuning.json`; masses piece 3, pawn 2, pawnling 1, neutral 4). Bastions, Thrones, obelisks and the Keeper never move and push others out.

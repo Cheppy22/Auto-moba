@@ -29,8 +29,15 @@ export function longPress(onLong: () => void): {
     onPointerUp: stop,
     onPointerLeave: stop,
     onPointerCancel: stop,
-    // a long press on Android opens the browser menu otherwise
-    onContextMenu: (e) => e.preventDefault(),
+    // Right-click on desktop does the same as a hold; on a phone the long-press timer has already
+    // fired by the time the browser asks for its menu, so this only suppresses the menu.
+    onContextMenu: (e) => {
+      e.preventDefault();
+      if (fired) return;
+      stop();
+      fired = true;
+      onLong();
+    },
   };
 }
 

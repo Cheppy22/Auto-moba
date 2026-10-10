@@ -1,7 +1,7 @@
 import type { Snapshot, SnapGambit } from '../../sim';
-import { PieceGlyph } from '../pieces';
+import { PieceGlyph, pieceLabel } from '../pieces';
 import { longPress, longPressed } from '../press';
-import { useSession } from '../session';
+import { useEscape, useSession } from '../session';
 
 export const TARGET_TAG: Record<SnapGambit['target'], string> = {
   lane: 'Pick a lane',
@@ -10,32 +10,95 @@ export const TARGET_TAG: Record<SnapGambit['target'], string> = {
   none: 'Instant',
 };
 
-/** The full text of a gambit: shown on a long press, and in the aim tray once a card is aimed. */
-export function GambitInfo(props: { snap: Snapshot }) {
+/** How a card's expiry reads once the sheet is open (the game is paused, so it holds still). */
+function expiryText(ticksLeft: number): string {
+  return `Expires in ${Math.max(1, Math.ceil(ticksLeft / 20))} s unless played`;
+}
+
+/**
+ * The enlarged gambit card: a centred sheet opened by a long press (or right-click) on a card.
+ * The game is paused while it is open. Play closes it and aims the card as a tap would; Close,
+ * the scrim and Escape just close it.
+ */
+export function GambitSheet(props: { snap: Snapshot }) {
   const s = useSession();
   const info = s.ui.info;
   const c = info ? props.snap.hand[info.slot] : undefined;
-  if (!info || !c || c.cardId !== info.cardId) return null;
+  const open = !!info && !!c && c.cardId === info.cardId;
+  useEscape(open, () => s.closeInfo());
+  if (!info || !c || !open) return null;
   return (
-    <div class="ginfo glass" data-testid="gambit-info" role="status" onClick={() => s.closeInfo()}>
-      <span class="ginfo-top">
-        <b>{c.name}</b>
-        <span class="gcost" aria-label={`${c.cost} Tempo`}>
-          {c.cost}
-        </span>
-      </span>
-      <span class="ginfo-desc">{c.desc}</span>
-      <span class="ginfo-tag dim tiny">
-        {TARGET_TAG[c.target]}
-        {c.usable ? '' : ` · Not now: ${c.reason}`}
-      </span>
-    </div>
+    <>
+      <div
+        class="gsheet-scrim"
+        data-testid="gambit-scrim"
+        aria-hidden="true"
+        onClick={() => {
+          // the finger that opened the sheet is still lifting: that tap must not close it
+          if (performance.now() - s.infoAt > 350) s.closeInfo();
+        }}
+      />
+      <section
+        class={`gsheet ${c.piece ? 'sig' : ''}`}
+        data-testid="gambit-info"
+        data-card={c.cardId}
+        role="dialog"
+        aria-modal="true"
+        aria-label={`${c.name}, gambit`}
+      >
+        <header class="gs-head">
+          {c.piece ? (
+            <PieceGlyph piece={c.piece} team="A" size={36} class="gsig" />
+          ) : (
+            <span class="gs-any" aria-hidden="true">
+              ♟
+            </span>
+          )}
+          <div class="gs-title">
+            <b data-testid="gambit-info-name">{c.name}</b>
+            <span class="gs-sub" data-testid="gambit-info-piece">
+              {c.piece ? `${pieceLabel(s.content, c.piece)} gambit` : 'Any piece'}
+            </span>
+          </div>
+          <span class="gs-cost" data-testid="gambit-info-cost" aria-label={`${c.cost} Tempo`}>
+            {c.cost}
+            <small>Tempo</small>
+          </span>
+        </header>
+        <p class="gs-desc" data-testid="gambit-info-desc">
+          {c.desc}
+        </p>
+        <ul class="gs-facts">
+          <li data-testid="gambit-info-target">{TARGET_TAG[c.target]}</li>
+          <li data-testid="gambit-info-expiry">{expiryText(c.ticksLeft)}</li>
+          <li class="gs-paused">Game paused</li>
+        </ul>
+        {!c.usable && <p class="gs-why">Not now: {c.reason}</p>}
+        <footer class="gs-actions">
+          <button
+            class="btn primary"
+            data-testid="gambit-info-play"
+            disabled={!c.usable}
+            onClick={() => {
+              const slot = c.slot;
+              s.closeInfo();
+              s.playCard(slot);
+            }}
+          >
+            Play
+          </button>
+          <button class="btn" data-testid="gambit-info-close" onClick={() => s.closeInfo()}>
+            Close
+          </button>
+        </footer>
+      </section>
+    </>
   );
 }
 
 /**
- * The gambit hand: three cards showing name and cost. The full text is the tooltip, a long press,
- * or the aim tray; a card only says more when it cannot be played (why) or is about to expire.
+ * The gambit hand: three cards showing name and cost. The full text is the tooltip, the enlarged
+ * sheet (long press or right-click), or the aim tray; a card only says more when it cannot be played (why) or is about to expire.
  */
 export function Hand(props: { snap: Snapshot }) {
   const s = useSession();
