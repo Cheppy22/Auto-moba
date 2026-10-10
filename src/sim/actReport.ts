@@ -47,6 +47,7 @@ function teamStat(ctx: Ctx, team: PlayTeam): ActTeamStat {
       kills: 0,
       deaths: 0,
       damage: 0,
+      mitigated: 0,
       diedTo: {},
       falls: {},
     };
@@ -54,6 +55,7 @@ function teamStat(ctx: Ctx, team: PlayTeam): ActTeamStat {
   return {
     tempo: Math.round(ctx.s.actTally.tempo[team]),
     damage: 0,
+    mitigated: 0,
     pieceDeaths: 0,
     pieceKills: 0,
     bastionsLost: [],
@@ -93,6 +95,15 @@ export function buildActReport(ctx: Ctx): ActReport {
         if (e.payload.srcKind === 'hero') {
           const p = pieceOf.get(e.payload.src);
           if (p) p.damage += e.payload.amount;
+        }
+        if (e.payload.tgtKind === 'hero') {
+          const m = e.payload.mitigated ?? 0;
+          const tp = pieceOf.get(e.payload.tgt);
+          const tt = teamOf.get(e.payload.tgt);
+          if (tp && tt) {
+            tp.mitigated += m;
+            teams[tt].mitigated += m;
+          }
         }
         break;
       }
@@ -180,7 +191,12 @@ export function buildActReport(ctx: Ctx): ActReport {
     }
   }
   for (const team of TEAMS) teams[team].damage = Math.round(teams[team].damage);
-  for (const team of TEAMS) for (const p of teams[team].pieces) p.damage = Math.round(p.damage);
+  for (const team of TEAMS) teams[team].mitigated = Math.round(teams[team].mitigated);
+  for (const team of TEAMS)
+    for (const p of teams[team].pieces) {
+      p.damage = Math.round(p.damage);
+      p.mitigated = Math.round(p.mitigated);
+    }
   for (const team of TEAMS) for (const c of teams[team].cards) c.seconds = Math.round(c.seconds);
   return {
     act: ctx.s.phase.n,

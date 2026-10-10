@@ -184,6 +184,7 @@ export function PieceDetail(props: { data: ReportData; id: number; onReplay: () 
         <Fact label="Damage" value={full(r.damageDealt)} />
         <Fact label="Taken" value={full(r.damageTaken)} />
         <Fact label="Healing" value={full(r.healingDone)} />
+        <Fact label="Mitigated" value={full(r.mitigated)} />
         <Fact label="Gold" value={full(r.goldEarned)} />
         <Fact label="Bastion dmg" value={full(r.objectiveDamage)} />
         <Fact label="Pawn kills" value={String(r.pawnKills)} />

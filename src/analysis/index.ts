@@ -87,6 +87,8 @@ export interface HeroModel {
   objectiveDamage: number;
   jungleDamage: number;
   damageTaken: number;
+  /** Damage the piece did not take: armor, resist, reductions and shields. */
+  mitigated: number;
   taken: Record<DamageType, number>;
   takenFrom: Record<string, number>;
   takenByOrigin: Record<string, number>;
@@ -184,6 +186,7 @@ function newHero(r: RosterEntry): HeroModel {
     objectiveDamage: 0,
     jungleDamage: 0,
     damageTaken: 0,
+    mitigated: 0,
     taken: emptyMix(),
     takenFrom: {},
     takenByOrigin: {},
@@ -326,6 +329,7 @@ export function buildReport(input: AnalysisInput, scope: Scope, viewer?: PlayTea
         }
         if (tgt) {
           tgt.damageTaken += p.amount;
+          tgt.mitigated += p.mitigated ?? 0;
           tgt.taken[p.dtype] += p.amount;
           tgt.takenFrom[p.srcKind] = (tgt.takenFrom[p.srcKind] ?? 0) + p.amount;
           tgt.takenByOrigin[p.origin] = (tgt.takenByOrigin[p.origin] ?? 0) + p.amount;

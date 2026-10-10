@@ -64,7 +64,7 @@ function Banner(props: { data: ReportData; onSame: () => void; onNew: () => void
 
 function Awards(props: { data: ReportData }) {
   const { sum, rowOf } = props.data;
-  const list = sum.awards.slice(0, 4);
+  const list = sum.awards.slice(0, 6);
   if (list.length === 0) return null;
   return (
     <ul class="rp-awards" data-testid="awards" aria-label="Awards">
@@ -105,6 +105,13 @@ function Totals(props: { data: ReportData }) {
     { id: 'kills', label: 'Kills', a: teams.A.kills, b: teams.B.kills },
     { id: 'gold', label: 'Gold', a: teams.A.goldEarned, b: teams.B.goldEarned },
     { id: 'damage', label: 'Damage', a: teams.A.damageToPieces, b: teams.B.damageToPieces },
+    {
+      id: 'mitigated',
+      label: 'Mitigated',
+      a: teams.A.mitigated,
+      b: teams.B.mitigated,
+      hint: 'Damage mitigated: damage the pieces did not take thanks to armor, resist, shields and damage reduction',
+    },
     {
       id: 'bastions',
       label: 'Bastions',
@@ -199,6 +206,9 @@ function ScoreRow(props: {
       <span class="rp-c" role="cell" data-label="Healing">
         <Num value={r.healingDone} skip={props.skip} />
       </span>
+      <span class="rp-c" role="cell" data-label="Mitigated">
+        <Num value={r.mitigated} skip={props.skip} />
+      </span>
       <span class="rp-c rp-c-gold" role="cell" data-label="Gold">
         <Num value={r.goldEarned} skip={props.skip} />
       </span>
@@ -254,6 +264,10 @@ function Block(props: {
         <span class="rp-c">
           <span class="long">Healing</span>
           <span class="short">Heal</span>
+        </span>
+        <span class="rp-c" title="Damage mitigated">
+          <span class="long">Mitigated</span>
+          <span class="short">Mit</span>
         </span>
         <span class="rp-c rp-c-gold">Gold</span>
         <span class="rp-c-items">Items</span>

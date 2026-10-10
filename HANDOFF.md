@@ -8,6 +8,8 @@ Playable chess auto-battler: 5 pieces per side, pawnlings/pawns, Bastions, Check
 
 ## Done recently
 
+2026-10-10 (latest): **Damage mitigated** stat: `mitigated` on the `damage` event (set in `dealDamage`), per-piece and team totals in the end report (Mit column, Iron Wall award, Combat chart, 10 s series) and in the Act break "side by side" table; `MVP_WEIGHTS` untouched.
+
 2026-10-10 (later): **relic wave 1** built per `docs/RELICS.md`: a third break-sheet tab (Relics: pick 1 of 3 with a tailored first card, aim, "Let the AI choose", re-aim at later breaks), Black drafts by an AI rule, a held-relic seal row under each roster, eight relics in `content/relics.json` (Half-Open File, Closed Position, Crown Jewel, Development, Pawn Majority, Pawn Lever, Opening Theory, Standing Order), `relic` rng stream, balance flags `--relics` and `--relic-pool`. Tier 3 items are now called **Masterworks**. Code: `src/sim/relics.ts`, `src/sim/draft.ts`, `src/sim/callouts.ts` (moved from analysis), `src/ui/hud/RelicsTab.tsx`, `src/ui/hud/RelicRow.tsx`.
 
 Map x1.5, humanoid models, combat flash, lane tags, gambit long-press, schools wave 1, Openings, Rank 4 archetype, Act break (commit 631521f). 2026-10-10: **combat feedback** (fight verdict tags, why a piece fell, gambit impact lines and Report tally, lane momentum strip and "Lanes at the bell"); spec in `docs/CHESS.md` "Combat feedback", code in `src/sim/feedback.ts`, `src/sim/impact.ts`, `src/analysis/feedback.ts`, `src/ui/hud/Notes.tsx`, `src/ui/hud/LaneBars.tsx`.

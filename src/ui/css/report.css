@@ -428,7 +428,7 @@ html:not([data-layout='desktop']) .rp-page-scroll {
 }
 @container rpr (min-width: 640px) {
   .rp-awards {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 .rp-award {
@@ -589,7 +589,7 @@ html:not([data-layout='desktop']) .rp-page-scroll {
 .rp-shead,
 .rp-srow {
   display: grid;
-  grid-template-columns: minmax(150px, 1.5fr) 80px 78px 76px 70px minmax(110px, 1.2fr);
+  grid-template-columns: minmax(150px, 1.5fr) 80px 78px 76px 76px 70px minmax(110px, 1.2fr);
   gap: 0 8px;
   align-items: center;
   padding: 0 10px;
@@ -701,7 +701,7 @@ html:not([data-layout='desktop']) .rp-page-scroll {
 @container rpb (max-width: 640px) {
   .rp-shead,
   .rp-srow {
-    grid-template-columns: minmax(0, 1fr) 58px 48px 42px 48px;
+    grid-template-columns: minmax(0, 1fr) 54px 44px 38px 38px 44px;
     gap: 0 4px;
     padding: 0 8px;
   }

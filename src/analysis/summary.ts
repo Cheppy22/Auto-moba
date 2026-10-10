@@ -50,6 +50,8 @@ export interface PieceRow {
   /** Damage dealt to enemy pieces. */
   damageDealt: number;
   damageTaken: number;
+  /** Damage the piece did not take: armor, resist, damage-reduction effects and shields. */
+  mitigated: number;
   healingDone: number;
   /** Not recorded in the log (no shield events); always omitted for now. */
   shielding?: number;
@@ -82,6 +84,8 @@ export interface TeamSummary {
   /** Damage this team's pieces dealt to enemy pieces (equals the sum of its rows' damageDealt). */
   damageToPieces: number;
   objectiveDamage: number;
+  /** Damage this team's pieces did not take (the sum of its rows' mitigated). */
+  mitigated: number;
   /** Enemy Bastions this team destroyed. */
   bastionsDestroyed: number;
   /** True if this team destroyed the enemy Throne. */
@@ -143,6 +147,8 @@ export interface SummarySeries {
   goldLead: { tick: number; diff: number }[];
   /** Cumulative damage to enemy pieces. */
   damage: Record<PlayTeam, TickTotal[]>;
+  /** Cumulative damage mitigated by the team's pieces. */
+  mitigated: Record<PlayTeam, TickTotal[]>;
   /** Cumulative kills (same definition as `teams[t].kills`). */
   kills: Record<PlayTeam, TickTotal[]>;
   rank: { id: number; points: { tick: number; rank: number }[] }[];
@@ -225,6 +231,7 @@ const emptyTeam = (): TeamSummary => ({
   goldEarned: 0,
   damageToPieces: 0,
   objectiveDamage: 0,
+  mitigated: 0,
   bastionsDestroyed: 0,
   throneDestroyed: false,
   checks: 0,
@@ -442,6 +449,7 @@ export function buildSummary(input: AnalysisInput): MatchSummary {
 
   const goldInc: Record<PlayTeam, Delta[]> = { A: [], B: [] };
   const dmgInc: Record<PlayTeam, Delta[]> = { A: [], B: [] };
+  const mitInc: Record<PlayTeam, Delta[]> = { A: [], B: [] };
   const killInc: Record<PlayTeam, Delta[]> = { A: [], B: [] };
   const aliveInc: Record<PlayTeam, Delta[]> = { A: [], B: [] };
   const pawnInc: Record<PlayTeam, Delta[]> = { A: [], B: [] };
@@ -477,6 +485,8 @@ export function buildSummary(input: AnalysisInput): MatchSummary {
         const p = e.payload;
         const st = teamOfId.get(p.src);
         if (st && p.tgtKind === 'hero') dmgInc[st].push({ tick: e.tick, delta: p.amount });
+        const tt = teamOfId.get(p.tgt);
+        if (tt && p.mitigated) mitInc[tt].push({ tick: e.tick, delta: p.mitigated });
         break;
       }
       case 'gold': {
@@ -731,6 +741,7 @@ export function buildSummary(input: AnalysisInput): MatchSummary {
       assists: h.assists,
       damageDealt: h.damageDealt,
       damageTaken: h.damageTaken,
+      mitigated: h.mitigated,
       healingDone: h.healingDone,
       objectiveDamage: h.objectiveDamage,
       structureKills: (bastionKills.get(r.id) ?? 0) + (throneKills.get(r.id) ?? 0),
@@ -752,6 +763,7 @@ export function buildSummary(input: AnalysisInput): MatchSummary {
     ts.goldEarned = tm.goldEarned;
     ts.objectiveDamage = tm.objectiveDamage;
     ts.damageToPieces = mine.reduce((a, r) => a + r.damageDealt, 0);
+    ts.mitigated = mine.reduce((a, r) => a + r.mitigated, 0);
     ts.gambitsPlayed = tm.gambitsPlayed;
     ts.pawnsFielded = tm.pawnsFielded;
     ts.pawnKills = mine.reduce((a, r) => a + r.pawnKills, 0);
@@ -811,6 +823,13 @@ export function buildSummary(input: AnalysisInput): MatchSummary {
     pickBest(rows, (r) => r.healingDone, { qualify: (r) => r.healingDone > 0 }),
     'healing',
     (v) => `${num(v)} healing`,
+  );
+  addAward(
+    'ironWall',
+    'Iron Wall',
+    pickBest(rows, (r) => r.mitigated, { qualify: (r) => r.mitigated > 0 }),
+    'damage',
+    (v) => `${num(v)} damage mitigated`,
   );
   addAward(
     'mostKills',
@@ -917,6 +936,10 @@ export function buildSummary(input: AnalysisInput): MatchSummary {
     damage: {
       A: totals(ticks, sweep(dmgInc.A, ticks)),
       B: totals(ticks, sweep(dmgInc.B, ticks)),
+    },
+    mitigated: {
+      A: totals(ticks, sweep(mitInc.A, ticks)),
+      B: totals(ticks, sweep(mitInc.B, ticks)),
     },
     kills: {
       A: totals(ticks, sweep(killInc.A, ticks)),

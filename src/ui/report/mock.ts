@@ -51,6 +51,9 @@ export function mockSummary(roster: RosterEntry[], c: Content): MatchSummary {
       assists: Math.round(kills * (1 + rnd() * 2)),
       damageDealt: Math.round(mult * f * (5200 + rnd() * 5000)),
       damageTaken: Math.round((win ? 0.9 : 1.1) * (4800 + rnd() * 6000)),
+      mitigated: Math.round(
+        (r.def === 'rook' || r.def === 'king' ? 1.6 : 0.9) * (1500 + rnd() * 2500),
+      ),
       healingDone: r.def === 'bishop' ? Math.round(4200 * f) : Math.round(rnd() * 600),
       objectiveDamage: Math.round(mult * f * 2500 * rnd()),
       structureKills: Math.round(rnd() * 2),
@@ -104,6 +107,7 @@ export function mockSummary(roster: RosterEntry[], c: Content): MatchSummary {
     gold,
     goldLead: ticks.map((tick, i) => ({ tick, diff: gold.A[i].total - gold.B[i].total })),
     damage: { A: cum(sum('A', 'damageDealt')), B: cum(sum('B', 'damageDealt')) },
+    mitigated: { A: cum(sum('A', 'mitigated')), B: cum(sum('B', 'mitigated')) },
     kills,
     rank: rows.map((r) => ({
       id: r.id,
@@ -239,6 +243,7 @@ function teamSum(
     deaths: s('deaths'),
     goldEarned: s('goldEarned'),
     damageToPieces: s('damageDealt'),
+    mitigated: s('mitigated'),
     objectiveDamage: s('objectiveDamage'),
     bastionsDestroyed: bastions.filter((b) => b.by === t).length,
     throneDestroyed: won,

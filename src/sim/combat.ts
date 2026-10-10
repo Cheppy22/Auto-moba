@@ -48,6 +48,7 @@ function recordDamage(
   dtype: DamageType,
   origin: string,
   lethal: boolean,
+  mitigated: number,
 ): void {
   const heroInvolved = tgt.kind === 'hero' || (src !== null && src.kind === 'hero');
   if (heroInvolved) {
@@ -62,6 +63,7 @@ function recordDamage(
       dtype,
       origin,
       lethal,
+      mitigated: Math.round(mitigated * 10) / 10,
     });
     return;
   }
@@ -104,6 +106,8 @@ export function dealDamage(
     if (td && td.untilTick > ctx.s.tick) raw *= td.value;
   }
   let dmg = Math.max(1, mitigate(tgt, raw, dtype));
+  // Damage a piece did not take: armor, resist and reduction effects, plus what shields soaked.
+  let mitigated = tgt.kind === 'hero' ? Math.max(0, raw - dmg) : 0;
   let absorbed = 0;
   if (tgt.shields.length) {
     for (const sh of tgt.shields) {
@@ -127,6 +131,7 @@ export function dealDamage(
     if (dmg <= 0) return 0;
   }
   const applied = dmg;
+  if (tgt.kind === 'hero') mitigated += absorbed;
   if (applied > 0) tgt.hp -= applied;
   tgt.lastDamagedTick = ctx.s.tick;
   if (tgt.hero) {
@@ -140,7 +145,7 @@ export function dealDamage(
   }
   if (src && src.hero) src.hero.lastDealtTick = ctx.s.tick;
   const lethal = tgt.hp <= 0;
-  recordDamage(ctx, src, tgt, applied + absorbed, dtype, origin, lethal);
+  recordDamage(ctx, src, tgt, applied + absorbed, dtype, origin, lethal, mitigated);
   trackDamage(ctx, src, tgt, applied + absorbed);
   if (ctx.s.feedback.runs.length > 0) noteDamage(ctx, src, tgt, raw, dtype, applied + absorbed);
   if (lethal) tgt.pendingKill = { killerId: src ? src.id : 0 };

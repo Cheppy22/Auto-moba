@@ -471,6 +471,8 @@ export interface ActPieceStat {
   kills: number;
   deaths: number;
   damage: number;
+  /** Damage this piece did not take (armor, resist, reductions, shields). */
+  mitigated: number;
   /** Who killed it, by count: a piece id, or minion, tower, guardian, camp, none. */
   diedTo: Record<string, number>;
   /** Why it fell, by cause. */
@@ -488,6 +490,8 @@ export interface ActCardStat extends CardMetrics {
 export interface ActTeamStat {
   tempo: number;
   damage: number;
+  /** Damage this side's pieces did not take. */
+  mitigated: number;
   pieceDeaths: number;
   pieceKills: number;
   /** Lanes where this team lost a Bastion. */
@@ -665,6 +669,8 @@ export interface EventPayloads {
     dtype: DamageType;
     origin: string;
     lethal: boolean;
+    /** Damage the target did not take (armor, resist, reductions, shields); pieces only. */
+    mitigated?: number;
   };
   damageBucket: {
     srcTeam: TeamId | 'none';

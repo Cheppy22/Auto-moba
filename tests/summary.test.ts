@@ -252,7 +252,7 @@ describe('match summary: MVP and awards', () => {
     for (const id of ['mostDamage', 'mostKills', 'mostAssists', 'firstBlood', 'longestLife'])
       expect(ids.has(id), id).toBe(true);
     for (const a of s.awards) {
-      expect(a.title).toMatch(/^(Most|Fewest|Top|First|Longest|Biggest) /);
+      expect(a.title).toMatch(/^((Most|Fewest|Top|First|Longest|Biggest) |Iron Wall$)/);
       expect(a.title).not.toMatch(/best|worst|mvp|hero|carry|feeder/i);
       if (a.pieceId !== null) expect(s.rows.some((r) => r.id === a.pieceId)).toBe(true);
     }

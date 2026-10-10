@@ -43,6 +43,13 @@ function rows(r: ActReport): Row[] {
   return [
     { key: 'tempo', label: 'Tempo earned', a: t.A.tempo, b: t.B.tempo, better: 'high' },
     { key: 'damage', label: 'Damage dealt', a: t.A.damage, b: t.B.damage, better: 'high' },
+    {
+      key: 'mitigated',
+      label: 'Damage mitigated',
+      a: t.A.mitigated,
+      b: t.B.mitigated,
+      better: 'high',
+    },
     { key: 'deaths', label: 'Piece deaths', a: t.A.pieceDeaths, b: t.B.pieceDeaths, better: 'low' },
     {
       key: 'bastions',

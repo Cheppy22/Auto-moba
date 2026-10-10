@@ -21,6 +21,7 @@ import { Portrait } from '../parts';
 const TYPES = ['blade', 'soul', 'true'] as const;
 const HEAL_COLOR = '#199e70';
 const TAKEN_COLOR = '#e66767';
+const MIT_COLOR = '#5b8fd6';
 
 function FightList(props: { data: ReportData }) {
   const { report, rowOf, tickRate } = props.data;
@@ -106,7 +107,10 @@ export function CombatPage(props: { data: ReportData }) {
       })),
     };
   });
-  const maxBoth = Math.max(1, ...sum.rows.map((r) => Math.max(r.damageTaken, r.healingDone)));
+  const maxBoth = Math.max(
+    1,
+    ...sum.rows.map((r) => Math.max(r.damageTaken, r.healingDone, r.mitigated)),
+  );
   const takenRows = sum.rows.map((r) => ({
     id: String(r.id),
     label: shortName(r),
@@ -114,6 +118,7 @@ export function CombatPage(props: { data: ReportData }) {
     segs: [
       { key: 'taken', label: 'Damage taken', value: r.damageTaken, color: TAKEN_COLOR },
       { key: 'heal', label: 'Healing done', value: r.healingDone, color: HEAL_COLOR },
+      { key: 'mit', label: 'Damage mitigated', value: r.mitigated, color: MIT_COLOR },
     ],
   }));
   const fightRows = [
@@ -152,23 +157,63 @@ export function CombatPage(props: { data: ReportData }) {
       </ChartBox>
       <ChartBox
         testid="chart-taken"
-        title="Damage taken and healing done"
+        title="Damage taken, healing done and damage mitigated"
         legend={[
           { label: 'Damage taken', color: TAKEN_COLOR },
           { label: 'Healing done', color: HEAL_COLOR },
+          { label: 'Damage mitigated', color: MIT_COLOR },
         ]}
         table={{
-          head: ['Piece', 'Damage taken', 'Healing done'],
-          rows: sum.rows.map((r) => [shortName(r), full(r.damageTaken), full(r.healingDone)]),
+          head: ['Piece', 'Damage taken', 'Healing done', 'Damage mitigated'],
+          rows: sum.rows.map((r) => [
+            shortName(r),
+            full(r.damageTaken),
+            full(r.healingDone),
+            full(r.mitigated),
+          ]),
         }}
       >
         <BarsH
-          label="Damage taken and healing done, per piece"
+          label="Damage taken, healing done and damage mitigated, per piece"
           rows={takenRows}
           grouped
           max={maxBoth}
-          rowHeight={40}
+          rowHeight={54}
           format={compact}
+        />
+      </ChartBox>
+      <ChartBox
+        testid="chart-mitigated"
+        title="Damage mitigated over time"
+        legend={[
+          { label: 'White', color: TEAM_COLOR.A, shape: 'line' },
+          { label: 'Black', color: TEAM_COLOR.B, shape: 'line' },
+        ]}
+      >
+        <TimeChart
+          label="Damage each team's pieces have not taken so far, from armor, resist, shields and damage reduction"
+          xMax={endSec}
+          series={[
+            {
+              id: 'A',
+              label: 'White mitigated',
+              color: TEAM_COLOR.A,
+              pts: toPts(sum.series.mitigated.A, 'total', tickRate),
+              mode: 'line',
+            },
+            {
+              id: 'B',
+              label: 'Black mitigated',
+              color: TEAM_COLOR.B,
+              pts: toPts(sum.series.mitigated.B, 'total', tickRate),
+              mode: 'line',
+              dash: '6 3',
+            },
+          ]}
+          guides={guides}
+          yFormat={compact}
+          height={170}
+          testid="chart-mitigated-svg"
         />
       </ChartBox>
       <ChartBox
