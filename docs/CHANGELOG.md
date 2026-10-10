@@ -4,6 +4,7 @@ Newest first. One entry per change: what changed, why, and any measured effect. 
 
 ## 2026-10-10
 
+- **Act break sheet is now full screen** (was a bottom sheet over the board). Why: Cheppy asked for the summary to own the whole screen; content stays centred and at most 720 px wide on large screens.
 - **The Act break ("the bell")** (branch `test-product-2`, rules in [CHESS.md](CHESS.md) "Act break"). Why: Cheppy approved ending each Act with a short stop instead of rolling on, so the player can read the Act and re-plan.
   - Countdown alerts at 1:00, 0:30, 0:10 and growing clock pulses in the last 5 s (visual only). At 0:00 the board greys and waits for calm (no piece in combat for 2 s, at most 30 s), then three tolls, a 15-tick halt (the app eases its step rate 1 to 0; the 3D view slows its animation clocks with it), and a bottom break sheet: Report (coach callouts and White-vs-Black Act numbers) and Orders (lanes and paths, shared with Adjourn). "Resume — Act N" starts the next Act with a full clock; the first pawnling wave spawns 1 s after resume.
   - Sim: bell state machine in `src/sim/bell.ts`, per-Act report in `src/sim/actReport.ts`, AI lane re-plan in `src/sim/ai/replan.ts` (Black in the app, both sides headless), `resumeAct` command, `MatchConfig.pauseForBreak`, `Snapshot.act` is now an object, tuning under `bell`. The last Act still ends as a draw with no break. `phase.kind` stays `live` through the break, so match-end checks are unchanged.
