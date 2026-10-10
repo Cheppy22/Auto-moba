@@ -1,6 +1,7 @@
 import type { Ctx } from './ctx';
 import type { ModDef, Stats, StatKey, TriggerDef } from './content/schema';
 import { perksOf, pieceDef, styleDef } from './pieces';
+import { LANE_SPEED_TAG, relicMods } from './relics';
 import type { Modifier, Unit } from './types';
 
 export interface TrigInst {
@@ -31,7 +32,7 @@ interface TaggedMod extends ModDef {
 }
 
 function equipment(ctx: Ctx, u: Unit): { mods: TaggedMod[]; trigs: TrigInst[] } {
-  const mods: TaggedMod[] = [];
+  const mods: TaggedMod[] = relicMods(ctx, u);
   const trigs: TrigInst[] = [];
   const h = u.hero;
   if (!h) return { mods, trigs };
@@ -107,7 +108,12 @@ export function recompute(ctx: Ctx, u: Unit): void {
   }
   const add: Partial<Record<StatKey, number>> = {};
   const mul: Partial<Record<StatKey, number>> = {};
+  let laneSpeed = 1;
   const apply = (stat: StatKey, kind: 'add' | 'mul', value: number, tags: string[]): void => {
+    if (stat === 'moveSpeed' && kind === 'mul' && tags.includes(LANE_SPEED_TAG)) {
+      laneSpeed *= value;
+      return;
+    }
     const f = tags.length ? tagFactor(ctx, tags) : 1;
     if (kind === 'add') add[stat] = (add[stat] ?? 0) + value * f;
     else mul[stat] = (mul[stat] ?? 1) * ((value - 1) * f + 1);
@@ -115,6 +121,8 @@ export function recompute(ctx: Ctx, u: Unit): void {
   const eq = equipment(ctx, u);
   for (const m of eq.mods) apply(m.stat, m.kind, m.value, m.tags);
   for (const m of u.mods) apply(m.stat, m.kind, m.value, m.tags);
+  if (laneSpeed !== 1)
+    mul.moveSpeed = (mul.moveSpeed ?? 1) * Math.min(1 + ctx.t.relics.laneSpeedCap, laneSpeed);
   for (const k of Object.keys(out) as StatKey[]) {
     let v = (out[k] + (add[k] ?? 0)) * (mul[k] ?? 1);
     const floor = STAT_FLOORS[k];

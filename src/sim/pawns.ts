@@ -1,14 +1,16 @@
 import type { Ctx } from './ctx';
 import type { LaneId } from './content/schema';
+import { pawnCapBonus, pawnCost } from './relics';
 import { makePawn } from './units';
 import { LANES } from './world/map';
 import type { CommandResult, PlayTeam } from './types';
 
-/** Living-pawn cap: `capBase` through Act capFromAct-1, then +capPerAct each Act. */
-export function pawnCap(ctx: Ctx): number {
+/** Living-pawn cap: `capBase` through Act capFromAct-1, then +capPerAct each Act (plus relics). */
+export function pawnCap(ctx: Ctx, team: PlayTeam): number {
   const p = ctx.t.pawns;
   const act = Math.max(1, ctx.s.phase.n);
-  return act < p.capFromAct ? p.capBase : p.capBase + p.capPerAct * (act - p.capFromAct + 1);
+  const base = act < p.capFromAct ? p.capBase : p.capBase + p.capPerAct * (act - p.capFromAct + 1);
+  return base + pawnCapBonus(ctx, team);
 }
 
 export function pawnsAlive(ctx: Ctx, team: PlayTeam): number {
@@ -22,9 +24,9 @@ export function fieldPawn(ctx: Ctx, team: PlayTeam, lane: LaneId): CommandResult
   if (ctx.s.phase.kind !== 'live')
     return { ok: false, reason: 'pawns are fielded during the match' };
   if (!LANES.includes(lane)) return { ok: false, reason: 'pick a lane' };
-  const cost = ctx.t.pawns.cost;
+  const cost = pawnCost(ctx, team);
   if (ctx.s.tempo[team] < cost) return { ok: false, reason: 'not enough Tempo' };
-  if (pawnsAlive(ctx, team) >= pawnCap(ctx)) return { ok: false, reason: 'pawn cap reached' };
+  if (pawnsAlive(ctx, team) >= pawnCap(ctx, team)) return { ok: false, reason: 'pawn cap reached' };
   ctx.s.tempo[team] -= cost;
   const u = makePawn(ctx, team, lane);
   ctx.grid.insert(u);

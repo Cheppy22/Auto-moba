@@ -14,6 +14,7 @@ import {
 } from '../pieces';
 import { longPress, longPressed } from '../press';
 import { useSession } from '../session';
+import { RelicRow } from './RelicRow';
 
 /** How long a lane tag stays highlighted after its piece changes lane. */
 const LANE_FLASH_MS = 1500;
@@ -120,6 +121,7 @@ export function Roster(props: { team: 'A' | 'B'; forks: number[]; snap: Snapshot
           </button>
         );
       })}
+      <RelicRow team={team} snap={props.snap} />
     </div>
   );
 }

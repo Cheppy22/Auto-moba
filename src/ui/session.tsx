@@ -23,7 +23,7 @@ export type Aim = { kind: 'gambit'; slot: number; cardId: string } | { kind: 'pa
 /** A short-lived banner (Act, Check, Throne) or rank-up chip. */
 export interface Chip {
   id: number;
-  kind: 'rank' | 'act' | 'check' | 'throne' | 'bell';
+  kind: 'rank' | 'act' | 'check' | 'throne' | 'bell' | 'relic';
   title: string;
   detail: string;
   team: PlayTeam | null;
@@ -62,7 +62,7 @@ export interface UiState {
   /** The gambit sheet (long-press on a card): the hand slot shown enlarged. The game is paused while it is open. */
   info: { slot: number; cardId: string } | null;
   /** The tab open on the Act break sheet. */
-  breakTab: 'report' | 'orders';
+  breakTab: 'report' | 'orders' | 'relics';
   /** When (ms) a countdown alert last flashed the Act clock; 0 before the first. */
   clockFlash: number;
 }
@@ -513,6 +513,20 @@ export class Session {
             BANNER_MS,
           ),
         );
+        const theirs = m.state.relics.latest.B;
+        const name = theirs ? this.content.relicById.get(theirs)?.name : undefined;
+        if (e.payload.phase > 1 && name)
+          fresh.push(
+            this.chip(
+              {
+                kind: 'relic',
+                title: `Black took ${name}`,
+                detail: 'Tap the seal under their pieces',
+                team: 'B',
+              },
+              BANNER_MS + 600,
+            ),
+          );
       } else if (e.type === 'fightEnd') {
         if (!decisive(e.payload)) continue;
         const v = fightVerdict(e.payload).verdict;

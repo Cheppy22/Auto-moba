@@ -7,7 +7,7 @@ import { swapLanes } from './swap';
 const LANE_ORDER: LaneId[] = ['top', 'mid', 'bot'];
 
 /** How a team did in a lane this Act: piece trades, pawnling trades and Bastions won or lost. */
-function laneResult(report: ActReport, team: PlayTeam, lane: LaneId): number {
+export function laneResult(report: ActReport, team: PlayTeam, lane: LaneId): number {
   const me = report.teams[team];
   const foe = report.teams[other(team)];
   let score = 0;

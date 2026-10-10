@@ -10,6 +10,7 @@ import type {
   StyleDef,
 } from './content/schema';
 import { kitOf, perkOf, pieceDef, styleDef } from './pieces';
+import { carriesRelic } from './relics';
 import type { CommandResult, PlayTeam, Unit } from './types';
 
 /** Typical size of one point of each stat, so add-mods compare with mul-mods. */
@@ -159,7 +160,7 @@ export function aiArchetypePick(ctx: Ctx, u: Unit): string {
   }
   const need: Axes = [1 / (1 + have[0]), 1 / (1 + have[1]), 1 / (1 + have[2])];
   const needSum = need[0] + need[1] + need[2];
-  const w = WEIGHTS[h.path];
+  const w = WEIGHTS[carriesRelic(ctx, u) ? 'offense' : h.path];
   const scored = styles.map((st) => {
     const ax = styleAxes(st);
     const fit = ax[0] * w[0] + ax[1] * w[1] + ax[2] * w[2];

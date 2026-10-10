@@ -30,7 +30,7 @@ Status: **first pass, untuned.** The balance run (800 matches) has not been done
 2. **Style** (picked at setup). It adds the **signature skill** (the 4th ability, cast first when ready), a **stat tilt** and one or two **passives**. Four styles (Sovereign, Duelist, Huntress, Zealot) also move attack range, so the piece fights at a different distance.
 3. **Rank bonuses** at Ranks 2, 3, 5, 6 and 7 are small and automatic: one ability tweak or one stat each.
 4. **Forks** at Ranks 4 and 8 are a choice between two directions (reach or sustain, team or self, push or gank). Each option carries a small stat in its own direction, so the AI picks the option that matches the piece's build path (see "AI picks" in each fork table: O/D/U = Offense/Defense/Utility path, A or B).
-5. **Build path** (picked at setup, changeable during Adjourn): six items in buy order. An arrow from a tier 2 item to its Relic means it is upgraded later, so the final kit is usually 4–5 items; once the list is done the piece fills the rest of its slots on its own.
+5. **Build path** (picked at setup, changeable during Adjourn): six items in buy order. An arrow from a tier 2 item to its Masterwork means it is upgraded later, so the final kit is usually 4–5 items; once the list is done the piece fills the rest of its slots on its own.
 
 **Words used below:**
 
@@ -84,7 +84,7 @@ Leads from the front. Everyone near him, pawns included, hits harder; he opens e
 | Rank 4 | **Forced March**: Pieces and pawns within 170 move +8 faster. The court rotates and chases as one. Also +2 move speed. | **Blood Oath**: Each enemy piece he kills heals every allied piece within 190 for 8% max health. Also +4% max health. | A/B/A            |
 | Rank 8 | **Conquest**: Allies within 170 attack 10% faster. Pure team damage. Also +4% Blade damage.                            | **Last Stand**: Below 35% health he takes 40% less damage for 5s (60s). He holds the line himself. Also +5 armor.     | A/B/A            |
 
-| Path    | Buy order (bold = Relic)                                                                                                      | Final kit                       |
+| Path    | Buy order (bold = Masterwork)                                                                                                 | Final kit                       |
 | ------- | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------- |
 | Offense | Wanderer's Boots → Cogged Edge → Boiler Heart → **Soot Reaver** → Bloodletter Hook → **Vorpal Blade**                         | 5 items: 3 Mind, 2 Body         |
 | Defense | Wanderer's Boots → Boiler Heart → Cogged Edge → **Furnace Bastion** → Mender's Ledger → **Pocket Vault Shell**                | 5 items: 1 Mind, 4 Body         |
@@ -111,7 +111,7 @@ Rules from behind the line with a ranged scepter. Shields the court and makes al
 | Rank 4 | **Wide Dominion**: Aegis of the Crown covers 25% more ground: shield the whole team. | **Restoration**: Every 6s, allies within 170 heal 15 + 20% Soul. Slow, steady sustain instead of bursts. Also +6% max health, +2 health regeneration. | A/B/A            |
 | Rank 8 | **Divine Sovereign**: Aegis of the Crown recharges 15% faster.                       | **Royal Wrath**: Every 5s the nearest enemy piece within 220 is struck for 30 + 40% Soul damage. He stops being harmless. Also +15% Soul power.       | B/A/A            |
 
-| Path    | Buy order (bold = Relic)                                                                                                            | Final kit               |
+| Path    | Buy order (bold = Masterwork)                                                                                                       | Final kit               |
 | ------- | ----------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
 | Offense | Wanderer's Boots → Séance Prism → Ward-Bell Cuirass → **Eternal Wick** → Pocket Reliquary → **Locked Cabinet of Wishes**            | 5 items: 2 Body, 3 Soul |
 | Defense | Wanderer's Boots → Ward-Bell Cuirass → Pocket Reliquary → Mender's Ledger → **Pocket Vault Shell** → **Furnished Pocket Dimension** | 4 items: 3 Body, 1 Soul |
@@ -138,7 +138,7 @@ A pretender who fights for himself. Drains life with every blow, saps the streng
 | Rank 4 | **Tyrant**: Every 3rd hit on a piece adds 20 + 40% Soul damage. More kill pressure. Also +4% Blade damage. | **Leech Lord**: Heals for a further 10% of attack damage. He outlasts anyone in a long fight. Also +4% max health. | A/B/A            |
 | Rank 8 | **Regicide**: Hits on a piece below 12% health execute it. Also +4% Blade damage.                          | **Usurper's Luck**: Once per life, lethal damage leaves him at 1 health and heals 25% max health. Also +4 armor.   | A/B/A            |
 
-| Path    | Buy order (bold = Relic)                                                                                                                       | Final kit                       |
+| Path    | Buy order (bold = Masterwork)                                                                                                                  | Final kit                       |
 | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------- |
 | Offense | Wanderer's Boots → Bloodletter Hook → Cogged Edge → **Soot Reaver** → Duelist's Form → **Vorpal Blade**                                        | 4 items: 3 Mind, 1 Body         |
 | Defense | Wanderer's Boots → Boiler Heart → Bloodletter Hook → **Furnace Bastion** → Ward-Bell Cuirass → **Undying Larder**                              | 4 items: 1 Mind, 3 Body         |
@@ -189,7 +189,7 @@ An area mage who rules the battlefield from range. Every wave she clears brings 
 | Rank 4 | **Distant Throne**: Decree of Ruin reaches 35% farther and her attacks +15 range. Safer, from the back. Also +5% max health. | **Cataclysm**: Decree of Ruin hits 25% harder and 10% wider. More damage, same danger.                                                                      | B/A/A            |
 | Rank 8 | **Ruin Without End**: Each enemy piece she kills cuts her cooldowns by 8s. Chain picks. Also +6% Soul power.                 | **Queen of Ashes**: Every 4s in combat, enemies within 160 take 20 + 30% Soul damage. Constant burn, but she has to stand closer. Also +6 armor, +6 resist. | A/B/B            |
 
-| Path    | Buy order (bold = Relic)                                                                                                         | Final kit               |
+| Path    | Buy order (bold = Masterwork)                                                                                                    | Final kit               |
 | ------- | -------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
 | Offense | Wanderer's Boots → Séance Prism → Wishgranter's Receipt → **Eternal Wick** → Pocket Reliquary → **Locked Cabinet of Wishes**     | 4 items: 1 Body, 3 Soul |
 | Defense | Wanderer's Boots → Pocket Reliquary → Ward-Bell Cuirass → **Furnished Pocket Dimension** → Séance Prism → **Pocket Vault Shell** | 4 items: 2 Body, 2 Soul |
@@ -216,7 +216,7 @@ Puts the crown down and picks up a sword: a melee carry who locks onto one piece
 | Rank 4 | **Flèche**: En Garde reaches 30% farther: she picks her duel from across the fight.                 | **Second Breath**: Heals for 12% of her attack damage: she wins the long duels instead. Also +150 max health, +5 armor. | A/B/A            |
 | Rank 8 | **Thousand Cuts**: Every 4th hit deals 50% Blade as true damage. Tanks melt. Also +4% Blade damage. | **Untouchable**: Below 35% health she takes 50% less damage for 3s (45s). Also +4 armor.                                | A/B/A            |
 
-| Path    | Buy order (bold = Relic)                                                                                      | Final kit                       |
+| Path    | Buy order (bold = Masterwork)                                                                                 | Final kit                       |
 | ------- | ------------------------------------------------------------------------------------------------------------- | ------------------------------- |
 | Offense | Wanderer's Boots → Duelist's Form → Cogged Edge → **Vorpal Blade** → Bloodletter Hook → **Soot Reaver**       | 4 items: 3 Mind, 1 Body         |
 | Defense | Wanderer's Boots → Duelist's Form → Boiler Heart → **Vorpal Blade** → Ward-Bell Cuirass → **Undying Larder**  | 4 items: 1 Mind, 3 Body         |
@@ -243,7 +243,7 @@ A sniper with the longest reach on the board. Picks off pieces from far away and
 | Rank 4 | **Eagle Eye**: Long Shot reaches 25% farther and her attacks +20 range. Also +6% Blade damage. | **Light Feet**: Withdraw recharges 25% faster: she kites instead of out-ranging. Also +4% max health.                                   | A/B/B            |
 | Rank 8 | **Kill Shot**: Hits on a piece below 12% health execute it. Also +4% Blade damage.             | **Split Shot**: Every 3rd attack also hits every enemy within 160 of her for 40% Blade. Wave clear and team fights. Also +3 move speed. | A/B/B            |
 
-| Path    | Buy order (bold = Relic)                                                                                          | Final kit                       |
+| Path    | Buy order (bold = Masterwork)                                                                                     | Final kit                       |
 | ------- | ----------------------------------------------------------------------------------------------------------------- | ------------------------------- |
 | Offense | Wanderer's Boots → Cogged Edge → Duelist's Form → **Soot Reaver** → Windstep Geta → **Vorpal Blade**              | 4 items: 3 Mind, 1 Body         |
 | Defense | Wanderer's Boots → Cogged Edge → Mender's Ledger → **Soot Reaver** → Ward-Bell Cuirass → **Pocket Vault Shell**   | 4 items: 1 Mind, 3 Body         |
@@ -294,7 +294,7 @@ A wall. Enemies near him hit softer and move slower, anyone who strikes him gets
 | Rank 4 | **Curtain Wall**: When a piece hits him, allies within 160 gain a 60 + 40% Blade shield for 3s (12s). He protects others. Also +5 resist. | **Spiked Walls**: Anything that hits him takes 20 + 25% Blade damage (1s). He punishes instead. Also +4% Blade damage. | B/A/A            |
 | Rank 8 | **Immovable**: Below 40% health he takes 50% less damage for 4s (60s). Also +8% max health, +6 armor.                                     | **Great Keep**: Hold the Line covers 25% more ground.                                                                  | B/A/B            |
 
-| Path    | Buy order (bold = Relic)                                                                                                           | Final kit               |
+| Path    | Buy order (bold = Masterwork)                                                                                                      | Final kit               |
 | ------- | ---------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
 | Offense | Wanderer's Boots → Cogged Edge → Boiler Heart → **Soot Reaver** → Bloodletter Hook → **Furnace Bastion**                           | 4 items: 2 Mind, 2 Body |
 | Defense | Wanderer's Boots → Boiler Heart → Ward-Bell Cuirass → **Furnace Bastion** → Mender's Ledger → **Pocket Vault Shell**               | 4 items: 4 Body         |
@@ -321,7 +321,7 @@ Built to knock down Bastions and the Throne. Strips the armor of everything arou
 | Rank 4 | **Demolisher**: Every 4th hit on a non-piece deals 80% Blade bonus damage. Bastions fall faster. Also +0.04 attack speed.     | **Pusher's Grit**: Every pawnling or camp he kills heals him 2% max health. He can stay in a lane alone. Also +1 health regeneration. | A/B/A            |
 | Rank 8 | **Breach**: Enemies within 140, structures included, also lose 15 resist: the whole team sieges with him. Also +2 move speed. | **Lone Siege**: After 3s out of combat he regenerates 2% max health per second. Split push forever. Also +4% max health.              | A/B/A            |
 
-| Path    | Buy order (bold = Relic)                                                                                       | Final kit                       |
+| Path    | Buy order (bold = Masterwork)                                                                                  | Final kit                       |
 | ------- | -------------------------------------------------------------------------------------------------------------- | ------------------------------- |
 | Offense | Wanderer's Boots → Cogged Edge → Bloodletter Hook → **Soot Reaver** → Duelist's Form → **Hundred-Hand Ledger** | 4 items: 3 Mind, 1 Body         |
 | Defense | Wanderer's Boots → Cogged Edge → Boiler Heart → **Soot Reaver** → Mender's Ledger → **Furnace Bastion**        | 4 items: 1 Mind, 3 Body         |
@@ -348,7 +348,7 @@ Starts the fight. Crashes into an enemy piece from far away, staggers it, and th
 | Rank 4 | **Lance Line**: Breakthrough reaches 30% farther. He picks fights from further away.                                                  | **Hold Fast**: His hits on a piece give him a 60 + 50% Blade shield for 2s (8s). He survives what he starts. Also +6 armor, +100 max health.           | A/B/A            |
 | Rank 8 | **Shockwave**: Every 5th hit on a piece shakes every enemy within 110: 40% Blade damage and 30% slow for 1.5s. Also +4% Blade damage. | **Spearhead**: Each enemy piece he kills gives allies within 200 +15% attack speed for 4s and heals them 5% max health. Also +1.5 health regeneration. | A/B/B            |
 
-| Path    | Buy order (bold = Relic)                                                                                                        | Final kit                       |
+| Path    | Buy order (bold = Masterwork)                                                                                                   | Final kit                       |
 | ------- | ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------- |
 | Offense | Wanderer's Boots → Duelist's Form → Boiler Heart → **Vorpal Blade** → Cogged Edge → **Soot Reaver**                             | 4 items: 2 Mind, 2 Body         |
 | Defense | Wanderer's Boots → Ward-Bell Cuirass → Boiler Heart → **Pocket Vault Shell** → Mender's Ledger → **Furnace Bastion**            | 4 items: 4 Body                 |
@@ -399,7 +399,7 @@ The healer. Keeps the court standing with big group heals, a regeneration halo a
 | Rank 4 | **Long Blessing**: Blessing reaches 30% farther. Heal across the lane from safety. | **Penitent Ward**: When a piece hits her, allies within 160 gain a 40 + 40% Soul shield for 3s (12s). Prevent instead of cure. Also +10 resist, +6% max health. | A/B/A            |
 | Rank 8 | **Miracle**: Radiance recharges 15% faster.                                        | **Wrath of Heaven**: Every 5s the nearest enemy piece within 250 takes 25 + 40% Soul damage. Some of the light burns. Also +15% Soul power.                     | B/A/A            |
 
-| Path    | Buy order (bold = Relic)                                                                                                            | Final kit               |
+| Path    | Buy order (bold = Masterwork)                                                                                                       | Final kit               |
 | ------- | ----------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
 | Offense | Wanderer's Boots → Séance Prism → Pocket Reliquary → **Eternal Wick** → Wishgranter's Receipt → **Locked Cabinet of Wishes**        | 4 items: 1 Body, 3 Soul |
 | Defense | Wanderer's Boots → Pocket Reliquary → Mender's Ledger → **Furnished Pocket Dimension** → Ward-Bell Cuirass → **Pocket Vault Shell** | 4 items: 3 Body, 1 Soul |
@@ -426,7 +426,7 @@ Damage over time from the far diagonal. Everything she touches keeps burning; ki
 | Rank 4 | **Plague**: Black Diagonal covers 25% more ground. Curse the whole fight. | **Wither**: Her attacks on a piece cut its Blade damage by 15% for 3s (4s). Cripple the carry. Also +6% max health, +8 resist. | A/B/A            |
 | Rank 8 | **Unending Night**: Black Diagonal recharges 15% faster.                  | **Soul Harvest**: Every kill heals her 3% max health and grants +3 Soul power for 60s (up to 10 times). Also +15% Soul power.  | B/A/A            |
 
-| Path    | Buy order (bold = Relic)                                                                                                     | Final kit                       |
+| Path    | Buy order (bold = Masterwork)                                                                                                | Final kit                       |
 | ------- | ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------- |
 | Offense | Wanderer's Boots → Wishgranter's Receipt → Séance Prism → **Eternal Wick** → Pocket Reliquary → **Locked Cabinet of Wishes** | 4 items: 1 Body, 3 Soul         |
 | Defense | Wanderer's Boots → Séance Prism → Ward-Bell Cuirass → **Eternal Wick** → Mender's Ledger → **Pocket Vault Shell**            | 4 items: 3 Body, 1 Soul         |
@@ -453,7 +453,7 @@ A battle priest who wades into melee. Every blow she lands heals the pieces arou
 | Rank 4 | **Sermon**: Every 6s, allied pieces within 150 heal 15 + 20% Soul. More priest. Also +5% max health.            | **Smite**: Every 3rd hit deals 15 + 35% Soul bonus damage. More battle. Also +5% Blade damage. | B/A/B            |
 | Rank 8 | **Crusader's Vow**: Each enemy piece she kills heals allies within 200 for 10% max health. Also +6% Soul power. | **Unbowed**: Below 30% health she takes 50% less damage for 3s (50s). Also +6 armor.           | A/B/A            |
 
-| Path    | Buy order (bold = Relic)                                                                                                    | Final kit                       |
+| Path    | Buy order (bold = Masterwork)                                                                                               | Final kit                       |
 | ------- | --------------------------------------------------------------------------------------------------------------------------- | ------------------------------- |
 | Offense | Wanderer's Boots → Cogged Edge → Séance Prism → **Soot Reaver** → Bloodletter Hook → **Eternal Wick**                       | 4 items: 2 Mind, 1 Body, 1 Soul |
 | Defense | Wanderer's Boots → Boiler Heart → Pocket Reliquary → **Furnace Bastion** → Mender's Ledger → **Furnished Pocket Dimension** | 4 items: 3 Body, 1 Soul         |
@@ -504,7 +504,7 @@ The assassin. A huge lance charge onto the most exposed piece; every kill readie
 | Rank 4 | **Deep Strike**: Lance Through reaches 30% farther: past the front line to the back. | **Jousting Plate**: +12 armor and +10% max health: survive the landing.                                               | A/B/A            |
 | Rank 8 | **Skewer**: Lance Through hits 20% harder.                                           | **Breakaway**: When a piece hits him below 40% health he leaps 120 away from it (16s). Also +8% max health, +8 armor. | A/B/A            |
 
-| Path    | Buy order (bold = Relic)                                                                                            | Final kit                       |
+| Path    | Buy order (bold = Masterwork)                                                                                       | Final kit                       |
 | ------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------- |
 | Offense | Wanderer's Boots → Duelist's Form → Bloodletter Hook → **Vorpal Blade** → Cogged Edge → **Hundred-Hand Ledger**     | 4 items: 3 Mind, 1 Body         |
 | Defense | Wanderer's Boots → Duelist's Form → Ward-Bell Cuirass → **Vorpal Blade** → Mender's Ledger → **Pocket Vault Shell** | 4 items: 1 Mind, 3 Body         |
@@ -531,7 +531,7 @@ A wandering knight. Clears the jungle fastest, moves fastest out of combat and k
 | Rank 4 | **Raider**: Every 4th hit on a non-piece deals 60% Blade bonus damage. Split push. Also +3 move speed. | **Ambusher**: His first hit on a piece every 10s deals 30 + 60% Blade bonus damage and slows 30% for 1.5s. Gank from the jungle. Also +5% Blade damage. | B/A/A            |
 | Rank 8 | **Siegebreaker**: Enemies within 120, structures included, lose 10 armor. Also +2 move speed.          | **Hunter of Pieces**: Each enemy piece he kills cuts his cooldowns by 6s and heals 10% max health. Also +4% max health.                                 | A/B/A            |
 
-| Path    | Buy order (bold = Relic)                                                                                    | Final kit                       |
+| Path    | Buy order (bold = Masterwork)                                                                               | Final kit                       |
 | ------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------- |
 | Offense | Wanderer's Boots → Cogged Edge → Bloodletter Hook → **Soot Reaver** → Duelist's Form → **Vorpal Blade**     | 4 items: 3 Mind, 1 Body         |
 | Defense | Wanderer's Boots → Bloodletter Hook → Boiler Heart → **Furnace Bastion** → Cogged Edge → **Undying Larder** | 4 items: 2 Mind, 2 Body         |
@@ -558,7 +558,7 @@ A protector. Leaps to the most wounded ally and shields it, and weakens whoever 
 | Rank 4 | **Far Rescue**: Gallant Leap reaches 30% farther: he covers more of the map.             | **Lay on Hands**: Every 6s, allied pieces within 140 heal 15 + 20% Blade. Steady sustain where he stands. Also +8% max health, +2 health regeneration. | A/B/A            |
 | Rank 8 | **Intercept**: A piece that hits him is staggered for 1s (8s). Also +8 armor, +8 resist. | **Aegis Knight**: Gallant Leap shields 20% more.                                                                                                       | B/A/B            |
 
-| Path    | Buy order (bold = Relic)                                                                                                           | Final kit               |
+| Path    | Buy order (bold = Masterwork)                                                                                                      | Final kit               |
 | ------- | ---------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
 | Offense | Wanderer's Boots → Cogged Edge → Ward-Bell Cuirass → **Soot Reaver** → Duelist's Form → **Vorpal Blade**                           | 4 items: 2 Mind, 2 Body |
 | Defense | Wanderer's Boots → Ward-Bell Cuirass → Mender's Ledger → **Pocket Vault Shell** → Boiler Heart → **Furnace Bastion**               | 4 items: 4 Body         |
@@ -567,7 +567,7 @@ A protector. Leaps to the most wounded ally and shields it, and weakens whoever 
 ## Build paths: the rules used
 
 - **Offense** leans Mind (Soul for Sovereign, Regent, Light and Shadow), **Defense** leans Body, **Utility** leans Soul and cooldowns, with Mind kept where a style needs its weapon (Warlord, Ram, Errant).
-- Every list is six steps, ends on a Relic and holds one or two Relics. Wanderer's Boots come first everywhere because rotations matter more without a player hero.
+- Every list is six steps, ends on a Masterwork and holds one or two Masterworks. Wanderer's Boots come first everywhere because rotations matter more without a player hero.
 - Lists are **per style** (the tables above). The current schema stores one set per piece, so the piece-level `paths` in each JSON file hold the default style's lists (King: Warlord, Queen: Huntress, Rook: Bastion, Bishop: Light, Knight: Lancer), and each style carries its own `paths` block for when the sim reads it.
 
 ## Gambits

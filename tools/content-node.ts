@@ -25,7 +25,8 @@ function deepMerge(base: unknown, patch: unknown): unknown {
 // BALANCE_TUNING deep-merges a JSON patch into tuning.json; BALANCE_PATCH shallow-merges a patch per
 // piece id (e.g. {"knight":{"stats":{...}}}); BALANCE_SCALE scales a piece's health, Blade damage and
 // Soul power (e.g. {"queen":0.95}). BALANCE_SCHOOLS (comma list, e.g. "fortress,march") keeps only
-// the gambit cards of those schools, so both decks draw from them alone.
+// the gambit cards of those schools, so both decks draw from them alone. BALANCE_RELIC_POOL (a relic
+// family: lane, carry, pawns, siege, orders) keeps only that family's relics in the draft.
 function applyScale(raw: RawContentFiles): RawContentFiles {
   if (process.env.BALANCE_TUNING)
     raw.tuning = deepMerge(raw.tuning, JSON.parse(process.env.BALANCE_TUNING));
@@ -33,6 +34,11 @@ function applyScale(raw: RawContentFiles): RawContentFiles {
     const keep = new Set(process.env.BALANCE_SCHOOLS.split(',').map((x) => x.trim()));
     const file = raw.gambits as { gambits: { school: string }[] };
     raw.gambits = { ...file, gambits: file.gambits.filter((g) => keep.has(g.school)) };
+  }
+  if (process.env.BALANCE_RELIC_POOL) {
+    const family = process.env.BALANCE_RELIC_POOL.trim();
+    const file = raw.relics as { relics: { family: string }[] };
+    raw.relics = { ...file, relics: file.relics.filter((r) => r.family === family) };
   }
   const patch = process.env.BALANCE_PATCH;
   if (patch) {
@@ -67,6 +73,7 @@ export function readRawContent(): RawContentFiles {
     pieces: readDir('pieces'),
     gambits: readJson(join(root, 'gambits.json')),
     openings: readJson(join(root, 'openings.json')),
+    relics: readJson(join(root, 'relics.json')),
     items: readDir('items'),
     events: readDir('events'),
     biomes: readDir('biomes'),

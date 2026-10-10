@@ -1,6 +1,8 @@
 # Item sheet v2 and item color theory (draft for approval)
 
-The goal is to give each of the 36 items its own character. Every item gets **at most two stats and one signature rule**. Tier 3 items become **Relics**, each with a rule that changes how the hero plays.
+> Tier 3 items were called Relics until 2026-10-10. They are now **Masterworks** (labels only, no rule change) so that "relic" means the Act-break draft in [RELICS.md](RELICS.md).
+
+The goal is to give each of the 36 items its own character. Every item gets **at most two stats and one signature rule**. Tier 3 items become **Masterworks**, each with a rule that changes how the hero plays.
 
 Item ids, build trees and costs stay the same, so hero build lists and the balance tools keep working. Some names change and every description is rewritten in the color markup defined below.
 
@@ -16,7 +18,7 @@ Status: **built**. Small deviations from the draft: Ratchet stacks on hits on an
    - **Mind** is cobalt steel (hue 214°): a cold, tempered edge, standing for technique and the weapon.
    - **Body** is moss and verdigris (hue 85°): living tissue, wrapped in old metal.
    - **Soul** is lantern violet (hue 264°): the xxxHolic spirit-light.
-2. **Brightness = tier.** Tier 1 is muted (raw material) and tier 2 is the pure hue. A tier 3 Relic is the brightest tint, and also gets a **brass rim**. Brass marks rarity and money in every category; it never stands for a category.
+2. **Brightness = tier.** Tier 1 is muted (raw material) and tier 2 is the pure hue. A tier 3 Masterwork is the brightest tint, and also gets a **brass rim**. Brass marks rarity and money in every category; it never stands for a category.
 3. **Reserved hues never change meaning:**
    - teal and red: your team and the enemy
    - brass: gold, price and rarity
@@ -27,7 +29,7 @@ Status: **built**. Small deviations from the draft: Ratchet stacks on hits on an
    - **Number plus keyword:** color the pair together ("**+24 Blade**").
    - **Rule words:** "When hit", "Every 8s", "Once per life" and the like are brass small caps, so the eye reads the condition first and the effect second.
    - **Everything else:** neutral washi text.
-   - **Color budget:** at most 2 keyword colors per sentence. A Relic's rule name, such as "Cinder Wake", is in its category's brightest tint.
+   - **Color budget:** at most 2 keyword colors per sentence. A Masterwork's rule name, such as "Cinder Wake", is in its category's brightest tint.
 5. **Color is never the only signal.** Every colored keyword keeps its word ("Blade", "Soul", "health"). Tiles keep their category glyph (eye, heart, flame) and tier diamonds. Every text color has at least 5.7:1 contrast on the panel backgrounds (checked against `--lacquer` #15111e and `--lacquer-2` #1d1828).
 
 ### Palette
@@ -36,15 +38,15 @@ Status: **built**. Small deviations from the draft: Ratchet stacks on hits on an
 | ------------ | --------- | ----------------------------------------------------- | ------------------- |
 | `--mind-1`   | `#7d97b8` | Mind tier 1 tile tint                                 | 6.2                 |
 | `--mind`     | `#8fb8ec` | Mind keywords, tier 2 tint, tab color                 | 9.1                 |
-| `--mind-3`   | `#b8d6ff` | Mind Relic tint and Relic rule name                   | 12.5                |
+| `--mind-3`   | `#b8d6ff` | Mind Masterwork tint and Masterwork rule name         | 12.5                |
 | `--body-1`   | `#93a77a` | Body tier 1                                           | 7.1                 |
 | `--body`     | `#a9c97c` | Body keywords, tier 2                                 | 10.0                |
-| `--body-3`   | `#cde6a2` | Body Relic                                            | 13.7                |
+| `--body-3`   | `#cde6a2` | Body Masterwork                                       | 13.7                |
 | `--soul-1`   | `#a596c0` | Soul tier 1                                           | 6.8                 |
 | `--soul`     | `#c3a2f4` | Soul keywords, tier 2                                 | 8.7                 |
-| `--soul-3`   | `#ddc8ff` | Soul Relic                                            | 12.2                |
+| `--soul-3`   | `#ddc8ff` | Soul Masterwork                                       | 12.2                |
 | `--kw-true`  | `#f6f0e2` | True damage (bold)                                    | 16.3                |
-| `--kw-gold`  | `#f0d58a` | Gold amounts, Relic rim                               | 12.9                |
+| `--kw-gold`  | `#f0d58a` | Gold amounts, Masterwork rim                          | 12.9                |
 | `--kw-price` | `#ec6a70` | Costs to you: negative stats, self-damage, curse text | 6.1                 |
 | `--kw-rule`  | `#c9a24a` | Rule words, in small caps                             | 7.7                 |
 
@@ -91,7 +93,7 @@ These are small and generic. Everything else uses the triggers and effects that 
 
 ## 3. The sheet
 
-"Rule" is the signature. Stats are kept to two (one Relic carries three). The text after "→" is the exact new `desc`.
+"Rule" is the signature. Stats are kept to two (one Masterwork carries three). The text after "→" is the exact new `desc`.
 
 ### Mind: technique and the weapon (cobalt steel)
 
@@ -196,7 +198,7 @@ Move speed is a Mind keyword even on Body items: the color follows the stat, not
 Apply the same markup to `content/items/cursed.json` and `holy.json`:
 
 - **Cursed items:** boons use their stat colors, and flaws use `{p|…}`. Prefix each flaw with the rule word `{r|The price}:`.
-- **Holy items:** use the stat colors, and draw their tiles with the gold Relic rim.
+- **Holy items:** use the stat colors, and draw their tiles with the gold Masterwork rim.
 - **Vorpal Blade flavor:** "One, two! One, two! And through and through." Items have no flavor field, so the line lives here and the rule is named after the poem's "snicker-snack".
 - **Drink Me** (Mind, flaw type Shrinking): `{m|+20% move speed}, {m|+15% attack speed}`; price `{r|The price}: {p|Max health −15%}`.
 - **Eat Me** (Body, flaw type Growing): `{b|+25% max health}, {b|+10 armor}`; price `{r|The price}: {p|Move speed −15%}`.
@@ -208,14 +210,14 @@ Apply the same markup to `content/items/cursed.json` and `holy.json`:
 - **Tiles:**
   - tier 1: `--x-1` border
   - tier 2: `--x` border plus a faint inner glow
-  - Relic: `--x-3` border plus a 1px brass outer rim, and the rule name shown under the item name in `--x-3`.
+  - Masterwork: `--x-3` border plus a 1px brass outer rim, and the rule name shown under the item name in `--x-3`.
 - **Detail panel:** the header bar is tinted with the category hue at 12% opacity. The rule renders as its own line, starting with the brass rule word.
 - **Map and HUD:** the item icon in the player card and scoreboard uses the category hue, so a carry's mind-blue build or a tank's moss build reads at a glance.
 - **Attunement pips** use the category hue.
 
 ## 5. Balance notes for implementation
 
-- **Stat budgets:** tier 3 base stats fall about 10% because the Relic rule carries value. Expect Mind carries to lose some raw damage and gain burst or cleave, Body items to gain a lot (Vault, Bastion aura), and Soul Relics to swing hardest.
+- **Stat budgets:** tier 3 base stats fall about 10% because the Masterwork rule carries value. Expect Mind carries to lose some raw damage and gain burst or cleave, Body items to gain a lot (Vault, Bastion aura), and Soul Masterworks to swing hardest.
 - **After implementing:** run `npm run balance -- --matches 800`. Tune the rule numbers first and the base stats second, and keep hero win rates within 45–55%.
 - **AI shopping:** no change is needed. Build lists keep their ids.
 - **Tests:** add one test per new engine addition (`vs`, `everyNth`, `maxStacks`, `outOfCombat`, `execute`, `lastStand`, `cooldownTick`). Also add a content test that every item `desc` parses, and that its plain text contains its rule name.

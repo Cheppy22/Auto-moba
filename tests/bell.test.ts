@@ -17,7 +17,7 @@ const laneCounts = (m: Match, team: 'A' | 'B'): string =>
     .join('/');
 
 function playToResume(seed: number): Match {
-  const m = liveMatch(seed, { pauseForBreak: true });
+  const m = liveMatch(seed, { pauseForBreak: true, relics: { A: 'ai' } });
   for (let i = 0; i < 2; i++) {
     toBell(m, 'break');
     m.issue({ type: 'resumeAct' });
@@ -54,6 +54,8 @@ describe('the Act break', () => {
     expect(m.events.filter((e) => e.type === 'phaseEnd')).toHaveLength(1);
     expect(m.events.filter((e) => e.type === 'phaseStart')).toHaveLength(1);
 
+    expect(m.issue({ type: 'resumeAct' }).reason).toMatch(/relic/);
+    expect(m.issue({ type: 'autoRelic' }).ok).toBe(true);
     expect(m.issue({ type: 'resumeAct' }).ok).toBe(true);
     expect(m.issue({ type: 'resumeAct' }).ok).toBe(false);
     expect(m.state.phase).toMatchObject({ kind: 'live', n: 2, startTick: frozenAt });

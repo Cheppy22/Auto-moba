@@ -8,19 +8,21 @@ Playable chess auto-battler: 5 pieces per side, pawnlings/pawns, Bastions, Check
 
 ## Done recently
 
+2026-10-10 (later): **relic wave 1** built per `docs/RELICS.md`: a third break-sheet tab (Relics: pick 1 of 3 with a tailored first card, aim, "Let the AI choose", re-aim at later breaks), Black drafts by an AI rule, a held-relic seal row under each roster, eight relics in `content/relics.json` (Half-Open File, Closed Position, Crown Jewel, Development, Pawn Majority, Pawn Lever, Opening Theory, Standing Order), `relic` rng stream, balance flags `--relics` and `--relic-pool`. Tier 3 items are now called **Masterworks**. Code: `src/sim/relics.ts`, `src/sim/draft.ts`, `src/sim/callouts.ts` (moved from analysis), `src/ui/hud/RelicsTab.tsx`, `src/ui/hud/RelicRow.tsx`.
+
 Map x1.5, humanoid models, combat flash, lane tags, gambit long-press, schools wave 1, Openings, Rank 4 archetype, Act break (commit 631521f). 2026-10-10: **combat feedback** (fight verdict tags, why a piece fell, gambit impact lines and Report tally, lane momentum strip and "Lanes at the bell"); spec in `docs/CHESS.md` "Combat feedback", code in `src/sim/feedback.ts`, `src/sim/impact.ts`, `src/analysis/feedback.ts`, `src/ui/hud/Notes.tsx`, `src/ui/hud/LaneBars.tsx`.
 
 ## Next steps
 
 1. Owner reviews the Act break and the new combat feedback on a phone (countdown flashes, toll pulses, grey halt, verdict tags and the lane strip were never viewed live on a device).
-2. Relic draft: list for owner approval (a relic list doc may be in progress), then add as a third tab in the break sheet.
-3. Gambit waves 2 (Clock school, English Opening) and 3, redesigned toward pre-armed set-up cards (play before the Act, not mid-fight).
+2. Relic wave 2: Sealed Move and Pawn Structure (they need break-sheet pickers for a card and trigger, and for pawn quotas and a Tempo reserve). Then Battery and Sortie (the High builds: 3/1/1 lanes, rotating defenders). Then the rest of the 23.
+3. Gambit waves 2 (Clock school, English Opening) and 3, redesigned toward set-at-the-break cards (Standing Order is the model: a card bound at the break, always on, half strength).
 4. Minimap with pings (the combat feedback covers the read-the-board part; pings are still open).
-5. Dedicated testing pass (task #56): full Playwright, 800-match balance, school counters, stuck check incl. Barricade; tune `feedback` thresholds in `content/tuning.json`.
+5. Dedicated testing pass (task #56): full Playwright, 800-match balance (relic runs: `--relics A=ai,B=ai`, `A=none`, `A=random`, one `--relic-pool` per family), school counters, stuck check incl. Barricade; tune `feedback` thresholds in `content/tuning.json` and the relic numbers in `content/relics.json`.
 
 ## Open decisions
 
-Relic content; minimap/evaluation bar/gauntlet mode; stronger grey at "Bell pending"; callout thresholds and `feedback` thresholds (guesses).
+Relic numbers (wave 1 untuned); minimap/evaluation bar/gauntlet mode; stronger grey at "Bell pending"; callout thresholds and `feedback` thresholds (guesses).
 
 ## Gotchas
 

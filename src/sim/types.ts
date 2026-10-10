@@ -416,6 +416,44 @@ export interface ActTally {
   pawnlingsLost: Record<PlayTeam, Record<LaneId, number>>;
 }
 
+/** Who picks a side's relics: the AI rule, nobody, random, or the player (the browser's White). */
+export type RelicMode = 'ai' | 'none' | 'random' | 'manual';
+
+/** A relic held for the rest of the match, with what it is aimed at. */
+export interface HeldRelic {
+  id: string;
+  lane: LaneId | null;
+  /** The bound piece's unit id. */
+  piece: number | null;
+  /** Standing Order: the lane card that is always on. */
+  card: string | null;
+}
+
+export type RelicAim = Pick<HeldRelic, 'lane' | 'piece' | 'card'>;
+
+export interface RelicOffer {
+  id: string;
+  /** Slot 1: chosen from what went wrong in the Act report. */
+  tailored: boolean;
+  /** Why a tailored offer was made (a coach line); null for the random ones. */
+  why: string | null;
+  /** The aim the offer arrives with: the AI's rule, or the problem the tailored offer answers. */
+  aim: RelicAim;
+}
+
+export interface RelicState {
+  held: Record<PlayTeam, HeldRelic[]>;
+  /** The three cards of the draft that is open at the break (empty otherwise). */
+  offers: Record<PlayTeam, RelicOffer[]>;
+  /** The draft at this break is done: a relic taken, declined, or nothing to offer. */
+  settled: Record<PlayTeam, boolean>;
+  /** The relic each side took at the latest break, for the resume banner. */
+  latest: Record<PlayTeam, string | null>;
+  /** Fewer Bastions standing, a fallen Throne, or much less Tempo earned in the last Act: Rally relics work. */
+  behind: Record<PlayTeam, boolean>;
+  mode: Record<PlayTeam, RelicMode>;
+}
+
 export interface BellState {
   stage: BellStage;
   /** Tick the current stage began. */
@@ -591,6 +629,7 @@ export interface MatchState {
   bell: BellState;
   actTally: ActTally;
   feedback: FeedbackState;
+  relics: RelicState;
 }
 
 export interface PositionSample {
@@ -678,6 +717,24 @@ export interface EventPayloads {
   checkmate: { winner: PlayTeam };
   pawnFielded: { team: PlayTeam; lane: LaneId; id: number };
   bell: { stage: BellStage; toll?: number; act: number };
+  relicOffered: { team: PlayTeam; ids: string[] };
+  relicTaken: {
+    team: PlayTeam;
+    relic: string;
+    lane: LaneId | null;
+    piece: number | null;
+    card: string | null;
+    replaced: string | null;
+    auto: boolean;
+  };
+  relicAimed: {
+    team: PlayTeam;
+    relic: string;
+    lane: LaneId | null;
+    piece: number | null;
+    card: string | null;
+  };
+  relicDeclined: { team: PlayTeam };
   laneSet: { id: number; lane: LaneId };
   pathSet: { id: number; path: Path };
   recall: {
@@ -792,8 +849,16 @@ export type Command =
   | { type: 'setLane'; heroId: number; lane: LaneId }
   | { type: 'setPath'; heroId: number; path: Path }
   | { type: 'fieldPawn'; lane: LaneId }
-  /** Leaves the Act break sheet and starts the next Act. */
-  | { type: 'resumeAct' };
+  /** Leaves the Act break sheet and starts the next Act (after a relic is taken). */
+  | { type: 'resumeAct' }
+  /** Takes one of the break's offered relics, aimed; with three held, `replace` names the one it replaces. */
+  | ({ type: 'pickRelic'; relicId: string; replace?: string } & Partial<RelicAim>)
+  /** A full hand of three keeps what it holds and takes none of the offers. */
+  | { type: 'declineRelic' }
+  /** Re-aims a held relic (at a break only). */
+  | ({ type: 'aimRelic'; relicId: string } & Partial<RelicAim>)
+  /** "Let the AI choose": picks and aims a relic for White. */
+  | { type: 'autoRelic' };
 
 export interface CommandResult {
   ok: boolean;
@@ -824,6 +889,11 @@ export interface MatchConfig {
    * re-plan, then the next Act starts).
    */
   pauseForBreak?: boolean;
+  /**
+   * Who picks each side's relics at an Act break. Default: Black by the AI rule, White by the
+   * player when `pauseForBreak` is set, else by the AI rule. `manual` falls back to `ai` without a sheet.
+   */
+  relics?: { A?: RelicMode; B?: RelicMode };
 }
 
 export interface Replay {
@@ -909,6 +979,19 @@ export interface Snapshot {
   zones: SnapZone[];
   /** Who is pushing each lane: -1 Black all the way .. 1 White all the way. */
   momentum: Record<LaneId, number>;
+  relics: SnapRelics;
+}
+
+/** The relic draft as the sheet and the HUD see it (White's open offers; both sides' held relics). */
+export interface SnapRelics {
+  held: Record<PlayTeam, HeldRelic[]>;
+  /** White's offers while the break draft is open. */
+  offers: RelicOffer[];
+  /** White's draft at this break is done (or there was nothing to offer). */
+  settled: boolean;
+  /** The relic each side took at the latest break. */
+  latest: Record<PlayTeam, string | null>;
+  behind: Record<PlayTeam, boolean>;
 }
 
 export interface SnapAct {

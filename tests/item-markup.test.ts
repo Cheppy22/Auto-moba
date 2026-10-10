@@ -19,7 +19,7 @@ describe('item description markup', () => {
     }
   });
 
-  it('every item has exactly one named rule, and tier 3 items are relics', () => {
+  it('every item has exactly one named rule, and tier 3 items are masterworks', () => {
     for (const i of content.items) {
       const rules = i.desc.match(/\{r\|[^}]*\}/g) ?? [];
       expect(rules.length, i.id).toBeGreaterThanOrEqual(1);

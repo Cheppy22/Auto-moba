@@ -173,6 +173,28 @@ export function report(
   for (const [id, s] of Object.entries(itemStats).sort((a, b) => b[1].n - a[1].n))
     lines.push(`| ${id} | ${s.n} | ${pct(s.w, s.n)} |`);
   lines.push('');
+  lines.push('## Relics');
+  lines.push('');
+  lines.push('| Relic | Offered | Pick rate | Held at end | Win rate when held |');
+  lines.push('| --- | --- | --- | --- | --- |');
+  const relicStats: Record<string, { offered: number; taken: number; held: number; won: number }> =
+    {};
+  for (const r of results) {
+    for (const t of ['A', 'B'] as const) {
+      const row = (id: string) => (relicStats[id] ??= { offered: 0, taken: 0, held: 0, won: 0 });
+      for (const id of r.relics[t].offered) row(id).offered++;
+      for (const id of r.relics[t].taken) row(id).taken++;
+      for (const id of r.relics[t].held) {
+        row(id).held++;
+        if (r.winner === t) row(id).won++;
+      }
+    }
+  }
+  for (const [id, s] of Object.entries(relicStats).sort((a, b) => b[1].held - a[1].held))
+    lines.push(
+      `| ${id} | ${s.offered} | ${pct(s.taken, s.offered)} | ${s.held} | ${pct(s.won, s.held)} |`,
+    );
+  lines.push('');
   lines.push('## Curses, comebacks, obelisks');
   lines.push('');
   const offered = results.reduce((a, r) => a + r.curses.offered, 0);

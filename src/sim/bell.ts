@@ -2,6 +2,7 @@ import { inCombat, TPS } from './combat';
 import type { Ctx } from './ctx';
 import { replanLanes } from './ai/replan';
 import { buildActReport } from './actReport';
+import { closeDraft, resolveDraft } from './draft';
 import { actTicks, endAct, enterAct } from './phase';
 import type { BellStage, BellState, PlayTeam } from './types';
 
@@ -46,8 +47,9 @@ function enterBreak(ctx: Ctx): void {
   const report = buildActReport(ctx);
   s.bell.report = report;
   replanLanes(ctx, 'B', report);
+  if (!ctx.pauseForBreak) replanLanes(ctx, 'A', report);
+  resolveDraft(ctx, report);
   if (!ctx.pauseForBreak) {
-    replanLanes(ctx, 'A', report);
     resumeFromBreak(ctx);
     return;
   }
@@ -58,6 +60,7 @@ function enterBreak(ctx: Ctx): void {
 export function resumeFromBreak(ctx: Ctx): void {
   const s = ctx.s;
   const next = s.phase.n + 1;
+  closeDraft(ctx);
   s.bell = freshBell();
   enterAct(ctx, next);
   s.nextWaveTick = s.tick + Math.round(ctx.t.bell.resumeWaveSec * TPS);

@@ -45,6 +45,8 @@ export function swapLanes(ctx: Ctx, a: Unit, b: Unit): void {
   hb.role = role;
   ha.goal = null;
   hb.goal = null;
+  a.dirty = true;
+  b.dirty = true;
   assignJunglers(ctx, a.team as PlayTeam);
   ctx.emit('laneSwap', { a: a.id, b: b.id });
 }

@@ -1,6 +1,6 @@
-# Relic draft (proposal, 2026-10-10)
+# Relic draft (2026-10-10)
 
-Status: **approved by Cheppy 2026-10-10 (all five open questions answered as recommended); not built yet.** Belongs to [CHESS.md](CHESS.md) (Act break). Numbers are starting guesses sized against `content/tuning.json` and `content/gambits.json`; the balance run sets the final ones.
+Status: **wave 1 built 2026-10-10** (Half-Open File, Closed Position, Crown Jewel, Development, Pawn Majority, Pawn Lever, Opening Theory, Standing Order). Approved by Cheppy 2026-10-10 (all five open questions answered as recommended). Waves 2 and 3 are not built; see "Wave 1 build notes" at the end. Belongs to [CHESS.md](CHESS.md) (Act break). Numbers are starting guesses sized against `content/tuning.json` and `content/gambits.json`; the balance run sets the final ones.
 
 ## BLUF
 
@@ -133,3 +133,20 @@ Rally relics: Closed Position, King's Ransom, Compensation, Sortie (one in each 
 - Slow the churn: refill 6 → 10 s and expiry 40 → 60 s, so the hand changes less and asks for fewer glances.
 - Keep Field Pawn; Pawn Structure covers players who don't want to tap it.
 - Lower the gambit-value target from 8–15 to 4–8 points once relics carry the planning, and check it with taps per minute in a browser playtest.
+
+## Wave 1 build notes (2026-10-10)
+
+Code: `content/relics.json` (+ `RelicSchema` in `src/sim/content/schema.ts`, `tuning.json` → `relics`), `src/sim/relics.ts` (effects: stat mods through `recompute`, Pawn Majority cost and cap, Opening Theory card cost, Development bounty, Pawn Lever structure damage), `src/sim/draft.ts` (offers, picks, AI scoring and aiming), `src/sim/callouts.ts` (coach rules, moved from `src/analysis` so the sim can read them), UI in `src/ui/relics.tsx`, `src/ui/hud/RelicsTab.tsx`, `src/ui/hud/RelicRow.tsx`. Commands: `pickRelic`, `declineRelic`, `autoRelic`, `aimRelic`. Events: `relicOffered`, `relicTaken`, `relicAimed`, `relicDeclined`. Config: `MatchConfig.relics` (`ai`, `none`, `random`, `manual`); balance flags `--relics A=ai|none|random,B=...` and `--relic-pool <lane|carry|pawns|siege|orders>`.
+
+Deviations from the design above (all small; the numbers are the design's):
+
+- **Tailored slot with only wave 1 relics.** The family comes from the worst callout that is not a win (so `carry-damage` counts, and `fights-lost-<lane>` offers Lane Doctrine aimed at that lane, `damage-behind` Carry & Court). If the mapped family has no relic left to offer, slot 1 is a random family and has no "why" line. Callouts with no mapping (obelisks) also fall back to random. Wins (`clean`, `bastion-taken`) are used only when there is no problem to answer.
+- **Rally relics.** Only Closed Position exists in wave 1, and it belongs to Lane Doctrine. When the side is behind (a fallen Throne, fewer Bastions standing, or 40+ less Tempo earned in the Act) the tailored slot is a Rally relic, so a lost Bastion offers Closed Position aimed at that lane rather than Pawn Lever. "Behind" is read once, when the break starts, and holds for the whole next Act; a Rally effect is off in an Act that starts while the side is not behind.
+- **Aiming from Orders.** Lane relics are aimed on the Relics tab only (lane chips L/M/R); the Orders lane board has no relic chips yet.
+- **AI aiming at later breaks.** AI sides (Black, and White in headless runs) re-aim their lane relics at every break to the lane the report favours (best lane for offence, worst for defence; Standing Order keeps its card). The design tied it to the 75% lane re-plan move; this is simpler and always on. Piece relics stay where they were taken.
+- **Standing Order** is half strength through stat mods: Advance +5% move speed, Hold the File +7.5% armor and resist on pieces, Open File +12.5% move speed, Pawn Storm +16.7% pawn and pawnling damage and speed. It does not issue Advance's push order. The bound card leaves the deck, and is dealt again if it sat in the hand.
+- **Closed Position** weakens pawnlings, not elite pawns. **Pawn Lever** also boosts a Pawn Sacrifice hit (it is still outside the 9%/s cap).
+- **Full hand.** "Let the AI choose" with three held replaces the AI's weakest relic if the best offer scores higher, otherwise declines. Random mode replaces a random relic or declines with equal chance.
+- **Offers for every side, every break.** Both sides' offers are drawn (White first) even when a side's mode is `none`, so runs with different relic modes stay comparable.
+- **Bounds.** Lane move-speed bonuses (tag `laneSpeed`: Half-Open File, Standing Order Advance and Open File, the Advance and Open File cards) multiply and stop at +30% in total (`tuning.relics.laneSpeedCap`); relic pawn-cap bonuses stop at +2 (`pawnCapMax`).
+- **Not run:** the 800-match tuning runs in "Tuning targets and tests". Wave 1 numbers are untested beyond a 40-match sanity run.

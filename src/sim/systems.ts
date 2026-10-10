@@ -15,6 +15,7 @@ import {
 import { dist } from './core/math';
 import type { Ctx } from './ctx';
 import { hpPct } from './ctx';
+import { bountyMul } from './relics';
 import { giveGold } from './shop';
 import { makeMinion } from './units';
 import { LANES } from './world/map';
@@ -192,9 +193,10 @@ function killUnit(ctx: Ctx, u: Unit): void {
         giveGold(
           ctx,
           killerHero,
-          ctx.t.gold.heroKill +
+          (ctx.t.gold.heroKill +
             ctx.t.gold.killBountyPerStreak * Math.min(5, victimStreak) +
-            Math.round((ctx.t.gold.comebackBounty * Math.min(behind, 8000)) / 1000),
+            Math.round((ctx.t.gold.comebackBounty * Math.min(behind, 8000)) / 1000)) *
+            bountyMul(ctx, u),
           'kill',
         );
         fireTriggers(ctx, killerHero, 'kill', { victim: u });

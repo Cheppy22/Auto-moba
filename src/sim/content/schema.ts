@@ -288,6 +288,47 @@ export const OpeningSchema = z.object({
 
 export const OpeningFileSchema = z.array(OpeningSchema).min(1);
 
+export const RELIC_FAMILIES = ['lane', 'carry', 'pawns', 'siege', 'orders'] as const;
+export const RelicFamilySchema = z.enum(RELIC_FAMILIES);
+
+/** Effect families the sim implements; a relic's `effect` defaults to its id. */
+export const RELIC_EFFECTS = [
+  'half_open_file',
+  'closed_position',
+  'crown_jewel',
+  'development',
+  'pawn_majority',
+  'pawn_lever',
+  'opening_theory',
+  'standing_order',
+] as const;
+
+/**
+ * A relic: kept for the rest of the match, up to three. `bind` is what the player aims when taking
+ * it (a lane, a piece, or a lane and a lane card). `aim` is how the AI aims it: offence at the
+ * best lane or defence at the worst one; the carry or the most beaten piece.
+ */
+export const RelicSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  family: RelicFamilySchema,
+  effect: z.enum(RELIC_EFFECTS).optional(),
+  bind: z.enum(['none', 'lane', 'piece', 'laneCard']),
+  aim: z.enum(['offense', 'defense', 'carry', 'protect']).default('offense'),
+  /** Comeback relics: their effect is off while the side is not behind. */
+  rally: z.boolean().default(false),
+  desc: z.string(),
+  rewards: z.string(),
+  counter: z.string(),
+  /** What the AI looks for: schools, styles, `pawn-heavy`, `gambit-heavy`, `opening`. */
+  tags: z.array(z.string()).default([]),
+  /** Lane cards a Standing Order may bind. */
+  cards: z.array(z.string()).default([]),
+  params: z.record(z.string(), z.number()).default({}),
+});
+
+export const RelicFileSchema = z.object({ relics: z.array(RelicSchema).min(1) });
+
 export const ItemSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -569,6 +610,28 @@ export const TuningSchema = z.object({
     bounty: z.number(),
     teamBounty: z.number(),
   }),
+  /** The relic draft at each Act break. */
+  relics: z.object({
+    /** Relics held at most. */
+    max: z.number().int(),
+    /** Relics offered per break. */
+    offers: z.number().int(),
+    /** A lane move-speed bonus from relics and cards together stops at this fraction. */
+    laneSpeedCap: z.number(),
+    /** Relic pawn-cap bonuses never add more than this. */
+    pawnCapMax: z.number().int(),
+    /** Behind: this much less Tempo earned in the Act (or fewer Bastions, or a fallen Throne). */
+    behindTempo: z.number(),
+    ai: z.object({
+      base: z.number(),
+      /** Added to the tailored offer when the worst bad callout is at least `tailoredSeverity`. */
+      tailored: z.number(),
+      tailoredSeverity: z.number(),
+      /** Per tag the AI's side matches. */
+      tag: z.number(),
+      jitter: z.number(),
+    }),
+  }),
   gambits: z.object({
     tempoStart: z.number(),
     tempoMax: z.number(),
@@ -836,6 +899,7 @@ export const ContentSchema = z.object({
   pieces: z.array(PieceSchema).length(5),
   gambits: z.array(GambitSchema),
   openings: z.array(OpeningSchema),
+  relics: z.array(RelicSchema),
   items: z.array(ItemSchema),
   cursed: z.array(CursedItemSchema),
   holy: z.array(HolyItemSchema),
@@ -868,6 +932,9 @@ export type GambitDef = z.infer<typeof GambitSchema>;
 export type GambitTarget = z.infer<typeof GambitTargetSchema>;
 export type School = z.infer<typeof SchoolSchema>;
 export type OpeningDef = z.infer<typeof OpeningSchema>;
+export type RelicDef = z.infer<typeof RelicSchema>;
+export type RelicFamily = z.infer<typeof RelicFamilySchema>;
+export type RelicEffect = (typeof RELIC_EFFECTS)[number];
 export type GenericRanks = z.infer<typeof GenericRanksSchema>;
 export type GambitEffect = (typeof GAMBIT_EFFECTS)[number];
 export type ItemDef = z.infer<typeof ItemSchema>;

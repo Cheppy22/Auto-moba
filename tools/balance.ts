@@ -4,6 +4,7 @@ import { spawn } from 'node:child_process';
 import { createInterface } from 'node:readline';
 import { fileURLToPath } from 'node:url';
 import { report } from './report';
+import type { RelicMode } from '../src/sim';
 import type { MatchSummary } from './simulate';
 
 function arg(name: string, def: number): number {
@@ -24,6 +25,20 @@ const noGambitsB = flag('no-gambits-B');
 const schoolsIdx = process.argv.indexOf('--schools');
 const schools = schoolsIdx >= 0 ? process.argv[schoolsIdx + 1] : '';
 if (schools) process.env.BALANCE_SCHOOLS = schools;
+// --relics A=ai|none|random,B=...: how each side drafts relics at the Act breaks (default both ai).
+const relicsIdx = process.argv.indexOf('--relics');
+const relicsSpec = relicsIdx >= 0 ? process.argv[relicsIdx + 1] : '';
+const relics: { A?: RelicMode; B?: RelicMode } = {};
+for (const part of relicsSpec.split(',').filter(Boolean)) {
+  const [side, mode] = part.split('=');
+  if ((side !== 'A' && side !== 'B') || !['ai', 'none', 'random'].includes(mode))
+    throw new Error(`--relics expects A=ai|none|random,B=...: got "${part}"`);
+  relics[side] = mode as RelicMode;
+}
+// --relic-pool lane|carry|pawns|siege|orders: the draft offers only that family's relics.
+const poolIdx = process.argv.indexOf('--relic-pool');
+const relicPool = poolIdx >= 0 ? process.argv[poolIdx + 1] : '';
+if (relicPool) process.env.BALANCE_RELIC_POOL = relicPool;
 
 async function main(): Promise<void> {
   const seeds = Array.from({ length: total }, (_, i) => startSeed + i);
@@ -36,7 +51,12 @@ async function main(): Promise<void> {
       return new Promise<void>((resolve, reject) => {
         const child = spawn(
           process.execPath,
-          ['--import', 'tsx', workerPath, JSON.stringify({ seeds: mine, noGambitsA, noGambitsB })],
+          [
+            '--import',
+            'tsx',
+            workerPath,
+            JSON.stringify({ seeds: mine, noGambitsA, noGambitsB, relics }),
+          ],
           {
             stdio: ['ignore', 'pipe', 'inherit'],
           },
@@ -62,7 +82,11 @@ async function main(): Promise<void> {
     noGambitsA || noGambitsB
       ? `balance-no-gambits-${noGambitsA ? 'A' : ''}${noGambitsB ? 'B' : ''}`
       : 'balance';
-  const name = schools ? `${base}-${schools.replace(/[^a-z,]/g, '').replace(/,/g, '-')}` : base;
+  const withSchools = schools
+    ? `${base}-${schools.replace(/[^a-z,]/g, '').replace(/,/g, '-')}`
+    : base;
+  const withPool = relicPool ? `${withSchools}-pool-${relicPool}` : withSchools;
+  const name = relicsSpec ? `${withPool}-relics-${relicsSpec.replace(/[^A-Za-z]/g, '')}` : withPool;
   writeFileSync(new URL(`${name}.json`, dir), JSON.stringify({ stats, results }, null, 1));
   writeFileSync(new URL(`${name}.md`, dir), md);
   process.stdout.write(md);

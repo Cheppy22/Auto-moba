@@ -50,15 +50,24 @@ describe('determinism', () => {
     expect(logHash(again)).toBe(logHash(m));
   });
 
-  it('adding the gambit stream leaves the other random streams unchanged', () => {
+  it('adding the gambit and relic streams leaves the other random streams unchanged', () => {
     const r = seedStreams(77);
     for (const name of STREAMS) {
       const solo = seedStreams(77);
       expect(r[name]).toBe(solo[name]);
     }
-    // Each stream is derived from its own name, so the original seven keep their seeds.
-    const legacy = ['mapgen', 'ai', 'combat', 'loot', 'keeper', 'draft', 'events'] as const;
+    // Each stream is derived from its own name, so the earlier streams keep their seeds.
+    const legacy = [
+      'mapgen',
+      'ai',
+      'combat',
+      'loot',
+      'keeper',
+      'draft',
+      'events',
+      'gambit',
+    ] as const;
     for (const name of legacy) expect(STREAMS).toContain(name);
-    expect(STREAMS[STREAMS.length - 1]).toBe('gambit');
+    expect(STREAMS[STREAMS.length - 1]).toBe('relic');
   });
 });
