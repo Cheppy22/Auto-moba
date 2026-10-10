@@ -5,14 +5,25 @@ import {
   type Command,
   type CommandResult,
   type Content,
+  type GameEvent,
   type LaneId,
   type MatchConfig,
   type PlayTeam,
+  type School,
 } from '../sim';
 import type { CamMode } from '../render/broadcast/types';
 import { courtName } from '../analysis/text';
-import { cardLine, decisive, fallToast, fightLine, fightVerdict } from '../analysis/feedback';
+import {
+  blackPlayLine,
+  cardLine,
+  decisive,
+  fallToast,
+  fightLine,
+  fightVerdict,
+  laneNear,
+} from '../analysis/feedback';
 import { mmss } from './format';
+import { stageAt, type IntroPiece, type IntroState } from './intro';
 import { cap, pieceLabel } from './pieces';
 
 export type Speed = 0 | 1 | 2 | 4 | 8;
@@ -45,6 +56,15 @@ export interface Note {
   ms: number;
 }
 
+/** A gambit Black played, shown as a banner at the top for a few seconds. */
+export interface BlackPlay {
+  id: number;
+  school: School;
+  text: string;
+  until: number;
+  ms: number;
+}
+
 export interface UiState {
   speed: Speed;
   cam: CamMode;
@@ -65,6 +85,10 @@ export interface UiState {
   breakTab: 'report' | 'orders' | 'relics';
   /** When (ms) a countdown alert last flashed the Act clock; 0 before the first. */
   clockFlash: number;
+  /** The match intro while it plays; the sim is held until it ends. */
+  intro: IntroState | null;
+  /** The Black gambit banner on screen; the next one waits in the session's queue. */
+  blackPlay: BlackPlay | null;
 }
 
 const freshUi = (): UiState => ({
@@ -82,6 +106,8 @@ const freshUi = (): UiState => ({
   info: null,
   breakTab: 'report',
   clockFlash: 0,
+  intro: null,
+  blackPlay: null,
 });
 
 /** The 3D view's picking calls, set by the game view while it exists. */
@@ -100,6 +126,10 @@ const MAX_BANNERS = 2;
 const MAX_NOTES = 2;
 const FIGHT_NOTE_MS = 4200;
 const NOTE_MS = 3200;
+const BLACK_PLAY_MS = 3000;
+/** Banners waiting behind the visible one; at fast speeds the oldest are dropped. */
+const MAX_BLACK_QUEUE = 3;
+const VIEW_WAIT_MS = 4000;
 /** The run speeds the chip cycles through; 0 is paused. */
 const SPEEDS: Speed[] = [1, 2, 4, 8, 0];
 const CAMS: CamMode[] = ['auto', 'follow', 'free'];
@@ -119,6 +149,11 @@ export class Session {
   private lastLeft: number | null = null;
   private chipId = 0;
   private noteId = 0;
+  private blackQueue: { school: School; text: string }[] = [];
+  private blackId = 0;
+  private introAt = 0;
+  /** `?intro=off` skips the match intro (end-to-end tests). */
+  private introOn = new URLSearchParams(window.location.search).get('intro') !== 'off';
   private seenSeq = -1;
   private toastTimer = 0;
   /** Camera mode and target to restore when the fork sheet closes. */
@@ -188,6 +223,7 @@ export class Session {
     this.seenSeq = -1;
     this.lastLeft = null;
     this.forkCam = null;
+    this.blackQueue = [];
     this.ui = { ...freshUi(), cam: this.ui.cam };
     this.notify();
   }
@@ -196,13 +232,17 @@ export class Session {
     if (!this.match) return { ok: false, reason: 'no match' };
     const r = this.match.issue(cmd);
     if (!r.ok) this.toast(r.reason ?? 'rejected');
-    else this.notify();
+    else {
+      if (cmd.type === 'setupTeam') this.startIntro();
+      this.notify();
+    }
     return r;
   }
 
   reset(): void {
     this.match = null;
     this.forkCam = null;
+    this.blackQueue = [];
     this.ui = freshUi();
     this.notify();
   }
@@ -260,6 +300,56 @@ export class Session {
 
   resume(): void {
     this.setUi({ adjourned: false });
+  }
+
+  // ------------------------------------------------------------ match intro
+
+  /** After Begin: the camera tours the board while the sim waits (not for `?intro=off`). */
+  private startIntro(): void {
+    const m = this.match;
+    if (!this.introOn || !m || m.state.phase.kind !== 'live') return;
+    const pieces: IntroPiece[] = [];
+    for (const u of m.snapshot().units)
+      if (u.piece && u.lane && (u.team === 'A' || u.team === 'B'))
+        pieces.push({ id: u.id, team: u.team, piece: u.piece, lane: u.lane, x: u.x, y: u.y });
+    this.introAt = performance.now();
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    this.ui = {
+      ...this.ui,
+      intro: { startedAt: performance.now(), reduced, stage: 0, pieces },
+      aim: null,
+      card: null,
+      info: null,
+    };
+  }
+
+  /**
+   * Moves the intro to its next stage, or ends it. Called every frame. The first stage waits for
+   * the 3D view to exist (up to `VIEW_WAIT_MS`, for a device with no WebGL).
+   */
+  syncIntro(): void {
+    const intro = this.ui.intro;
+    if (!intro) return;
+    const now = performance.now();
+    if (!this.view && now - this.introAt < VIEW_WAIT_MS) {
+      intro.startedAt = now;
+      return;
+    }
+    const stage = stageAt(now - intro.startedAt, intro.reduced);
+    if (stage < 0) this.skipIntro();
+    else if (stage !== intro.stage) this.setUi({ intro: { ...intro, stage } });
+  }
+
+  /** Ends the intro now (tap, Skip, Escape): play begins and the Act banner shows. */
+  skipIntro(): void {
+    if (!this.ui.intro) return;
+    const act = this.match?.snapshot().act.n;
+    const chips = this.ui.chips.filter((c) => c.kind !== 'act');
+    if (act)
+      chips.push(
+        this.chip({ kind: 'act', title: `Act ${act}`, detail: '', team: null }, BANNER_MS),
+      );
+    this.setUi({ intro: null, chips });
   }
 
   // ------------------------------------------------------------ gambits, pawns, forks
@@ -500,6 +590,7 @@ export class Session {
     if (ev.length === 0 || ev[ev.length - 1].seq < this.seenSeq) this.seenSeq = -1;
     const fresh: Chip[] = [];
     const notes: Note[] = [];
+    const plays: { school: School; text: string }[] = [];
     const quiet = m.state.bell.stage === 'halt' || m.state.bell.stage === 'break';
     const note = (n: Omit<Note, 'id' | 'until' | 'ms'>, ms: number): void => {
       if (!quiet) notes.unshift({ ...n, id: ++this.noteId, until: performance.now() + ms, ms });
@@ -558,6 +649,11 @@ export class Session {
           },
           NOTE_MS,
         );
+      } else if (e.type === 'gambit') {
+        if (e.payload.team === 'B') {
+          const play = this.blackPlay(m, e.payload);
+          if (play) plays.unshift(play);
+        }
       } else if (e.type === 'check') {
         fresh.unshift(
           this.chip(
@@ -638,10 +734,59 @@ export class Session {
     const heldNotes = this.ui.notes.filter((n) => n.until > now);
     const nextNotes = notes.length > 0 ? [...heldNotes, ...notes].slice(-MAX_NOTES) : heldNotes;
     const notesChanged = notes.length > 0 || nextNotes.length !== this.ui.notes.length;
-    if (latest.length > 0 || trimmed.length !== this.ui.chips.length || notesChanged) {
-      this.ui = { ...this.ui, chips: trimmed, notes: nextNotes };
+    const black = this.nextBlackPlay(plays, now);
+    if (
+      latest.length > 0 ||
+      trimmed.length !== this.ui.chips.length ||
+      notesChanged ||
+      black !== undefined
+    ) {
+      this.ui = {
+        ...this.ui,
+        chips: trimmed,
+        notes: nextNotes,
+        blackPlay: black === undefined ? this.ui.blackPlay : black,
+      };
       this.notify();
     }
+  }
+
+  /** The words and school of a gambit Black played, from the card and what it was aimed at. */
+  private blackPlay(
+    m: Match,
+    p: Extract<GameEvent, { type: 'gambit' }>['payload'],
+  ): { school: School; text: string } | null {
+    const def = this.content.gambitById.get(p.cardId);
+    if (!def) return null;
+    const target = p.targetId === undefined ? undefined : m.unitById(p.targetId);
+    const lane =
+      p.x === undefined || p.y === undefined
+        ? null
+        : laneNear(this.content.map.lanes, p.x, p.y, this.content.tuning.feedback.fight.laneRadius);
+    const structure =
+      target?.kind === 'guardian' ? 'Throne' : target?.kind === 'tower' ? 'Bastion' : null;
+    const text = blackPlayLine(def.name, def.target, p, {
+      lane,
+      piece: target?.hero?.defId ?? null,
+      structure,
+    });
+    return { school: def.school, text };
+  }
+
+  /**
+   * Queues new Black plays and returns the banner to show: undefined when nothing changes, null
+   * to clear it. One banner shows at a time; the next waits its turn.
+   */
+  private nextBlackPlay(
+    plays: { school: School; text: string }[],
+    now: number,
+  ): BlackPlay | null | undefined {
+    if (plays.length > 0) this.blackQueue = [...this.blackQueue, ...plays].slice(-MAX_BLACK_QUEUE);
+    const cur = this.ui.blackPlay;
+    if (cur && cur.until > now) return undefined;
+    const next = this.blackQueue.shift();
+    if (next) return { id: ++this.blackId, ...next, until: now + BLACK_PLAY_MS, ms: BLACK_PLAY_MS };
+    return cur ? null : undefined;
   }
 }
 

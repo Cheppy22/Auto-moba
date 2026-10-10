@@ -20,7 +20,7 @@ test('title, setup, gambits, pawn, fork, adjourn, checkmate and report', async (
   const errors = watchErrors(page);
 
   // ---- title -> setup board
-  await page.goto('/');
+  await page.goto('/?intro=off');
   await expect(page.getByTestId('title')).toBeVisible();
   await page.getByTestId('seed').fill('42');
   await page.getByTestId('start').click();

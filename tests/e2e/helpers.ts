@@ -59,7 +59,7 @@ export function watchErrors(page: Page): string[] {
 
 /** Title -> setup (defaults) -> Begin -> live, paused so the sim only moves when a test steps it. */
 export async function startLive(page: Page, seed = '42', pause = true): Promise<void> {
-  await page.goto('/');
+  await page.goto('/?intro=off');
   await expect(page.getByTestId('title')).toBeVisible();
   await page.getByTestId('seed').fill(seed);
   await page.getByTestId('start').click();

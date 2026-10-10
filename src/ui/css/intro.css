@@ -1,0 +1,294 @@
+/* The match intro and Black's gambit banner. */
+
+/* ---------- match intro: Openings card, piece tags, lane headers ---------- */
+.intro {
+  position: absolute;
+  inset: 0;
+  z-index: 12;
+  overflow: hidden;
+  cursor: pointer;
+  background: radial-gradient(ellipse at center, transparent 45%, rgba(13, 11, 9, 0.55) 100%);
+}
+.shell[data-intro] .dock,
+.shell[data-intro] .notices,
+.shell[data-intro] .lane-strip,
+.shell[data-intro] .fight-tags,
+.shell[data-intro] .top-ctl {
+  visibility: hidden;
+}
+.intro-card,
+.intro-lane,
+.intro-lanes {
+  position: absolute;
+  left: 50%;
+  translate: -50% 0;
+  width: min(calc(100% - 124px), 360px);
+}
+html[data-layout='landscape'] .intro-card,
+html[data-layout='landscape'] .intro-lane,
+html[data-layout='landscape'] .intro-lanes {
+  width: min(calc(100% - 330px), 420px);
+}
+.intro-card {
+  top: 50%;
+  translate: -50% -50%;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  padding: 12px 12px 14px;
+  background: linear-gradient(180deg, rgba(51, 36, 26, 0.95), rgba(20, 17, 14, 0.96));
+  border: 1px solid var(--brass-dim);
+  border-radius: var(--r-2);
+  box-shadow:
+    var(--sh-2),
+    inset 0 0 0 3px var(--ebony),
+    inset 0 0 0 4px var(--brass-dim);
+  animation: intro-card-in 0.5s var(--ease) both;
+}
+.intro-side {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 8px 8px 9px;
+  text-align: center;
+  border-radius: var(--r-1);
+}
+.intro-side.b {
+  background: rgba(154, 165, 184, 0.12);
+  border: 1px solid rgba(154, 165, 184, 0.35);
+}
+.intro-court {
+  flex: none;
+  font-family: var(--font-display);
+  font-size: var(--fs-xs);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--brass);
+}
+.intro-side.b .intro-court,
+.intro-lane-side.b .intro-court {
+  color: var(--b-trim);
+}
+.intro-opening {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--fs-xl);
+  line-height: 1.1;
+  color: var(--ivory);
+}
+.intro-side.b .intro-opening {
+  color: var(--b-trim);
+}
+.intro-schools {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+}
+.intro-vs {
+  align-self: center;
+  font-family: var(--font-display);
+  font-size: var(--fs-xs);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--brass-dim);
+}
+html[data-layout='landscape'] .intro-card {
+  flex-direction: row;
+  align-items: center;
+  width: min(calc(100% - 330px), 560px);
+}
+html[data-layout='landscape'] .intro-side {
+  flex: 1 1 0;
+}
+
+.intro-tags {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.intro-lines {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.intro-lines line {
+  stroke-width: 1.25;
+  stroke-opacity: 0.75;
+  animation: intro-fade 0.4s ease 0.15s both;
+}
+.intro-lines line.a {
+  stroke: var(--a-trim);
+}
+.intro-lines line.b {
+  stroke: var(--b-trim);
+}
+.intro-pin {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform: translate(-999px, -999px);
+  will-change: transform;
+}
+.intro-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px 2px 5px;
+  translate: -50% -50%;
+  white-space: nowrap;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  line-height: 18px;
+  color: var(--ivory);
+  background: rgba(20, 17, 14, 0.92);
+  border: 1px solid var(--brass-dim);
+  border-radius: var(--r-1);
+  box-shadow: var(--sh-1);
+  animation: intro-pop 0.35s var(--ease) 0.1s both;
+}
+.intro-tag.b {
+  color: var(--b-trim);
+  background: rgba(28, 34, 44, 0.93);
+  border-color: #6f7a8e;
+}
+
+.intro-lane {
+  top: calc(66px + env(safe-area-inset-top));
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 7px 10px 8px;
+  background: linear-gradient(180deg, rgba(51, 36, 26, 0.95), rgba(20, 17, 14, 0.96));
+  border: 1px solid var(--brass-dim);
+  border-radius: var(--r-1);
+  box-shadow: var(--sh-2);
+  animation: intro-pop 0.35s var(--ease) both;
+}
+.intro-lane-name {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--fs-md);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--brass-hi);
+}
+.intro-lane-side {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 10px;
+  font-size: var(--fs-sm);
+  color: var(--ivory);
+}
+.intro-lane-side.b {
+  color: var(--b-trim);
+}
+.intro-lane-side .intro-court {
+  width: 44px;
+}
+.intro-piece {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.intro-lanes {
+  top: 50%;
+  translate: -50% -50%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.intro-lanes .intro-lane {
+  position: static;
+  translate: none;
+  width: auto;
+  padding: 5px 10px 6px;
+  gap: 2px;
+}
+.intro-lanes .intro-lane-name {
+  font-size: var(--fs-sm);
+}
+.intro-skip {
+  position: absolute;
+  left: 50%;
+  bottom: calc(18px + env(safe-area-inset-bottom));
+  translate: -50% 0;
+  min-width: 88px;
+  min-height: 40px;
+  color: var(--ivory);
+}
+
+@keyframes intro-card-in {
+  from {
+    opacity: 0;
+    translate: -50% calc(-50% + 14px);
+  }
+}
+@keyframes intro-pop {
+  from {
+    opacity: 0;
+    scale: 0.92;
+  }
+}
+@keyframes intro-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+/* ---------- Black's gambit banner: slate, calm, at the top of the notices ---------- */
+.black-play {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  padding: 4px 12px 4px 6px;
+  color: var(--ivory);
+  background: linear-gradient(180deg, rgba(58, 68, 86, 0.95), rgba(31, 37, 48, 0.95));
+  border: 1px solid var(--b-trim);
+  border-radius: var(--r-1);
+  box-shadow: var(--sh-1);
+  animation:
+    black-play-in 0.45s var(--ease) both,
+    fade-out 0.45s ease-in calc(var(--ms, 3000ms) - 450ms) forwards;
+}
+.black-play-mark {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  background: var(--ebony);
+  border: 1px solid #6f7a8e;
+  border-radius: 50%;
+}
+.black-play-text {
+  min-width: 0;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+  text-wrap: balance;
+}
+
+@keyframes black-play-in {
+  from {
+    opacity: 0;
+    transform: translateY(-18px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .intro-card,
+  .intro-tag,
+  .intro-lane,
+  .intro-lines line,
+  .black-play {
+    animation-duration: 0.01ms;
+  }
+}

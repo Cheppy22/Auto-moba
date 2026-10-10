@@ -29,8 +29,8 @@ export class FrameClock {
   }
 
   /**
-   * Only Pause, the Adjourn panel, a gambit sheet, a waiting fork and the Act break sheet hold the
-   * sim. They are separate flags: closing one never releases another. Across the bell's halt the
+   * Only Pause, the Adjourn panel, a gambit sheet, a waiting fork, the match intro and the Act
+   * break sheet hold the sim. They are separate flags: closing one never releases another. Across the bell's halt the
    * step rate eases from 1 to 0 (`Match.timeScale`) and the renderer slows its clocks to match.
    */
   private advance(now: number): void {
@@ -39,6 +39,7 @@ export class FrameClock {
     this.last = now;
     const m = s.match;
     s.syncForks();
+    s.syncIntro();
     const forkWait = !!m && m.state.forks.length > 0;
     const scale = m ? m.timeScale : 1;
     if (
@@ -47,6 +48,7 @@ export class FrameClock {
       s.ui.speed > 0 &&
       !s.ui.adjourned &&
       !s.ui.info &&
+      !s.ui.intro &&
       !forkWait &&
       m.state.bell.stage !== 'break'
     ) {
