@@ -103,7 +103,16 @@ Every gambit belongs to one of six **schools**. Each card shows its school's col
 | Position   | Reshape the board for a while                         | baize green, flag on a square | Initiative            |
 | Clock      | Bend the Tempo economy and gather information         | bone, clock face              | March                 |
 
-- **Refute (the native counter):** playing a card whose school refutes an _active_ enemy effect, aimed at the same lane or area (or any global effect), ends that enemy effect at once and shows "Refuted". Instant cards can't be refuted.
+- **Counters work through effects, never by cancelling a card.** Each pairing below is designed into the cards' effects and checked with school-vs-school balance runs:
+  - **Fortress vs March:** armor/resist and Bastion shields soak a push longer than its buff lasts.
+  - **Position vs March:** Barricade blocks the lane's gate or bridge, so a pushing wave stalls or reroutes; Outpost holds a choke.
+  - **Fortress vs Initiative:** shields, heals and Castle save the marked or pinned piece.
+  - **Sacrifice vs Fortress:** burst damage (Pawn Sacrifice) and the team damage spike (Exchange) break shields and armor that are built for sustained pressure.
+  - **Initiative vs Fortress:** picking off the healer or King before the defence holds.
+  - **Clock vs Sacrifice:** Tempo drain and forced discards stop the expensive swing card from being played in time.
+  - **Position vs Sacrifice:** Barricade and Regroup keep pieces away from where the swing lands.
+  - **Initiative vs Position:** Check, Fork and Pin kill or lock the pieces holding an Outpost or Barricade.
+  - **March vs Clock:** steady cheap pressure wins while Clock spends Tempo on information instead of force.
 - **Openings** (picked at setup; Black's AI picks one too, revealed on contact): each weights the random draws toward two schools (×2). Italian (balanced, the default), Sicilian (Initiative + March), French (Fortress + Position), King's Gambit (Sacrifice + March). English (Clock + Position) arrives with wave 2.
 - **Line bonus:** not yet.
 - **Cards by school** (★ = wave 1, new):
