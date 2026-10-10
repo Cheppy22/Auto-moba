@@ -189,25 +189,26 @@ Meta-progression between matches; era-themed lane identity; "The Core" alternate
 
 ## Reversed decisions (don't bring these back)
 
-| Old decision                                              | Replaced by                                                                                                 |
-| --------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| Square map with right-angle lanes                         | Rounded map with curved side lanes                                                                          |
-| Teleport to the Keeper                                    | Removed; the Keeper is reached on foot                                                                      |
-| Two jungle shops both on the Left side                    | Diagonal pair (bottom-left and top-right)                                                                   |
-| Tier 3 sold between phases and by obelisk unlock          | Tier 3 only at jungle shops (and the Keeper's stock); obelisk gives 25% off                                 |
-| Sealed team auction for the holy item                     | Switched off with a flag                                                                                    |
-| Posture picker (Push/Farm/Defend)                         | Dispositions; only a Farm toggle remains, hidden for farmers                                                |
-| "Usually X lane" hero preference                          | Farmer/Attacker/Defender dispositions                                                                       |
-| AI drafts 9 heroes first, you choose from the rest        | You pick first from all 14                                                                                  |
-| Duplicate heroes allowed                                  | One of each hero per match                                                                                  |
-| Category names Blade/Flesh/Soul                           | Mind/Body/Soul                                                                                              |
-| Player's hero never buys or recalls on its own            | Auto-buy and heal recall for the player (toggleable)                                                        |
-| Towers: 3000 health, heroes at full damage                | 3600 health, ×0.5 hero damage, 9% per second cap                                                            |
-| Reports as separate team, hero and totals views           | One scoreboard screen with a collapsed Details section                                                      |
-| Canvas 2D only, no drawing library                        | 2D map plus a lazy-loaded three.js Broadcast view                                                           |
-| 2D map as the default view, with a Map / Broadcast toggle | The 3D terrain is the only view; the 2D map is deleted                                                      |
-| Why the teams fight is deliberately undecided             | White Queen vs. Red Queen chess game on a Looking-Glass board (White Court and Red Court, Kings, Checkmate) |
-| Forks decided within 10 s without pausing (chess branch)  | The game pauses at Rank 4 and 8 forks until the player chooses (CHESS.md)                                   |
+| Old decision                                                | Replaced by                                                                                                 |
+| ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Square map with right-angle lanes                           | Rounded map with curved side lanes                                                                          |
+| Teleport to the Keeper                                      | Removed; the Keeper is reached on foot                                                                      |
+| Two jungle shops both on the Left side                      | Diagonal pair (bottom-left and top-right)                                                                   |
+| Tier 3 sold between phases and by obelisk unlock            | Tier 3 only at jungle shops (and the Keeper's stock); obelisk gives 25% off                                 |
+| Sealed team auction for the holy item                       | Switched off with a flag                                                                                    |
+| Posture picker (Push/Farm/Defend)                           | Dispositions; only a Farm toggle remains, hidden for farmers                                                |
+| "Usually X lane" hero preference                            | Farmer/Attacker/Defender dispositions                                                                       |
+| AI drafts 9 heroes first, you choose from the rest          | You pick first from all 14                                                                                  |
+| Duplicate heroes allowed                                    | One of each hero per match                                                                                  |
+| Category names Blade/Flesh/Soul                             | Mind/Body/Soul                                                                                              |
+| Player's hero never buys or recalls on its own              | Auto-buy and heal recall for the player (toggleable)                                                        |
+| Towers: 3000 health, heroes at full damage                  | 3600 health, ×0.5 hero damage, 9% per second cap                                                            |
+| Reports as separate team, hero and totals views             | One scoreboard screen with a collapsed Details section                                                      |
+| Canvas 2D only, no drawing library                          | 2D map plus a lazy-loaded three.js Broadcast view                                                           |
+| 2D map as the default view, with a Map / Broadcast toggle   | The 3D terrain is the only view; the 2D map is deleted                                                      |
+| Why the teams fight is deliberately undecided               | White Queen vs. Red Queen chess game on a Looking-Glass board (White Court and Red Court, Kings, Checkmate) |
+| Forks decided within 10 s without pausing (chess branch)    | The game pauses at Rank 4 and 8 forks until the player chooses (CHESS.md)                                   |
+| Style chosen at setup; forks at Rank 4 and 8 (chess branch) | Pieces generic until Rank 4; the Rank 4 choice is the archetype; Rank 8 keeps a fork (CHESS.md)             |
 
 ## Where to look first (for code work)
 

@@ -20,7 +20,7 @@ An experimental twist on Auto-MOBA. **On this branch this file overrides [SOURCE
 
 ## Match flow
 
-1. **Title → Setup board.** For each of White's five pieces the player picks a **starting style** (3 per piece) and a **build path** (Offense, Defense, Utility), then assigns lanes: 2 Left, 2 Right, 1 Mid. Everything is pre-filled with sensible defaults, so "Begin" works immediately. Black's setup is picked by the AI (seeded) and shown on the enemy roster once the match starts.
+1. **Title → Setup board.** The player picks an **Opening** (which schools of gambits the hand favours), and for each of White's five pieces a **build path** (Offense, Defense, Utility), then assigns lanes: 2 Left, 2 Right, 1 Mid. Everything is pre-filled with sensible defaults, so "Begin" works immediately. Black's setup is picked by the AI (seeded) and shown on the enemy roster once the match starts.
 2. **Live, continuously.** No pause screens. Internally the match still runs in **Acts** of 240 s (the old phases): Acts open jungle clearings, move the Keeper, schedule obelisks and events, and switch on pressure events. An Act change shows a banner ("Act 3") and never stops play.
 3. **During play the player:** plays **Gambits**, answers **forks**, moves the camera, and may press **Adjourn** (pause) to re-assign lanes or paths and read the Armory.
 4. **End:** Checkmate screen and the match report.
@@ -45,7 +45,8 @@ Both teams field the same five pieces, so balance lives in roles, styles, paths 
 
 - **Rank 1–8**, from lifetime gold earned (thresholds in `tuning.json` → `ranks.goldThresholds`, 8 entries starting at 0). Replaces per-phase stat growth.
 - Each rank-up applies stat growth (`ranks.growth`, % health, Blade damage, Soul power) and the style's **rank bonus** for that rank (Ranks 2, 3, 5, 6, 7), automatically. A small non-blocking chip says so ("Bishop · Rank 5: Radiance").
-- **Forks at Rank 4 and 8:** two options from the style. **When a White piece reaches a fork rank the match pauses** (the sim stops stepping) and a fork sheet lists every pending White fork; play resumes when all are answered. There is no timeout for the player; a **"Let the AI choose"** button picks for all of them. Black's forks are picked by the AI at once. In headless runs (no player) White's forks resolve like Black's after `ranks.forkSec`.
+- **Pieces are generic until Rank 4.** Ranks 1–3 use the piece's base kit (3 abilities) and generic rank bonuses. **Rank 4 is the archetype choice:** the piece picks one of its three styles (signature 4th ability, stat tilt, passives, style flair, style-specific build list from then on). **Rank 8** keeps a two-option fork from the chosen style. Rank bonuses 5–7 are style-specific.
+- **Both choices pause the match** for White (the fork sheet shows 3 archetypes at Rank 4, 2 options at Rank 8); no timeout; **Let the AI choose** picks for all. Black's AI picks at once (by path, team needs and keeping every style in use). In headless runs White resolves like Black after `ranks.forkSec`.
 - **Readability:** every piece shows its rank as a numeral badge on its health bar (and pips 1–8 on the roster); a pending fork makes the badge pulse.
 
 ## Pawnlings and pawns
@@ -89,11 +90,36 @@ Both teams field the same five pieces, so balance lives in roles, styles, paths 
 | Sanctuary      | Bishop | point  | A zone that heals allies 4% max health per second, 6 s                   |
 | Fork           | Knight | enemy  | Knight leaps to an enemy piece within reach and stuns it 1 s             |
 
+## Gambit schools (2026-10-10)
+
+Every gambit belongs to one of six **schools**. Each card shows its school's colour and glyph (**school markings**).
+
+| School     | Job                                                   | Colour, glyph                 | Refuted by            |
+| ---------- | ----------------------------------------------------- | ----------------------------- | --------------------- |
+| March      | Push lanes with pawns and pawnlings, break structures | brass, pawn with arrow        | Fortress, Position    |
+| Initiative | Pick off or lock down enemy pieces                    | ruby, crossed swords          | Fortress              |
+| Fortress   | Hold, absorb, save                                    | slate blue, tower             | Sacrifice, Initiative |
+| Sacrifice  | Give something up now for a bigger swing              | amethyst, broken pawn         | Clock, Position       |
+| Position   | Reshape the board for a while                         | baize green, flag on a square | Initiative            |
+| Clock      | Bend the Tempo economy and gather information         | bone, clock face              | March                 |
+
+- **Refute (the native counter):** playing a card whose school refutes an _active_ enemy effect, aimed at the same lane or area (or any global effect), ends that enemy effect at once and shows "Refuted". Instant cards can't be refuted.
+- **Openings** (picked at setup; Black's AI picks one too, revealed on contact): each weights the random draws toward two schools (×2). Italian (balanced, the default), Sicilian (Initiative + March), French (Fortress + Position), King's Gambit (Sacrifice + March). English (Clock + Position) arrives with wave 2.
+- **Line bonus:** not yet.
+- **Cards by school** (★ = wave 1, new):
+  - March: Advance, Pawn Storm, Siege (Rook). Wave 3: Breakthrough.
+  - Initiative: Check, Fork (Knight). Wave 3: Pin, Desperado.
+  - Fortress: Hold the File, Castle (King), Sanctuary (Bishop). Wave 3: Fortify.
+  - Sacrifice: Queen's Gambit (Queen), ★Pawn Sacrifice (10 + one of your pawns: a burst on the nearest enemy Bastion in that lane), ★Exchange (20: a piece gives up 25% of its health; your team +15% damage for 10 s), ★Poisoned Pawn (15: mark a pawn for 20 s; whoever kills it is slowed and Black loses 10 Tempo).
+  - Position: Regroup, ★Barricade (25: seal a gate path or bridge for 20 s), ★Open File (20: allies +25% move speed in one lane for 15 s), ★Outpost (30: a banner; allies near it get +armor and resist for 25 s).
+  - Clock (wave 2): Zugzwang, Time Trouble, Opening Book, Blitz.
+- **Testing** goes a few schools at a time: the balance tool can restrict both decks to chosen schools.
+
 ## Interface
 
 Mobile first (portrait 390×844, landscape 844×390, desktop). The 3D island stays; the HUD sits in the corners.
 
-- **Setup board:** five piece cards (style picker, path toggle) and three lane slots to drop them in. One "Begin" button.
+- **Setup board:** Opening picker, five piece cards (path toggle; no style yet) and three lane slots. One "Begin" button.
 - **Live HUD (calm):** one slim top row — Act clock and score, a cycling speed chip (1×, 2×, 4×, 8×, paused), a cycling camera button (Auto / Follow / Free) and **Adjourn**; both rosters in the side columns (portrait, health ring, lane tag, rank **numeral**, and the **style emblem**, for Black too); **gambit hand** (cards show name and cost; the reason when unusable; hold a card for its full text), **Tempo meter** and **Field Pawn** (`alive/cap · cost`) at the bottom. Banners and rank chips are small and fade in about 2–3 s. Camera Auto / Follow (tap a roster portrait; tap again or hold for the **piece card**) / Free. Tapping a piece in the 3D view also opens its piece card.
 - **Fork sheet (pauses the game):** a bottom sheet on phones, docked right in landscape, bottom-centre on desktop. One fork at a time: piece, style, "Rank 4 · Choose a path", both options with full text and an Offense/Defense/Utility leaning tag, "N more waiting", and **Let the AI choose**. The camera follows the choosing piece and is restored afterwards.
 - **Piece card:** piece and team, style name and description, path, lane, kills/deaths, rank pips with the next rank or fork, forks taken, current items.
