@@ -50,7 +50,7 @@ for (const v of views) {
       const vp = page.viewportSize()!;
 
       // ---- setup board
-      await page.goto('/');
+      await page.goto('/?intro=off');
       await expect(page.getByTestId('title')).toBeVisible();
       await shot(page, `${v.name}-title`);
       expect(await overflow(page)).toBeLessThanOrEqual(0);

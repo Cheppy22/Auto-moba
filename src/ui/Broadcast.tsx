@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { GameEvent, Match } from '../sim';
+import { introShot } from './intro';
 import { useSession } from './session';
 
 /** The camera follows White's King until a portrait is tapped. */
@@ -89,17 +90,18 @@ export function Broadcast() {
           fresh = ev.slice(i);
           if (ev.length) seq = ev[ev.length - 1].seq;
           const snap = m.snapshot();
-          const shot = director.update(snap, fresh);
+          const intro = s.ui.intro;
+          const shot = intro ? introShot(s.content, intro) : director.update(snap, fresh);
           view.draw(snap, fresh, {
             alpha,
             shot,
-            mode: s.ui.cam,
+            mode: intro ? 'auto' : s.ui.cam,
             followId: s.ui.follow ?? kingId(m),
             dtMs: Math.min(100, now - last),
             timeScale: s.timeScale,
           });
           last = now;
-          const caption = s.ui.cam === 'auto' && live ? shot.caption : null;
+          const caption = s.ui.cam === 'auto' && live && !intro ? shot.caption : null;
           if (caption !== s.ui.caption) s.setUi({ caption });
         });
         dispose = () => {

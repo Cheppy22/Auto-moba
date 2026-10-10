@@ -1,6 +1,7 @@
 import { useEffect } from 'preact/hooks';
 import { Adjourn } from './Adjourn';
 import { Hud } from './Hud';
+import { Intro } from './hud/Intro';
 import { Report } from './Report';
 import { Setup } from './Setup';
 import { Stage } from './Stage';
@@ -33,11 +34,13 @@ export function App() {
       data-phase={kind}
       data-bell={bell}
       data-testid="shell"
+      data-intro={kind === 'live' && s.ui.intro ? 'true' : undefined}
       style={bell === 'none' ? undefined : { '--bell-sat': sat }}
     >
       <Stage />
       {kind === 'setup' && <Setup />}
       {kind === 'live' && <Hud />}
+      {kind === 'live' && <Intro />}
       {kind === 'live' && s.ui.adjourned && <Adjourn />}
       {kind === 'end' && <Report />}
     </div>

@@ -7,6 +7,7 @@ import { GambitSheet, Hand } from './hud/Hand';
 import { PieceCard } from './hud/PieceCard';
 import { Roster } from './hud/Roster';
 import { courtName } from '../analysis/text';
+import { BlackPlayBanner } from './hud/BlackPlay';
 import { BreakSheet } from './hud/BreakSheet';
 import { LaneBars } from './hud/LaneBars';
 import { FightTags, NoteLane } from './hud/Notes';
@@ -138,6 +139,7 @@ function Notices(props: { act: Snapshot['act'] }) {
   const ranks = s.ui.chips.filter((c) => c.kind === 'rank');
   return (
     <div class="notices" aria-live="polite">
+      <BlackPlayBanner />
       {bell.bell !== 'none' && bell.bell !== 'break' && (
         <div class="bell-line" data-testid="bell-line" data-stage={bell.bell}>
           {bell.bell === 'pending'

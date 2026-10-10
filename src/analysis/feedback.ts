@@ -7,10 +7,11 @@ import type {
   FightRecord,
   FightZone,
   GameEvent,
+  LaneId,
   PieceId,
   PlayTeam,
 } from '../sim';
-import { laneName } from './text';
+import { courtName, laneName } from './text';
 
 const PIECE: Record<PieceId, string> = {
   king: 'King',
@@ -222,3 +223,50 @@ export function cardLine(name: string, g: GambitEnd, tps: number): string {
 }
 
 export const cardRow = (c: ActCardStat): string => cardResult(c.cardId, c, c.seconds / c.plays);
+
+type GambitPlay = Extract<GameEvent, { type: 'gambit' }>['payload'];
+
+/** The lane whose centre line passes within `maxOff` of the point, or null. */
+export function laneNear(
+  lanes: Record<LaneId, readonly (readonly number[])[]>,
+  x: number,
+  y: number,
+  maxOff: number,
+): LaneId | null {
+  let best: LaneId | null = null;
+  let bestD = maxOff;
+  for (const id of ['top', 'mid', 'bot'] as const) {
+    const line = lanes[id];
+    for (let i = 1; i < line.length; i++) {
+      const [ax, ay] = line[i - 1];
+      const dx = line[i][0] - ax;
+      const dy = line[i][1] - ay;
+      const len2 = dx * dx + dy * dy;
+      const t = len2 === 0 ? 0 : Math.min(1, Math.max(0, ((x - ax) * dx + (y - ay) * dy) / len2));
+      const d = Math.hypot(x - (ax + t * dx), y - (ay + t * dy));
+      if (d < bestD) {
+        bestD = d;
+        best = id;
+      }
+    }
+  }
+  return best;
+}
+
+/**
+ * The line for a gambit Black played: "Black played Barricade on Left lane", "Black played Check
+ * on your Knight", or just the name for a card that needs no target.
+ */
+export function blackPlayLine(
+  name: string,
+  target: 'lane' | 'point' | 'enemy' | 'ally' | 'none',
+  p: GambitPlay,
+  where: { lane: LaneId | null; piece: PieceId | null; structure: string | null },
+): string {
+  const head = `${courtName('B')} played ${name}`;
+  const lane = p.lane ?? where.lane;
+  if ((target === 'lane' || target === 'point') && lane) return `${head} on ${laneName(lane)} lane`;
+  if (target === 'enemy' && where.piece) return `${head} on your ${PIECE[where.piece]}`;
+  if (target === 'enemy' && where.structure) return `${head} on your ${where.structure}`;
+  return head;
+}
