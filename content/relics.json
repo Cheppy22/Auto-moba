@@ -6,12 +6,12 @@
       "family": "lane",
       "bind": "lane",
       "aim": "offense",
-      "desc": "Your pieces, pawns and pawnlings in the bound lane move 12% faster; in the other two lanes 4% slower.",
+      "desc": "Your pieces, pawns and pawnlings in the bound lane move 8% faster; in the other two lanes 4% slower.",
       "rewards": "One committed push lane.",
       "counter": "Position: Barricade stalls the faster wave. Fortress: Hold the File outlasts it.",
       "tags": ["march", "position", "pawn-heavy"],
       "params": {
-        "speedMul": 1.12,
+        "speedMul": 1.08,
         "otherMul": 0.96
       }
     },
@@ -39,12 +39,12 @@
       "family": "carry",
       "bind": "piece",
       "aim": "carry",
-      "desc": "The bound piece deals 12% more damage and has 8% more health; your other four pieces deal 3% less.",
+      "desc": "The bound piece deals 8% more damage and has 8% more health; your other four pieces deal 3% less.",
       "rewards": "Pick one carry and build the team around it.",
       "counter": "Initiative: Check and Fork on the obvious target.",
-      "tags": ["initiative", "sacrifice"],
+      "tags": ["initiative", "sacrifice", "huntress", "duelist"],
       "params": {
-        "damageMul": 1.12,
+        "damageMul": 1.08,
         "healthMul": 1.08,
         "othersMul": 0.97
       }
@@ -55,12 +55,12 @@
       "family": "carry",
       "bind": "piece",
       "aim": "carry",
-      "desc": "The bound piece earns 20% more gold and reaches its Rank 4 and Rank 8 forks sooner; the enemy earns 50% more bounty for killing it.",
+      "desc": "The bound piece earns 15% more gold and reaches its Rank 4 and Rank 8 forks sooner; the enemy earns 50% more bounty for killing it.",
       "rewards": "Decide who reaches Rank 8 first.",
       "counter": "Focus it: every kill pays the enemy more.",
       "tags": ["initiative", "gambit-heavy"],
       "params": {
-        "incomeMul": 1.2,
+        "incomeMul": 1.15,
         "bountyMul": 1.5
       }
     },
@@ -116,13 +116,13 @@
       "family": "orders",
       "bind": "laneCard",
       "aim": "offense",
-      "desc": "Pick a lane card and a lane: it is always on there at half strength (Pawn Storm at one third). The card leaves your deck while it is bound.",
+      "desc": "Pick a lane card and a lane: it is always on there at 40% strength (Pawn Storm at one third). The card leaves your deck while it is bound.",
       "rewards": "A lane doctrine with no live taps.",
       "counter": "The card's own school counter: Fortress and Position against March cards.",
-      "tags": ["march", "position", "fortress"],
+      "tags": ["march", "position", "fortress", "pawn-heavy"],
       "cards": ["advance", "hold_the_file", "open_file", "pawn_storm"],
       "params": {
-        "strength": 0.5,
+        "strength": 0.4,
         "stormStrength": 0.3333
       }
     },
@@ -168,7 +168,7 @@
       "desc": "Set a pawn quota for each lane (at most your pawn cap) and a Tempo reserve of 0, 20 or 40. A pawn is fielded on its own in any lane under quota while Tempo is at least its cost plus the reserve. Auto pawns cost 2 less. Field Pawn still works.",
       "rewards": "A planned pawn plan instead of live taps.",
       "counter": "Whatever kills pawns. Poisoned Pawn and Clock drain the reserve.",
-      "tags": ["pawn-heavy", "march"],
+      "tags": ["pawn-heavy", "march", "warlord", "bastion"],
       "params": {
         "discount": 2,
         "total": 6,
@@ -199,7 +199,7 @@
       "desc": "From each Act start a banner stands at the bound lane's river crossing all Act: allies within 160 gain 10 armor and 10 resist. An enemy piece that stands alone on it for 5 seconds topples it until the next Act.",
       "rewards": "Hold a choke without spending cards.",
       "counter": "Initiative: kill the holders, then topple it.",
-      "tags": ["position", "fortress"],
+      "tags": ["position", "fortress", "bastion", "zealot", "warlord"],
       "params": {
         "radius": 160,
         "armor": 10,
@@ -359,7 +359,7 @@
       "desc": "Your lanes may be 3/1/1, with three pieces in the bound lane (taking it moves your pieces). The two lone pieces gain 10% armor and resist.",
       "rewards": "A three-piece hammer in one lane.",
       "counter": "Area damage (Regent, Shadow) on the stack. March on a thin lane. Barricade.",
-      "tags": ["march", "initiative"],
+      "tags": ["march", "initiative", "vanguard", "warlord", "lancer"],
       "params": {
         "armorMul": 1.1,
         "resistMul": 1.1

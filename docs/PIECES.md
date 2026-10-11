@@ -2,7 +2,7 @@
 
 The five chess pieces as characters: what each one is for, its three styles, what it gains at each rank, the two forks, and the item build for each path. Also the Gambit numbers and four example team doctrines. This sheet belongs to [CHESS.md](CHESS.md). The numbers live in `content/pieces/*.json` and `content/gambits.json`, and the tables below were generated from those files. If they disagree, the JSON is right; regenerate this sheet.
 
-Status: **first pass, untuned.** The balance run (800 matches) has not been done yet. Aim: every style wins 45–55% of its matches against the other styles of the same piece.
+Status: **first tuning pass 2026-10-11** (six style numbers, see [BALANCE-2026-10-11.md](BALANCE-2026-10-11.md)). Aim: every style wins 45–55% of its matches against the other styles of the same piece.
 
 ## The 15 styles at a glance
 
@@ -123,7 +123,7 @@ A pretender who fights for himself. Drains life with every blow, saps the streng
 
 - **Signature: Seize the Crown** (18s, enemies around, radius 120). Hits every enemy within 120 for 40 + 30% Blade + 60% Soul damage and steals 15% of their Blade damage and Soul power for 4s. Needs 2 enemies.
 - **Stat tilt:** +5% max health, +10% Blade damage, +10 Soul power, +0.1 attack speed, −4 armor.
-- **Passives:** **Stolen Tithe**: heals for 18% of his attack damage. **Claimed Crowns**: each enemy piece he kills heals him 20% max health and grants +6 Blade damage for 2 minutes (up to 5 times).
+- **Passives:** **Stolen Tithe**: heals for 12% of his attack damage. **Claimed Crowns**: each enemy piece he kills heals him 20% max health and grants +6 Blade damage for 2 minutes (up to 5 times).
 
 | Rank | Bonus            | Effect                                         |
 | ---- | ---------------- | ---------------------------------------------- |
@@ -174,7 +174,7 @@ An area mage who rules the battlefield from range. Every wave she clears brings 
 
 - **Signature: Decree of Ruin** (20s, blast at range, range 170, radius 110). Calls ruin on a spot up to 170 away: enemies within 110 take 75 + 90% Soul damage and lose 12 resist for 4s. Needs 2 enemies.
 - **Stat tilt:** +26 Soul power, +25 attack range, −15% Blade damage, +5% cooldown reduction.
-- **Passives:** **Mandate**: every kill (pawnlings and camps too) cuts her cooldowns by 0.5s.
+- **Passives:** **Mandate**: every kill (pawnlings and camps too) cuts her cooldowns by 0.3s.
 
 | Rank | Bonus         | Effect                                         |
 | ---- | ------------- | ---------------------------------------------- |
@@ -305,7 +305,7 @@ A wall. Enemies near him hit softer and move slower, anyone who strikes him gets
 Built to knock down Bastions and the Throne. Strips the armor of everything around him, structures included, and splinters waves. Barely fights pieces; he walks to Bastions. Sapper drops the armor of everything near him by 15 (structures have 35), which with Masonry and Splinter nearly doubles his structure damage compared with another Rook.
 
 - **Signature: Ram** (18s, self, radius 130). With any enemy within 130, lowers his head: +40% attack speed and +15% Blade damage for 6s.
-- **Stat tilt:** +15% Blade damage, +0.1 attack speed, −5% max health, −4 armor.
+- **Stat tilt:** +8% Blade damage, +0.1 attack speed, −5% max health, −4 armor.
 - **Passives:** **Sapper**: enemies within 140, Bastions and the Throne included, lose 15 armor. **Splinter**: hits on pawnlings, camps and structures deal 10 + 15% Blade bonus damage.
 
 | Rank | Bonus            | Effect                            |
@@ -410,7 +410,7 @@ The healer. Keeps the court standing with big group heals, a regeneration halo a
 Damage over time from the far diagonal. Everything she touches keeps burning; kills bring her curses back sooner. Pure damage over time from 220 away. Her burns keep ticking after she retreats, so she trades well without committing.
 
 - **Signature: Black Diagonal** (15s, blast at range, range 220, radius 60). Curses a spot up to 220 away: enemies within 60 burn for 18 + 30% Soul damage per second for 5s and lose 10 resist.
-- **Stat tilt:** +20 Soul power, +20 attack range, −5% max health, +4% cooldown reduction.
+- **Stat tilt:** +8 Soul power, +20 attack range, −5% max health, +4% cooldown reduction.
 - **Passives:** **Creeping Night**: her attacks on a piece leave a 6 + 12% Soul per second burn for 4s. **Nightfall**: each enemy piece she kills cuts her cooldowns by 4s.
 
 | Rank | Bonus       | Effect                                 |
@@ -488,7 +488,7 @@ A horse-headed rider who appears where nobody is looking: over the jungle walls,
 The assassin. A huge lance charge onto the most exposed piece; every kill readies the next charge. Waits for a target, then crosses 200 in one charge. Each kill takes 10s off every cooldown, so a good dive chains into the next piece.
 
 - **Signature: Lance Through** (18s, one enemy, range 230). Charges 200 at an enemy piece up to 230 away and runs it through for 70 + 120% Blade damage.
-- **Stat tilt:** +12% Blade damage, +0.05 attack speed, −8% max health, −4 armor.
+- **Stat tilt:** +12% Blade damage, +0.05 attack speed, −4 armor.
 - **Passives:** **Coup de Grâce**: each enemy piece he kills cuts his cooldowns by 10s and heals him 10% max health. **Couched Lance**: his first hit on a piece every 8s adds 20 + 25% Blade true damage.
 
 | Rank | Bonus         | Effect                              |
@@ -516,7 +516,7 @@ A wandering knight. Clears the jungle fastest, moves fastest out of combat and k
 
 - **Signature: Questing Blow** (11s, enemies around, radius 110). Sweeps every enemy within 110 for 45 + 80% Blade damage. Used on camps and waves as often as on pieces.
 - **Stat tilt:** +6 move speed, +2 health regeneration, +5% Blade damage, +5% max health.
-- **Passives:** **Forager**: hits on pawnlings, camps and structures deal a further 25% Blade bonus damage. **Wanderlust**: after 3s out of combat, +20 move speed.
+- **Passives:** **Forager**: hits on pawnlings, camps and structures deal a further 15% Blade bonus damage. **Wanderlust**: after 3s out of combat, +20 move speed.
 
 | Rank | Bonus               | Effect                                                   |
 | ---- | ------------------- | -------------------------------------------------------- |
@@ -615,8 +615,8 @@ A natural counter loop: **Assassins** beat **Siege Train** (the Ram and the Erra
 ## What the balance run should watch
 
 - **Per-style win rate and pick rate** (target 45–55% each, every style picked at least 15% when the AI chooses freely). Most at risk:
-  - **Usurper**: 18% lifesteal plus the 10% Leech Lord fork, on a 1450-health piece. Lower Stolen Tithe first.
-  - **Regent**: Mandate takes 0.5 s off every cooldown per kill, pawnlings included. Watch casts per minute; lower to 0.3 s if she runs away.
+  - **Usurper**: 12% lifesteal (18% before the 2026-10-11 pass) plus the 10% Leech Lord fork, on a 1450-health piece.
+  - **Regent**: Mandate takes 0.3 s off every cooldown per kill (0.5 s before the 2026-10-11 pass), pawnlings included. Watch casts per minute.
   - **Battering Ram**: Sapper (−15 armor) stacks with Masonry, Splinter, Siege and pawns' ×1.4. The 9% per second structure cap stops a melt, but watch first-Bastion time in his lane.
   - **Sovereign and Zealot**: each changes range by 70 or more. Check that the AI positions them where their new range works (Sovereign behind, Zealot in front).
 - **Pawn auras:** Warlord, Bastion, Light, Sovereign and Paladin all buff pawns. Compare pawn kill counts by style to see whether pawn-heavy play only works with those five.

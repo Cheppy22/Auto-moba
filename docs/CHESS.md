@@ -51,7 +51,7 @@ Both teams field the same five pieces, so balance lives in roles, styles, paths 
 
 ## Pawnlings and pawns
 
-- **Pawnlings** are the old lane minions under a new name: waves spawn and march every lane exactly as minion waves did (same tuning). They're the lane's steady fodder and gold. Neutral units (Spirit Tide, jungle events) stay.
+- **Pawnlings** are the old lane minions under a new name: waves spawn and march every lane exactly as minion waves did (same tuning), except that both teams' waves now start level in every lane, Mid included (`waves.midLeadUnits` 0; the old Mid stagger always gave Black the first Mid wave, see [BALANCE-2026-10-11.md](BALANCE-2026-10-11.md)). They're the lane's steady fodder and gold. Neutral units (Spirit Tide, jungle events) stay.
 - **Pawns** are elite foot soldiers the team **fields with Tempo** (`pawns.cost`, default 15). Fielding one is a permanent button next to the gambit hand, not a card: pick a lane, the pawn spawns at the base and marches it, fighting like a tougher pawnling (about 3× a pawnling's health and damage, scaling per Act).
 - **Cap:** at most **8 living pawns** per team in the early game (Acts 1–3). From Act 4 the cap rises by 2 per Act (10, 12, …) — owner may veto this.
 - A dead pawn is gone; field another. No respawn and **no promotion**.

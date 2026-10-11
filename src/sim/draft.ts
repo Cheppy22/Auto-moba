@@ -97,7 +97,9 @@ function sideTags(ctx: Ctx, team: PlayTeam, report: ActReport): Set<string> {
     if (style) tags.add(style);
   }
   const t = report.teams[team];
-  if (t.pawns > t.gambits) tags.add('pawn-heavy');
+  // A pawn costs about as much as a card, but every side plays far more cards than it fields
+  // pawns, so "pawn-heavy" means at least one pawn for every two cards (about half the sides).
+  if (t.pawns * 2 > t.gambits) tags.add('pawn-heavy');
   else if (t.gambits > 0) tags.add('gambit-heavy');
   return tags;
 }

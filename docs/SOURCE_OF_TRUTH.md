@@ -6,7 +6,7 @@
 
 - What changed and when: [CHANGELOG.md](CHANGELOG.md). Never put history in this file.
 - How the code is organized: [ARCHITECTURE.md](ARCHITECTURE.md).
-- Dated specs and reports this file links to: [ITEMS.md](ITEMS.md), [PLAYTEST.md](PLAYTEST.md), [BALANCE_REPORT.md](BALANCE_REPORT.md), [BROADCAST.md](BROADCAST.md), [WONDERLAND.md](WONDERLAND.md), [LOOK-TABLE-2026-10-11.md](LOOK-TABLE-2026-10-11.md) (Tournament Table look prototype, `?look=table`), [QA-2026-10-11.md](QA-2026-10-11.md) (overnight playtest: findings, fixes, product review).
+- Dated specs and reports this file links to: [ITEMS.md](ITEMS.md), [PLAYTEST.md](PLAYTEST.md), [BALANCE_REPORT.md](BALANCE_REPORT.md), [BROADCAST.md](BROADCAST.md), [WONDERLAND.md](WONDERLAND.md), [LOOK-TABLE-2026-10-11.md](LOOK-TABLE-2026-10-11.md) (Tournament Table look prototype, `?look=table`), [QA-2026-10-11.md](QA-2026-10-11.md) (overnight playtest: findings, fixes, product review), [BALANCE-2026-10-11.md](BALANCE-2026-10-11.md)
 - Old design docs, kept for history only: [archive/](archive/).
 
 ## Update rules (every session must follow these)
@@ -190,28 +190,29 @@ Meta-progression between matches; era-themed lane identity; "The Core" alternate
 
 ## Reversed decisions (don't bring these back)
 
-| Old decision                                                | Replaced by                                                                                                                                                         |
-| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Square map with right-angle lanes                           | Rounded map with curved side lanes                                                                                                                                  |
-| Teleport to the Keeper                                      | Removed; the Keeper is reached on foot                                                                                                                              |
-| Two jungle shops both on the Left side                      | Diagonal pair (bottom-left and top-right)                                                                                                                           |
-| Tier 3 sold between phases and by obelisk unlock            | Tier 3 only at jungle shops (and the Keeper's stock); obelisk gives 25% off                                                                                         |
-| Sealed team auction for the holy item                       | Switched off with a flag                                                                                                                                            |
-| Posture picker (Push/Farm/Defend)                           | Dispositions; only a Farm toggle remains, hidden for farmers                                                                                                        |
-| "Usually X lane" hero preference                            | Farmer/Attacker/Defender dispositions                                                                                                                               |
-| AI drafts 9 heroes first, you choose from the rest          | You pick first from all 14                                                                                                                                          |
-| Duplicate heroes allowed                                    | One of each hero per match                                                                                                                                          |
-| Category names Blade/Flesh/Soul                             | Mind/Body/Soul                                                                                                                                                      |
-| Player's hero never buys or recalls on its own              | Auto-buy and heal recall for the player (toggleable)                                                                                                                |
-| Towers: 3000 health, heroes at full damage                  | 3600 health, ×0.5 hero damage, 9% per second cap                                                                                                                    |
-| Reports as separate team, hero and totals views             | One scoreboard screen with a collapsed Details section                                                                                                              |
-| Canvas 2D only, no drawing library                          | 2D map plus a lazy-loaded three.js Broadcast view                                                                                                                   |
-| 2D map as the default view, with a Map / Broadcast toggle   | The 3D terrain is the only view; the 2D map is deleted                                                                                                              |
-| Why the teams fight is deliberately undecided               | White Queen vs. Red Queen chess game on a Looking-Glass board (White Court and Red Court, Kings, Checkmate)                                                         |
-| Forks decided within 10 s without pausing (chess branch)    | The game pauses at Rank 4 and 8 forks until the player chooses (CHESS.md)                                                                                           |
-| Style chosen at setup; forks at Rank 4 and 8 (chess branch) | Pieces generic until Rank 4; the Rank 4 choice is the archetype; Rank 8 keeps a fork (CHESS.md)                                                                     |
-| Auto (director) camera as the default view (chess branch)   | Fixed whole-board camera ("war table") by default; tap a lane to zoom, tap again to return; Auto, Follow and Free stay on the camera button (CHESS.md, 2026-10-11)  |
-| Act change never stops play (chess branch)                  | Act ends with the bell: grey wait for calm (≤30 s), 3 tolls, slow halt, break sheet with Act report, Orders and a relic draft; next Act starts on resume (CHESS.md) |
+| Old decision                                                             | Replaced by                                                                                                                                                         |
+| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Square map with right-angle lanes                                        | Rounded map with curved side lanes                                                                                                                                  |
+| Teleport to the Keeper                                                   | Removed; the Keeper is reached on foot                                                                                                                              |
+| Two jungle shops both on the Left side                                   | Diagonal pair (bottom-left and top-right)                                                                                                                           |
+| Tier 3 sold between phases and by obelisk unlock                         | Tier 3 only at jungle shops (and the Keeper's stock); obelisk gives 25% off                                                                                         |
+| Sealed team auction for the holy item                                    | Switched off with a flag                                                                                                                                            |
+| Posture picker (Push/Farm/Defend)                                        | Dispositions; only a Farm toggle remains, hidden for farmers                                                                                                        |
+| "Usually X lane" hero preference                                         | Farmer/Attacker/Defender dispositions                                                                                                                               |
+| AI drafts 9 heroes first, you choose from the rest                       | You pick first from all 14                                                                                                                                          |
+| Duplicate heroes allowed                                                 | One of each hero per match                                                                                                                                          |
+| Category names Blade/Flesh/Soul                                          | Mind/Body/Soul                                                                                                                                                      |
+| Player's hero never buys or recalls on its own                           | Auto-buy and heal recall for the player (toggleable)                                                                                                                |
+| Towers: 3000 health, heroes at full damage                               | 3600 health, ×0.5 hero damage, 9% per second cap                                                                                                                    |
+| Reports as separate team, hero and totals views                          | One scoreboard screen with a collapsed Details section                                                                                                              |
+| Canvas 2D only, no drawing library                                       | 2D map plus a lazy-loaded three.js Broadcast view                                                                                                                   |
+| 2D map as the default view, with a Map / Broadcast toggle                | The 3D terrain is the only view; the 2D map is deleted                                                                                                              |
+| Why the teams fight is deliberately undecided                            | White Queen vs. Red Queen chess game on a Looking-Glass board (White Court and Red Court, Kings, Checkmate)                                                         |
+| Forks decided within 10 s without pausing (chess branch)                 | The game pauses at Rank 4 and 8 forks until the player chooses (CHESS.md)                                                                                           |
+| Style chosen at setup; forks at Rank 4 and 8 (chess branch)              | Pieces generic until Rank 4; the Rank 4 choice is the archetype; Rank 8 keeps a fork (CHESS.md)                                                                     |
+| Auto (director) camera as the default view (chess branch)                | Fixed whole-board camera ("war table") by default; tap a lane to zoom, tap again to return; Auto, Follow and Free stay on the camera button (CHESS.md, 2026-10-11)  |
+| Act change never stops play (chess branch)                               | Act ends with the bell: grey wait for calm (≤30 s), 3 tolls, slow halt, break sheet with Act report, Orders and a relic draft; next Act starts on resume (CHESS.md) |
+| Mid pawnling waves start staggered, the leading team alternating by wave | Both Mid waves start level (`waves.midLeadUnits` 0): the stagger gave Black the first Mid wave every match and caused the White/Black bias (BALANCE-2026-10-11.md)  |
 
 ## Where to look first (for code work)
 

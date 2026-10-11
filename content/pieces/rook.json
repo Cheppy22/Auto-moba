@@ -348,7 +348,7 @@
         {
           "stat": "bladeDmg",
           "kind": "mul",
-          "value": 1.15
+          "value": 1.08
         },
         {
           "stat": "atkSpeed",

@@ -86,7 +86,12 @@ async function main(): Promise<void> {
     ? `${base}-${schools.replace(/[^a-z,]/g, '').replace(/,/g, '-')}`
     : base;
   const withPool = relicPool ? `${withSchools}-pool-${relicPool}` : withSchools;
-  const name = relicsSpec ? `${withPool}-relics-${relicsSpec.replace(/[^A-Za-z]/g, '')}` : withPool;
+  const withRelics = relicsSpec
+    ? `${withPool}-relics-${relicsSpec.replace(/[^A-Za-z]/g, '')}`
+    : withPool;
+  // --tag NAME: appended to the output file name, so parallel runs do not overwrite each other.
+  const tagIdx = process.argv.indexOf('--tag');
+  const name = tagIdx >= 0 ? `${withRelics}-${process.argv[tagIdx + 1]}` : withRelics;
   writeFileSync(new URL(`${name}.json`, dir), JSON.stringify({ stats, results }, null, 1));
   writeFileSync(new URL(`${name}.md`, dir), md);
   process.stdout.write(md);

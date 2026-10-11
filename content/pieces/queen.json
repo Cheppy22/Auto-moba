@@ -168,10 +168,10 @@
         {
           "on": "kill",
           "custom": "cooldownTick",
-          "param": 0.5,
+          "param": 0.3,
           "target": "self",
           "effects": [],
-          "desc": "Mandate: every kill (pawnlings and camps too) cuts her cooldowns by 0.5s."
+          "desc": "Mandate: every kill (pawnlings and camps too) cuts her cooldowns by 0.3s."
         }
       ],
       "ranks": {
