@@ -6,7 +6,7 @@ import { ClockBlock, TopControls } from './Controls';
 import { Drawer } from './Drawer';
 import { LaneBars } from './LaneBars';
 import { FightTags } from './Notes';
-import { Notices } from './Notices';
+import { NoticeBand } from './Notices';
 import { PieceCard } from './PieceCard';
 import { RelicRow } from './RelicRow';
 import { Roster } from './Roster';
@@ -94,7 +94,7 @@ export function CourtLayout(props: {
     <>
       <div class="v2-top" ref={top} data-testid="court-bar">
         <div class="v2-time">
-          <ClockBlock snap={snap} held={held} />
+          <ClockBlock snap={snap} held={held} counts />
         </div>
         <TopControls held={held} />
         <div class="v2-board">
@@ -110,7 +110,7 @@ export function CourtLayout(props: {
           <RelicRow team="B" snap={snap} />
         </div>
       </div>
-      <Notices act={snap.act} />
+      <NoticeBand act={snap.act} />
       <FightTags
         notes={s.ui.notes}
         margin={{ x: 24, top: insets.top + 14, bottom: insets.bottom + 14 }}

@@ -50,7 +50,7 @@ html[data-layout='desktop'] .hud.v2 {
   min-height: calc(44px * var(--u));
 }
 .hud.v2 .clock {
-  gap: 6px;
+  gap: 4px;
 }
 .hud.v2 .v2-ctl {
   grid-area: ctl;
@@ -153,6 +153,11 @@ html[data-layout='desktop'] .hud.v2 {
 }
 .tray[data-count='5'] .tray-item + .tray-item {
   margin-left: -9px;
+}
+.tray[data-count='4'] .tray-time,
+.tray[data-count='5'] .tray-time {
+  font-size: 9px;
+  letter-spacing: -0.02em;
 }
 .tray-item.leaving {
   animation: tray-out 0.3s ease-in both;
@@ -322,6 +327,32 @@ html[data-layout='desktop'] .hud.v2 {
 .dr-hand .gcard {
   min-height: calc(58px * var(--u));
 }
+/* the name gets the whole top line (with the cost); the marks sit on the line below, so no name is cut */
+.dr-hand .ghead {
+  display: grid;
+  grid-template-columns: auto auto 1fr auto;
+  grid-template-areas:
+    'name name name cost'
+    'school sig . .';
+  align-items: center;
+  gap: 2px 4px;
+}
+.dr-hand .gname {
+  grid-area: name;
+  font-size: calc(13px * var(--u));
+  letter-spacing: 0.01em;
+  overflow-wrap: anywhere;
+}
+.dr-hand .gschool {
+  grid-area: school;
+}
+.dr-hand .gsig {
+  grid-area: sig;
+}
+.dr-hand .gcost {
+  grid-area: cost;
+  align-self: start;
+}
 .dr-bar {
   position: relative;
   padding: 4px;
@@ -474,7 +505,12 @@ html[data-layout='desktop'] .hud.v2 {
   height: calc(32px * var(--u));
 }
 .hud.v2 .pts-label {
-  font-size: calc(10px * var(--u));
+  font-size: calc(9.5px * var(--u));
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+.hud.v2 .clockface b {
+  white-space: nowrap;
 }
 .hud.v2 .side {
   min-width: calc(36px * var(--u));

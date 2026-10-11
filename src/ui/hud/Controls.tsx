@@ -61,16 +61,22 @@ export function CamButton() {
   );
 }
 
-export function Side(props: { team: 'A' | 'B'; snap: Snapshot }) {
-  const { team, snap } = props;
+/** `counts`: the new HUD names what the numeral counts ("White pts": camp and event points). */
+export function Side(props: { team: 'A' | 'B'; snap: Snapshot; counts?: boolean }) {
+  const { team, snap, counts } = props;
   const state = snap.check[team] ? 'check' : snap.throneDown[team] ? 'throne' : '';
-  const label = state === 'check' ? 'Check' : state === 'throne' ? 'No Throne' : courtName(team);
+  const name = counts ? `${courtName(team)} pts` : courtName(team);
+  const label = state === 'check' ? 'Check' : state === 'throne' ? 'No Throne' : name;
   return (
     <div
       class={`side ${team === 'A' ? 'a' : 'b'}`}
       data-testid={`status-${team}`}
       data-state={state}
-      title={`${courtName(team)}: ${snap.points[team]} points`}
+      title={
+        counts
+          ? `${courtName(team)}: ${snap.points[team]} points, scored from camps and events`
+          : `${courtName(team)}: ${snap.points[team]} points`
+      }
     >
       <b class={`pts ${team === 'A' ? 'a' : 'b'} ${state}`} data-testid={`points-${team}`}>
         {snap.points[team]}
@@ -101,20 +107,20 @@ export function clockFx(
 }
 
 /** Act clock between the two scores: White's points, the chess clock face, Black's points. */
-export function ClockBlock(props: { snap: Snapshot; held: boolean }) {
+export function ClockBlock(props: { snap: Snapshot; held: boolean; counts?: boolean }) {
   const s = useSession();
-  const { snap } = props;
+  const { snap, counts } = props;
   const fx = clockFx(s, snap.act);
   return (
     <div class="clock" data-testid="score">
-      <Side team="A" snap={snap} />
+      <Side team="A" snap={snap} counts={counts} />
       <div class="clockface" data-held={props.held} data-bell={snap.act.bell} data-fx={fx.fx}>
         <b data-testid="phase">Act {snap.act.n}</b>
         <span key={fx.key} data-testid="clock" data-fx={fx.fx} style={{ '--k': fx.k }}>
           {clockSec(snap.act.remainingSec)}
         </span>
       </div>
-      <Side team="B" snap={snap} />
+      <Side team="B" snap={snap} counts={counts} />
     </div>
   );
 }

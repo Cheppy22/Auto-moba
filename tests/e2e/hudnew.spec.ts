@@ -159,6 +159,45 @@ test.describe('portrait', () => {
     expect(errors).toEqual([]);
   });
 
+  test('one notice band at a time: the rest wait their turn', async ({ page }) => {
+    test.setTimeout(180_000);
+    const errors = watchErrors(page);
+    await startWith(page, 'hud=new');
+    await page.evaluate(() => {
+      const s = (window as unknown as { __session: { setUi(p: object): void } }).__session;
+      const now = performance.now();
+      const chip = (id: number, kind: string, title: string) => ({
+        id,
+        kind,
+        title,
+        detail: '',
+        team: 'A',
+        until: now + 2400,
+        ms: 2400,
+      });
+      s.setUi({
+        chips: [chip(9001, 'check', 'Check on Black'), chip(9002, 'rank', 'Knight rank 2')],
+        caption: 'The camera follows the Knight',
+        blackPlay: {
+          id: 9003,
+          school: 'march',
+          text: 'Black played Barricade on Left lane',
+          until: now + 3000,
+          ms: 3000,
+        },
+      });
+    });
+    const bands = page.locator('.notices > *');
+    await expect(bands).toHaveCount(1);
+    await expect(page.getByTestId('banner-black')).toBeVisible();
+    // Black's play has the band first; Check waits, then the rank-up
+    await expect(page.getByTestId('banner-check')).toBeVisible({ timeout: 8_000 });
+    await expect(bands).toHaveCount(1);
+    await expect(page.getByTestId('rank-chip')).toBeVisible({ timeout: 8_000 });
+    await expect(bands).toHaveCount(1);
+    expect(errors).toEqual([]);
+  });
+
   test('after a relic the seals show under the row and open upward', async ({ page }) => {
     test.setTimeout(300_000);
     const errors = watchErrors(page);
