@@ -6,7 +6,7 @@ import { findPath, LANES, laneDist, nearestBy } from '../world/map';
 import type { Goal, GoalKind, PlayTeam, Unit } from '../types';
 import { other } from '../types';
 import { closestLane, enemyTowerTarget, lanePath, pointAtProgress, progressAt } from './lanes';
-import { enemyCover, retreatLine } from './judgement';
+import { enemyCover, fallbackPoint, retreatLine } from './judgement';
 import { matchupAt } from './power';
 import { aiShop, nextPurchase } from './shopping';
 import { shopAt } from '../shop';
@@ -233,7 +233,7 @@ export function strategicUpdate(ctx: Ctx, u: Unit): void {
   const needHeal =
     hp < retreatLine(ctx, u) ||
     (healing && hp < 0.78) ||
-    h.engage === 'flee' ||
+    (h.engage === 'flee' && hp < ai.ai.healSafeHp) ||
     (hp < ai.ai.healSafeHp && !foesClose);
   if (needHeal) {
     const threatened = enemiesNear(ctx, u, u.x, u.y, 220) > 0;
@@ -573,6 +573,12 @@ export function strategicUpdate(ctx: Ctx, u: Unit): void {
 
   if (!needHeal) orderCandidate(ctx, u, cands);
   if (!needHeal) kingHunt(ctx, u, cands);
+  // Outmatched but not hurt: fall back to the nearest own structure until the odds turn.
+  if (!needHeal && h.engage === 'flee') {
+    const f = fallbackPoint(ctx, u);
+    cands.length = 0;
+    cands.push(cand('regroup', f.x, f.y, goalKey('regroup', 'fallback'), 10));
+  }
   if (wary) {
     for (const c of cands) {
       if (c.goal.kind === 'pushTower') c.score *= 0.45;

@@ -99,3 +99,32 @@ export function diveBlocked(ctx: Ctx, u: Unit, t: Unit): boolean {
 export function threatened(ctx: Ctx, u: Unit, ratio: number, enemyHeroes: number): boolean {
   return enemyHeroes > 0 || ratio < 1 || underEnemyTower(ctx, u.team as PlayTeam, u.x, u.y);
 }
+
+/**
+ * Where a piece that is outmatched but not badly hurt falls back to: just behind its nearest own
+ * Bastion or Throne that lies between it and its base, else the base itself.
+ */
+export function fallbackPoint(ctx: Ctx, u: Unit): { x: number; y: number; structure: Unit | null } {
+  const team = u.team as PlayTeam;
+  const base = ctx.world.basePos[team];
+  const mine = dist(u.x, u.y, base.x, base.y);
+  let best: Unit | null = null;
+  let bestD = Infinity;
+  const consider = (st: Unit | null | undefined): void => {
+    if (!st?.alive) return;
+    if (dist(st.x, st.y, base.x, base.y) > mine - 40) return;
+    const d = dist(u.x, u.y, st.x, st.y);
+    if (d < bestD) {
+      bestD = d;
+      best = st;
+    }
+  };
+  for (const lane of LANES) for (const st of ctx.towers[team][lane]) consider(st);
+  consider(ctx.guardians[team]);
+  const st = best as Unit | null;
+  if (!st) return { x: base.x, y: base.y, structure: null };
+  const dx = base.x - st.x;
+  const dy = base.y - st.y;
+  const l = Math.sqrt(dx * dx + dy * dy) || 1;
+  return { x: st.x + (dx / l) * 40, y: st.y + (dy / l) * 40, structure: st };
+}

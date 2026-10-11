@@ -3,7 +3,14 @@ import { dist } from './core/math';
 import { touchesFixedBody } from './collision';
 import { hpPct, isEnemy, isTargetable, type Ctx } from './ctx';
 import { matchupAt } from './ai/power';
-import { diveBlocked, retreatLine, sureKill, threatened, underEnemyTower } from './ai/judgement';
+import {
+  diveBlocked,
+  fallbackPoint,
+  retreatLine,
+  sureKill,
+  threatened,
+  underEnemyTower,
+} from './ai/judgement';
 import { retreatLanePath } from './ai/strategic';
 import { isWary } from './ai/swap';
 import { findPath } from './world/map';
@@ -235,7 +242,9 @@ export function updateEngage(ctx: Ctx, u: Unit): void {
   h.holdTicks = h.engage === 'hold' ? h.holdTicks + 10 : 0;
   if (h.engage === 'flee' && prev !== 'flee') {
     h.fleeSince = ctx.s.tick;
-    const b = ctx.world.basePos[u.team as PlayTeam];
+    // hurt: home to heal; merely outmatched: back to the nearest own structure behind it
+    const b =
+      hp < ctx.t.ai.healSafeHp ? ctx.world.basePos[u.team as PlayTeam] : fallbackPoint(ctx, u);
     u.path =
       retreatLanePath(ctx, u, b.x, b.y) ?? findPath(ctx.world, { x: u.x, y: u.y }, b, ctx.open);
     u.pathI = 0;

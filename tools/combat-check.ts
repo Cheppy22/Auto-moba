@@ -22,6 +22,8 @@ const seed0 = arg('seed', 29000);
 const stuckSec = arg('stuck-sec', 10);
 const content = loadNodeContent();
 const TPS = 20;
+// --max-min M: stop each match after M minutes of play (a quick probe of the early game).
+const maxTicks = arg('max-min', 40) * 60 * TPS;
 
 const out = {
   matches,
@@ -44,6 +46,7 @@ const out = {
   minutes: 0,
   whiteWins: 0,
   medianMin: 0,
+  time: { all: 0, dead: 0, recall: 0, base: 0, flee: 0, retreat: 0, hold: 0 },
 };
 
 function enemyStructureNear(m: Match, u: Unit, pad: number): boolean {
@@ -68,7 +71,7 @@ for (let k = 0; k < matches; k++) {
   const lastEngage = new Map<number, { e: string; tick: number }>();
   let seen = 0;
   let evI = 0;
-  while (m.state.phase.kind === 'live' && m.state.tick < 20 * 60 * 40) {
+  while (m.state.phase.kind === 'live' && m.state.tick < maxTicks) {
     if (m.step(1) === 0) break;
     const s = m.state;
     for (; evI < m.events.length; evI++) {
@@ -173,7 +176,18 @@ for (let k = 0; k < matches; k++) {
       }
     }
     for (const u of s.units) {
-      if (!u.alive || !u.hero || u.team === 'neutral') continue;
+      if (!u.hero || u.team === 'neutral') continue;
+      out.time.all++;
+      if (!u.alive) {
+        out.time.dead++;
+        continue;
+      }
+      const hb = ctx.world.basePos[u.team];
+      if (u.hero.recall) out.time.recall++;
+      else if (Math.hypot(u.x - hb.x, u.y - hb.y) <= ctx.t.ai.healBaseRadius + 60) out.time.base++;
+      else if (u.hero.engage === 'flee') out.time.flee++;
+      else if (u.hero.goal?.kind === 'retreat') out.time.retreat++;
+      else if (u.hero.engage === 'hold') out.time.hold++;
       if (u.hp / u.stats.maxHp < 0.35 && u.hero.engage === 'fight' && enemyStructureNear(m, u, 0))
         out.lowHpTowerFightTicks += 5;
     }
@@ -188,6 +202,8 @@ out.blobShare = +(blob / Math.max(1, out.combatSamples)).toFixed(3);
 out.nearestGap = +(gapSum / Math.max(1, out.combatSamples)).toFixed(2);
 out.ownSideShare = +(ownSide / Math.max(1, out.meleeSamples)).toFixed(3);
 out.minutes = +out.minutes.toFixed(1);
+for (const k of Object.keys(out.time) as (keyof typeof out.time)[])
+  if (k !== 'all') out.time[k] = +(out.time[k] / Math.max(1, out.time.all)).toFixed(3);
 lengths.sort((a, b) => a - b);
 out.medianMin = +(lengths[Math.floor(lengths.length / 2)] ?? 0).toFixed(2);
 console.log(JSON.stringify(out));
