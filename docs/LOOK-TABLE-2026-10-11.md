@@ -146,6 +146,30 @@ The current look shows the same pieces at about 9–16 px on its default camera 
 - Hit: white flash, knock-back and squash. Capture: the piece **topples backwards**, bounces, slides and sinks (0.9 s) with a burst of faceted chips. Respawn: drops onto the board and squashes on landing.
 - Pawns and pawnlings hop and lean (instanced, no limbs); structures darken and redden as they lose health and burst into stone and roof chips when they fall; the camera shakes only on structure falls and Checkmate.
 
+## Effects: combat hits and teleport home (2026-10-11)
+
+Render only (`src/render/table/combatfx.ts`, `view.ts`, `piece.ts`, `fx.ts`); the sim is untouched. Every effect is team-coloured (White gold, Black cyan in variant c), additive, pooled and capped, and costs nothing while idle. Four instanced layers (rings, light columns, slash arcs, streak lines) add four draw calls only while something is on screen.
+
+**Hits (a piece is struck).** The victim reacts when the blow lands: at the swing's snap for melee (60 ms), when the bolt arrives for ranged. Calm by design: no numbers, each effect fades in 0.25-0.5 s, damage-over-time ticks (under 2% of max health, not a basic attack) show nothing.
+
+- **Outline flash:** the victim's contour turns to the attacker's team colour and swells to about 2.1x for 0.26 s (a per-piece width multiplier on the shared ink shader, so one team's piece does not thicken another's).
+- **Squash and recoil:** the figure squashes (about 9% shorter, 6% wider), rocks back and is shoved up to 7 units along the line of the blow; strength scales with the hit's share of max health (0.6 to 1.5).
+- **Ring pop:** a ring on the floor in the attacker's colour, larger than the team halo so it shows over it. Normal hit 0.3 s; **big hit** (12% of max health or more): bigger ring plus a short light column; **kill:** the largest ring and a taller column (the existing chip burst, flare and camera nudge stay).
+- **Melee swings:** a crescent slash sweeps across the victim at chest height (alternating direction) and a 0.2 s tracer line runs attacker to victim. Ranged attacks keep their bolts.
+- **Engagement threads:** while two pieces are in combat a faint line on the floor joins each piece to the piece it targets, one lane per side so a duel shows both colours. Hidden when the pieces touch (the slash tells it then). Pieces only (not pawns, pawnlings or structures).
+- **Clumps:** the health bars of piled-up pieces are lifted one bar-step at a time (walking front to back on screen) so they never overlap; the decluttering of drawn positions is unchanged.
+
+**Teleport (recall, and any other jump of 220+ units: Castle, Fork).** The view detects the jump in the piece's position, so it needs no event and covers every teleport.
+
+- **Channel (recall in progress, 3 s from `tuning.recall.baseSec`):** a ring closes in on the base (2.7x to 1.3x), a light column grows from knee to above the head, a scan ring climbs the piece twice a second, a facet rises every 0.3 s. Cut short (the sim clears the recall): the ring flashes inward and dies.
+- **Departure (0.4 s, held at the spot):** the piece stretches into a thin tall column of light and its base shrinks away; a light column shoots up, two rings flare out, 12 team-coloured facets rise.
+- **Arrival (0.45 s at the base):** facets fly in from around the dais and shrink into the piece, a column of light collapses onto it, two rings pulse out across the dais, and the piece condenses out of a thin column (reverse of the departure).
+- Total about 0.85 s from the sim's teleport to a settled piece at base.
+
+**Reduced motion** (`prefers-reduced-motion`): no recoil, squash, slashes, ring pops, columns or facets. A hit only flashes the outline; a teleport is one soft ring and a 0.4 s fade out and a 0.45 s fade in (the piece's opacity; the first fade compiles a transparent shader variant once); the channel is a steady ring and column.
+
+**Budget:** rings 40, columns 24, slashes 20, streaks 56, pending hits 32, facets 220 (shared). Nothing allocates per frame (pooled items, reused scratch objects). Dev helpers (dev server only): `window.__tvHit(attackerId, victimId, frac, lethal, melee)`, `window.__tvDt` (fixed effect time per frame) with `window.__tvBudget` (seconds to run, then freeze), `__tvStats()` also returns `fx` (live effects per layer) and `frames`.
+
 ## Performance
 
 Round 2 (big fight at 2:02, seed 42): phone 390×844 about 120 draw calls and 76k triangles (the relief grid is 45k of them in one draw call; pawn outlines add 6 calls, base rings 1); desktop 1440×900 with the shadow pass 146 calls and 91k triangles. The lane camera allocates nothing per frame (typed arrays built once, reused scratch objects). Not yet profiled on a real phone (software GL only in the container).
