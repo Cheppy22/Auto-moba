@@ -78,9 +78,12 @@ export function Report() {
       }, wait);
     };
     settle(900);
+    // a jump across more than two pages is instant: a smooth scroll over a long run of pages is slow
+    // on a busy phone, and a swipe that starts while it is still moving freezes the pager part-way
+    const far = Math.abs(n - pageRef.current) > 2;
     el.scrollTo({
       left: n * el.clientWidth,
-      behavior: instant || reducedMotion() ? 'auto' : 'smooth',
+      behavior: instant || far || reducedMotion() ? 'auto' : 'smooth',
     });
   }, []);
 

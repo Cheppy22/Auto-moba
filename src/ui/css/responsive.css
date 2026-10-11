@@ -43,12 +43,6 @@ html[data-layout='portrait'] .row.wrap:has(> [style*='min-width']) {
 }
 
 /* ---------- portrait HUD: the default (one slim row on top, dock at the bottom) ---------- */
-html[data-layout='portrait'] .setup-title p {
-  font-size: var(--fs-xs);
-}
-html[data-layout='portrait'] .piece-card .style-desc {
-  font-size: var(--fs-sm);
-}
 
 /* ---------- landscape phone: one slim row on top, hand bottom left, Tempo bottom right ---------- */
 html[data-layout='landscape'] .roster {
@@ -112,20 +106,28 @@ html[data-layout='landscape'] .forksheet {
   top: calc(52px + env(safe-area-inset-top));
   width: min(400px, 47%);
   max-height: none;
-  gap: 5px;
-  padding: 7px 8px 8px;
+  gap: 4px;
+  padding: 6px 8px;
 }
 html[data-layout='landscape'] .fs-style-desc,
 html[data-layout='landscape'] .fs-paused {
   display: none;
 }
+/* name and "Rank 4 · Choose an archetype" share one line (saves ~17 px) */
+html[data-layout='landscape'] .fs-title {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 10px;
+}
 html[data-layout='landscape'] .fs-opts {
   grid-template-columns: 1fr;
-  gap: 4px;
+  gap: 3px;
 }
+/* the three archetype cards (3-line text) plus header and button must fit 332 px without scrolling */
 html[data-layout='landscape'] .fs-opt {
-  min-height: 56px;
-  padding: 5px 8px 6px;
+  min-height: 52px;
+  padding: 3px 8px 4px;
 }
 html[data-layout='landscape'] .fs-auto {
   min-height: 40px;
@@ -201,49 +203,13 @@ html[data-layout='desktop'] .forksheet {
   bottom: 14px;
   width: min(620px, calc(100% - 28px));
 }
-html[data-layout='desktop'] .setup-cards {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  align-content: start;
-  overflow-y: auto;
-}
 html[data-layout='desktop'] .laneboard {
   max-width: 760px;
 }
-html[data-layout='desktop'] .setup-main {
-  grid-template-rows: auto auto auto;
-  align-content: center;
-  padding: 18px;
-  gap: var(--sp-4);
-}
-html[data-layout='desktop'] .setup-foot {
-  justify-content: center;
-}
 
-/* ---------- setup in landscape: board and Begin on top, cards in a sideways row ---------- */
-html[data-layout='landscape'] .setup-main {
-  grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-rows: auto minmax(0, 1fr);
-  grid-template-areas:
-    'head foot'
-    'cards cards';
-  padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
-  gap: 6px;
-}
-html[data-layout='landscape'] .setup-head {
-  grid-area: head;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: center;
-  gap: 10px;
-}
+/* ---------- the lane board in Orders, landscape ---------- */
 html[data-layout='landscape'] .laneboard {
   min-width: 360px;
-}
-html[data-layout='landscape'] .setup-title p {
-  display: none;
-}
-html[data-layout='landscape'] .setup-title h2 {
-  font-size: var(--fs-lg);
 }
 html[data-layout='landscape'] .lane-zone {
   min-height: 76px;
@@ -252,27 +218,151 @@ html[data-layout='landscape'] .lane-chip,
 html[data-layout='landscape'] .lane-empty {
   min-height: 44px;
 }
-html[data-layout='landscape'] .setup-foot {
-  grid-area: foot;
+
+/* ---------- setup: desktop (wide, two columns per page) ---------- */
+html[data-layout='desktop'] .sp {
+  padding: 18px 20px 16px;
+  gap: var(--sp-3);
 }
-html[data-layout='landscape'] .setup-foot .begin {
-  min-width: 110px;
+html[data-layout='desktop'] .sp-head {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas: 'title steps quick';
+  gap: 20px;
 }
-html[data-layout='landscape'] .setup-cards {
-  grid-area: cards;
+html[data-layout='desktop'] .steps {
+  max-width: 560px;
+  justify-self: center;
+  width: 100%;
+}
+html[data-layout='desktop'] .pp-grid {
+  grid-template-columns: 220px minmax(0, 1fr);
+  align-items: start;
+  gap: 16px;
+}
+html[data-layout='desktop'] .pp-tabs {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
+}
+html[data-layout='desktop'] .pp-tab {
   flex-direction: row;
-  overflow-x: auto;
-  overflow-y: hidden;
-  align-items: stretch;
+  justify-content: flex-start;
+  gap: 10px;
+  min-height: 60px;
+  padding: 6px 12px;
 }
-html[data-layout='landscape'] .piece-card {
-  width: 236px;
-  grid-template-rows: auto auto 1fr auto auto;
+html[data-layout='desktop'] .pp-tab b {
+  flex: 1;
+  text-align: left;
+  font-size: var(--fs-md);
 }
-html[data-layout='landscape'] .style-desc {
-  min-height: 0;
-  font-size: var(--fs-xs);
-  overflow: hidden;
+html[data-layout='desktop'] .pp-tab-path {
+  font-size: 11px;
+}
+html[data-layout='desktop'] .pp-detail {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+  column-gap: 28px;
+  padding: 18px;
+}
+html[data-layout='desktop'] .bp-grid {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+  gap: 20px;
+  align-items: start;
+}
+html[data-layout='desktop'] .bd-lane {
+  min-height: 150px;
+}
+html[data-layout='desktop'] .bd-chip,
+html[data-layout='desktop'] .bd-empty {
+  min-height: 100px;
+}
+html[data-layout='desktop'] .openings {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+html[data-layout='desktop'] .sp-foot {
+  max-width: 560px;
+  width: 100%;
+  justify-self: center;
+}
+
+/* ---------- setup: landscape phone (short, so everything is compact and scrolls inside a page) ---------- */
+html[data-layout='landscape'] .sp {
+  padding: 6px 10px;
+  padding-left: max(10px, env(safe-area-inset-left));
+  padding-right: max(10px, env(safe-area-inset-right));
+  padding-bottom: max(6px, env(safe-area-inset-bottom));
+  gap: 6px;
+}
+html[data-layout='landscape'] .sp-head {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas: 'title steps quick';
+  gap: 12px;
+}
+html[data-layout='landscape'] .sp-head h2 {
+  font-size: var(--fs-lg);
+}
+html[data-layout='landscape'] .steps {
+  max-width: 420px;
+  justify-self: center;
+  width: 100%;
+}
+html[data-layout='landscape'] .step-label {
+  font-size: var(--fs-sm);
+}
+html[data-layout='landscape'] .sp-foot {
+  grid-template-columns: auto 1fr auto;
+}
+html[data-layout='landscape'] .sp-foot .btn {
+  min-height: 44px;
+}
+html[data-layout='landscape'] .sp-lede {
+  display: none;
+}
+html[data-layout='landscape'] .sp-pane {
+  padding-bottom: 20px;
+}
+html[data-layout='landscape'] .pp-grid {
+  grid-template-columns: 148px minmax(0, 1fr);
+  align-items: start;
+  gap: 10px;
+}
+html[data-layout='landscape'] .pp-tabs {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px;
+}
+html[data-layout='landscape'] .pp-tab {
+  flex-direction: row;
+  justify-content: flex-start;
+  gap: 8px;
+  min-height: 46px;
+  padding: 3px 8px;
+}
+html[data-layout='landscape'] .pp-tab b {
+  flex: 1;
+  text-align: left;
+}
+html[data-layout='landscape'] .pp-tab-path {
+  display: none;
+}
+html[data-layout='landscape'] .pp-detail {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  column-gap: 16px;
+  padding: 10px;
+}
+html[data-layout='landscape'] .bp-grid {
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+html[data-layout='landscape'] .bd-lane {
+  min-height: 104px;
+}
+html[data-layout='landscape'] .bd-chip,
+html[data-layout='landscape'] .bd-empty {
+  min-height: 60px;
+}
+html[data-layout='landscape'] .openings {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 @media (pointer: coarse) {

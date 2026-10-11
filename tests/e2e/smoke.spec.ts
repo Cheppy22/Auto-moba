@@ -39,28 +39,40 @@ test('title, setup, gambits, pawn, fork, adjourn, checkmate and report', async (
   await page.getByTestId('seed').fill('42');
   await page.getByTestId('start').click();
   await expect(page.getByTestId('setup')).toBeVisible();
+  // page 1, build paths: a tab per piece, three paths and three first buys each
   await expect(page.locator('[data-testid^="piece-"]')).toHaveCount(5);
   for (const piece of ['king', 'queen', 'rook', 'bishop', 'knight']) {
-    await expect(page.locator(`[data-testid^="style-${piece}-"]`)).toHaveCount(0);
+    await page.getByTestId(`piece-${piece}`).click();
     await expect(page.getByTestId(`style-desc-${piece}`)).toContainText('archetype at Rank 4');
     await expect(page.locator(`[data-testid^="path-${piece}-"]`)).toHaveCount(3);
+    await expect(page.locator(`[data-testid^="path-${piece}-"].on`)).toHaveCount(1);
+    await expect(page.locator('[data-testid="first-buys"] > li')).toHaveCount(3);
   }
+  await page.getByTestId('piece-queen').click();
+  await expect(page.getByTestId('path-queen-offense')).toHaveClass(/on/);
+  await page.getByTestId('path-queen-utility').click();
+  await expect(page.getByTestId('path-queen-utility')).toHaveClass(/on/);
+  // page 2, board: swap the King into Mid, read a piece descriptor
+  await page.getByTestId('next').click();
+  await expect(page.getByTestId('step-2')).toHaveAttribute('aria-current', 'step');
   await expect(page.getByTestId('zone-top')).toContainText('2/2');
   await expect(page.getByTestId('zone-mid')).toContainText('1/1');
   await expect(page.getByTestId('zone-bot')).toContainText('2/2');
-  // everything is pre-filled: the Italian Opening and one path for each piece
-  await expect(page.locator('[data-testid^="opening-"]')).toHaveCount(4);
-  await expect(page.getByTestId('opening-italian')).toHaveClass(/on/);
-  await expect(page.locator('.piece-card .paths .on')).toHaveCount(5);
-  // pick an Opening and a path, then swap the King into Mid
-  await page.getByTestId('opening-french').click();
-  await expect(page.getByTestId('opening-french')).toHaveClass(/on/);
-  await page.getByTestId('path-queen-utility').click();
-  await expect(page.getByTestId('path-queen-utility')).toHaveClass(/on/);
   await page.getByTestId('chip-king').click();
   await page.getByTestId('zone-mid').click();
   await expect(page.getByTestId('zone-mid')).toContainText('King');
-  await expect(page.getByTestId('piece-king')).toContainText('Mid');
+  await expect(page.getByTestId('desc-king')).toContainText('Mid');
+  await page.getByTestId('desc-toggle-queen').click();
+  await expect(page.getByTestId('desc-queen-body')).toContainText('Royal Lunge');
+  // page 3, Opening: everything is pre-filled with the Italian Game; pick another and read "More"
+  await page.keyboard.press('ArrowRight');
+  await expect(page.getByTestId('step-3')).toHaveAttribute('aria-current', 'step');
+  await expect(page.locator('[data-testid^="opening-"][role="radio"]')).toHaveCount(4);
+  await expect(page.getByTestId('opening-italian')).toHaveClass(/on/);
+  await page.getByTestId('opening-french').click();
+  await expect(page.getByTestId('opening-french')).toHaveClass(/on/);
+  await page.getByTestId('opening-more-french').click();
+  await expect(page.getByTestId('opening-body-french')).toContainText('Example hands');
   await pauseAtStart(page);
   await page.getByTestId('begin').click();
 
