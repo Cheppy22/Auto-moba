@@ -8,7 +8,9 @@ import type { Unit } from './types';
  * between them, the lighter one moving further (piece > pawn > pawnling). Bodies that never move
  * (Bastions, Thrones, obelisks, the Keeper) still shove others out. A small overlap is tolerated and
  * a push is capped, so crowds settle instead of jittering; a unit walking head-on into a blocker
- * also steps sideways, so two columns pass each other instead of freezing nose to nose.
+ * also steps sideways, so two columns pass each other instead of freezing nose to nose. Teammates
+ * keep a little extra personal space while either of them is fighting (`spacing.combatSpace`), so a
+ * fight reads as lines of bodies rather than one pile.
  *
  * Deterministic: bodies are visited in unit order (ids ascend), every pair once, with no random
  * numbers; pushes are gathered first and applied together, so the visiting order cannot matter.
@@ -32,6 +34,7 @@ const mobile: Unit[] = [];
 const fixed: Unit[] = [];
 let rad = new Float64Array(256);
 let mass = new Float64Array(256);
+let space = new Float64Array(256);
 let pushX = new Float64Array(256);
 let pushY = new Float64Array(256);
 let fixedRad = new Float64Array(64);
@@ -68,6 +71,15 @@ export function bodyRadius(ctx: Ctx, u: Unit): number {
   }
 }
 
+/** Extra margin kept from teammates while this unit fights (has a target or was just hit). */
+function fightSpace(ctx: Ctx, u: Unit): number {
+  if (u.targetId === null && ctx.s.tick - u.lastDamagedTick > 30) return 0;
+  const cs = ctx.t.spacing.combatSpace;
+  if (u.kind === 'hero') return cs.piece;
+  if (u.kind !== 'minion' || u.ev) return 0;
+  return u.pawn ? cs.pawn : cs.pawnling;
+}
+
 /** Zero for bodies that never move. */
 function bodyMass(ctx: Ctx, u: Unit): number {
   const m = ctx.t.collision.mass;
@@ -97,6 +109,7 @@ function grow(n: number): void {
   while (size < n) size *= 2;
   rad = new Float64Array(size);
   mass = new Float64Array(size);
+  space = new Float64Array(size);
   pushX = new Float64Array(size);
   pushY = new Float64Array(size);
   order = new Int32Array(size);
@@ -145,10 +158,13 @@ export function resolveCollisions(ctx: Ctx): void {
   if (fixedRad.length < fixed.length) fixedRad = new Float64Array(fixed.length * 2);
   for (let f = 0; f < fixed.length; f++) fixedRad[f] = bodyRadius(ctx, fixed[f]);
   let maxMobile = 0;
+  let maxSpace = 0;
   for (let i = 0; i < m; i++) {
     rad[i] = bodyRadius(ctx, mobile[i]);
     mass[i] = bodyMass(ctx, mobile[i]);
+    space[i] = fightSpace(ctx, mobile[i]);
     if (rad[i] > maxMobile) maxMobile = rad[i];
+    if (space[i] > maxSpace) maxSpace = space[i];
   }
 
   // Sweep and prune along x: bodies sorted by x (a stable insertion sort; ties keep id order), so
@@ -166,7 +182,7 @@ export function resolveCollisions(ctx: Ctx): void {
   }
   const cap = cfg.maxPush / cfg.iterations;
   // positions drift by up to `cap` per pass, for both bodies of a pair
-  const span = 2 * maxMobile - cfg.tolerance + 2 * cfg.maxPush;
+  const span = 2 * maxMobile + 2 * maxSpace - cfg.tolerance + 2 * cfg.maxPush;
   for (let iter = 0; iter < cfg.iterations; iter++) {
     for (let i = 0; i < m; i++) {
       pushX[i] = 0;
@@ -183,7 +199,8 @@ export function resolveCollisions(ctx: Ctx): void {
         const b = mobile[j];
         const dx = a.x - b.x;
         const dy = a.y - b.y;
-        const reach = ra + rad[j] - cfg.tolerance;
+        const extra = a.team === b.team ? space[i] + space[j] : 0;
+        const reach = ra + rad[j] + extra - cfg.tolerance;
         const d2 = dx * dx + dy * dy;
         if (d2 >= reach * reach) continue;
         const d = sqrt(d2);

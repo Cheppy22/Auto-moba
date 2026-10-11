@@ -6,6 +6,7 @@ import { findPath, LANES, laneDist, nearestBy } from '../world/map';
 import type { Goal, GoalKind, PlayTeam, Unit } from '../types';
 import { other } from '../types';
 import { closestLane, enemyTowerTarget, lanePath, pointAtProgress, progressAt } from './lanes';
+import { enemyCover, retreatLine } from './judgement';
 import { matchupAt } from './power';
 import { aiShop, nextPurchase } from './shopping';
 import { shopAt } from '../shop';
@@ -230,7 +231,7 @@ export function strategicUpdate(ctx: Ctx, u: Unit): void {
   const healing = cur !== null && (cur.kind === 'retreat' || cur.kind === 'base');
   const foesClose = enemiesNear(ctx, u, u.x, u.y, 600 * ctx.world.k) > 0;
   const needHeal =
-    hp < pers.retreatHp + (wary ? 0.12 : 0) ||
+    hp < retreatLine(ctx, u) ||
     (healing && hp < 0.78) ||
     h.engage === 'flee' ||
     (hp < ai.ai.healSafeHp && !foesClose);
@@ -483,6 +484,8 @@ export function strategicUpdate(ctx: Ctx, u: Unit): void {
         const d = dist(u.x, u.y, foe.x, foe.y);
         if (d > ai.ai.huntRadius || d < 70) continue;
         if (h.lane !== 'mid' && closestLane(ctx, foe) === 'mid') continue;
+        // never hunt a piece sheltering under its own Bastion or Throne
+        if (enemyCover(ctx, team, foe.x, foe.y, ctx.t.judgement.diveMargin)) continue;
         const weak = hpPct(foe) < ai.ai.easyKillHp;
         const weight = Math.max(post.hunt ?? 1, weak ? 1.2 : 0);
         if (weight <= 0.5) continue;

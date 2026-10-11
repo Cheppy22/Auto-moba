@@ -807,6 +807,52 @@ export const TuningSchema = z.object({
     spawnGap: z.number(),
     spawnStagger: z.number(),
   }),
+  /**
+   * Engagement spacing: attackers take distinct slots on a ring around their target (melee just
+   * inside reach, ranged at a standoff), fanned toward their own side, and keep personal space from
+   * teammates while fighting. Heavy hits nudge the victim back a little.
+   */
+  spacing: z.object({
+    /** Attackers with at most this reach take melee slots; longer reach takes a standoff slot. */
+    meleeMaxRange: z.number(),
+    /** The melee ring sits this far inside attack reach. */
+    meleeInset: z.number(),
+    /** Gap between neighbouring slots (melee, ranged). */
+    meleeGap: z.number(),
+    rangedGap: z.number(),
+    /** Ranged standoff distance as a share of attack reach. */
+    rangedFrac: z.number(),
+    /** Pull of the fan toward the attackers' own base (two lines instead of one blob). */
+    sideBias: z.number(),
+    /** Beyond the slot ring plus this, an attacker walks straight at its target. */
+    approach: z.number(),
+    /** Speed share while easing into the slot between blows, and the least distance worth it. */
+    driftSpeed: z.number(),
+    driftMin: z.number(),
+    /** Extra body margin between teammates while either is in a fight. */
+    combatSpace: z.object({ piece: z.number(), pawn: z.number(), pawnling: z.number() }),
+    /** Heavy hits: at least `minFrac` of max health nudges the victim `perFrac` x share, at most `max`. */
+    knockback: z.object({ minFrac: z.number(), perFrac: z.number(), max: z.number() }),
+  }),
+  /** Piece judgement: odds, tower dives and retreating at low health. */
+  judgement: z.object({
+    /** Local power ratio (pawns and structures counted) below which a piece never fights. */
+    badOdds: z.number(),
+    /** A kill counts as near-certain when the target falls to the local damage within this time. */
+    finishSec: z.number(),
+    /** Health share at which each piece breaks off and retreats (by role). */
+    retreatHp: z.record(z.string(), z.number()),
+    /** Health share above the retreat line needed before a fleeing piece turns back. */
+    retreatExitHp: z.number(),
+    /** A fleeing piece turns back only once its odds clear the hold line by this factor... */
+    fleeExit: z.number(),
+    /** ...and not before this many seconds of fleeing. */
+    fleeMinSec: z.number(),
+    /** Below this health share a piece never follows a target into enemy Bastion or Throne range. */
+    diveHp: z.number(),
+    /** Extra distance around a structure's reach that counts as its range for a dive. */
+    diveMargin: z.number(),
+  }),
   ai: z.object({
     aggroRadius: z.number(),
     fightRadius: z.number(),
@@ -853,7 +899,6 @@ export const TuningSchema = z.object({
   personalities: z.record(
     z.string(),
     z.object({
-      retreatHp: z.number(),
       engageRatio: z.number(),
       chase: z.number(),
       riskTaking: z.number(),

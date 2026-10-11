@@ -8,7 +8,7 @@ import { kitOf, perksOf, pieceDef } from './pieces';
 import { campDamageMul, checkDamageMul, structureMul, throneDamageMul } from './relics';
 import { addMod, recompute, triggersOf } from './stats';
 import type { Unit } from './types';
-import { confine, walkable } from './world/terrain';
+import { clearLine, confine, walkable } from './world/terrain';
 
 const HERO_ASSIST_WINDOW = 160;
 export const TPS = 20;
@@ -49,6 +49,7 @@ function recordDamage(
   origin: string,
   lethal: boolean,
   mitigated: number,
+  kb: number,
 ): void {
   const heroInvolved = tgt.kind === 'hero' || (src !== null && src.kind === 'hero');
   if (heroInvolved) {
@@ -64,6 +65,7 @@ function recordDamage(
       origin,
       lethal,
       mitigated: Math.round(mitigated * 10) / 10,
+      ...(kb > 0 ? { kb: Math.round(kb * 10) / 10 } : {}),
     });
     return;
   }
@@ -80,6 +82,32 @@ function recordDamage(
       count: 1,
     });
   }
+}
+
+/**
+ * A heavy hit from a piece (at least `spacing.knockback.minFrac` of the victim's max health) nudges
+ * a piece, pawn or pawnling straight away from the attacker, at most `max` units, and only along a
+ * clear walkable line. Returns the distance moved.
+ */
+function knockback(ctx: Ctx, src: Unit | null, tgt: Unit, dmg: number): number {
+  if (!src || src.kind !== 'hero' || (tgt.kind !== 'hero' && tgt.kind !== 'minion') || tgt.ev)
+    return 0;
+  const kb = ctx.t.spacing.knockback;
+  const frac = dmg / Math.max(1, tgt.stats.maxHp);
+  if (frac < kb.minFrac) return 0;
+  const dx = tgt.x - src.x;
+  const dy = tgt.y - src.y;
+  const d = Math.sqrt(dx * dx + dy * dy);
+  if (d < 0.001) return 0;
+  const step = Math.min(kb.max, kb.perFrac * frac);
+  const nx = tgt.x + (dx / d) * step;
+  const ny = tgt.y + (dy / d) * step;
+  const terrain = ctx.world.terrain;
+  if (!walkable(terrain, ctx.open, nx, ny) || !clearLine(terrain, ctx.open, tgt.x, tgt.y, nx, ny))
+    return 0;
+  tgt.x = nx;
+  tgt.y = ny;
+  return step;
 }
 
 export function dealDamage(
@@ -146,7 +174,8 @@ export function dealDamage(
   }
   if (src && src.hero) src.hero.lastDealtTick = ctx.s.tick;
   const lethal = tgt.hp <= 0;
-  recordDamage(ctx, src, tgt, applied + absorbed, dtype, origin, lethal, mitigated);
+  const kb = lethal ? 0 : knockback(ctx, src, tgt, applied + absorbed);
+  recordDamage(ctx, src, tgt, applied + absorbed, dtype, origin, lethal, mitigated, kb);
   trackDamage(ctx, src, tgt, applied + absorbed);
   if (ctx.s.feedback.runs.length > 0) noteDamage(ctx, src, tgt, raw, dtype, applied + absorbed);
   if (lethal) tgt.pendingKill = { killerId: src ? src.id : 0 };

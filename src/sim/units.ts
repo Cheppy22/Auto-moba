@@ -109,6 +109,7 @@ export function makeHero(ctx: Ctx, team: PlayTeam, slot: number, entry: SetupEnt
     engage: 'fight',
     engageTick: 0,
     holdTicks: 0,
+    fleeSince: 0,
     lastRecallTick: -9999,
     lossStreak: 0,
     lastDeathTick: -9999,

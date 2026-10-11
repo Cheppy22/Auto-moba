@@ -19,7 +19,8 @@
     "baseline": "tsx tools/baseline.ts",
     "balance": "tsx tools/balance.ts",
     "balance:pairwise": "tsx tools/pairwise.ts",
-    "diagnose": "tsx tools/diagnose.ts"
+    "diagnose": "tsx tools/diagnose.ts",
+    "combat-check": "tsx tools/combat-check.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

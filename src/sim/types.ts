@@ -144,6 +144,8 @@ export interface HeroState {
   engage: 'fight' | 'hold' | 'flee';
   engageTick: number;
   holdTicks: number;
+  /** Tick the current flee began (for the minimum flee time). */
+  fleeSince: number;
   lastRecallTick: number;
   lossStreak: number;
   lastDeathTick: number;
@@ -689,6 +691,8 @@ export interface EventPayloads {
     lethal: boolean;
     /** Damage the target did not take (armor, resist, reductions, shields); pieces only. */
     mitigated?: number;
+    /** Heavy hit: the target was knocked this far straight away from the attacker. */
+    kb?: number;
   };
   damageBucket: {
     srcTeam: TeamId | 'none';
