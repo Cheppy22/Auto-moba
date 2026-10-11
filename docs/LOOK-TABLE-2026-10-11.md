@@ -17,7 +17,7 @@ Owner feedback on round 1: right direction; show 2–3 variants; make the map bi
 | Portrait tilt              | 48°                                                                        | 40°                                                            | 54°                                                                                  |
 | Board on screen at 390×844 | 46% of the screen (47% of its height)                                      | 40% (41%)                                                      | 51% (52%)                                                                            |
 
-Round 1 at 390×844 framed the board in **28% of the screen (30% of its height)**, measured the same way (bounding box of the lanes and bases).
+Round 1 at 390×844 framed the board in **28% of the screen (30% of its height)**, measured the same way (bounding box of the lanes and bases). Landscape 844×390: round 1 41%, now 42% / 44% / 41% (a / b / c). Desktop 1440×900: round 1 52%, now 61% / 58% / 63%.
 
 - **a** keeps round 1's identity and fixes the blending with three cues that each work alone: value (ivory on mid-dark, ebony lifted by a cobalt edge), a team-coloured ring under every piece and pawn, and an outline in a team colour. It is the calmest read at phone scale. **Recommended.**
 - **b** is the "board game box" read: light ground, every piece inked like a printed counter. Clean in daylight and on bright phones; Black reads least strongly of the three on the slate felt, and its tilt is the lowest (smallest board).
@@ -30,6 +30,25 @@ Round 1 at 390×844 framed the board in **28% of the screen (30% of its height)*
 - **Smaller pieces:** on-screen height is about 78% of round 1 (King 26 px at 390×844, was 33–34); the view corrects the world size for the tilt so the size is the same whatever the screen shape. Pawns, pawnlings and bases follow.
 - **Relief (verticality):** lanes are the floor; the chessboard squares between them stand up as raised blocks (a two-height checker, 32 / 42 units, bevelled); bases are two-tier daises (22 / 42); jungle courts are stepped pits (−9 / −18) under their iron gates; every Bastion stands on a raised marble tile (14) edged in brass. View only: units sample the same height grid, so they climb the ramps and step into courts; the sim stays flat. One 150×150 grid mesh with smooth normals carries the painted top (`src/render/table/relief.ts`).
 - **Landmarks:** Bastions drawn 1.45× and Thrones 1.4× round 1's size.
+- **The sim map is unchanged** (size, lanes, walk shapes): "bigger map" is on screen only.
+
+### Relief data (for a later high-ground rule)
+
+The relief is visual only today: units walk it as flat ground (the view just lifts them to the surface). All height data lives in `src/render/table/relief.ts`: `RELIEF` (levels), `AREA_HEIGHT` and `Relief.areaAt(simX, simY)` (the named area under a sim point, stepped, no bevels), `Relief.atSim(simX, simY)` (the smooth drawn height). A gameplay proposal can reuse `areaAt` as-is or move it into the sim.
+
+| Area           | Where (sim units)                                                                               | Level (world units, lanes = 0) |
+| -------------- | ----------------------------------------------------------------------------------------------- | ------------------------------ |
+| `lane`         | Lane corridors, court paths, shops and Keeper spots (the walk shapes)                           | 0                              |
+| `block-high`   | Off-lane board, on squares where file + rank is even                                            | +42                            |
+| `block-low`    | Off-lane board, the other squares                                                               | +32                            |
+| `dais`         | Base disc, up to the walk radius (225)                                                          | +22                            |
+| `dais-inner`   | Inner base tier, radius 112 (spawn and Throne)                                                  | +42                            |
+| `bastion-tile` | Square of half side 62 under each Bastion site (lane points at the tower fractions, both sides) | +14                            |
+| `court-step`   | Jungle court square (half side 0.92 × court radius), outer ring                                 | −9                             |
+| `court-floor`  | Inner court square (58% of that)                                                                | −18                            |
+| `frame`        | Outside the 8×8 board                                                                           | 0                              |
+
+Ramps: blocks bevel up over 46 units from the walkable edge; dais and court steps blend over about 18 units.
 
 ## What it is
 
@@ -97,7 +116,7 @@ Before Rank 4 a piece wears only team colours (team cloth instead of the style c
 
 ## Scale rules (measured)
 
-Round 2, variant `a` (fixed whole-board view, seed 42, 0:40 into Act 1, CSS px foot to crown): 390×844 King 26, Queen 25, Bishop 23, Knight 22, Rook 20, pawn 11, pawnling 7.3; 844×390 KING_L; 1440×900 KING_D. Board box with `window.__tvBoard()` in dev.
+Round 2, variant `a` (fixed whole-board view, seed 42, 0:40 into Act 1, CSS px foot to crown): 390×844 King 26, Queen 25, Bishop 23, Knight 22, Rook 20, pawn 11, pawnling 7.3; 844×390 King 27–30, pawn 11–14; 1440×900 King 54, pawn 22–23. Variants `b` and `c` measure within about a pixel of `a` (King 24–25 px at 390×844). Board box with `window.__tvBoard()` in dev.
 
 Round 1 (prototype):
 
@@ -124,7 +143,7 @@ The current look shows the same pieces at about 9–16 px on its default camera 
 
 ## Performance
 
-Round 2 (variant `a`, phone viewport, big fight): PERF_LINE
+Round 2 (phone viewport, big fight): 89–121 draw calls and about 73k triangles; the relief grid is about 45k of them in one draw call, the pawn outlines add 6 calls and the base rings 1. Still no per-frame allocations; not yet profiled on a real phone.
 
 Round 1:
 
