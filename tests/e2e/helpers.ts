@@ -33,7 +33,7 @@ export interface TestSession {
     step(n: number): number;
     snapshot(): TestSnap;
     events: { type: string; payload: Record<string, unknown> }[];
-    issue(cmd: { type: string }): { ok: boolean };
+    issue(cmd: { type: string }): { ok: boolean; reason?: string };
     state: {
       phase: { kind: string };
       tempo: { A: number; B: number };
@@ -43,6 +43,8 @@ export interface TestSession {
   };
   notify(): void;
   setUi(patch: { speed: number }): void;
+  /** Leaves the Act break sheet (refused while a fork, a relic pick or the lanes are unsettled). */
+  resumeAct(): void;
 }
 
 /** Errors worth failing a test over (software WebGL is noisy). */
@@ -106,8 +108,12 @@ export function step(page: Page, n: number): Promise<number> {
   }, n);
 }
 
-/** Taps the speed chip until it shows `speed` (0 is paused). */
+/**
+ * Taps the speed chip until it shows `speed` (0 is paused). A running match can reach the Act
+ * break while a test works, and its sheet covers the chip, so a break is left first.
+ */
 export async function setSpeed(page: Page, speed: 0 | 1 | 2 | 4 | 8): Promise<void> {
+  if ((await snap(page)).act.bell === 'break') await leaveBreak(page);
   const chip = page.getByTestId('speed-chip');
   for (let i = 0; i < 5 && (await chip.getAttribute('data-speed')) !== String(speed); i++)
     await chip.click();
@@ -121,16 +127,22 @@ export function snap(page: Page): Promise<TestSnap> {
   });
 }
 
-export function eventCount(page: Page, type: string): Promise<number> {
-  return page.evaluate((t) => {
-    const s = (window as unknown as { __session: TestSession }).__session;
-    return s.match.events.filter((e) => e.type === t).length;
-  }, type);
+/** How many events of `type` the match has logged, for one team's side only when `team` is given. */
+export function eventCount(page: Page, type: string, team?: 'A' | 'B'): Promise<number> {
+  return page.evaluate(
+    ({ t, side }) => {
+      const s = (window as unknown as { __session: TestSession }).__session;
+      return s.match.events.filter((e) => e.type === t && (!side || e.payload.team === side))
+        .length;
+    },
+    { t: type, side: team },
+  );
 }
 
 /**
  * Waits until the clock passes `tick`. A fork that opens on the way stops the match until it is
- * answered, so this answers it with "Let the AI choose" like a player would.
+ * answered, so this answers it with "Let the AI choose" like a player would. An Act break stops
+ * it too, so the break sheet is left the same way (AI picks the relic, then Resume).
  */
 export async function playPast(page: Page, tick: number, timeout = 60_000): Promise<void> {
   await expect
@@ -138,6 +150,7 @@ export async function playPast(page: Page, tick: number, timeout = 60_000): Prom
       async () => {
         const x = await snap(page);
         if (x.forks.length > 0) await page.getByTestId('fork-auto').click();
+        else if (x.act.bell === 'break') await leaveBreak(page);
         return x.tick;
       },
       { timeout },
@@ -161,7 +174,8 @@ export type Until =
 
 /**
  * Steps the sim inside the page (one round trip) in `chunk`-tick pieces until the condition holds:
- * cards expire every 40 s, forks open at Rank 4 and checkmate takes a few Acts.
+ * cards expire every 40 s, forks open at Rank 4 and checkmate takes a few Acts. Act breaks are
+ * left on the way ("Let the AI choose" a relic, then Resume).
  */
 export async function stepUntil(
   page: Page,
@@ -193,6 +207,13 @@ export async function stepUntil(
         // the match halts for a White fork: only a test that waits for one leaves it open
         if (until.kind !== 'fork' && s.match.state.forks.length > 0)
           s.match.issue({ type: 'autoForks' });
+        // and it halts at every Act break until the player takes a relic and presses Resume
+        if (s.match.state.bell.stage === 'break') {
+          s.match.issue({ type: 'autoRelic' });
+          s.resumeAct();
+          if (s.match.state.bell.stage === 'break')
+            throw new Error('could not leave the Act break');
+        }
         topUp();
         x = s.match.snapshot();
       }
@@ -224,7 +245,7 @@ export function overflow(page: Page): Promise<number> {
   return page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
 }
 
-/** Plays the whole match to Checkmate inside the page (White's forks are answered by the AI). */
+/** Plays the whole match to Checkmate inside the page (the AI answers White's forks, picks its relic and resumes at each Act break). */
 export async function playToEnd(page: Page): Promise<void> {
   await page.evaluate(() => {
     const s = (
@@ -237,8 +258,23 @@ export async function playToEnd(page: Page): Promise<void> {
     s.setUi({ speed: 0 });
     for (let i = 0; i < 400 && s.match.state.phase.kind === 'live'; i++) {
       if (s.match.state.forks.length > 0) s.match.issue({ type: 'autoForks' });
+      if (s.match.state.bell.stage === 'break') {
+        s.match.issue({ type: 'autoRelic' });
+        s.resumeAct();
+        if (s.match.state.bell.stage === 'break') throw new Error('could not leave the Act break');
+      }
       s.match.step(600);
     }
     s.notify();
+  });
+}
+
+/** Leaves the Act break like a player: "Let the AI choose" a relic, then Resume. */
+export function leaveBreak(page: Page): Promise<void> {
+  return page.evaluate(() => {
+    const s = (window as unknown as { __session: TestSession }).__session;
+    s.match.issue({ type: 'autoRelic' });
+    s.resumeAct();
+    if (s.match.state.bell.stage === 'break') throw new Error('could not leave the Act break');
   });
 }

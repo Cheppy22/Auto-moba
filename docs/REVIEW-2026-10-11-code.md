@@ -1,5 +1,11 @@
 # Code review and cleanup plan (2026-10-11)
 
+## Progress
+
+| Phase        | Status | Check | Baseline        | Playwright (full suite) |
+| ------------ | ------ | ----- | --------------- | ----------------------- |
+| 0 Safety net | done   | pass  | 10/10 identical | pending                 |
+
 Branch `test-product-2` at `5627502`. Plan only: no source code was changed. Reviewer: Opus.
 
 ## BLUF

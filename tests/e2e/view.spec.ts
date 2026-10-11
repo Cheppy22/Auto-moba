@@ -195,9 +195,9 @@ test('an enemy gambit is aimed with a tap on a Black piece', async ({ page }) =>
     { timeout: 40_000 },
   );
   const at = (await handle.jsonValue()) as { x: number; y: number };
-  const before = await eventCount(page, 'gambit');
+  const before = await eventCount(page, 'gambit', 'A');
   await page.mouse.click(at.x, at.y);
-  await expect.poll(() => eventCount(page, 'gambit')).toBe(before + 1);
+  await expect.poll(() => eventCount(page, 'gambit', 'A')).toBe(before + 1);
   await expect(page.getByTestId('aim')).toHaveCount(0);
   expect(errors).toEqual([]);
 });

@@ -21,6 +21,7 @@ npm run dev          # http://localhost:5173
 | `npm run e2e`                       | Browser smoke test (Playwright, Chromium)                             |
 | `npm run build`                     | Typecheck and production build                                        |
 | `npm run sim -- 42`                 | Run one headless AI-only match for seed 42 and print a summary        |
+| `npm run baseline`                  | Replay 10 fixed matches; exit 1 if any hash differs from the expected |
 | `npm run balance -- --matches 1000` | Parallel batch runner; writes `out/balance.md` and `out/balance.json` |
 | `npm run balance:pairwise -- 24`    | Hero-versus-hero matrix (5 of one hero per side)                      |
 
