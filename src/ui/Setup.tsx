@@ -1,11 +1,18 @@
-import { useState } from 'preact/hooks';
+import { useEffect, useState } from 'preact/hooks';
 import { naturalPath, type Path, type PieceId, type SetupEntry } from '../sim';
-import { LaneBoard } from './LaneBoard';
-import { PATHS, PATH_HINT, PATH_LABEL, PIECE_ORDER, PieceGlyph, LANE_LABEL } from './pieces';
-import { SchoolChip } from './schools';
+import { PIECE_ORDER } from './pieces';
 import { useSession } from './session';
+import { BoardPage } from './setup/BoardPage';
+import { OpeningPage } from './setup/OpeningPage';
+import { Pager } from './setup/Pager';
+import { PathsPage } from './setup/PathsPage';
 
-/** The setup board: an Opening, a build path for each of White's five pieces, then the lanes. */
+const STEPS = ['Paths', 'Board', 'Opening'];
+
+/**
+ * The setup screen: three pages (build paths, board arrangement, Opening) you swipe or step
+ * through. Sends the same `setupTeam` payload as the old single page.
+ */
 export function Setup() {
   const s = useSession();
   const m = s.match!;
@@ -23,10 +30,22 @@ export function Setup() {
   const [opening, setOpening] = useState<string>(
     () => (openings.find((o) => o.id === 'italian') ?? openings[0])?.id ?? 'italian',
   );
-  const names: Record<string, string> = {};
-  for (const p of s.content.pieces) names[p.id] = p.name;
-  const patch = (piece: PieceId, change: Partial<SetupEntry>): void =>
-    setEntries(entries.map((e) => (e.piece === piece ? { ...e, ...change } : e)));
+  const [page, setPage] = useState(0);
+  const last = STEPS.length - 1;
+  const go = (n: number): void => setPage(Math.max(0, Math.min(last, n)));
+
+  useEffect(() => {
+    const on = (e: KeyboardEvent): void => {
+      if (e.altKey || e.ctrlKey || e.metaKey) return;
+      const t = e.target as HTMLElement | null;
+      if (t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) return;
+      if (e.key === 'ArrowRight') setPage((p) => Math.min(last, p + 1));
+      else if (e.key === 'ArrowLeft') setPage((p) => Math.max(0, p - 1));
+    };
+    window.addEventListener('keydown', on);
+    return () => window.removeEventListener('keydown', on);
+  }, [last]);
+
   const begin = (): void => {
     s.issue({
       type: 'setupTeam',
@@ -34,100 +53,69 @@ export function Setup() {
       pieces: entries.map(({ piece, path, lane }) => ({ piece, path, lane })),
     });
   };
+  const setPath = (piece: PieceId, path: Path): void =>
+    setEntries(entries.map((e) => (e.piece === piece ? { ...e, path } : e)));
+
   return (
     <div class="overlay setup" data-testid="setup">
-      <div class="setup-main">
-        <header class="setup-head">
-          <div class="setup-title">
-            <h2>Set the board</h2>
-            <p class="dim small">
-              Pick an Opening and each piece’s build path, then tap a piece and a lane. Black’s
-              court is chosen in secret.
-            </p>
-          </div>
-          <LaneBoard
-            pieces={entries}
-            names={names}
-            selected={selected}
-            onSelect={setSelected}
-            onChange={(next) => setEntries(next as SetupEntry[])}
-          />
-          <div class="openings" role="radiogroup" aria-label="Opening" data-testid="openings">
-            {openings.map((o) => (
-              <button
-                key={o.id}
-                class={`opening ${opening === o.id ? 'on' : ''}`}
-                role="radio"
-                aria-checked={opening === o.id}
-                data-testid={`opening-${o.id}`}
-                onClick={() => setOpening(o.id)}
-              >
-                <b class="opening-name">{o.name}</b>
-                <span class="opening-desc tiny dim">{o.desc}</span>
-                <span class="opening-schools">
-                  {o.schools.length === 0 ? (
-                    <span class="school-chip balanced">Balanced</span>
-                  ) : (
-                    o.schools.map((sc) => <SchoolChip key={sc} school={sc} />)
-                  )}
-                </span>
-              </button>
-            ))}
-          </div>
-        </header>
-        <div class="setup-cards" data-testid="setup-cards">
-          {entries.map((e) => {
-            const def = s.content.pieceById.get(e.piece)!;
-            return (
-              <section
-                key={e.piece}
-                class={`piece-card ${selected === e.piece ? 'sel' : ''}`}
-                data-testid={`piece-${e.piece}`}
-              >
+      <div class="sp">
+        <header class="sp-head">
+          <h2>Set the board</h2>
+          <ol class="steps" aria-label="Setup steps">
+            {STEPS.map((label, i) => (
+              <li key={label}>
                 <button
-                  class="piece-head"
-                  aria-pressed={selected === e.piece}
-                  onClick={() => setSelected(selected === e.piece ? null : e.piece)}
-                  title="Select, then tap a lane above"
+                  class={`step ${i === page ? 'on' : ''} ${i < page ? 'done' : ''}`}
+                  aria-current={i === page ? 'step' : undefined}
+                  data-testid={`step-${i + 1}`}
+                  onClick={() => go(i)}
                 >
-                  <PieceGlyph piece={e.piece} team="A" size={34} />
-                  <span class="piece-name">
-                    <b>{def.name}</b>
-                    <span class="dim tiny">
-                      {def.title} · {def.attackKind}
-                    </span>
-                  </span>
-                  <span class="chip gold piece-lane">{LANE_LABEL[e.lane]}</span>
+                  <span class="step-n">{i + 1}</span>
+                  <span class="step-label">{label}</span>
                 </button>
-                <p class="style-desc tiny dim" data-testid={`style-desc-${e.piece}`}>
-                  Chooses its archetype at Rank 4
-                </p>
-                <div class="path-label tiny dim">
-                  <b>Build path</b> <span>{PATH_HINT[e.path]}</span>
-                </div>
-                <div class="seg paths" role="radiogroup" aria-label={`${def.name} build path`}>
-                  {PATHS.map((p: Path) => (
-                    <button
-                      key={p}
-                      class={`btn small ${e.path === p ? 'on' : ''}`}
-                      role="radio"
-                      aria-checked={e.path === p}
-                      title={PATH_HINT[p]}
-                      data-testid={`path-${e.piece}-${p}`}
-                      onClick={() => patch(e.piece, { path: p })}
-                    >
-                      {PATH_LABEL[p]}
-                    </button>
-                  ))}
-                </div>
-              </section>
-            );
-          })}
-        </div>
-        <footer class="setup-foot">
-          <button class="btn primary begin" data-testid="begin" onClick={begin}>
-            Begin
+              </li>
+            ))}
+          </ol>
+          <button class="btn quick" data-testid="quick-start" onClick={begin}>
+            Quick start
           </button>
+        </header>
+        <Pager page={page} onPage={go}>
+          {[
+            <PathsPage key="paths" content={s.content} entries={entries} onPath={setPath} />,
+            <BoardPage
+              key="board"
+              content={s.content}
+              entries={entries}
+              selected={selected}
+              onSelect={setSelected}
+              onChange={setEntries}
+            />,
+            <OpeningPage
+              key="opening"
+              content={s.content}
+              entries={entries}
+              opening={opening}
+              onOpening={setOpening}
+            />,
+          ]}
+        </Pager>
+        <footer class="sp-foot">
+          <button class="btn back" data-testid="back" disabled={page === 0} onClick={() => go(page - 1)}>
+            Back
+          </button>
+          <span class="sp-count dim">
+            Step {page + 1} of {STEPS.length}
+          </span>
+          {page < last ? (
+            <button class="btn primary next" data-testid="next" onClick={() => go(page + 1)}>
+              Next
+            </button>
+          ) : (
+            <button class="btn primary next begin" data-testid="begin" onClick={begin}>
+              Begin
+            </button>
+          )}
         </footer>
       </div>
     </div>
