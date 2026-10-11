@@ -99,7 +99,7 @@ The current look shows the same pieces at about 9–16 px on its default camera 
 
 ## What a full rollout still needs
 
-1. HUD: C2 layout for portrait (rosters out of the side columns), capture trays as the score, lane tap to lean in.
+1. ~~HUD: C2 layout for portrait~~ Done (2026-10-11, the court-bar HUD: see CHESS.md "Interface"); capture trays show the pieces that are down, the lane chips lean in.
 2. Capture moment: slide fallen pieces into a capture tray at the board edge; reduced-motion fades.
 3. Gambit and zone effects re-tuned to the miniature scale (they still use the old sizes), plus faceted versions of the Check crown and flares.
 4. Neutral camps and event creatures designed per camp (they are three generic terracotta sizes now); Keeper and obelisks are placeholders.

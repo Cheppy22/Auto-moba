@@ -24,7 +24,13 @@ const LANE_FLASH_MS = 1500;
  * First tap follows the piece; tapping the followed piece again (or holding any portrait) opens
  * its card. Both teams show their style.
  */
-export function Roster(props: { team: 'A' | 'B'; forks: number[]; snap: Snapshot }) {
+export function Roster(props: {
+  team: 'A' | 'B';
+  forks: number[];
+  snap: Snapshot;
+  /** New HUD: one row of tiles (a name under each portrait) instead of a side column. */
+  row?: boolean;
+}) {
   const s = useSession();
   // piece id -> its lane as last drawn, and when it last changed (not set on first sight)
   const lanes = useRef(new Map<number, { lane: string; at: number }>());
@@ -37,7 +43,7 @@ export function Roster(props: { team: 'A' | 'B'; forks: number[]; snap: Snapshot
     .sort((a, b) => PIECE_ORDER.indexOf(a.hero!.defId) - PIECE_ORDER.indexOf(b.hero!.defId));
   return (
     <div
-      class={`roster side-${team}`}
+      class={`roster side-${team} ${props.row ? 'row' : ''}`}
       data-testid={team === 'A' ? 'roster' : 'roster-enemy'}
       aria-label={team === 'A' ? 'White pieces' : 'Black pieces'}
     >
@@ -110,6 +116,7 @@ export function Roster(props: { team: 'A' | 'B'; forks: number[]; snap: Snapshot
                 </span>
               )}
             </span>
+            {props.row && !fall && <span class="rname">{name}</span>}
             {fall && (
               <span class="fall" data-testid="fall" data-cause={fall.cause}>
                 {fall.killer && (

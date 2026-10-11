@@ -657,7 +657,7 @@ export class Session {
               {
                 kind: 'relic',
                 title: `Black took ${name}`,
-                detail: 'Tap the seal under their pieces',
+                detail: 'Tap their relic seal',
                 team: 'B',
               },
               BANNER_MS + 600,
