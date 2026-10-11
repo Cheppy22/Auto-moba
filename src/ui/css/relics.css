@@ -320,3 +320,136 @@ html[data-layout='landscape'] .rcard-facts {
 html[data-layout='landscape'] .rcard-take {
   min-height: 40px;
 }
+
+/* offers strip, collapsible facts, and the controls for Sealed Move, Pawn Structure and Battery */
+.rl-strip {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 0;
+  background: rgb(36, 28, 20);
+  border-bottom: 1px solid var(--rule);
+}
+.rl-strip b {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--fs-xs);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--brass-hi);
+}
+.rl-strip-chip {
+  display: inline-flex;
+  flex: 1 1 0;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  min-height: 36px;
+  padding: 0 4px;
+  font-size: 11px;
+  color: var(--ivory);
+  cursor: pointer;
+  background: color-mix(in srgb, var(--family, var(--brass)) 14%, rgba(0, 0, 0, 0.3));
+  border: 1px solid color-mix(in srgb, var(--family, var(--brass)) 55%, transparent);
+  border-radius: var(--r-1);
+}
+.rl-strip-chip span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rl-strip b {
+  flex: none;
+}
+.rcard-more summary {
+  cursor: pointer;
+  font-size: var(--fs-xs);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+.rcard-more[open] summary {
+  margin-bottom: 4px;
+}
+.rl-sealed,
+.rl-quota {
+  display: grid;
+  gap: 6px;
+}
+.rl-pick {
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  align-items: center;
+  gap: 6px;
+}
+.rl-pick select {
+  min-width: 0;
+  min-height: 40px;
+  padding: 0 8px;
+  font-family: var(--font-body);
+  font-size: var(--fs-sm);
+  color: var(--ivory);
+  background: linear-gradient(180deg, #3d281c 0%, #1d1510 100%);
+  border: 1px solid var(--brass-dim);
+  border-radius: var(--r-1);
+}
+.rl-steppers {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+}
+.rl-stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.rl-stepper .rl-aim-label {
+  min-width: 0;
+}
+.rl-stepper b {
+  min-width: 16px;
+  text-align: center;
+  font-size: var(--fs-md);
+  color: var(--ivory);
+}
+.rl-step {
+  min-width: 40px;
+  min-height: 40px;
+  font-size: var(--fs-lg);
+  line-height: 1;
+  color: var(--ivory);
+  cursor: pointer;
+  background: linear-gradient(180deg, #3d281c 0%, #1d1510 100%);
+  border: 1px solid var(--brass-dim);
+  border-radius: var(--r-1);
+}
+.rl-step:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.rl-total {
+  font-size: var(--fs-sm);
+  color: var(--brass-hi);
+}
+.rl-note {
+  margin: 0;
+  font-size: var(--fs-xs);
+  color: var(--dim);
+}
+.formation-warn {
+  margin: 0;
+  padding: 6px 9px;
+  color: var(--ivory);
+  background: rgba(184, 57, 44, 0.16);
+  border-left: 3px solid var(--clock-hi);
+}
+html[data-layout='landscape'] .rl-strip,
+html[data-layout='desktop'] .rl-strip {
+  display: none;
+}

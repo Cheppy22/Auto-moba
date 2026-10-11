@@ -1,16 +1,21 @@
 import { laneResult } from './ai/replan';
 import { allCallouts, type Callout } from './callouts';
-import { RELIC_FAMILIES } from './content/schema';
-import type { RelicDef, RelicFamily } from './content/schema';
+import { relicEffect } from './content/loader';
+import { RELIC_FAMILIES, SEALED_TRIGGERS } from './content/schema';
+import type { RelicDef, RelicFamily, SealedTrigger } from './content/schema';
 import { pick, rand, shuffle } from './core/rng';
 import type { Ctx } from './ctx';
 import { dropBoundCards } from './gambits';
+import { pawnCap } from './pawns';
+import { assignJunglers } from './setup';
+import { batteryLane, formationTarget, laneCounts, param } from './relics';
 import { LANES } from './world/map';
 import type {
   ActReport,
   CommandResult,
   HeldRelic,
   LaneId,
+  PawnQuota,
   PlayTeam,
   RelicAim,
   RelicMode,
@@ -19,7 +24,14 @@ import type {
 import { other } from './types';
 
 const TEAMS: PlayTeam[] = ['A', 'B'];
-const NO_AIM: RelicAim = { lane: null, piece: null, card: null };
+const NO_AIM: RelicAim = {
+  lane: null,
+  piece: null,
+  card: null,
+  trigger: null,
+  quota: null,
+  reserve: null,
+};
 
 /** The relic family each coach finding is answered with (docs/RELICS.md, "Tailored slot"). */
 function familyOf(c: Callout): RelicFamily | null {
@@ -172,7 +184,105 @@ export function aimFor(
       const rule = defensive ? worstLane(report, team) : bestLane(report, team);
       return { ...NO_AIM, card, lane: (hintFits(hint, defensive) ? hint.lane : null) ?? rule };
     }
+    case 'sealed':
+      return { ...NO_AIM, ...sealedChoice(ctx, team, def, report) };
+    case 'quota':
+      return { ...NO_AIM, ...quotaFor(ctx, team, def, report) };
   }
+}
+
+/** Whether a card may be sealed: the Opening's schools, or any school for the Italian Game. */
+export function sealable(ctx: Ctx, team: PlayTeam, card: string): boolean {
+  const g = ctx.c.gambitById.get(card);
+  const schools = ctx.c.openingById.get(ctx.s.opening[team])?.schools ?? [];
+  return !!g && g.weight > 0 && (schools.length === 0 || schools.includes(g.school));
+}
+
+/** Sealed Move's "your Crown Jewel or Guarded piece" trigger needs one of those relics. */
+function guardedAvailable(ctx: Ctx, team: PlayTeam): boolean {
+  return ctx.s.relics.held[team].some((h) => {
+    const def = ctx.c.relicById.get(h.id);
+    const e = def ? relicEffect(def) : null;
+    return h.piece !== null && (e === 'crown_jewel' || e === 'guarded_piece');
+  });
+}
+
+/** The AI's Sealed Move: a trigger that fits its Opening and doctrine, with the card that answers it. */
+function sealedChoice(
+  ctx: Ctx,
+  team: PlayTeam,
+  def: RelicDef,
+  report: ActReport,
+): { card: string; trigger: SealedTrigger } {
+  const schools = ctx.c.openingById.get(ctx.s.opening[team])?.schools ?? [];
+  const has = (...ids: string[]): number =>
+    ids.some((x) => schools.includes(x as never)) ? 0.5 : 0;
+  const tags = sideTags(ctx, team, report);
+  const bonus: Record<SealedTrigger, number> = {
+    bastion: has('fortress', 'position') + (report.teams[team].bastionsLost.length > 0 ? 0.5 : 0),
+    kill: has('initiative', 'sacrifice'),
+    guarded: guardedAvailable(ctx, team) ? 0.75 : -9,
+    lane3: has('position'),
+    clock: has('march') + (tags.has('pawn-heavy') ? 0.25 : 0),
+  };
+  let best: { card: string; trigger: SealedTrigger; score: number } | null = null;
+  for (const trigger of SEALED_TRIGGERS) {
+    const card = (def.triggerCards[trigger] ?? []).find((c) => sealable(ctx, team, c));
+    if (!card || bonus[trigger] < -1) continue;
+    if (!best || bonus[trigger] > best.score) best = { card, trigger, score: bonus[trigger] };
+  }
+  if (best) return { card: best.card, trigger: best.trigger };
+  const card = ctx.c.gambits.find((g) => sealable(ctx, team, g.id))!.id;
+  return { card, trigger: 'clock' };
+}
+
+/** The AI's Pawn Structure: most pawns toward its best lane, a reserve of 20. */
+function quotaFor(
+  ctx: Ctx,
+  team: PlayTeam,
+  def: RelicDef,
+  report: ActReport,
+): { quota: PawnQuota; reserve: number } {
+  const total = Math.min(pawnCap(ctx, team, ctx.s.phase.n + 1), param({ def }, 'total', 6));
+  const [first, second, third] = sortedLanes(report, team);
+  const a = Math.ceil(total / 2);
+  const b = Math.ceil((total - a) / 2);
+  const quota = { top: 0, mid: 0, bot: 0 } as PawnQuota;
+  quota[first] = a;
+  quota[second] = b;
+  quota[third] = total - a - b;
+  return { quota, reserve: param({ def }, 'reserve', 20) };
+}
+
+/** Moves a team's pieces to the lanes its relics allow (Battery's 3/1/1, otherwise 2/1/2). */
+export function fitFormation(ctx: Ctx, team: PlayTeam): void {
+  const want = formationTarget(ctx, team);
+  const battery = batteryLane(ctx, team);
+  const rank = { attacker: 0, farmer: 1, defender: 2 } as const;
+  for (let guard = 0; guard < 8; guard++) {
+    const have = laneCounts(ctx, team);
+    const over = LANES.find((l) => have[l] > want[l]);
+    const under = LANES.find((l) => have[l] < want[l]);
+    if (!over || !under) break;
+    const pool = ctx.s.teams[team].heroIds
+      .map((id) => ctx.unit(id)!)
+      .filter((u) => u.hero!.lane === over)
+      .sort(
+        (x, y) =>
+          (under === battery ? 1 : -1) * (rank[x.hero!.disposition] - rank[y.hero!.disposition]) ||
+          x.hero!.slot - y.hero!.slot,
+      );
+    const u = pool[0];
+    const h = u.hero!;
+    h.lane = under;
+    h.role = under;
+    u.lane = under;
+    h.goal = null;
+    h.order = null;
+    u.dirty = true;
+    ctx.emit('laneSet', { id: u.id, lane: under });
+  }
+  assignJunglers(ctx, team);
 }
 
 const hintSeverity = (hint: Hint | null): number =>
@@ -258,6 +368,29 @@ function checkAim(
     if (!card || !def.cards.includes(card)) return 'pick a lane card';
     aim.card = card;
   }
+  if (def.bind === 'sealed') {
+    const card = want.card ?? base.card;
+    const trigger = want.trigger ?? base.trigger;
+    if (!card || !sealable(ctx, team, card)) return "pick a card from your Opening's schools";
+    if (!trigger || !(SEALED_TRIGGERS as readonly string[]).includes(trigger))
+      return 'pick a trigger';
+    if (trigger === 'guarded' && !guardedAvailable(ctx, team))
+      return 'that trigger needs a Crown Jewel or a Guarded Piece';
+    aim.card = card;
+    aim.trigger = trigger;
+  }
+  if (def.bind === 'quota') {
+    const quota = want.quota ?? base.quota;
+    const reserve = want.reserve ?? base.reserve;
+    if (!quota || LANES.some((l) => !Number.isInteger(quota[l]) || quota[l] < 0))
+      return 'set a pawn quota for each lane';
+    if (LANES.reduce((n, l) => n + quota[l], 0) > pawnCap(ctx, team, ctx.s.phase.n + 1))
+      return 'the quotas are more than your pawn cap';
+    if (reserve === null || reserve === undefined || !ctx.t.relics.reserves.includes(reserve))
+      return 'pick a Tempo reserve';
+    aim.quota = { top: quota.top, mid: quota.mid, bot: quota.bot };
+    aim.reserve = reserve;
+  }
   return aim;
 }
 
@@ -270,8 +403,10 @@ function take(
   auto: boolean,
 ): void {
   const r = ctx.s.relics;
+  const battery = relicEffect(def) === 'battery' || replace === 'battery';
   if (replace) r.held[team] = r.held[team].filter((h) => h.id !== replace);
   r.held[team].push({ id: def.id, ...aim });
+  if (battery) fitFormation(ctx, team);
   r.offers[team] = [];
   r.settled[team] = true;
   r.latest[team] = def.id;
@@ -346,9 +481,12 @@ function randomPick(ctx: Ctx, team: PlayTeam): void {
 function reaim(ctx: Ctx, team: PlayTeam, report: ActReport): void {
   for (const held of ctx.s.relics.held[team]) {
     const def = ctx.c.relicById.get(held.id);
-    if (!def || (def.bind !== 'lane' && def.bind !== 'laneCard')) continue;
+    if (!def || relicEffect(def) === 'battery') continue;
+    if (def.bind !== 'lane' && def.bind !== 'laneCard' && def.bind !== 'quota') continue;
     const aim = aimFor(ctx, team, def, report, null, held.card);
     held.lane = aim.lane;
+    held.quota = aim.quota;
+    held.reserve = aim.reserve;
     ctx.emit('relicAimed', { team, relic: held.id, ...aim });
   }
 }
@@ -457,6 +595,10 @@ export function aimRelic(ctx: Ctx, relicId: string, want: Partial<RelicAim>): Co
   held.lane = aim.lane;
   held.piece = aim.piece;
   held.card = aim.card;
+  held.trigger = aim.trigger;
+  held.quota = aim.quota;
+  held.reserve = aim.reserve;
+  if (relicEffect(def) === 'battery') fitFormation(ctx, 'A');
   dropBoundCards(ctx, 'A');
   ctx.emit('relicAimed', { team: 'A', relic: relicId, ...aim });
   return { ok: true };

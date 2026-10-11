@@ -8,6 +8,7 @@ import {
   PIECE_ORDER,
   PieceGlyph,
   LANE_LABEL,
+  LANE_SLOTS,
   pieceLabel,
   styleLabel,
 } from './pieces';
@@ -22,8 +23,10 @@ export function whitePieces(s: ReturnType<typeof useSession>): Unit[] {
 }
 
 /** Move White's pieces between lanes (shared by the Adjourn panel and the Act break sheet). */
-export function Lanes() {
+export function Lanes(props: { formation?: string | null }) {
   const s = useSession();
+  const battery = s.match!.state.relics.held.A.find((h) => h.id === 'battery')?.lane ?? null;
+  const slots = battery ? { ...LANE_SLOTS, [battery]: 3 } : LANE_SLOTS;
   const [selected, setSelected] = useState<PieceId | null>(null);
   const pieces = whitePieces(s);
   const board: BoardPiece[] = pieces.map((u) => ({
@@ -37,7 +40,13 @@ export function Lanes() {
       <p class="dim small">
         Tap a piece, then a lane. If the lane is full, the two pieces trade places. Orders take
         effect when you resume.
+        {battery && ' Battery lets the bound lane hold three pieces, with one in each other lane.'}
       </p>
+      {props.formation && (
+        <p class="formation-warn small" role="alert" data-testid="formation-warn">
+          {props.formation}
+        </p>
+      )}
       <LaneBoard
         pieces={board}
         names={names}
@@ -52,6 +61,7 @@ export function Lanes() {
           setSelected(null);
         }}
         testid="adjourn-board"
+        slots={slots}
       />
       <BlackCourt />
     </div>
@@ -141,10 +151,10 @@ export function Paths() {
 }
 
 /** Lanes and paths together: the Orders tab of the Act break sheet. */
-export function Orders() {
+export function Orders(props: { formation?: string | null }) {
   return (
     <div class="col orders" data-testid="tab-orders">
-      <Lanes />
+      <Lanes formation={props.formation} />
       <Paths />
     </div>
   );

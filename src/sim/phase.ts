@@ -9,6 +9,7 @@ import { endAllEvents, scheduleEvents } from './events';
 import { relocateKeeper } from './keeper';
 import { scheduleObelisks } from './obelisks';
 import { applyPressure } from './pressure';
+import { onActStart } from './relicsLive';
 import { dirtyAll } from './stats';
 
 export const actTicks = (ctx: Ctx): number => Math.round(ctx.t.phaseSeconds * TPS);
@@ -33,6 +34,7 @@ export function enterAct(ctx: Ctx, n: number): void {
   scheduleObelisks(ctx);
   scheduleEvents(ctx);
   dirtyAll(ctx);
+  onActStart(ctx);
 }
 
 /** Closes the current Act's timed objectives; respawn timers and positions carry over. */

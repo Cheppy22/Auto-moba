@@ -6,7 +6,7 @@ import { useSession } from '../session';
 export function Command(props: { snap: Snapshot }) {
   const s = useSession();
   const { snap } = props;
-  const max = s.content.tuning.gambits.tempoMax;
+  const max = snap.tempoMax;
   const p = snap.pawns.A;
   const tempo = snap.tempo.A;
   const why = tempo < p.cost ? 'Not enough Tempo' : p.alive >= p.cap ? 'Pawn cap reached' : '';

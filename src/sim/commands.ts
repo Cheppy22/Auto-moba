@@ -4,6 +4,7 @@ import { aimRelic, autoRelic, declineRelic, draftOpen, pickRelic } from './draft
 import type { Ctx } from './ctx';
 import { playGambit } from './gambits';
 import { fieldPawn } from './pawns';
+import { formationError } from './relics';
 import { autoForks, chooseFork } from './ranks';
 import { assignJunglers, validateSetup } from './setup';
 import { LANES } from './world/map';
@@ -42,12 +43,15 @@ function run(ctx: Ctx, cmd: Command, startMatch: StartMatchFn): CommandResult {
   if (frozen(ctx) && (cmd.type === 'playGambit' || cmd.type === 'fieldPawn'))
     return { ok: false, reason: 'play is stopped for the bell' };
   switch (cmd.type) {
-    case 'resumeAct':
+    case 'resumeAct': {
       if (s.bell.stage !== 'break') return { ok: false, reason: 'no Act break to leave' };
       if (s.forks.length > 0) return { ok: false, reason: 'answer the fork first' };
       if (draftOpen(ctx)) return { ok: false, reason: 'take a relic first' };
+      const lanes = formationError(ctx, 'A');
+      if (lanes) return { ok: false, reason: lanes };
       resumeFromBreak(ctx);
       return { ok: true };
+    }
     case 'pickRelic':
       return pickRelic(ctx, cmd.relicId, cmd, cmd.replace);
     case 'declineRelic':

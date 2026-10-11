@@ -301,7 +301,26 @@ export const RELIC_EFFECTS = [
   'pawn_lever',
   'opening_theory',
   'standing_order',
+  'sealed_move',
+  'pawn_structure',
+  'wing_gambit',
+  'strong_square',
+  'guarded_piece',
+  'knights_tour',
+  'kings_ransom',
+  'pawn_chain',
+  'spare_tempo',
+  'compensation',
+  'curtain_wall',
+  'royal_keep',
+  'quiet_move',
+  'battery',
+  'sortie',
 ] as const;
+
+/** What can set off a Sealed Move: the Act clock, a Bastion under half, a kill, a piece in danger, a stack. */
+export const SEALED_TRIGGERS = ['bastion', 'kill', 'guarded', 'lane3', 'clock'] as const;
+export const SealedTriggerSchema = z.enum(SEALED_TRIGGERS);
 
 /**
  * A relic: kept for the rest of the match, up to three. `bind` is what the player aims when taking
@@ -313,7 +332,7 @@ export const RelicSchema = z.object({
   name: z.string(),
   family: RelicFamilySchema,
   effect: z.enum(RELIC_EFFECTS).optional(),
-  bind: z.enum(['none', 'lane', 'piece', 'laneCard']),
+  bind: z.enum(['none', 'lane', 'piece', 'laneCard', 'sealed', 'quota']),
   aim: z.enum(['offense', 'defense', 'carry', 'protect']).default('offense'),
   /** Comeback relics: their effect is off while the side is not behind. */
   rally: z.boolean().default(false),
@@ -324,6 +343,8 @@ export const RelicSchema = z.object({
   tags: z.array(z.string()).default([]),
   /** Lane cards a Standing Order may bind. */
   cards: z.array(z.string()).default([]),
+  /** Sealed Move: the cards the AI pairs with each trigger, best first. */
+  triggerCards: z.record(z.string(), z.array(z.string())).default({}),
   params: z.record(z.string(), z.number()).default({}),
 });
 
@@ -620,6 +641,8 @@ export const TuningSchema = z.object({
     laneSpeedCap: z.number(),
     /** Relic pawn-cap bonuses never add more than this. */
     pawnCapMax: z.number().int(),
+    /** Pawn Structure: the Tempo reserves a player may keep back. */
+    reserves: z.array(z.number()),
     /** Behind: this much less Tempo earned in the Act (or fewer Bastions, or a fallen Throne). */
     behindTempo: z.number(),
     ai: z.object({
@@ -935,6 +958,7 @@ export type OpeningDef = z.infer<typeof OpeningSchema>;
 export type RelicDef = z.infer<typeof RelicSchema>;
 export type RelicFamily = z.infer<typeof RelicFamilySchema>;
 export type RelicEffect = (typeof RELIC_EFFECTS)[number];
+export type SealedTrigger = z.infer<typeof SealedTriggerSchema>;
 export type GenericRanks = z.infer<typeof GenericRanksSchema>;
 export type GambitEffect = (typeof GAMBIT_EFFECTS)[number];
 export type ItemDef = z.infer<typeof ItemSchema>;

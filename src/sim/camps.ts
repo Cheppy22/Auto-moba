@@ -2,6 +2,7 @@ import { TPS } from './combat';
 import { pick, weightedPick } from './core/rng';
 import type { Ctx } from './ctx';
 import type { CampTypeDef, BiomeDef, Stats } from './content/schema';
+import { onCampCleared } from './relicsLive';
 import { giveGold } from './shop';
 import { addMod } from './stats';
 import { healUnit } from './combat';
@@ -155,6 +156,7 @@ export function onCampUnitDeath(ctx: Ctx, u: Unit, killer: Unit | null): void {
   slot.campIds[c.spot] = alive;
   if (alive.length > 0) return;
   slot.campRespawn[c.spot] = ctx.s.tick + Math.round(ctx.t.camps.respawnSec * TPS);
+  onCampCleared(ctx, hero);
   if (hero && hero.team !== 'neutral') {
     if (type.points > 0) {
       ctx.s.teams[hero.team].points += type.points;

@@ -132,10 +132,16 @@ export function Hand(props: { snap: Snapshot }) {
   const { snap } = props;
   const g = s.content.tuning.gambits;
   const expireTicks = g.expireSec * 20;
-  const refillTicks = g.refillSec * 20;
+  const refillTicks = snap.handRefillSec * 20;
   const aimSlot = s.ui.aim?.kind === 'gambit' ? s.ui.aim.slot : -1;
   return (
-    <div class="hand" data-testid="hand" role="group" aria-label="Gambit hand">
+    <div
+      class="hand"
+      data-testid="hand"
+      role="group"
+      aria-label="Gambit hand"
+      style={{ gridTemplateColumns: `repeat(${Math.max(1, snap.hand.length)}, minmax(0, 1fr))` }}
+    >
       {snap.hand.map((c) =>
         c.cardId === '' ? (
           <div class="gcard empty" key={c.slot} data-testid={`gambit-${c.slot}`} data-empty="true">
