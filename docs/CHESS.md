@@ -164,6 +164,28 @@ Owner-approved. The player is a commander: the decisions happen at setup and at 
 - **One calm lane.** Fight tags, falls and gambit lines share a cap of two at a time, newest wins; none appear while the bell has halted play.
 - **Report additions.** "Fights this Act: won 3, lost 2, even 1" with the biggest fight; "How your pieces fell" (causes per piece); the per-card Tempo tally. New coach callouts: "You lost every fight on the Right lane" (two or more decisive fights, none won), "You won every fight on …", and per piece with a cause twice or more: "Your Bishop died 3× out of position — consider moving it Mid" (the lane where White is strongest at the bell), burst, focused and outnumbered variants. A cause callout replaces the plain "died N×" one for that piece.
 
+## Combat spacing and AI judgement (2026-10-11)
+
+Owner reports: fights read as one blob; pieces chased into Bastions at low health, took 2v1s and did not run when hurt. Numbers are in `content/tuning.json` → `spacing` and `judgement`; code in `src/sim/spacing.ts`, `src/sim/ai/judgement.ts`, `src/sim/behavior.ts` and `src/sim/collision.ts`. All deterministic (no random draws).
+
+**Spacing**
+
+- **Attack slots.** Every tick, each attacker within reach of its target plus `approach` (90) gets its own slot on a ring around the target: melee attackers (reach up to `meleeMaxRange` 50) just inside their reach (`meleeInset` 5), ranged attackers at a **standoff** of `rangedFrac` (85%) of their reach. One team's attackers on one target form a fan with a gap between bodies (`meleeGap` 3, `rangedGap` 10), laid out in the order they stand around the target so nobody crosses it, centred between where they already are and their own base (`sideBias` 0.6). Two sides fighting each other form two facing lines. A slot inside a wall falls back to the attacker's own bearing. Attackers walk straight at a far target and into their slot near it; between blows a unit in reach eases into its slot (`driftSpeed` 0.6, if at least `driftMin` 3 away).
+- **Personal space.** While either of two teammates fights (has a target or was hit in the last 1.5 s), their bodies keep an extra margin (`combatSpace`: piece 3, pawn 2, pawnling 1.5).
+- **Knockback.** A piece's hit worth at least `knockback.minFrac` (8%) of the victim's max health nudges a piece, pawn or pawnling straight away from the attacker by `perFrac` × that share, at most `max` (6) units, only along a clear walkable line (never through walls). The `damage` event carries `kb` (the distance) when it happens.
+- **Path followers route around walls** back to their path (a pawnling pulled into the jungle by a chase used to get stuck on a cliff).
+
+**Judgement (pieces)**
+
+- **Retreat line by role** (`retreatHp`): King 20%, Queen 15%, Rook 12%, Bishop 22%, Knight 15% (+12 points when wary). Below it, with any enemy piece, structure in reach or stronger pawns near, a piece **breaks off** (flee) unless a kill is sure, walks home along its lane and hits back only at what is already in reach (a ranged piece kites). It turns back only once `retreatExitHp` (12 points) above the line, or when no enemy is near.
+- **Odds.** The local power ratio (allies vs enemies within the fight radius; pieces, pawns, pawnlings and structures, an enemy structure busy with pawns at `busyStructure` 35%) below `badOdds` (0.45) means flee, whatever the temperament: an even 2v1 is never taken. Exception: a **sure kill** (the target falls to the damage that can reach it within `finishSec`, 1.5 s).
+- **Flee hysteresis.** A flight lasts at least `fleeMinSec` (2 s) and ends only when the odds clear the hold line and the bad-odds line by `fleeExit` (×1.3). An outmatched piece that is not hurt (45% health or more) **falls back** to just behind its nearest own Bastion or Throne (goal `regroup`) instead of going home.
+- **Tower dives.** A piece never follows an enemy piece into enemy Bastion or Throne range (plus `diveMargin` 30), nor chases one that would reach that cover before it is caught, unless it has at least `diveHp` (60%) health, the structure is shooting a pawn or pawnling, and the kill is sure. Hunts skip a piece sheltering under its own structure.
+- **Running down the hurt.** A piece keeps chasing an enemy piece below `chaseHurtHp` (35%) up to `chaseHurt` (×1.8) its usual leash, dive rules still applying. Goal scoring treats enemy pieces that are recalling or walking home hurt as out of play (pushes and sieges start when they are away).
+- **Pacing.** Pieces now die much less often (about 33 deaths per match instead of 55), so the Throne has 5400 health (was 6800) and respawns are longer (14 s + 5 s per Act + 0.12 s per second into the Act, at most 70 s; was 10 / 4 / 0.1 / 60). Results in [BALANCE-2026-10-11.md](BALANCE-2026-10-11.md) "Combat spacing and AI judgement".
+- **Snapshot:** `SnapUnit.engage` (pieces: `fight`, `hold`, `flee`) so the view can mark a piece breaking off.
+- **Check:** `npm run combat-check -- --matches 200 --seed 29000` (`tools/combat-check.ts`) reports stuck units (wanting to move but standing still for more than 10 s outside combat and base), spacing (blob share, gap to the nearest teammate, melee attackers on their own side) and judgement (deaths in tower range, low-health fighting in tower range, causes, fight/flee flip-flops).
+
 ## Interface
 
 Mobile first (portrait 390×844, landscape 844×390, desktop). The 3D island stays; the HUD sits in the corners.
@@ -281,4 +303,4 @@ New events: `bell { stage, toll?, act }`, `rankUp { id, rank, bonus }`, `fork { 
 ## Map scale and spacing (2026-10-09)
 
 - The map is 1950 units across (×1.5 again on 2026-10-10). Lanes are 180 wide (half-width 90). Unit sizes are unchanged; `movement.speedMul` 1.5 keeps travel time about the same.
-- Units have body radii and push each other apart (`collision` in `content/tuning.json`; masses piece 3, pawn 2, pawnling 1, neutral 4). Bastions, Thrones, obelisks and the Keeper never move and push others out.
+- Units have body radii and push each other apart (`collision` in `content/tuning.json`; masses piece 3, pawn 2, pawnling 1, neutral 4). Bastions, Thrones, obelisks and the Keeper never move and push others out. Teammates in a fight keep extra personal space; see "Combat spacing and AI judgement".

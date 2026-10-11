@@ -50,7 +50,7 @@
 ### Draft and lanes
 
 - **14 heroes, each unique per match** (never two copies). **You pick first from all 14**, then choose a lane. The AI then fills both teams from the rest. Re-picking a hero the AI took swaps it out of the AI teams.
-- **Dispositions:** every hero is a **Farmer, Attacker or Defender**. A disposition tilts behavior (farmers favor camps and farming, attackers push and hunt, defenders guard towers); none is exclusive. Each hero also has a personality (reckless, cautious, opportunist, steadfast) that shapes retreat and fight thresholds.
+- **Dispositions:** every hero is a **Farmer, Attacker or Defender**. A disposition tilts behavior (farmers favor camps and farming, attackers push and hunt, defenders guard towers); none is exclusive. Each hero also has a personality (reckless, cautious, opportunist, steadfast) that shapes fight thresholds; the low-health retreat line is set per piece (chess branch: [CHESS.md](CHESS.md) "Combat spacing and AI judgement").
 - **Lanes:** 2 heroes in the Left lane, 2 in the Right lane, 1 in Mid. Mid goes to an attacker where possible; a pair gets different dispositions where possible. In a pair the first farmer is the jungler.
 - **Names:** the lanes are called Left, Mid and Right in every interface. (Internal ids are still `top`, `mid` and `bot`.)
 - **Hero codex:** on the title screen and in the draft, it explains each hero and their abilities.
@@ -134,6 +134,7 @@ Each hero re-plans about once per second and scores goals (farm lane, push tower
 - **Fight assessment:** a hero counts itself in the fight math. This is why farmers now join fights and allies rescue the ganked.
 - **Rescue:** heroes within about 900 units join a winnable fight and commit on arrival. Healers walk toward hurt allies. Rescues into Mid from other lanes are discounted so Mid doesn't swallow every fight.
 - **Healing:** a hero below 45% health with no enemy close recalls; hurt heroes avoid starting fights. The player's hero recalls too.
+- **Judgement (chess branch, 2026-10-11):** below its retreat line a piece breaks off and walks home (hits back only at what is in reach), never takes a fight at clearly bad odds (a 2v1 at even strength), never follows a target into enemy Bastion or Throne range unless healthy, the structure is busy with pawns and the kill is sure, and a flight lasts at least 2 s with a margin before it turns back. Outmatched but healthy pieces fall back to their nearest own structure instead of going home. Details in [CHESS.md](CHESS.md) "Combat spacing and AI judgement".
 - **Anti-feeding:**
   - Two deaths without a kill (or deaths minus kills of 3 or more) puts a hero in **wary mode**: no hunting, less pushing, more farming and defending, and a counter-item bought first.
   - Three deaths in a row **swaps lanes** with the best teammate.

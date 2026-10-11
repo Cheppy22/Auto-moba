@@ -947,6 +947,8 @@ export interface SnapUnit {
   attackKind: 'melee' | 'ranged' | null;
   recalling: boolean;
   goal: GoalKind | null;
+  /** Pieces: fighting, holding its ground, or fleeing (breaking off to retreat or fall back). */
+  engage?: 'fight' | 'hold' | 'flee';
   slot: number;
   range: number;
   claim: number;
