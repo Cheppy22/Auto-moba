@@ -25,4 +25,4 @@ export { PATHS, PIECE_IDS, RELIC_FAMILIES, SEALED_TRIGGERS } from './content/sch
 export { CUSTOM_BEHAVIORS } from './combat';
 export { hashContent } from './core/rng';
 export { buildTerrain, clearLine, confine, shapeDist, walkable } from './world/terrain';
-export type { BlockShape, OpenSlots, Terrain, WalkKind, WalkShape } from './world/terrain';
+export type { Terrain, WalkShape } from './world/terrain';

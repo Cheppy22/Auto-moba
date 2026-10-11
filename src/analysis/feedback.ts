@@ -25,9 +25,9 @@ export const pieceWord = (p: PieceId): string => PIECE[p];
 
 // ------------------------------------------------------------------ fights
 
-export type Verdict = 'won' | 'lost' | 'even';
+type Verdict = 'won' | 'lost' | 'even';
 
-export interface FightVerdict {
+interface FightVerdict {
   verdict: Verdict;
   /** Enemy pieces that fell. */
   won: number;
@@ -45,7 +45,7 @@ export const fightVerdict = (f: FightRecord, viewer: PlayTeam = 'A'): FightVerdi
 /** Whether a fight is worth a tag: at least one piece fell. */
 export const decisive = (f: FightRecord): boolean => f.lost.A + f.lost.B > 0;
 
-export function zoneName(zone: FightZone, viewer: PlayTeam = 'A'): string {
+function zoneName(zone: FightZone, viewer: PlayTeam = 'A'): string {
   switch (zone) {
     case 'top':
     case 'mid':
@@ -68,7 +68,7 @@ export function fightLine(f: FightRecord, viewer: PlayTeam = 'A'): string {
   return `${place} — ${v.verdict} ${v.won} for ${v.lost}`;
 }
 
-export interface FightSummary {
+interface FightSummary {
   won: number;
   lost: number;
   even: number;

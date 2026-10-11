@@ -20,7 +20,7 @@ export function courtName(team: string): string {
 }
 
 /** The base structure's display name: each side has a Throne. */
-export function throneName(team: string): string {
+function throneName(team: string): string {
   return team === 'A' ? 'White Throne' : team === 'B' ? 'Black Throne' : 'Throne';
 }
 
@@ -31,7 +31,7 @@ export function pieceName(team: string, piece: string): string {
   return `${courtName(team)} ${cap(piece)}`;
 }
 
-export function teamLabelCap(team: string, viewer: PlayTeam = 'A'): string {
+function teamLabelCap(team: string, viewer: PlayTeam = 'A'): string {
   return cap(teamLabel(team, viewer));
 }
 
@@ -99,7 +99,7 @@ export function structureText(
   return `${side} ${s.kind} fell`;
 }
 
-export function obeliskText(
+function obeliskText(
   o: Report['special']['obelisks'][number],
   c: Content,
   viewer: PlayTeam = 'A',
@@ -107,12 +107,12 @@ export function obeliskText(
   return `${teamLabelCap(o.team, viewer)} claimed the obelisk at ${slotName(o.node)}: ${obeliskRewardText(o.reward, o.value, c)}`;
 }
 
-export function biomeText(b: Report['special']['biomes'][number], c: Content): string {
+function biomeText(b: Report['special']['biomes'][number], c: Content): string {
   const name = c.biomeById.get(b.biome)?.name ?? b.biome.replace(/_/g, ' ');
   return `${name} opened in the ${slotName(b.slot)}`;
 }
 
-export interface EventLine {
+interface EventLine {
   tick: number;
   kind: 'structure' | 'biome' | 'pressure' | 'obelisk';
   text: string;

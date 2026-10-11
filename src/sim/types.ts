@@ -33,7 +33,7 @@ export type TeamId = 'A' | 'B' | 'neutral';
 export type PlayTeam = 'A' | 'B';
 export type UnitKind = 'hero' | 'minion' | 'tower' | 'guardian' | 'camp' | 'obelisk' | 'keeper';
 /** setup (White picks styles, paths and lanes) -> live (Acts run back to back) -> end (checkmate). */
-export type PhaseKind = 'setup' | 'live' | 'end';
+type PhaseKind = 'setup' | 'live' | 'end';
 
 export const other = (t: PlayTeam): PlayTeam => (t === 'A' ? 'B' : 'A');
 
@@ -47,12 +47,12 @@ export interface Modifier {
   expiresTick: number | null;
 }
 
-export interface ShieldInst {
+interface ShieldInst {
   amount: number;
   expiresTick: number;
 }
 
-export interface DotInst {
+interface DotInst {
   dtype: DamageType;
   dps: number;
   endTick: number;
@@ -82,7 +82,7 @@ export interface Goal {
   key: string;
 }
 
-export interface RecallState {
+interface RecallState {
   startTick: number;
   endTick: number;
   dest: 'base';
@@ -160,7 +160,7 @@ export type DeathCause = 'burst' | 'focus' | 'outOfPosition' | 'outnumbered' | '
 /** A lane, the jungle, or a Throne's grounds: where a fight happened. */
 export type FightZone = LaneId | 'jungle' | 'baseA' | 'baseB';
 
-export interface DamageHit {
+interface DamageHit {
   tick: number;
   src: number;
   kind: UnitKind;
@@ -177,7 +177,7 @@ export interface Fall {
   tick: number;
 }
 
-export interface CampState {
+interface CampState {
   slot: string;
   spot: number;
   typeId: string;
@@ -186,13 +186,13 @@ export interface CampState {
   biomeId: string;
 }
 
-export interface ObeliskState {
+interface ObeliskState {
   nodeId: string;
   claim: Record<PlayTeam, number>;
   expireTick: number;
 }
 
-export interface EventUnitState {
+interface EventUnitState {
   eventId: number;
   unitDef: string;
   mode: 'passive' | 'march' | 'boss';
@@ -226,12 +226,12 @@ export interface EventInst {
   tele: { x: number; y: number; endTick: number } | null;
 }
 
-export interface EventScheduleEntry {
+interface EventScheduleEntry {
   tick: number;
   defId: string;
 }
 
-export interface TowerState {
+interface TowerState {
   lane: LaneId;
   index: 0 | 1;
 }
@@ -280,7 +280,7 @@ export interface Unit {
   detour: { x: number; y: number; untilTick: number } | null;
 }
 
-export interface TeamState {
+interface TeamState {
   points: number;
   unlocks: string[];
   heroIds: number[];
@@ -300,13 +300,13 @@ export interface SlotState {
   mirrored: boolean;
 }
 
-export interface BidState {
+interface BidState {
   points: number;
   gold: number;
   goldBy: Record<number, number>;
 }
 
-export interface AuctionState {
+interface AuctionState {
   holyId: string;
   bids: Record<PlayTeam, BidState>;
   resolved: boolean;
@@ -323,13 +323,13 @@ export interface CurseOffer {
   accepted: boolean;
 }
 
-export interface KeeperState {
+interface KeeperState {
   unitId: number;
   spot: string;
   stock: string[];
 }
 
-export interface PhaseState {
+interface PhaseState {
   kind: PhaseKind;
   n: number;
   startTick: number;
@@ -465,7 +465,7 @@ export interface RelicRun {
   wall: Record<number, number>;
 }
 
-export interface RelicState {
+interface RelicState {
   run: RelicRun;
   held: Record<PlayTeam, HeldRelic[]>;
   /** The three cards of the draft that is open at the break (empty otherwise). */
@@ -571,7 +571,7 @@ export interface TeamSetup {
   pieces: SetupEntry[];
 }
 
-export interface HandSlot {
+interface HandSlot {
   cardId: string | null;
   /** Tick the held card expires (is replaced) when unplayed. */
   expireTick: number;
@@ -579,7 +579,7 @@ export interface HandSlot {
   refillTick: number | null;
 }
 
-export interface PendingFork {
+interface PendingFork {
   heroId: number;
   /** Rank 4 is the archetype choice, Rank 8 the style's two-option fork. */
   rank: 4 | 8;
@@ -604,13 +604,13 @@ export interface ZoneState {
 }
 
 /** A modifier that starts later (Queen's Gambit backlash). */
-export interface TimedMod {
+interface TimedMod {
   atTick: number;
   unitId: number;
   mod: Modifier;
 }
 
-export interface Blackboard {
+interface Blackboard {
   claims: Record<string, number>;
   plan: { tick: number; siege: boolean; lane: LaneId };
 }
@@ -800,7 +800,6 @@ export interface EventPayloads {
     goldB: number;
   };
   curseOffered: { hero: number; item: string; flawType: string };
-  shopVisit: { id: number; shop: string };
   curseAccepted: { hero: number; item: string; flaw: string };
   curseRefused: { hero: number; item: string };
   pressure: { event: string; name: string };
@@ -1011,7 +1010,7 @@ export interface Snapshot {
 }
 
 /** The relic draft as the sheet and the HUD see it (White's open offers; both sides' held relics). */
-export interface SnapRelics {
+interface SnapRelics {
   held: Record<PlayTeam, HeldRelic[]>;
   /** White's offers while the break draft is open. */
   offers: RelicOffer[];
@@ -1026,7 +1025,7 @@ export interface SnapRelics {
   pawnCap: number;
 }
 
-export interface SnapAct {
+interface SnapAct {
   n: number;
   /** Seconds left on the Act clock; 0 from the bell on. */
   remainingSec: number;
@@ -1039,7 +1038,7 @@ export interface SnapAct {
   report?: ActReport;
 }
 
-export type ZoneKind = 'sanctuary' | 'barricade' | 'outpost' | 'openFile';
+type ZoneKind = 'sanctuary' | 'barricade' | 'outpost' | 'openFile';
 
 export interface SnapZone {
   kind: ZoneKind;

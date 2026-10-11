@@ -8,7 +8,7 @@ export interface Pt {
   y: number;
 }
 
-export interface LaneGeo {
+interface LaneGeo {
   id: LaneId;
   pts: [number, number][];
   cum: number[];
@@ -206,7 +206,7 @@ export function buildWorld(map: MapDef): World {
 const START_SLACK = 140;
 
 /** Tells whether a straight walk from (x, y) to a node's position stays on walkable ground. */
-export type SeesNode = (nodeX: number, nodeY: number) => boolean;
+type SeesNode = (nodeX: number, nodeY: number) => boolean;
 
 function candidateNodes(
   world: World,
@@ -238,21 +238,6 @@ function candidateNodes(
     out.push(c);
   }
   return out.length ? out : candidateNodes(world, x, y, open);
-}
-
-export function nearestNode(world: World, x: number, y: number, open: ReadonlySet<string>): number {
-  let best = -1;
-  let bestD = Infinity;
-  for (let i = 0; i < world.nodes.length; i++) {
-    const n = world.nodes[i];
-    if (n.slot && !open.has(n.slot)) continue;
-    const d = dist(x, y, n.x, n.y);
-    if (d < bestD) {
-      bestD = d;
-      best = i;
-    }
-  }
-  return best;
 }
 
 export function findPath(

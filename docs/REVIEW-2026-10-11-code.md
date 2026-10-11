@@ -5,6 +5,7 @@
 | Phase        | Status | Check | Baseline        | Playwright (full suite) |
 | ------------ | ------ | ----- | --------------- | ----------------------- |
 | 0 Safety net | done   | pass  | 10/10 identical | pending                 |
+| 1 Dead code  | done   | pass  | 10/10 identical | pending                 |
 
 Branch `test-product-2` at `5627502`. Plan only: no source code was changed. Reviewer: Opus.
 

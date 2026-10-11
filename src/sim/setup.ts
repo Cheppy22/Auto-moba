@@ -8,7 +8,7 @@ import type { PlayTeam, SetupEntry, TeamSetup } from './types';
 const LANE_COUNT: Record<LaneId, number> = { top: 2, bot: 2, mid: 1 };
 const LANE_ORDER: LaneId[] = ['top', 'bot', 'mid'];
 
-export function naturalPath(p: PieceDef): Path {
+function naturalPath(p: PieceDef): Path {
   if (p.defaultPath) return p.defaultPath;
   if (p.disposition === 'defender') return 'defense';
   if (p.disposition === 'attacker') return 'offense';

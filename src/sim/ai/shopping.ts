@@ -7,7 +7,7 @@ import { other } from '../types';
 import { buildListOf, pieceDef } from '../pieces';
 
 /** The item build list of the piece's current build path (style lists override the piece's). */
-export function buildList(ctx: Ctx, u: Unit): string[] {
+function buildList(ctx: Ctx, u: Unit): string[] {
   return buildListOf(ctx.c, u.hero!);
 }
 
@@ -45,7 +45,7 @@ function adaptTarget(ctx: Ctx, u: Unit): string | null {
   return null;
 }
 
-export interface Purchase {
+interface Purchase {
   id: string;
   price: number;
 }

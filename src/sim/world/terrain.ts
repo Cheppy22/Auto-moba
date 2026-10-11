@@ -8,7 +8,7 @@ import type { Pt } from './map';
  * shops and their paths, and the Keeper's spots. The sim keeps every unit inside them; the 3D
  * view builds its cliffs and walls from the same shapes.
  */
-export type WalkKind = 'lane' | 'base' | 'slot' | 'port' | 'shop' | 'spot';
+type WalkKind = 'lane' | 'base' | 'slot' | 'port' | 'shop' | 'spot';
 
 export interface WalkShape {
   kind: WalkKind;
@@ -24,7 +24,7 @@ export interface WalkShape {
 }
 
 /** A capsule that units cannot enter: a Barricade wall (set by the sim while a gambit lasts). */
-export interface BlockShape {
+interface BlockShape {
   ax: number;
   ay: number;
   bx: number;
@@ -44,7 +44,7 @@ export interface Terrain {
 }
 
 /** Which jungle slots are open. A Set, or any object with `has`. */
-export interface OpenSlots {
+interface OpenSlots {
   has(id: string): boolean;
 }
 

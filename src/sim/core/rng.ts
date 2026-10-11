@@ -9,7 +9,7 @@ export const STREAMS = [
   'gambit',
   'relic',
 ] as const;
-export type StreamName = (typeof STREAMS)[number];
+type StreamName = (typeof STREAMS)[number];
 export type RngState = Record<StreamName, number>;
 
 function hashString(s: string): number {
@@ -34,15 +34,6 @@ export function rand(r: RngState, stream: StreamName): number {
   a = Math.imul(a ^ (a >>> 15), a | 1);
   a ^= a + Math.imul(a ^ (a >>> 7), a | 61);
   return ((a ^ (a >>> 14)) >>> 0) / 4294967296;
-}
-
-export function randInt(
-  r: RngState,
-  stream: StreamName,
-  min: number,
-  maxInclusive: number,
-): number {
-  return min + Math.floor(rand(r, stream) * (maxInclusive - min + 1));
 }
 
 export function pick<T>(r: RngState, stream: StreamName, arr: readonly T[]): T {

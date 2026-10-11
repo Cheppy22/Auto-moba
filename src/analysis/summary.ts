@@ -53,8 +53,6 @@ export interface PieceRow {
   /** Damage the piece did not take: armor, resist, damage-reduction effects and shields. */
   mitigated: number;
   healingDone: number;
-  /** Not recorded in the log (no shield events); always omitted for now. */
-  shielding?: number;
   /** Damage dealt to Bastions and Thrones. */
   objectiveDamage: number;
   /** Bastions and Thrones this piece landed the final blow on. */
@@ -74,7 +72,7 @@ export interface PieceRow {
   score: number;
 }
 
-export interface TeamSummary {
+interface TeamSummary {
   /** Enemy pieces killed by this team (pieces, Bastions and pawns count; jungle and unknown killers do not). */
   kills: number;
   deaths: number;
@@ -104,7 +102,7 @@ export interface TeamSummary {
   tempoOnPawns: number;
 }
 
-export interface MvpPick {
+interface MvpPick {
   row: PieceRow;
   /** Facts only, e.g. "Most damage, 3 Bastions, 4/1/6". */
   reason: string;
@@ -129,11 +127,11 @@ export interface Award {
   tick?: number;
 }
 
-export interface TickTotal {
+interface TickTotal {
   tick: number;
   total: number;
 }
-export interface TickCount {
+interface TickCount {
   tick: number;
   count: number;
 }
@@ -170,7 +168,7 @@ export interface TimelineEntry {
   label: string;
 }
 
-export interface SummaryObjectives {
+interface SummaryObjectives {
   /** Bastions that fell. `team` owns the Bastion; `by` is the team credited with the kill (null if unknown). */
   bastions: { team: PlayTeam; lane: string; index: number; tick: number; by: PlayTeam | null }[];
   /** Thrones that fell. `team` owns the Throne. */
@@ -206,7 +204,7 @@ export interface MatchSummary {
 }
 
 /** The MVP score of a row given match totals. Documented in docs by the weights above. */
-export function scoreRow(
+function scoreRow(
   r: Pick<
     PieceRow,
     'kills' | 'assists' | 'deaths' | 'damageDealt' | 'healingDone' | 'objectiveDamage'

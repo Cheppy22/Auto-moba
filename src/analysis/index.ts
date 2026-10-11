@@ -12,7 +12,6 @@ import { computeBadges, type BadgeAward } from './badges';
 import { deriveFights, type Fight } from './fights';
 import { PositionIndex } from './positions';
 
-export type { BadgeAward } from './badges';
 export type { Fight } from './fights';
 export { PositionIndex } from './positions';
 export * from './text';

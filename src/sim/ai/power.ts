@@ -14,7 +14,7 @@ export function unitEhp(u: Unit): number {
 
 const WEIGHT: Record<string, number> = { hero: 1, minion: 0.2, tower: 0.6, camp: 0, guardian: 0.6 };
 
-export interface Matchup {
+interface Matchup {
   ratio: number;
   allyHeroes: number;
   enemyHeroes: number;

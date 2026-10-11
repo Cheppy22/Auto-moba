@@ -1045,7 +1045,7 @@ function pawnLane(ctx: Ctx, team: PlayTeam): LaneId {
 }
 
 /** The Tempo heuristic: play the best-fitting card, otherwise field pawns from the surplus. */
-export function aiGambits(ctx: Ctx, team: PlayTeam): void {
+function aiGambits(ctx: Ctx, team: PlayTeam): void {
   const s = ctx.s;
   const hand = s.hands[team];
   let best: { slot: number; plan: Plan } | null = null;

@@ -144,7 +144,7 @@ function teamPlan(ctx: Ctx, team: PlayTeam): { siege: boolean; lane: LaneId } {
   return plan;
 }
 
-export function setGoal(ctx: Ctx, u: Unit, g: Goal): void {
+function setGoal(ctx: Ctx, u: Unit, g: Goal): void {
   const h = u.hero!;
   const old = h.goal;
   const board = ctx.s.board[u.team as PlayTeam];

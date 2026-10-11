@@ -1,4 +1,4 @@
-export interface Positioned {
+interface Positioned {
   x: number;
   y: number;
 }

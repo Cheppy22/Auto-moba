@@ -4,7 +4,7 @@ import { perksOf, pieceDef, styleDef } from './pieces';
 import { LANE_SPEED_TAG, relicMods } from './relics';
 import type { Modifier, Unit } from './types';
 
-export interface TrigInst {
+interface TrigInst {
   src: string;
   idx: number;
   def: TriggerDef;
@@ -16,7 +16,7 @@ export function triggersOf(u: Unit): TrigInst[] {
   return trigCache.get(u) ?? [];
 }
 
-export const STAT_FLOORS: Partial<Record<StatKey, number>> = {
+const STAT_FLOORS: Partial<Record<StatKey, number>> = {
   maxHp: 50,
   atkSpeed: 0.2,
   moveSpeed: 12,

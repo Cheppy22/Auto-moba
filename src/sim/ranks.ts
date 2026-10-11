@@ -86,7 +86,7 @@ const CUSTOM_AXIS: Record<string, 0 | 1 | 2> = {
 };
 
 /** A perk's contribution to each axis (the AI's fork choice; no randomness). */
-export function perkAxes(p: PerkDef, kit: AbilityDef[] = []): Axes {
+function perkAxes(p: PerkDef, kit: AbilityDef[] = []): Axes {
   const out: Axes = [0, 0, 0];
   if (p.ability !== undefined) {
     const ax = abilityAxes(kit[p.ability]);
@@ -104,14 +104,14 @@ export function perkAxes(p: PerkDef, kit: AbilityDef[] = []): Axes {
   return out;
 }
 
-export function perkScore(p: PerkDef, path: Path, kit: AbilityDef[] = []): number {
+function perkScore(p: PerkDef, path: Path, kit: AbilityDef[] = []): number {
   const ax = perkAxes(p, kit);
   const w = WEIGHTS[path];
   return ax[0] * w[0] + ax[1] * w[1] + ax[2] * w[2];
 }
 
 /** One choice on a fork sheet: a style at Rank 4, a perk at Rank 8. */
-export interface ForkChoice {
+interface ForkChoice {
   id: string;
   name: string;
   desc: string;
@@ -145,7 +145,7 @@ function styleAxes(st: StyleDef): Axes {
  * and what its team lacks (its teammates' chosen styles already cover), yet leaves every style a
  * real chance so all of them stay in use.
  */
-export function aiArchetypePick(ctx: Ctx, u: Unit): string {
+function aiArchetypePick(ctx: Ctx, u: Unit): string {
   const h = u.hero!;
   const styles = pieceDef(ctx.c, h).styles;
   const forced = ctx.s.forceStyles[u.team as PlayTeam][h.defId];

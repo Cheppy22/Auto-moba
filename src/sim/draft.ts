@@ -192,7 +192,7 @@ export function aimFor(
 }
 
 /** Whether a card may be sealed: the Opening's schools, or any school for the Italian Game. */
-export function sealable(ctx: Ctx, team: PlayTeam, card: string): boolean {
+function sealable(ctx: Ctx, team: PlayTeam, card: string): boolean {
   const g = ctx.c.gambitById.get(card);
   const schools = ctx.c.openingById.get(ctx.s.opening[team])?.schools ?? [];
   return !!g && g.weight > 0 && (schools.length === 0 || schools.includes(g.school));

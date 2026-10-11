@@ -62,9 +62,3 @@ export function teamPiece(ctx: Ctx, team: PlayTeam, piece: string): Unit | null 
   }
   return null;
 }
-
-const TEAM_NAME: Record<PlayTeam, string> = { A: 'White', B: 'Black' };
-
-export function teamName(team: PlayTeam): string {
-  return TEAM_NAME[team];
-}

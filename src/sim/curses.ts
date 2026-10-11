@@ -114,11 +114,7 @@ export function evaluateCurseOffers(ctx: Ctx): void {
   resolveCurse(ctx, offer, rand(ctx.s.rng, 'ai') < p);
 }
 
-export function pendingOffer(ctx: Ctx, heroId: number): CurseOffer | null {
-  return ctx.s.curseOffers.find((o) => o.heroId === heroId && !o.resolved) ?? null;
-}
-
-export function resolveCurse(ctx: Ctx, offer: CurseOffer, accept: boolean): void {
+function resolveCurse(ctx: Ctx, offer: CurseOffer, accept: boolean): void {
   offer.resolved = true;
   offer.accepted = accept;
   const u = ctx.unit(offer.heroId);
