@@ -163,6 +163,8 @@ export class Session {
   /** True once the intro portraits are drawn (while the player was on the setup screens). */
   private portraitsWarm = false;
   private prewarming = false;
+  /** The last running speed, which the Act clock's hold returns to. */
+  private runSpeed: Speed = 1;
   /** `?intro=off` skips the match intro (end-to-end tests). */
   private introOn = new URLSearchParams(window.location.search).get('intro') !== 'off';
   private seenSeq = -1;
@@ -271,7 +273,16 @@ export class Session {
   /** The speed chip: 1x, 2x, 4x, 8x, then paused, then 1x again. */
   cycleSpeed(): void {
     const i = SPEEDS.indexOf(this.ui.speed);
+    if (this.ui.speed > 0) this.runSpeed = this.ui.speed;
     this.setUi({ speed: SPEEDS[(i + 1) % SPEEDS.length] });
+  }
+
+  /** Holding the Act clock: pause, or run again at the speed it had (1x if it was never changed). */
+  togglePause(): void {
+    if (this.ui.speed > 0) {
+      this.runSpeed = this.ui.speed;
+      this.setUi({ speed: 0 });
+    } else this.setUi({ speed: this.runSpeed });
   }
 
   /** The camera button: Board, Auto, Follow (the followed piece, or the King), Free. */

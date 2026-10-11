@@ -1,8 +1,12 @@
+import { useEffect, useRef, useState } from 'preact/hooks';
 import type { CamMode } from '../../render/broadcast/types';
 import type { Snapshot } from '../../sim';
 import { courtName } from '../../analysis/text';
 import { clockSec } from '../format';
 import { useSession } from '../session';
+
+/** How long the Act clock is held (ms) to toggle pause; the ring fills over this time. */
+const CLOCK_HOLD_MS = 450;
 
 /** One chip for the run speed: 1x, 2x, 4x, 8x, then paused; tap to step to the next. */
 export function SpeedChip(props: { held: boolean }) {
@@ -111,10 +115,41 @@ export function ClockBlock(props: { snap: Snapshot; held: boolean; counts?: bool
   const s = useSession();
   const { snap, counts } = props;
   const fx = clockFx(s, snap.act);
+  // a long press on the clock toggles pause like the Pause button; a ring fills while it is held
+  const [holding, setHolding] = useState(false);
+  const timer = useRef(0);
+  const stop = (): void => {
+    window.clearTimeout(timer.current);
+    setHolding(false);
+  };
+  const start = (): void => {
+    window.clearTimeout(timer.current);
+    setHolding(true);
+    timer.current = window.setTimeout(() => {
+      setHolding(false);
+      s.togglePause();
+    }, CLOCK_HOLD_MS);
+  };
+  useEffect(() => () => window.clearTimeout(timer.current), []);
   return (
     <div class="clock" data-testid="score">
       <Side team="A" snap={snap} counts={counts} />
-      <div class="clockface" data-held={props.held} data-bell={snap.act.bell} data-fx={fx.fx}>
+      <div
+        class="clockface"
+        data-held={props.held}
+        data-bell={snap.act.bell}
+        data-fx={fx.fx}
+        data-holding={holding}
+        title="Hold to pause or resume"
+        onPointerDown={start}
+        onPointerUp={stop}
+        onPointerLeave={stop}
+        onPointerCancel={stop}
+        onContextMenu={(e) => e.preventDefault()}
+      >
+        <svg class="hold-ring" aria-hidden="true">
+          <rect x="1" y="1" rx="7" ry="7" pathLength="1" />
+        </svg>
         <b data-testid="phase">Act {snap.act.n}</b>
         <span key={fx.key} data-testid="clock" data-fx={fx.fx} style={{ '--k': fx.k }}>
           {clockSec(snap.act.remainingSec)}

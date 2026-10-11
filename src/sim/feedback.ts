@@ -9,6 +9,7 @@ import type {
   FightRecord,
   FightZone,
   LaneId,
+  LaneNow,
   OpenFight,
   PieceId,
   PlayTeam,
@@ -42,6 +43,44 @@ function zoneAt(ctx: Ctx, x: number, y: number): FightZone {
     if (dist(x, y, b.x, b.y) <= f.baseRadius) return team === 'A' ? 'baseA' : 'baseB';
   }
   return laneAt(ctx, x, y, f.laneRadius) ?? 'jungle';
+}
+
+// ------------------------------------------------------------------ read-outs for the HUD
+
+/** Goals that mean "going to (or holding) a lane". */
+const LANE_GOALS: readonly string[] = ['farmLane', 'pushTower', 'defendTower', 'joinFight'];
+
+/**
+ * True when the piece dealt damage to, or took damage from, an enemy piece in the last 1.5 s.
+ * Pawnlings, pawns, camps and structures do not count (unlike `inCombat`). Read-only.
+ */
+export function inDuel(ctx: Ctx, u: Unit): boolean {
+  const h = u.hero;
+  if (!h || !u.alive) return false;
+  const tick = ctx.s.tick;
+  const window = Math.round(1.5 * TPS); // same window as `inCombat`
+  if (h.attackers.some((a) => tick - a.tick <= window)) return true;
+  for (const id of ctx.s.teams[other(u.team as PlayTeam)].heroIds) {
+    const e = ctx.unit(id)?.hero;
+    if (e?.attackers.some((a) => a.id === u.id && tick - a.tick <= window)) return true;
+  }
+  return false;
+}
+
+/**
+ * Where a piece is for its tile's lane tag: its base when it sits at home or is recalling or
+ * headed there; the lane it stands in; in the jungle, the lane it is heading to if its goal is a
+ * lane job, else the jungle. Read-only, from position and goal.
+ */
+export function laneNow(ctx: Ctx, u: Unit): LaneNow {
+  const h = u.hero!;
+  const zone = zoneAt(ctx, u.x, u.y);
+  if (zone === 'baseA' || zone === 'baseB') return 'base';
+  if (h.recall || h.goal?.kind === 'recall' || h.goal?.kind === 'base') return 'base';
+  if (zone !== 'jungle') return zone;
+  if (h.goal && LANE_GOALS.includes(h.goal.kind))
+    return laneAt(ctx, h.goal.x, h.goal.y, ctx.t.feedback.fight.laneRadius) ?? 'jungle';
+  return 'jungle';
 }
 
 // ------------------------------------------------------------------ damage history

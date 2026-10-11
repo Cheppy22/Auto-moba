@@ -160,6 +160,9 @@ export type DeathCause = 'burst' | 'focus' | 'outOfPosition' | 'outnumbered' | '
 /** A lane, the jungle, or a Throne's grounds: where a fight happened. */
 export type FightZone = LaneId | 'jungle' | 'baseA' | 'baseB';
 
+/** Where a piece is for the HUD's lane tag: a lane, the jungle, or at or on its way to base. */
+export type LaneNow = LaneId | 'jungle' | 'base';
+
 interface DamageHit {
   tick: number;
   src: number;
@@ -953,8 +956,15 @@ export interface SnapUnit {
   curse: boolean;
   target: number | null;
   flash: boolean;
-  /** Dealt or took damage within the last 1.5 s (a piece's roster portrait flashes while true). */
+  /** Dealt or took damage within the last 1.5 s (the bell's calm test). */
   inCombat: boolean;
+  /**
+   * Pieces only: dealt damage to, or took damage from, an enemy piece within the last 1.5 s (not
+   * pawnlings, pawns, camps or structures). The roster's red combat flash follows this.
+   */
+  inDuel?: boolean;
+  /** Pieces only: the lane the piece is in or heading to, the jungle, or its base (home or recalling). */
+  laneNow?: LaneNow;
 }
 
 export interface Snapshot {

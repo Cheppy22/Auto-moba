@@ -29,7 +29,8 @@ const VARIANTS: { name: string; cfg: Partial<MatchConfig> }[] = [
 
 /**
  * The state and snapshot hashes ignore `auction` (state) and `holy` (snapshot units): both are
- * removed in cleanup Phase 2, and nothing else may change. The log hash covers every event.
+ * removed in cleanup Phase 2, and nothing else may change. The snapshot hash also skips the
+ * pieces' `inDuel` and `laneNow` read-outs, which are new and change nothing. The log hash covers every event.
  */
 function withoutKeys(value: unknown, drop: (copy: Record<string, unknown>) => void): unknown {
   const copy = JSON.parse(JSON.stringify(value)) as Record<string, unknown>;
@@ -42,7 +43,12 @@ const coreState = (state: unknown): unknown =>
   });
 const coreSnapshot = (snap: unknown): unknown =>
   withoutKeys(snap, (c) => {
-    for (const u of c.units as Record<string, unknown>[]) delete u.holy;
+    for (const u of c.units as Record<string, unknown>[]) {
+      delete u.holy;
+      // read-outs added for the HUD (2026-10-11): they only read position and combat data
+      delete u.inDuel;
+      delete u.laneNow;
+    }
   });
 
 const content = loadNodeContent();

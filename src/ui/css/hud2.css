@@ -792,3 +792,29 @@ html[data-layout='desktop'] .hud.v2 {
   translate: 14px 0;
   background: var(--brass-hi);
 }
+
+/* Black's token: the lane tag sits bottom-left, where the rank badge sits bottom-right */
+.btoken-lane {
+  position: absolute;
+  left: calc(3px * var(--u));
+  bottom: calc(3px * var(--u));
+  display: grid;
+  place-items: center;
+  min-width: calc(14px * var(--u));
+  height: calc(14px * var(--u));
+  padding: 0 2px;
+  font-style: normal;
+  font-size: calc(10px * var(--u));
+  font-weight: 700;
+  line-height: 1;
+  color: var(--b-trim);
+  background: #14110e;
+  border: 1px solid #6f7a8e;
+  border-radius: 3px;
+}
+.btoken.down .btoken-lane {
+  opacity: 0.6;
+}
+.lane-home {
+  display: block;
+}
