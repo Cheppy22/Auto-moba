@@ -4,7 +4,7 @@ import { aimRelic, autoRelic, declineRelic, draftOpen, pickRelic } from './draft
 import type { Ctx } from './ctx';
 import { playGambit } from './gambits';
 import { fieldPawn } from './pawns';
-import { setPawnPlan } from './pawnPlan';
+import { setPawnAuto, setPawnPlan } from './pawnPlan';
 import { formationError } from './relics';
 import { autoForks, chooseFork } from './ranks';
 import { assignJunglers, validateSetup } from './setup';
@@ -77,6 +77,8 @@ function run(ctx: Ctx, cmd: Command, startMatch: StartMatchFn): CommandResult {
       return fieldPawn(ctx, 'A', cmd.lane);
     case 'setPawnPlan':
       return setPawnPlan(ctx, cmd.quota);
+    case 'setPawnAuto':
+      return setPawnAuto(ctx, cmd.auto);
     case 'setLane': {
       const u = whitePiece(ctx, cmd.heroId);
       if (!u) return { ok: false, reason: 'not one of your pieces' };

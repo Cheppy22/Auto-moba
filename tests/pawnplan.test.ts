@@ -58,4 +58,21 @@ describe("White's standing pawn plan", () => {
     expect(pawnsIn(m, 'bot')).toBe(1);
     expect(pawnsIn(m, 'mid')).toBe(0);
   });
+
+  it('has an auto switch: off fields nothing and keeps the counts, on resumes', () => {
+    const m = liveMatch(5, { autoGambits: { A: false, B: true } });
+    m.issue({ type: 'setPawnPlan', quota: { top: 0, mid: 2, bot: 0 } });
+    expect(m.snapshot().pawnPlan?.auto).toBe(true);
+    expect(m.issue({ type: 'setPawnAuto', auto: false }).ok).toBe(true);
+    // changing the counts while it is off does not switch it back on
+    m.issue({ type: 'setPawnPlan', quota: { top: 0, mid: 3, bot: 0 } });
+    expect(m.snapshot().pawnPlan).toMatchObject({ auto: false, quota: { mid: 3 } });
+    m.state.tempo.A = 100;
+    m.step(TPS * 3);
+    expect(pawnsIn(m, 'mid')).toBe(0);
+    m.issue({ type: 'setPawnAuto', auto: true });
+    m.state.tempo.A = 100;
+    m.step(TPS * 3);
+    expect(pawnsIn(m, 'mid')).toBe(3);
+  });
 });

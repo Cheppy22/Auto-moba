@@ -117,7 +117,7 @@ export function CourtLayout(props: {
         </div>
         <div class="v2-black">
           <span class="v2-label">Black</span>
-          <BlackCourt />
+          <BlackCourt snap={snap} />
           <RelicRow team="B" snap={snap} />
         </div>
       </div>

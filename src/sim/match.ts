@@ -20,7 +20,7 @@ import { bannerZones, freshRelicRun, tickRelics } from './relicsLive';
 import { actTicks, enterAct } from './phase';
 import { bellTimeScale, frozen, freshBell, tickBell } from './bell';
 import { freshTally } from './actReport';
-import { freshFeedback, laneMomentum, tickFights } from './feedback';
+import { freshFeedback, inDuel, laneMomentum, laneNow, tickFights } from './feedback';
 import { tickRuns } from './impact';
 import { tickSpiritTide } from './pressure';
 import { forkOptions, tickForks } from './ranks';
@@ -420,6 +420,7 @@ export class Match {
         curse,
         target: u.targetId,
         inCombat: inCombat(s.tick, u),
+        ...(h ? { inDuel: inDuel(this.ctx, u), laneNow: laneNow(this.ctx, u) } : {}),
         flash: u.atkCd >= Math.max(1, Math.round(TPS / Math.max(0.2, u.stats.atkSpeed))) - 2,
       });
     }
@@ -493,7 +494,13 @@ export class Match {
       hand,
       pawns: { A: pawnsOf('A'), B: pawnsOf('B') },
       ...(s.pawnPlan
-        ? { pawnPlan: { quota: { ...s.pawnPlan.quota }, reserve: s.pawnPlan.reserve } }
+        ? {
+            pawnPlan: {
+              quota: { ...s.pawnPlan.quota },
+              reserve: s.pawnPlan.reserve,
+              auto: s.pawnPlan.auto,
+            },
+          }
         : {}),
       forks: s.forks
         .filter((f) => this.ctx.unit(f.heroId)?.team === 'A')

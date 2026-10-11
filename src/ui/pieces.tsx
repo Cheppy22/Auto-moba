@@ -1,4 +1,4 @@
-import type { Content, LaneId, Path, PieceId } from '../sim';
+import type { Content, LaneId, LaneNow, Path, PieceId } from '../sim';
 import { styleEmblem, styleEmblemDescriptor } from '../render/emblems';
 import { PALETTE } from '../render/theme';
 
@@ -8,6 +8,32 @@ export const PIECE_ORDER: PieceId[] = ['king', 'queen', 'rook', 'bishop', 'knigh
 
 export const LANE_LABEL: Record<LaneId, string> = { top: 'Left', mid: 'Mid', bot: 'Right' };
 export const LANE_TAG: Record<LaneId, string> = { top: 'L', mid: 'M', bot: 'R' };
+
+/** What a tile's lane tag says: Act 1 the assigned lane; from Act 2 where the piece is or is heading. */
+export function shownLane(
+  act: number,
+  alive: boolean,
+  assigned: LaneId,
+  now: LaneNow | undefined,
+): LaneNow {
+  return act >= 2 && alive && now ? now : assigned;
+}
+export const LANE_NOW_LABEL: Record<LaneNow, string> = {
+  ...LANE_LABEL,
+  jungle: 'Jungle',
+  base: 'At base',
+};
+/** The tag's mark: L, M or R for a lane, J for the jungle, a little house for base. */
+export function LaneMark(props: { at: LaneNow }) {
+  const { at } = props;
+  if (at === 'base')
+    return (
+      <svg width="9" height="9" viewBox="0 0 10 10" aria-hidden="true" class="lane-home">
+        <path d="M1 5 5 1l4 4v4H6.2V6H3.8v3H1z" fill="currentColor" />
+      </svg>
+    );
+  return <>{at === 'jungle' ? 'J' : LANE_TAG[at]}</>;
+}
 export const LANE_SLOTS: Record<LaneId, number> = { top: 2, mid: 1, bot: 2 };
 export const LANES: LaneId[] = ['top', 'mid', 'bot'];
 

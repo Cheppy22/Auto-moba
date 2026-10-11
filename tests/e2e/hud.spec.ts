@@ -13,7 +13,7 @@ interface Page2 {
         team: string;
         piece: string | null;
         lane: string | null;
-        inCombat: boolean;
+        inDuel?: boolean;
       }[];
     };
     issue(cmd: Record<string, unknown>): { ok: boolean };
@@ -112,13 +112,13 @@ test('the roster lane tag follows setLane and flashes; fighting pieces flash red
   await expect(tag).not.toHaveClass(/changed/, { timeout: 8_000 });
   await expect(king).toHaveAttribute('data-lane', to);
 
-  // run the sim until some White piece is in a fight: its portrait gets the red ring
+  // run the sim until some White piece is in a duel with an enemy piece: its portrait gets the red ring
   const fighting = await page.evaluate(() => {
     const s = (window as unknown as { __session: Page2 }).__session;
     for (let i = 0; i < 1500; i++) {
       s.match.step(20);
       if (s.match.state.forks.length > 0) s.match.issue({ type: 'autoForks' });
-      const hit = s.match.snapshot().units.find((u) => u.team === 'A' && u.piece && u.inCombat);
+      const hit = s.match.snapshot().units.find((u) => u.team === 'A' && u.piece && u.inDuel);
       if (hit) {
         s.notify();
         return hit.piece;

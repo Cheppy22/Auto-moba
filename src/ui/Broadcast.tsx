@@ -57,7 +57,6 @@ export function Broadcast() {
         } catch (err) {
           const noGl = err instanceof Error && err.message === 'WebGL is not available';
           if (!noGl) console.error('The 3D view failed to start', err);
-          s.viewFailed = true;
           setFailed(noGl ? 'webgl' : 'error');
           return;
         }
@@ -151,7 +150,6 @@ export function Broadcast() {
       })
       .catch((err) => {
         console.error('The 3D view failed to load', err);
-        s.viewFailed = true;
         if (!dead) setFailed('error');
       });
     return () => {

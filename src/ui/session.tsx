@@ -23,8 +23,8 @@ import {
   laneNear,
 } from '../analysis/feedback';
 import { mmss } from './format';
-import { phaseAt, type IntroPiece, type IntroState } from './intro';
-import { cap, pieceLabel } from './pieces';
+import { introOutMs, type IntroPiece, type IntroState } from './intro';
+import { cap, PIECE_ORDER, pieceLabel } from './pieces';
 import { play } from './sound';
 
 export type Speed = 0 | 1 | 2 | 4 | 8;
@@ -137,8 +137,6 @@ const NOTE_MS = 3200;
 const BLACK_PLAY_MS = 3000;
 /** Banners waiting behind the visible one; at fast speeds the oldest are dropped. */
 const MAX_BLACK_QUEUE = 3;
-/** The longest the intro waits for the 3D view's first frame (a slow phone builds the scene for a while). */
-const VIEW_WAIT_MS = 15000;
 /** Size (px) of the intro's piece portraits: twice what the card shows, so they stay sharp on a phone. */
 const PORTRAIT_PX = 192;
 /** The run speeds the chip cycles through; 0 is paused. */
@@ -155,8 +153,6 @@ export class Session {
   version = 0;
   alpha = 1;
   view: PickView | null = null;
-  /** The 3D view could not start (no WebGL): the intro has nothing to wait for. */
-  viewFailed = false;
   /** The sim's step-rate multiplier this frame (1, easing to 0 across the bell's halt). */
   timeScale = 1;
   private lastLeft: number | null = null;
@@ -164,9 +160,11 @@ export class Session {
   private noteId = 0;
   private blackQueue: { school: School; text: string }[] = [];
   private blackId = 0;
-  private introAt = 0;
-  /** The intro's clock runs only once the 3D view has drawn its first frame. */
-  private introArmed = false;
+  /** True once the intro portraits are drawn (while the player was on the setup screens). */
+  private portraitsWarm = false;
+  private prewarming = false;
+  /** The last running speed, which the Act clock's hold returns to. */
+  private runSpeed: Speed = 1;
   /** `?intro=off` skips the match intro (end-to-end tests). */
   private introOn = new URLSearchParams(window.location.search).get('intro') !== 'off';
   private seenSeq = -1;
@@ -260,7 +258,6 @@ export class Session {
   }
 
   reset(): void {
-    this.viewFailed = false;
     this.match = null;
     this.forkCam = null;
     this.blackQueue = [];
@@ -276,7 +273,16 @@ export class Session {
   /** The speed chip: 1x, 2x, 4x, 8x, then paused, then 1x again. */
   cycleSpeed(): void {
     const i = SPEEDS.indexOf(this.ui.speed);
+    if (this.ui.speed > 0) this.runSpeed = this.ui.speed;
     this.setUi({ speed: SPEEDS[(i + 1) % SPEEDS.length] });
+  }
+
+  /** Holding the Act clock: pause, or run again at the speed it had (1x if it was never changed). */
+  togglePause(): void {
+    if (this.ui.speed > 0) {
+      this.runSpeed = this.ui.speed;
+      this.setUi({ speed: 0 });
+    } else this.setUi({ speed: this.runSpeed });
   }
 
   /** The camera button: Board, Auto, Follow (the followed piece, or the King), Free. */
@@ -338,7 +344,43 @@ export class Session {
 
   // ------------------------------------------------------------ match intro
 
-  /** After Begin: the versus card shows over the dimmed board while the sim waits (not for `?intro=off`). */
+  /**
+   * Draws the intro portraits in the background while the player is on the setup screens, so the
+   * versus card has them the moment Begin is pressed. They are generic per piece and team (no
+   * style, no Opening), so nothing the player picks changes them. White's five first, then
+   * Black's, each in its own task so the setup screen stays responsive between them.
+   */
+  prewarmPortraits(): void {
+    if (this.portraitsWarm || this.prewarming) return;
+    this.prewarming = true;
+    const draw = (team: 'A' | 'B', next: (() => void) | null): void => {
+      setTimeout(() => {
+        import('../render/portraits')
+          .then(({ renderPortraits }) => {
+            renderPortraits(
+              PIECE_ORDER.map((piece) => ({ piece, team })),
+              PORTRAIT_PX,
+            );
+          })
+          .catch((err) => console.error('The intro portraits failed to load', err))
+          .finally(() => {
+            if (next) next();
+            else {
+              this.prewarming = false;
+              this.portraitsWarm = true;
+            }
+          });
+      }, 250);
+    };
+    draw('A', () => draw('B', null));
+  }
+
+  /**
+   * After Begin: the versus card shows at once over the dimmed board and holds (the sim waits)
+   * until the player starts the match (not for `?intro=off`). It shows a glyph where a portrait is
+   * not drawn yet and swaps the portrait in when it arrives; normally the setup screens have drawn
+   * them already.
+   */
   private startIntro(): void {
     const m = this.match;
     if (!this.introOn || !m || m.state.phase.kind !== 'live') return;
@@ -346,69 +388,59 @@ export class Session {
     for (const u of m.snapshot().units)
       if (u.piece && u.lane && (u.team === 'A' || u.team === 'B'))
         pieces.push({ id: u.id, team: u.team, piece: u.piece, lane: u.lane });
-    this.introAt = performance.now();
-    this.introArmed = false;
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     this.ui = {
       ...this.ui,
       intro: {
         startedAt: performance.now(),
         reduced,
-        phase: 'wait',
+        phase: 'show',
+        outAt: null,
         pieces,
         portraits: null,
-        portraitsDone: false,
       },
       aim: null,
       card: null,
       info: null,
     };
-    // each piece's portrait is its own 3D model, drawn once offscreen by the render layer
+    // each piece's portrait is its own 3D model, drawn once offscreen by the render layer; cached,
+    // so after the setup prewarm this returns at once. Otherwise draw after the card has painted.
     const done = (portraits: ReadonlyMap<string, string> | null): void => {
       const intro = this.ui.intro;
-      if (intro?.pieces === pieces)
-        this.setUi({ intro: { ...intro, portraits, portraitsDone: true } });
+      if (intro?.pieces === pieces) this.setUi({ intro: { ...intro, portraits } });
     };
-    import('../render/portraits')
-      .then(({ renderPortraits }) => {
-        const drawn = renderPortraits(
-          pieces.map(({ piece, team }) => ({ piece, team })),
-          PORTRAIT_PX,
-        );
-        done(drawn.size > 0 ? drawn : null);
-      })
-      .catch((err) => {
-        console.error('The intro portraits failed to load', err);
-        done(null);
-      });
+    const keys = pieces.map(({ piece, team }) => ({ piece, team }));
+    const draw = (): void => {
+      import('../render/portraits')
+        .then(({ renderPortraits }) => {
+          const drawn = renderPortraits(keys, PORTRAIT_PX);
+          this.portraitsWarm = true;
+          done(drawn.size > 0 ? drawn : null);
+        })
+        .catch((err) => {
+          console.error('The intro portraits failed to load', err);
+          done(null);
+        });
+    };
+    if (this.portraitsWarm) draw();
+    else setTimeout(draw, 120);
   }
 
-  /**
-   * Moves the intro on to its dissolve, or ends it. Called every frame. Its clock starts when the
-   * 3D view has drawn its first frame (the scene can take seconds to build on a slow phone) and
-   * the portraits are drawn, or after `VIEW_WAIT_MS`, or at once when the view cannot start.
-   */
+  /** The player starts the match from the card (tap, Begin, Enter, Space, Escape): it dissolves, then play begins. */
+  startFromIntro(): void {
+    const intro = this.ui.intro;
+    if (!intro || intro.phase === 'out') return;
+    this.setUi({ intro: { ...intro, phase: 'out', outAt: performance.now() } });
+  }
+
+  /** Ends the intro once its dissolve is done. Called every frame; the card never ends by itself otherwise. */
   syncIntro(): void {
     const intro = this.ui.intro;
-    if (!intro) return;
-    const now = performance.now();
-    if (!this.introArmed) {
-      const ready = (this.viewFailed || (this.view?.framesDrawn ?? 0) > 0) && intro.portraitsDone;
-      if (!ready && now - this.introAt < VIEW_WAIT_MS) {
-        intro.startedAt = now;
-        return;
-      }
-      this.introArmed = true;
-      intro.startedAt = now;
-      this.setUi({ intro: { ...intro, phase: 'show' } });
-      return;
-    }
-    const phase = phaseAt(now - intro.startedAt, intro.reduced);
-    if (!phase) this.skipIntro();
-    else if (phase !== intro.phase) this.setUi({ intro: { ...intro, phase } });
+    if (intro?.outAt != null && performance.now() - intro.outAt >= introOutMs(intro.reduced))
+      this.skipIntro();
   }
 
-  /** Ends the intro now (tap, Skip, Escape): play begins and the Act banner shows. */
+  /** Ends the intro now: play begins and the Act banner shows. */
   skipIntro(): void {
     if (!this.ui.intro) return;
     const act = this.match?.snapshot().act.n;

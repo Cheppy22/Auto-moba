@@ -4,12 +4,13 @@ import { causeWord, fallPhrase } from '../../analysis/feedback';
 import { HpRing } from '../Ornament';
 import { mmss } from '../format';
 import {
-  LANE_TAG,
-  LANE_LABEL,
+  LANE_NOW_LABEL,
+  LaneMark,
   PIECE_ORDER,
   PieceGlyph,
   StyleBadge,
   pieceLabel,
+  shownLane,
   styleLabel,
 } from '../pieces';
 import { longPress, longPressed } from '../press';
@@ -55,12 +56,16 @@ export function Roster(props: {
         const frac = u.alive ? u.hp / u.stats.maxHp : 0;
         const hurt = u.alive && frac < 0.35;
         const su = props.snap.units.find((x) => x.id === u.id);
-        const inCombat = u.alive && !!su?.inCombat;
-        const lane = su?.lane ?? h.lane ?? 'mid';
+        // the red flash is a fight with an enemy piece, not pawnlings, camps or structures
+        const inCombat = u.alive && !!su?.inDuel;
+        const assigned = su?.lane ?? h.lane ?? 'mid';
+        // Act 1 shows the assigned lane; later the lane the piece is in or heading to
+        const lane = shownLane(props.snap.act.n, u.alive, assigned, su?.laneNow);
         const seen = lanes.current.get(u.id);
-        if (!seen) lanes.current.set(u.id, { lane, at: -Infinity });
-        else if (seen.lane !== lane) {
-          seen.lane = lane;
+        // the tag flashes when the lane is re-assigned (Orders, Adjourn), not as the piece walks
+        if (!seen) lanes.current.set(u.id, { lane: assigned, at: -Infinity });
+        else if (seen.lane !== assigned) {
+          seen.lane = assigned;
           seen.at = performance.now();
         }
         const laneAt = lanes.current.get(u.id)!.at;
@@ -80,11 +85,12 @@ export function Roster(props: {
             key={u.id}
             class={`roster-cell pick ${team} ${followed ? 'followed' : ''} ${open ? 'open' : ''} ${u.alive ? '' : 'down'} ${pending ? 'pending' : ''} ${hurt ? 'hurt' : ''} ${inCombat ? 'combat' : ''}`}
             data-combat={inCombat}
-            data-lane={lane}
+            data-lane={assigned}
+            data-lane-now={lane}
             data-testid={`roster-${team}-${h.defId}`}
             data-rank={h.rank}
             data-style={h.style}
-            aria-label={`${team === 'A' ? 'White' : 'Black'} ${name}${style ? `, ${style}` : ''}, rank ${h.rank}, ${LANE_LABEL[lane]}${u.alive ? '' : ', down'}`}
+            aria-label={`${team === 'A' ? 'White' : 'Black'} ${name}${style ? `, ${style}` : ''}, rank ${h.rank}, ${LANE_NOW_LABEL[lane]}${u.alive ? '' : ', down'}`}
             aria-expanded={open}
             title={`${name}${style ? ` · ${style}` : ''} · Rank ${h.rank}.${fall ? ` Fell: ${fallPhrase(fall)}.` : ''} Tap to follow, tap again or hold for details.`}
             onClick={tap}
@@ -108,7 +114,7 @@ export function Roster(props: {
                 key={laneChanged ? laneAt : 'steady'}
                 aria-hidden="true"
               >
-                {LANE_TAG[lane]}
+                <LaneMark at={lane} />
               </i>
               {!u.alive && (
                 <span class="respawn" data-testid="respawn">

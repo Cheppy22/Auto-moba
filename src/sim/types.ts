@@ -160,6 +160,9 @@ export type DeathCause = 'burst' | 'focus' | 'outOfPosition' | 'outnumbered' | '
 /** A lane, the jungle, or a Throne's grounds: where a fight happened. */
 export type FightZone = LaneId | 'jungle' | 'baseA' | 'baseB';
 
+/** Where a piece is for the HUD's lane tag: a lane, the jungle, or at or on its way to base. */
+export type LaneNow = LaneId | 'jungle' | 'base';
+
 interface DamageHit {
   tick: number;
   src: number;
@@ -414,6 +417,8 @@ export interface PawnPlan {
   quota: PawnQuota;
   /** Tempo kept back so gambits stay playable. */
   reserve: number;
+  /** Auto fielding on or off (a toggle for the match); off keeps the counts but fields nothing. */
+  auto: boolean;
 }
 
 /** A relic held for the rest of the match, with what it is aimed at. */
@@ -857,6 +862,8 @@ export type Command =
   | { type: 'fieldPawn'; lane: LaneId }
   /** White's standing pawn plan: pawns to keep fielded per lane (total within the cap). */
   | { type: 'setPawnPlan'; quota: PawnQuota }
+  /** Turns White's automatic pawn fielding (the standing plan) on or off; the counts are kept. */
+  | { type: 'setPawnAuto'; auto: boolean }
   /** Leaves the Act break sheet and starts the next Act (after a relic is taken). */
   | { type: 'resumeAct' }
   /** Takes one of the break's offered relics, aimed; with three held, `replace` names the one it replaces. */
@@ -949,8 +956,15 @@ export interface SnapUnit {
   curse: boolean;
   target: number | null;
   flash: boolean;
-  /** Dealt or took damage within the last 1.5 s (a piece's roster portrait flashes while true). */
+  /** Dealt or took damage within the last 1.5 s (the bell's calm test). */
   inCombat: boolean;
+  /**
+   * Pieces only: dealt damage to, or took damage from, an enemy piece within the last 1.5 s (not
+   * pawnlings, pawns, camps or structures). The roster's red combat flash follows this.
+   */
+  inDuel?: boolean;
+  /** Pieces only: the lane the piece is in or heading to, the jungle, or its base (home or recalling). */
+  laneNow?: LaneNow;
 }
 
 export interface Snapshot {

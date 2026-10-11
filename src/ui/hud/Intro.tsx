@@ -1,11 +1,12 @@
+import { useEffect } from 'preact/hooks';
 import type { LaneId, PlayTeam } from '../../sim';
 import { courtName, laneName } from '../../analysis/text';
-import { introTiming, type IntroPiece, type IntroState } from '../intro';
+import { introOutMs, type IntroPiece, type IntroState } from '../intro';
 import { LANE_SLOTS, LANES, PIECE_ORDER, PieceGlyph, pieceLabel } from '../pieces';
 import { SchoolChip } from '../schools';
-import { useEscape, useSession } from '../session';
+import { useSession } from '../session';
 
-/** A tap this soon after the intro's clock starts is the Begin tap finishing, not a skip. */
+/** A tap or key this soon after the card goes up is the setup Begin finishing, not a start. */
 const TAP_GRACE_MS = 400;
 
 const byPiece = (a: IntroPiece, b: IntroPiece): number =>
@@ -56,26 +57,37 @@ function Figure(props: { piece: IntroPiece; portraits: IntroState['portraits'] }
  * The match intro: a versus card over the dimmed board. Both Openings across the top; below, one
  * column per lane (Left, Mid, Right) split by divider lines, Black's pieces in the top row and
  * White's in the bottom row so each faces its lane opponent across the middle. The pieces fade and
- * settle in together, the dividers draw, it holds, then it dissolves into the board. Tap anywhere,
- * Skip or Escape ends it; the loop holds the sim until it is gone.
+ * settle in together and the dividers draw. Then it holds, with no timer, until the player taps
+ * anywhere, presses Begin, Enter, Space or Escape; the loop holds the sim until the card is gone.
  */
 export function Intro() {
   const s = useSession();
   const intro = s.ui.intro;
-  useEscape(!!intro, () => s.skipIntro());
+  const on = !!intro;
+  useEffect(() => {
+    if (!on) return;
+    const key = (e: KeyboardEvent): void => {
+      if (e.key !== 'Enter' && e.key !== ' ' && e.key !== 'Escape') return;
+      e.preventDefault();
+      if (e.repeat) return;
+      const at = s.ui.intro?.startedAt ?? 0;
+      if (e.key === 'Escape' || performance.now() - at > TAP_GRACE_MS) s.startFromIntro();
+    };
+    window.addEventListener('keydown', key);
+    return () => window.removeEventListener('keydown', key);
+  }, [s, on]);
   if (!intro) return null;
-  const t = introTiming(intro.reduced);
   const side = (lane: LaneId, team: PlayTeam): IntroPiece[] =>
     intro.pieces.filter((p) => p.lane === lane && p.team === team).sort(byPiece);
   const tap = (): void => {
-    if (performance.now() - intro.startedAt > TAP_GRACE_MS) s.skipIntro();
+    if (performance.now() - intro.startedAt > TAP_GRACE_MS) s.startFromIntro();
   };
   return (
     <div
       class="intro"
       data-testid="intro"
       data-phase={intro.phase}
-      style={{ '--out-ms': `${t.endAt - t.outAt}ms` }}
+      style={{ '--out-ms': `${introOutMs(intro.reduced)}ms` }}
       onClick={tap}
     >
       <div class="vs">
@@ -106,17 +118,18 @@ export function Intro() {
             </section>
           ))}
         </div>
+        <button
+          class="btn primary intro-begin"
+          data-testid="intro-begin"
+          onClick={(e) => {
+            e.stopPropagation();
+            s.startFromIntro();
+          }}
+        >
+          Begin
+        </button>
+        <span class="intro-begin-hint">or tap anywhere</span>
       </div>
-      <button
-        class="btn small intro-skip glass"
-        data-testid="intro-skip"
-        onClick={(e) => {
-          e.stopPropagation();
-          s.skipIntro();
-        }}
-      >
-        Skip
-      </button>
     </div>
   );
 }

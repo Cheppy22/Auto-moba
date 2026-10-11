@@ -1,5 +1,6 @@
 import { useState } from 'preact/hooks';
 import type { LaneId, PieceId, Snapshot, Unit } from '../sim';
+import { AutoPawn } from './AutoPawn';
 import { LaneBoard, type BoardPiece } from './LaneBoard';
 import {
   PATHS,
@@ -178,10 +179,11 @@ export function PawnPlan(props: { snap: Snapshot }) {
         </p>
       ) : (
         <>
+          <AutoPawn snap={snap} testId="plan-auto" />
           <p class="dim small">
-            Fielded for you during the Act while Tempo stays above {plan?.reserve ?? 20} (kept for
-            gambits). Field Pawn still adds extras. Pawn Structure: you choose the reserve, and
-            pawns cost 2 less.
+            {plan?.auto === false
+              ? 'Auto pawns are off: nothing is fielded for you, but your counts are kept. Field Pawn still works.'
+              : `Fielded for you during the Act while Tempo stays above ${plan?.reserve ?? 20} (kept for gambits). Field Pawn still adds extras. Pawn Structure: you choose the reserve, and pawns cost 2 less.`}
           </p>
           <div class="rl-steppers" role="group" aria-label="Pawns to keep in each lane">
             {LANES.map((lane) => (
