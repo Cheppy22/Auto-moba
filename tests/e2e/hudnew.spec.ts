@@ -255,7 +255,12 @@ for (const v of wide) {
       const top = await rootVar(page, '--hud-top');
       expect(top).toBeGreaterThan(40);
       expect(top).toBeLessThan(v.viewport.height * 0.2);
-      expect(await rootVar(page, '--hud-bottom')).toBe(0);
+      // the camera frames the board clear of the drawer: `--hud-bottom` is the collapsed drawer's footprint
+      const drawer = await boxOf(page, 'drawer');
+      const footprint = await rootVar(page, '--hud-bottom');
+      expect(footprint).toBeGreaterThan(30);
+      expect(footprint).toBeLessThan(v.viewport.height * 0.25);
+      expect(Math.abs(footprint - (v.viewport.height - drawer.y))).toBeLessThanOrEqual(1);
       const left = await rootVar(page, '--hud-left');
       expect(left).toBeGreaterThan(60);
       const col = await Promise.all(PIECES.map((p) => boxOf(page, `roster-A-${p}`)));

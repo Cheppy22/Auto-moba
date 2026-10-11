@@ -28,8 +28,9 @@ const VARS = ['--hud-top', '--hud-bottom', '--hud-left', '--hud-right'] as const
  * The space it takes is written to the page root as CSS custom properties, in px:
  * `--hud-top` (the top bars' bottom edge) and `--hud-bottom` (the collapsed bottom stack, which
  * never changes when the drawer opens), plus `--hud-left` and `--hud-right`. In the `side` shape
- * (wide windows) your row runs down the left edge and the drawer sits in the bottom-right corner,
- * so `--hud-bottom` is 0 and `--hud-left` is the width of that column.
+ * (wide windows) your row runs down the left edge and the drawer sits in the bottom-right corner:
+ * `--hud-left` is the width of that column and `--hud-bottom` is the collapsed drawer's footprint
+ * (its height plus margin), so the board is framed clear of the drawer.
  */
 export function CourtLayout(props: {
   snap: Snapshot;
@@ -66,10 +67,19 @@ export function CourtLayout(props: {
     const measure = (): void => {
       const t = top.current?.getBoundingClientRect();
       const b = bottom.current?.getBoundingClientRect();
+      const d = bottom.current?.querySelector('.v2-drawer')?.getBoundingClientRect();
       const m = mine.current?.getBoundingClientRect();
       const px = (v: number): string => `${Math.max(0, Math.round(v))}px`;
       const topPx = t ? t.bottom : 0;
-      const bottomPx = !side && b ? window.innerHeight - b.top : 0;
+      // stack: the bottom stack; side: only the drawer's bar in the bottom-right corner (the
+      // pieces run down the left edge), so the board frames clear of it
+      const bottomPx = side
+        ? d
+          ? window.innerHeight - d.top
+          : 0
+        : b
+          ? window.innerHeight - b.top
+          : 0;
       root.setProperty('--hud-top', px(topPx));
       root.setProperty('--hud-bottom', px(bottomPx));
       root.setProperty('--hud-left', px(side && m ? m.right : 0));
@@ -82,7 +92,8 @@ export function CourtLayout(props: {
     };
     measure();
     const ro = new ResizeObserver(measure);
-    for (const el of [top.current, bottom.current, mine.current]) if (el) ro.observe(el);
+    const drawer = bottom.current?.querySelector('.v2-drawer');
+    for (const el of [top.current, bottom.current, mine.current, drawer]) if (el) ro.observe(el);
     window.addEventListener('resize', measure);
     return () => {
       ro.disconnect();

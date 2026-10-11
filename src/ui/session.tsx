@@ -23,7 +23,7 @@ import {
   laneNear,
 } from '../analysis/feedback';
 import { mmss } from './format';
-import { stageAt, type IntroPiece, type IntroState } from './intro';
+import { phaseAt, type IntroPiece, type IntroState } from './intro';
 import { cap, pieceLabel } from './pieces';
 import { play } from './sound';
 
@@ -139,6 +139,8 @@ const BLACK_PLAY_MS = 3000;
 const MAX_BLACK_QUEUE = 3;
 /** The longest the intro waits for the 3D view's first frame (a slow phone builds the scene for a while). */
 const VIEW_WAIT_MS = 15000;
+/** Size (px) of the intro's piece portraits: twice what the card shows, so they stay sharp on a phone. */
+const PORTRAIT_PX = 192;
 /** The run speeds the chip cycles through; 0 is paused. */
 const SPEEDS: Speed[] = [1, 2, 4, 8, 0];
 const CAMS: CamMode[] = ['board', 'auto', 'follow', 'free'];
@@ -336,47 +338,74 @@ export class Session {
 
   // ------------------------------------------------------------ match intro
 
-  /** After Begin: the camera tours the board while the sim waits (not for `?intro=off`). */
+  /** After Begin: the versus card shows over the dimmed board while the sim waits (not for `?intro=off`). */
   private startIntro(): void {
     const m = this.match;
     if (!this.introOn || !m || m.state.phase.kind !== 'live') return;
     const pieces: IntroPiece[] = [];
     for (const u of m.snapshot().units)
       if (u.piece && u.lane && (u.team === 'A' || u.team === 'B'))
-        pieces.push({ id: u.id, team: u.team, piece: u.piece, lane: u.lane, x: u.x, y: u.y });
+        pieces.push({ id: u.id, team: u.team, piece: u.piece, lane: u.lane });
     this.introAt = performance.now();
     this.introArmed = false;
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     this.ui = {
       ...this.ui,
-      intro: { startedAt: performance.now(), reduced, stage: 0, pieces },
+      intro: {
+        startedAt: performance.now(),
+        reduced,
+        phase: 'wait',
+        pieces,
+        portraits: null,
+        portraitsDone: false,
+      },
       aim: null,
       card: null,
       info: null,
     };
+    // each piece's portrait is its own 3D model, drawn once offscreen by the render layer
+    const done = (portraits: ReadonlyMap<string, string> | null): void => {
+      const intro = this.ui.intro;
+      if (intro?.pieces === pieces)
+        this.setUi({ intro: { ...intro, portraits, portraitsDone: true } });
+    };
+    import('../render/portraits')
+      .then(({ renderPortraits }) => {
+        const drawn = renderPortraits(
+          pieces.map(({ piece, team }) => ({ piece, team })),
+          PORTRAIT_PX,
+        );
+        done(drawn.size > 0 ? drawn : null);
+      })
+      .catch((err) => {
+        console.error('The intro portraits failed to load', err);
+        done(null);
+      });
   }
 
   /**
-   * Moves the intro to its next stage, or ends it. Called every frame. Its clock starts when the
-   * 3D view has drawn its first frame (the scene can take seconds to build on a slow phone), or
-   * after `VIEW_WAIT_MS`, or at once when the view cannot start.
+   * Moves the intro on to its dissolve, or ends it. Called every frame. Its clock starts when the
+   * 3D view has drawn its first frame (the scene can take seconds to build on a slow phone) and
+   * the portraits are drawn, or after `VIEW_WAIT_MS`, or at once when the view cannot start.
    */
   syncIntro(): void {
     const intro = this.ui.intro;
     if (!intro) return;
     const now = performance.now();
     if (!this.introArmed) {
-      const ready = this.viewFailed || (this.view?.framesDrawn ?? 0) > 0;
+      const ready = (this.viewFailed || (this.view?.framesDrawn ?? 0) > 0) && intro.portraitsDone;
       if (!ready && now - this.introAt < VIEW_WAIT_MS) {
         intro.startedAt = now;
         return;
       }
       this.introArmed = true;
       intro.startedAt = now;
+      this.setUi({ intro: { ...intro, phase: 'show' } });
+      return;
     }
-    const stage = stageAt(now - intro.startedAt, intro.reduced);
-    if (stage < 0) this.skipIntro();
-    else if (stage !== intro.stage) this.setUi({ intro: { ...intro, stage } });
+    const phase = phaseAt(now - intro.startedAt, intro.reduced);
+    if (!phase) this.skipIntro();
+    else if (phase !== intro.phase) this.setUi({ intro: { ...intro, phase } });
   }
 
   /** Ends the intro now (tap, Skip, Escape): play begins and the Act banner shows. */
