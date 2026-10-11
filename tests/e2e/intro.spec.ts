@@ -23,7 +23,9 @@ for (const v of shapes) {
   test.describe(`intro ${v.name}`, () => {
     test.use({ viewport: v.viewport });
 
-    test('ten pieces in two rows by lane, all on screen; it holds until a tap', async ({ page }) => {
+    test('ten pieces in two rows by lane, all on screen; it holds until a tap', async ({
+      page,
+    }) => {
       test.setTimeout(180_000);
       const errors = watchErrors(page);
       await begin(page, 'look=table');

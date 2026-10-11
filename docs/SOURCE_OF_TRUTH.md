@@ -68,7 +68,7 @@
 - Phases last about 4 minutes (240 s) of play; there is no phase cap. The median match is about 12–16 minutes.
 - **Pressure events** stack from phase 4: Thinning Veil (phase 4, healing reduced map-wide), Spirit Tide (5, jungle camps push into lanes), The Cheshire Keeper Calls In Debts (6, cursed items double in power and flaw), The Kings Wake (7+, both Kings leave their bases and fight in the lanes; this ends the game).
 - **Between phases:** phase report, then pick 1 of 3 ability upgrades, then shop (tiers 1–2 only), then any curse offer. Heroes keep their position and health and shop remotely.
-- **Speed:** pause, 1×, 2×, 4×, 8×. The match is paused while the shop is open.
+- **Speed:** pause, 1×, 2×, 4×, 8× (on the chess branch, holding the Act clock also toggles pause). The match is paused while the shop is open.
 - **Respawn:** starts short, grows during a phase, carries over between phases.
 - **Growth:** no XP or levels. Heroes grow by phase stat growth (8% health, Blade damage and Soul power per phase), items and ability upgrades.
 

@@ -291,6 +291,58 @@ for (const v of wide) {
   });
 }
 
+test('holding the Act clock pauses and resumes; a short tap does nothing', async ({ page }) => {
+  test.setTimeout(240_000);
+  const errors = watchErrors(page);
+  await startWith(page, '');
+  const chip = page.getByTestId('speed-chip');
+  const face = page.locator('.clockface');
+  await expect(chip).toHaveAttribute('data-speed', '0');
+  const b = (await face.boundingBox())!;
+  const x = b.x + b.width / 2;
+  const y = b.y + b.height / 2;
+  // a short tap changes nothing
+  await page.mouse.click(x, y);
+  await expect(chip).toHaveAttribute('data-speed', '0');
+  // a hold shows the ring, then toggles: paused -> running
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await expect(face).toHaveAttribute('data-holding', 'true');
+  await expect(chip).toHaveAttribute('data-speed', '1', { timeout: 5_000 });
+  await page.mouse.up();
+  await expect(face).toHaveAttribute('data-holding', 'false');
+  // and again: running -> paused
+  await page.mouse.down();
+  await expect(chip).toHaveAttribute('data-speed', '0', { timeout: 5_000 });
+  await page.mouse.up();
+  expect(errors).toEqual([]);
+});
+
+test('the drawer switch turns automatic pawn fielding off and on', async ({ page }) => {
+  test.setTimeout(240_000);
+  const errors = watchErrors(page);
+  await startWith(page, '');
+  await page.evaluate(() => {
+    const s = (window as unknown as Sess).__session;
+    s.match.issue({ type: 'setPawnPlan', quota: { top: 0, mid: 2, bot: 0 } } as never);
+    s.notify();
+  });
+  await page.getByTestId('drawer-toggle').click();
+  const sw = page.getByTestId('drawer-auto-pawn');
+  await expect(sw).toHaveAttribute('aria-checked', 'true');
+  await sw.click();
+  await expect(sw).toHaveAttribute('aria-checked', 'false');
+  await setTempo(page, 100);
+  await step(page, 100);
+  expect((await snap(page)).pawns.A.alive).toBe(0);
+  await sw.click();
+  await expect(sw).toHaveAttribute('aria-checked', 'true');
+  await setTempo(page, 100);
+  await step(page, 100);
+  expect((await snap(page)).pawns.A.alive).toBeGreaterThan(0);
+  expect(errors).toEqual([]);
+});
+
 test('the new HUD is the default and ?hud=old / ?look=grand give the old one', async ({ page }) => {
   test.setTimeout(240_000);
   const errors = watchErrors(page);
