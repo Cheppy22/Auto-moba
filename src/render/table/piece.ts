@@ -190,18 +190,20 @@ export class PieceFigure {
     const base = this.mat.onBeforeCompile;
     const rim = new Color(t.rim);
     const rimK = t.rimK;
+    const lift = t.lift;
     this.mat.onBeforeCompile = (shader, r) => {
       base.call(this.mat, shader, r);
       shader.uniforms.uRim = { value: rim };
       shader.uniforms.uRimK = { value: rimK };
+      shader.uniforms.uLift = { value: lift };
       shader.fragmentShader =
-        'uniform vec3 uRim;\nuniform float uRimK;\nvarying float vGlow;\n' +
+        'uniform vec3 uRim;\nuniform float uRimK;\nuniform float uLift;\nvarying float vGlow;\n' +
         shader.fragmentShader.replace(
           '#include <opaque_fragment>',
           `{
   vec3 vd = normalize(vViewPosition);
   float rm = pow(1.0 - clamp(dot(normal, vd), 0.0, 1.0), 2.2);
-  outgoingLight += uRim * rm * uRimK;
+  outgoingLight += uRim * rm * uRimK + diffuseColor.rgb * uLift;
   outgoingLight = mix(outgoingLight, diffuseColor.rgb * 1.15 + totalEmissiveRadiance, vGlow);
 }
 #include <opaque_fragment>`,

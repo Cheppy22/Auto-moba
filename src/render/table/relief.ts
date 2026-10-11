@@ -30,7 +30,7 @@ export const RELIEF = {
   blockLow: 32,
   blockHigh: 42,
   /** Bevel from the walkable edge up to the block top. */
-  bevel: 46,
+  bevel: 22,
   /** Base dais: outer and inner tier. */
   baseOuter: 22,
   baseInner: 42,
@@ -105,7 +105,7 @@ export class Relief {
   private readonly tiles: [number, number][];
   private readonly courts: { x: number; y: number; h: number }[];
 
-  constructor(content: Content, extent: number, n = 150) {
+  constructor(content: Content, extent: number, n = 200) {
     const map = content.map;
     const half = map.size / 2;
     this.half = half;

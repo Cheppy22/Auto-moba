@@ -54,6 +54,8 @@ export interface TeamScheme {
   rim: string;
   /** Rim light strength on this team's figures. */
   rimK: number;
+  /** Self-light on this team's figures (fraction of their own colour): keeps ivory bright in shade. */
+  lift: number;
   /** Bar / marker colour (matches the HUD team colours). */
   mark: string;
   /** Contour (inverted-hull outline) colour and width in CSS pixels. */
@@ -98,6 +100,12 @@ export interface Look {
     landscape: readonly [number, number];
     desktop: readonly [number, number];
     fov: number;
+    /**
+     * Square framing: the camera sits on White's rank-1 edge (White's base bottom-left, Black's
+     * top-right, the classic MOBA map view) instead of behind White's corner (a diamond). The
+     * board then fills its screen box instead of half of it.
+     */
+    square?: boolean;
   };
   /**
    * Piece size as a fraction of the prototype's on-screen height (the view corrects for the
@@ -124,8 +132,8 @@ const NIGHT: Look = {
     frameGrad: ['#3f2818', '#4b301d', '#331f12'],
     frame: '#4a2f1d',
     frameDark: '#24160d',
-    sqLight: '#6f675a',
-    sqDark: '#4c463e',
+    sqLight: '#7a7062',
+    sqDark: '#454039',
     felt: '#2c4a43',
     feltDark: '#223a35',
     feltLight: '#33544c',
@@ -151,6 +159,7 @@ const NIGHT: Look = {
       dark: '#6b5636',
       rim: '#ffd98a',
       rimK: 0.4,
+      lift: 0.16,
       mark: '#f1e6c8',
       ink: '#140d08',
       inkPx: 1.15,
@@ -163,10 +172,11 @@ const NIGHT: Look = {
       cloth: '#46526e',
       dark: '#0f0d0d',
       rim: '#a8c4ff',
-      rimK: 1.15,
+      rimK: 0.75,
+      lift: 0,
       mark: '#8f9ad0',
-      ink: '#4f73cf',
-      inkPx: 1,
+      ink: '#5f8bff',
+      inkPx: 1.5,
       halo: '#5b8cff',
     },
   },
@@ -226,6 +236,7 @@ const DAYLIGHT: Look = {
       dark: '#5e4a2c',
       rim: '#fff2d0',
       rimK: 0.15,
+      lift: 0.06,
       mark: '#f1e6c8',
       ink: '#15100c',
       inkPx: 2,
@@ -239,6 +250,7 @@ const DAYLIGHT: Look = {
       dark: '#0f0d0d',
       rim: '#d4dcea',
       rimK: 0.75,
+      lift: 0,
       mark: '#8f9ad0',
       ink: '#15100c',
       inkPx: 1.6,
@@ -257,8 +269,8 @@ const DAYLIGHT: Look = {
     back: '#dfe8ff',
     backK: 0.6,
   },
-  cam: { portrait: 40, landscape: [28, 36], desktop: [34, 46], fov: 30 },
-  size: 0.7,
+  cam: { portrait: 60, landscape: [34, 50], desktop: [40, 56], fov: 30, square: true },
+  size: 0.77,
 };
 
 /** c: Spotlight Arena. A near-black slate board under a spotlight; pieces carry glowing team contours. */
@@ -301,6 +313,7 @@ const ARENA: Look = {
       dark: '#6b5636',
       rim: '#ffc95e',
       rimK: 0.4,
+      lift: 0.12,
       mark: '#f1e6c8',
       ink: '#e9a93a',
       inkPx: 1.2,
@@ -314,6 +327,7 @@ const ARENA: Look = {
       dark: '#1a1d22',
       rim: '#55d0ff',
       rimK: 1.05,
+      lift: 0,
       mark: '#8f9ad0',
       ink: '#2aa6e8',
       inkPx: 1.2,
@@ -343,8 +357,13 @@ export const LOOKS: Record<VariantId, Look> = { a: NIGHT, b: DAYLIGHT, c: ARENA 
 
 function pick(): Look {
   if (typeof location === 'undefined') return NIGHT;
-  const v = new URLSearchParams(location.search).get('variant');
-  return v === 'b' || v === 'c' ? LOOKS[v] : NIGHT;
+  const q = new URLSearchParams(location.search);
+  const v = q.get('variant');
+  const look = v === 'b' || v === 'c' ? LOOKS[v] : NIGHT;
+  const f = q.get('frame');
+  return f === 'square' || f === 'diamond'
+    ? { ...look, cam: { ...look.cam, square: f === 'square' } }
+    : look;
 }
 
 /** The variant in play (read once from the URL). */

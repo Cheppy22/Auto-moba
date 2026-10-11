@@ -14,7 +14,7 @@ import {
 } from 'three';
 import type { Content } from '../../sim';
 import { buildTerrain } from '../../sim';
-import { TABLE } from './palette';
+import { LOOK, TABLE } from './palette';
 import { bastionSites, Relief, RELIEF } from './relief';
 
 /** Walnut frame width around the board (world units). */
@@ -148,9 +148,9 @@ export class Board {
       bead(E * 2 + 8, 12, 7, sign * (E - 2), 0, true, dark);
     }
 
-    // the painted top (board + frame), lifted into relief (smooth normals: grid-aligned facets
-    // would saw-tooth along the diagonal and curved lane edges)
-    this.topMat = this.own(new MeshLambertMaterial({ color: '#ffffff' }));
+    // the painted top (board + frame), lifted into relief; flat shading gives the terraces crisp,
+    // faceted sides (low poly) while the flat tops stay one tone
+    this.topMat = this.own(new MeshLambertMaterial({ color: '#ffffff', flatShading: true }));
     this.top = new Mesh(this.own(this.reliefGeometry()), this.topMat);
     this.top.receiveShadow = true;
 
@@ -206,7 +206,8 @@ export class Board {
         uv[k * 2] = (x + this.extent) / (2 * this.extent);
         uv[k * 2 + 1] = 1 - (z + this.extent) / (2 * this.extent);
       }
-    // split each cell along the anti-diagonal (the Mid lane's direction) so its edges stay clean
+    // split each cell along its flatter diagonal, so 45° cliffs in either direction stay straight
+    // (a fixed split saw-tooths every edge that runs the other way)
     const idx: number[] = [];
     for (let j = 0; j < n; j++)
       for (let i = 0; i < n; i++) {
@@ -214,7 +215,9 @@ export class Board {
         const b = a + 1;
         const c = a + w;
         const d = c + 1;
-        idx.push(a, c, b, b, c, d);
+        const y = (k: number): number => pos[k * 3 + 1];
+        if (Math.abs(y(a) - y(d)) < Math.abs(y(b) - y(c))) idx.push(a, c, d, a, d, b);
+        else idx.push(a, c, b, b, c, d);
       }
     const geo = new BufferGeometry();
     geo.setAttribute('position', new Float32BufferAttribute(pos, 3));
@@ -253,8 +256,9 @@ export class Board {
     const k = S / (2 * E);
     // sim coordinates: (0,0) is the board's top-left corner, the frame sits outside [0, size]
     g.setTransform(k, 0, 0, k, FRAME * k, FRAME * k);
-    // text faces the player: White sits at the (0, size) corner
-    const upright = o === 'portrait' ? Math.PI / 4 : -Math.PI / 4;
+    // text faces the player: White sits at the (0, size) corner; the square framing sits on
+    // White's rank-1 edge, so its text needs no turn
+    const upright = LOOK.cam.square ? 0 : o === 'portrait' ? Math.PI / 4 : -Math.PI / 4;
 
     // frame: walnut with a soft sheen and a brass inlay line
     const fg = g.createLinearGradient(-FRAME, -FRAME, size + FRAME, size + FRAME);
@@ -414,7 +418,7 @@ export class Board {
       g.stroke();
     }
 
-    // lane names painted in brass on the felt, just outside White's medallion
+    // lane names painted in brass on the felt, clear of White's dais and Throne
     g.font = `${Math.round(map.walk.lane * 0.46)}px 'IM Fell English SC', Georgia, serif`;
     const names: [keyof typeof map.lanes, string][] = [
       ['top', 'LEFT'],
@@ -422,7 +426,7 @@ export class Board {
       ['bot', 'RIGHT'],
     ];
     for (const [id, name] of names) {
-      const [x, y] = along(map.lanes[id], map.walk.base + 34);
+      const [x, y] = along(map.lanes[id], map.walk.base + 110);
       g.fillStyle = 'rgba(10,6,4,0.55)';
       glyph(name, x + 3, y + 3);
       g.fillStyle = TABLE.laneName;

@@ -128,7 +128,9 @@ export class TableCamera {
     this.cssH = h;
     this.orient = h > w ? 'portrait' : 'landscape';
     // portrait: the camera sits behind White's corner; landscape: behind the Right lane's corner
-    if (this.orient === 'portrait') this.dir.set(-Math.SQRT1_2, 0, Math.SQRT1_2);
+    // square framing: the seat is White's rank-1 edge, the board fills its screen box
+    if (LOOK.cam.square) this.dir.set(0, 0, 1);
+    else if (this.orient === 'portrait') this.dir.set(-Math.SQRT1_2, 0, Math.SQRT1_2);
     else this.dir.set(Math.SQRT1_2, 0, Math.SQRT1_2);
     const ins = this.insets(w, h);
     this.fitted = `${ins.top},${ins.bottom},${ins.left},${ins.right}`;
