@@ -18,7 +18,7 @@ import {
   TRIGGER_LABEL,
   aimText,
   bindsLane,
-  relicDesc,
+  relicText,
 } from '../relics';
 import { SCHOOL_NAME } from '../schools';
 import { useSession } from '../session';
@@ -303,6 +303,7 @@ function OfferCard(props: {
   take: { label: string; disabled: boolean; onTake: () => void };
 }) {
   const { offer, def } = props;
+  const s = useSession();
   return (
     <article
       class={`rcard ${offer.tailored ? 'tailored' : ''} ${def.rally ? 'rally' : ''}`}
@@ -324,7 +325,7 @@ function OfferCard(props: {
           </span>
         </div>
       </header>
-      <p class="rcard-desc">{relicDesc(def)}</p>
+      <p class="rcard-desc">{relicText(s.content, def, 'A', s.match!.state.opening.A)}</p>
       <details class="rcard-more">
         <summary>Rewards and counter</summary>
         <dl class="rcard-facts">
@@ -391,7 +392,7 @@ function HeldCard(props: { held: HeldRelic; def: RelicDef; snap: Snapshot }) {
           </span>
         </div>
       </header>
-      <p class="rcard-desc">{relicDesc(def)}</p>
+      <p class="rcard-desc">{relicText(s.content, def, 'A', s.match!.state.opening.A)}</p>
       {def.bind !== 'none' && (
         <AimControl
           def={def}

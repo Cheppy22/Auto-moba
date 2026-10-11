@@ -90,9 +90,18 @@ export function shownRelics(snap: Snapshot, team: PlayTeam): HeldRelic[] {
 /** A relic's effect line. A Rally relic already wears a Rally chip, so the "Rally." that opens its text is dropped. */
 export const relicDesc = (def: RelicDef): string => def.desc.replace(/^Rally\.\s+/, '');
 
+const THIRD: Record<string, string> = {
+  'give up': 'gives up',
+  start: 'starts',
+  gain: 'gains',
+  hold: 'holds',
+  earn: 'earns',
+};
+
 /**
  * A relic's text for a side. The card text is written for White ("your Opening", "Italian Game:
- * every card costs 2 less"); Black's reads as its own Opening, French Defence, and so on.
+ * every card costs 2 less"); Black's reads in the third person with its own Opening, French
+ * Defence and so on. The Italian Game line only stays for a side that plays the Italian Game.
  */
 export function relicText(
   content: Content,
@@ -100,10 +109,16 @@ export function relicText(
   team: PlayTeam,
   opening: string,
 ): string {
-  const desc = relicDesc(def);
-  if (team === 'A') return desc;
-  const name = content.openingById.get(opening)?.name ?? "Black's";
-  let text = desc.replace(/your Opening's/g, `${name}'s`).replace(/your Opening/g, name);
+  let text = relicDesc(def);
+  if (team === 'B') {
+    const name = content.openingById.get(opening)?.name ?? "Black's";
+    text = text
+      .replace(/your Opening's/g, `${name}'s`)
+      .replace(/your Opening/g, name)
+      .replace(/\b[Yy]ou are\b/g, 'Black is')
+      .replace(/\b[Yy]ou (give up|start|gain|hold|earn)\b/g, (_m, v: string) => `Black ${THIRD[v]}`)
+      .replace(/\b[Yy]our\b/g, "Black's");
+  }
   if (opening !== 'italian')
     text = text
       .replace(/ ?Italian Game: [^.]*\./, '')

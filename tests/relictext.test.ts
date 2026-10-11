@@ -17,6 +17,23 @@ describe('relic text for each side', () => {
     expect(relicText(content, def('opening_theory'), 'A', 'italian')).toContain('your Opening');
   });
 
+  it('drops the Italian Game line for a White side that plays another Opening', () => {
+    expect(relicText(content, def('sealed_move'), 'A', 'sicilian')).not.toMatch(/Italian/);
+    expect(relicText(content, def('sealed_move'), 'A', 'italian')).toContain(
+      'any school for Italian',
+    );
+    expect(relicText(content, def('opening_theory'), 'A', 'french')).not.toMatch(/Italian/);
+  });
+
+  it("reads Black's relics in the third person", () => {
+    for (const r of content.relics) {
+      const text = relicText(content, r, 'B', 'sicilian');
+      expect(text, r.id).not.toMatch(/\b[Yy]ou(r)?\b/);
+    }
+    expect(relicText(content, def('sortie'), 'B', 'sicilian')).toContain("Black's Bastions");
+    expect(relicText(content, def('kings_ransom'), 'B', 'sicilian')).toContain('Black is in Check');
+  });
+
   it('drops the Rally prefix a Rally chip already shows', () => {
     const rally = content.relics.find((r) => r.rally)!;
     expect(rally.desc).toMatch(/^Rally\. /);
