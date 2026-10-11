@@ -91,7 +91,7 @@
     "extraMeleePerPhaseAfter": 1,
     "extraMeleeFromPhase": 2,
     "scalePerPhase": 0.3,
-    "midLeadUnits": 292.5
+    "midLeadUnits": 0
   },
   "minions": {
     "melee": {
