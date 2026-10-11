@@ -150,8 +150,8 @@ test('a tap on a piece in the 3D view opens its card, a tap on bare ground close
   await page.mouse.move(at.w * 0.5 + 60, at.h * 0.5 + 30, { steps: 5 });
   await page.mouse.up();
   await expect(page.getByTestId('unit-card')).toBeVisible();
-  // bare ground at the edge of the view closes the card (clear of the lane chips under the clock)
-  await page.mouse.click(at.w * 0.7, at.h * 0.22);
+  // bare table beside the board closes the card (clear of the HUD and of the larger table-look board)
+  await page.mouse.click(at.w * 0.97, at.h * 0.4);
   await expect(page.getByTestId('unit-card')).toHaveCount(0);
   expect(errors).toEqual([]);
 });
