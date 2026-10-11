@@ -139,11 +139,15 @@ export function snap(page: Page): Promise<TestSnap> {
   });
 }
 
-export function eventCount(page: Page, type: string): Promise<number> {
-  return page.evaluate((t) => {
-    const s = (window as unknown as { __session: TestSession }).__session;
-    return s.match.events.filter((e) => e.type === t).length;
-  }, type);
+export function eventCount(page: Page, type: string, team?: 'A' | 'B'): Promise<number> {
+  return page.evaluate(
+    ([t, side]) => {
+      const s = (window as unknown as { __session: TestSession }).__session;
+      return s.match.events.filter((e) => e.type === t && (!side || e.payload.team === side))
+        .length;
+    },
+    [type, team ?? ''] as const,
+  );
 }
 
 /**
