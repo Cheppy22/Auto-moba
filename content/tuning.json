@@ -133,7 +133,7 @@
     "maxHpPerSec": 0.09
   },
   "guardian": {
-    "hp": 4200,
+    "hp": 3800,
     "damage": 90,
     "range": 140,
     "atkSpeed": 0.9,
@@ -152,7 +152,7 @@
     "comebackBounty": 40
   },
   "respawn": {
-    "baseSec": 16,
+    "baseSec": 18,
     "basePerPhase": 6,
     "growthPerSec": 0.12,
     "maxSec": 70

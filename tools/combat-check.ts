@@ -5,7 +5,7 @@
 // - spacing: in-combat units with a same-team body touching theirs (blob share), mean gap to the
 //   nearest same-team unit, and the share of melee attackers standing on their own side of the
 //   target (two lines).
-// - judgement: piece deaths in enemy Bastion/Throne range, low-health pieces fighting in tower range,
+// - judgement: piece deaths in enemy Bastion/Throne range, pieces below --low-hp health still fighting in tower range,
 //   piece deaths by cause, and fight/flee flip-flops (a change back within 2 s).
 import { loadNodeContent } from './content-node';
 import { Match } from '../src/sim';
@@ -24,6 +24,8 @@ const content = loadNodeContent();
 const TPS = 20;
 // --max-min M: stop each match after M minutes of play (a quick probe of the early game).
 const maxTicks = arg('max-min', 40) * 60 * TPS;
+// --low-hp F: health share counted as low for the tower-range fighting count (default 0.15).
+const lowHp = arg('low-hp', 0.15);
 
 const out = {
   matches,
@@ -204,7 +206,7 @@ for (let k = 0; k < matches; k++) {
       else if (u.hero.engage === 'hold') out.time.hold++;
       const gk = u.hero.goal?.kind ?? 'none';
       out.goals[gk] = (out.goals[gk] ?? 0) + 1;
-      if (u.hp / u.stats.maxHp < 0.35 && u.hero.engage === 'fight' && enemyStructureNear(m, u, 0))
+      if (u.hp / u.stats.maxHp < lowHp && u.hero.engage === 'fight' && enemyStructureNear(m, u, 0))
         out.lowHpTowerFightTicks += 5;
     }
     seen = tick;
