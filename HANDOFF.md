@@ -8,7 +8,9 @@ Playable chess auto-battler: 5 pieces per side, pawnlings/pawns, Bastions, Check
 
 ## Done recently
 
-2026-10-11 (latest, all pushed to `test-product-2`): **relic aim fix** (`hintFits` in `src/sim/draft.ts`: problem notes aim only `protect`/`defense` relics; offence/carry relics aim by the AI rule; this was a real bug but it did not close the White gap); **match intro** (about 7.6 s: Openings card, both courts with piece tags, lane pass; Skip; `?intro=off` for tests) and **Black gambit banner** ("Black played Check on your Bishop", slate theme, one at a time); **full-screen Act break sheet**; **damage mitigated** (below).
+2026-10-11 (latest): **relic wave 2**: the remaining 15 relics incl. Sealed Move (card + trigger, fires once per Act), Pawn Structure (lane quotas + Tempo reserve), Battery (3/1/1 lanes; Resume is refused until lanes are legal) and Sortie; code in `src/sim/relicsLive.ts`, `relics.ts`, `draft.ts`, UI in `RelicsTab.tsx`. 40-match sanity: both AI White 37.5%, A=ai only 42.5%, B=ai only 27.5% (relics still favour Black).
+
+2026-10-11 (earlier, all pushed to `test-product-2`): **relic aim fix** (`hintFits` in `src/sim/draft.ts`: problem notes aim only `protect`/`defense` relics; offence/carry relics aim by the AI rule; this was a real bug but it did not close the White gap); **match intro** (about 7.6 s: Openings card, both courts with piece tags, lane pass; Skip; `?intro=off` for tests) and **Black gambit banner** ("Black played Check on your Bishop", slate theme, one at a time); **full-screen Act break sheet**; **damage mitigated** (below).
 
 2026-10-10: **Damage mitigated** stat: `mitigated` on the `damage` event (set in `dealDamage`), per-piece and team totals in the end report (Mit column, Iron Wall award, Combat chart, 10 s series) and in the Act break "side by side" table; `MVP_WEIGHTS` untouched.
 
@@ -19,7 +21,7 @@ Map x1.5, humanoid models, combat flash, lane tags, gambit long-press, schools w
 ## Next steps
 
 1. Owner reviews the Act break and the new combat feedback on a phone (countdown flashes, toll pulses, grey halt, verdict tags and the lane strip were never viewed live on a device).
-2. **In progress:** all 15 remaining relics (Sealed Move, Pawn Structure, Battery, Sortie and 11 others; spec `docs/RELICS.md`) are being built by one agent in a separate worktree. Its partial work is backed up on origin `wip/relics-2` (agent was stopped once by a usage limit and resumed). When it finishes: merge its worktree branch, run `npm run check` once, push, update this file, RELICS.md status ("all 23 built") and CHANGELOG.
+2. Relics: **all 23 are built** (wave 2 on 2026-10-11; notes in `docs/RELICS.md` "Wave 2 build notes"). Tuning needed in the testing pass: Pawn Structure was never picked by the AI, Battery 5.6%, Quiet Move 6%, Strong Square and Standing Order 4%; Sortie is picked far too often (78.7% of offers) because it is the Rally relic offered to a trailing side.
 3. Gambit waves 2 (Clock school, English Opening) and 3, redesigned toward set-at-the-break cards (Standing Order is the model: a card bound at the break, always on, half strength).
 4. Minimap with pings (the combat feedback covers the read-the-board part; pings are still open).
 5. Dedicated testing pass (task #56): full Playwright, 800-match balance (relic runs: `--relics A=ai,B=ai`, `A=none`, `A=random`, one `--relic-pool` per family), school counters, stuck check incl. Barricade; tune `feedback` thresholds in `content/tuning.json` and the relic numbers in `content/relics.json`.
