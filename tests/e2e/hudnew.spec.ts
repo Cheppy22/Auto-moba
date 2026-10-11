@@ -20,7 +20,7 @@ async function startWith(page: Page, query: string, seed = '42'): Promise<void> 
   await page.getByTestId('start').click();
   await expect(page.getByTestId('setup')).toBeVisible();
   await pauseAtStart(page);
-  await page.getByTestId('begin').click();
+  await page.getByTestId('quick-start').click();
   await expect(page.getByTestId('hud')).toBeVisible();
   await viewReady(page);
   await clearPawnPlan(page);
@@ -296,7 +296,7 @@ test('the new HUD is the default under the table look and ?hud=old forces the ol
   await page.goto('/?look=table&hud=old&intro=off');
   await expect(page.getByTestId('title')).toBeVisible();
   await page.getByTestId('start').click();
-  await page.getByTestId('begin').click();
+  await page.getByTestId('quick-start').click();
   await expect(page.getByTestId('hud')).toHaveAttribute('data-hud', 'old');
   await expect(page.getByTestId('drawer')).toHaveCount(0);
   await expect(page.getByTestId('gambit-0')).toBeVisible();
