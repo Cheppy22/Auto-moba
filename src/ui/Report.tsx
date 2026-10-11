@@ -57,15 +57,27 @@ export function Report() {
     setPage(n);
     if (!el) return;
     target.current = n;
-    window.setTimeout(() => {
-      if (target.current !== n) return;
-      target.current = null;
-      // a swipe made during the jump is ignored by onScroll, so read the pager's real page once the jump ends
-      const now = pager.current;
-      if (!now || !now.clientWidth) return;
-      const j = clamp(Math.round(now.scrollLeft / now.clientWidth), 0, LAST);
-      if (j !== pageRef.current) setPage(j);
-    }, 900);
+    // a swipe made during the jump is ignored by onScroll, so read the pager's real page once the
+    // jump ends; a slow device is still animating then, so it waits until the pager stops moving
+    const settle = (wait: number): void => {
+      window.setTimeout(() => {
+        if (target.current !== n) return;
+        const before = pager.current?.scrollLeft ?? 0;
+        window.setTimeout(() => {
+          if (target.current !== n) return;
+          const now = pager.current;
+          if (!now || !now.clientWidth) {
+            target.current = null;
+            return;
+          }
+          if (Math.abs(now.scrollLeft - before) > 1) return settle(0);
+          target.current = null;
+          const j = clamp(Math.round(now.scrollLeft / now.clientWidth), 0, LAST);
+          if (j !== pageRef.current) setPage(j);
+        }, 120);
+      }, wait);
+    };
+    settle(900);
     el.scrollTo({
       left: n * el.clientWidth,
       behavior: instant || reducedMotion() ? 'auto' : 'smooth',
