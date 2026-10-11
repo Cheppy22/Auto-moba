@@ -9,12 +9,14 @@ const LIFT = 36;
  * Fight verdicts, pinned to the fight's place in the 3D view. A tag is a small pill that fades
  * after a few seconds; its position follows the camera every frame without re-rendering.
  */
-export function FightTags(props: { notes: Note[] }) {
+export function FightTags(props: { notes: Note[]; margin?: typeof MARGIN }) {
   const s = useSession();
   const root = useRef<HTMLDivElement>(null);
   const tags = props.notes.filter((n) => n.kind === 'fight' && n.at);
   const live = useRef(tags);
   live.current = tags;
+  const edge = useRef(props.margin ?? MARGIN);
+  edge.current = props.margin ?? MARGIN;
   useEffect(
     () =>
       s.onFrame(() => {
@@ -28,8 +30,9 @@ export function FightTags(props: { notes: Note[] }) {
           if (!n?.at) continue;
           const p = view.project(n.at.x, n.at.y, LIFT);
           const width = (el.firstElementChild as HTMLElement | null)?.offsetWidth ?? 0;
-          const x = Math.min(w - MARGIN.x - width / 2, Math.max(MARGIN.x + width / 2, p.x));
-          const y = Math.min(h - MARGIN.bottom, Math.max(MARGIN.top, p.y));
+          const edges = edge.current;
+          const x = Math.min(w - edges.x - width / 2, Math.max(edges.x + width / 2, p.x));
+          const y = Math.min(h - edges.bottom, Math.max(edges.top, p.y));
           el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
         }
       }),
