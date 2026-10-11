@@ -8,7 +8,9 @@ Playable chess auto-battler: 5 pieces per side, pawnlings/pawns, Bastions, Check
 
 ## Done recently
 
-2026-10-10 (latest): **Damage mitigated** stat: `mitigated` on the `damage` event (set in `dealDamage`), per-piece and team totals in the end report (Mit column, Iron Wall award, Combat chart, 10 s series) and in the Act break "side by side" table; `MVP_WEIGHTS` untouched.
+2026-10-11 (latest, all pushed to `test-product-2`): **relic aim fix** (`hintFits` in `src/sim/draft.ts`: problem notes aim only `protect`/`defense` relics; offence/carry relics aim by the AI rule; this was a real bug but it did not close the White gap); **match intro** (about 7.6 s: Openings card, both courts with piece tags, lane pass; Skip; `?intro=off` for tests) and **Black gambit banner** ("Black played Check on your Bishop", slate theme, one at a time); **full-screen Act break sheet**; **damage mitigated** (below).
+
+2026-10-10: **Damage mitigated** stat: `mitigated` on the `damage` event (set in `dealDamage`), per-piece and team totals in the end report (Mit column, Iron Wall award, Combat chart, 10 s series) and in the Act break "side by side" table; `MVP_WEIGHTS` untouched.
 
 2026-10-10 (later): **relic wave 1** built per `docs/RELICS.md`: a third break-sheet tab (Relics: pick 1 of 3 with a tailored first card, aim, "Let the AI choose", re-aim at later breaks), Black drafts by an AI rule, a held-relic seal row under each roster, eight relics in `content/relics.json` (Half-Open File, Closed Position, Crown Jewel, Development, Pawn Majority, Pawn Lever, Opening Theory, Standing Order), `relic` rng stream, balance flags `--relics` and `--relic-pool`. Tier 3 items are now called **Masterworks**. Code: `src/sim/relics.ts`, `src/sim/draft.ts`, `src/sim/callouts.ts` (moved from analysis), `src/ui/hud/RelicsTab.tsx`, `src/ui/hud/RelicRow.tsx`.
 
@@ -17,18 +19,20 @@ Map x1.5, humanoid models, combat flash, lane tags, gambit long-press, schools w
 ## Next steps
 
 1. Owner reviews the Act break and the new combat feedback on a phone (countdown flashes, toll pulses, grey halt, verdict tags and the lane strip were never viewed live on a device).
-2. Relic wave 2: Sealed Move and Pawn Structure (they need break-sheet pickers for a card and trigger, and for pawn quotas and a Tempo reserve). Then Battery and Sortie (the High builds: 3/1/1 lanes, rotating defenders). Then the rest of the 23.
+2. **In progress:** all 15 remaining relics (Sealed Move, Pawn Structure, Battery, Sortie and 11 others; spec `docs/RELICS.md`) are being built by one agent in a separate worktree. Its partial work is backed up on origin `wip/relics-2` (agent was stopped once by a usage limit and resumed). When it finishes: merge its worktree branch, run `npm run check` once, push, update this file, RELICS.md status ("all 23 built") and CHANGELOG.
 3. Gambit waves 2 (Clock school, English Opening) and 3, redesigned toward set-at-the-break cards (Standing Order is the model: a card bound at the break, always on, half strength).
 4. Minimap with pings (the combat feedback covers the read-the-board part; pings are still open).
 5. Dedicated testing pass (task #56): full Playwright, 800-match balance (relic runs: `--relics A=ai,B=ai`, `A=none`, `A=random`, one `--relic-pool` per family), school counters, stuck check incl. Barricade; tune `feedback` thresholds in `content/tuning.json` and the relic numbers in `content/relics.json`.
 
 ## Open decisions
 
-Relic numbers (wave 1 untuned); minimap/evaluation bar/gauntlet mode; stronger grey at "Bell pending"; callout thresholds and `feedback` thresholds (guesses).
+Install the Karpathy coding guidelines (multica-ai/andrej-karpathy-skills) into the global `~/.claude/CLAUDE.md` (pending; see the note in the chat: the auto-mode safety check blocked the write); relic numbers (wave 1 untuned); minimap/evaluation bar/gauntlet mode; stronger grey at "Bell pending"; callout thresholds and `feedback` thresholds (guesses).
 
 ## Gotchas
 
 - White win rate below target (~45%, 800 matches seed 29000); Act-break sanity run 42.5% on 40 matches (noise). Style outliers: shadow, ram, errant, regent high; sovereign, light, duelist, zealot low.
+- **Relics currently favour Black in 40-match runs** (White AI only 35%, Black AI only 35%, both off about 46–50%). No side bug in the relic code (each of the 8 relics was checked on both teams). Cause is Black's existing lead after Act 1 (about 2/3 of matches) plus White drafting as the trailing side. Needs the 800-match runs in the testing pass. Rule for new relics: a problem note may only aim `protect`/`defense` relics.
+- Git habits: uncommitted agent work is backed up to `wip/*` branches (temp index plus `git commit-tree`) rather than committed half-built; the stop hook nags until the build lands. `.claude/worktrees/` is excluded in `.git/info/exclude` so agent worktrees never get committed.
 - Pages: push to `test-product-2` relays to `test-product`, which builds both sites.
 - Owner rules: short answers, no heavy testing per change (one `npm run check` per push), never open a PR unless asked, update docs per CLAUDE.md.
 - Paused work on `test-product` (3D polish stash, Team A bias) is untouched.
