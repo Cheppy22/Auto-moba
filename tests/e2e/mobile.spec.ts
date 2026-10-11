@@ -55,6 +55,13 @@ for (const v of views) {
       await expect(page.getByTestId('title')).toBeVisible();
       await shot(page, `${v.name}-title`);
       expect(await overflow(page)).toBeLessThanOrEqual(0);
+      // a short screen scrolls the title instead of hiding the Sound toggle and the Seed field
+      const clipped = await page
+        .getByTestId('title')
+        .evaluate(
+          (el) => el.scrollHeight > el.clientHeight && getComputedStyle(el).overflowY === 'hidden',
+        );
+      expect(clipped, 'title content is clipped').toBe(false);
       await page.getByTestId('seed').fill('42');
       await page.getByTestId('start').tap();
       await expect(page.getByTestId('setup')).toBeVisible();
