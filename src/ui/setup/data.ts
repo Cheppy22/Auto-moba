@@ -7,7 +7,6 @@ import type {
   ItemDef,
   LaneId,
   Path,
-  PieceDef,
   PieceId,
   School,
 } from '../../sim';
@@ -217,7 +216,8 @@ export const LANE_FULL: Record<LaneId, string> = { top: 'Left', mid: 'Mid', bot:
 type Opening = Content['openings'][number];
 
 /** Why one school beats another, in terms of card effects (docs/CHESS.md, "Gambit schools"). */
-const BEATS: Partial<Record<`${School}>${School}`, string>> = {
+type BeatKey = `${School}>${School}`;
+const BEATS: Partial<Record<BeatKey, string>> = {
   'fortress>march': 'Armor, resist and Bastion shields soak a push longer than its buff lasts.',
   'position>march':
     'Barricade seals a gate or bridge and Outpost holds a choke, so a pushing wave stalls or reroutes.',
@@ -265,7 +265,7 @@ export function openingInfo(c: Content, o: Opening): OpeningInfo {
     pairs.map(([mine, other]) => ({
       mine,
       other,
-      text: BEATS[flip ? `${other}>${mine}` : `${mine}>${other}`] ?? '',
+      text: BEATS[(flip ? `${other}>${mine}` : `${mine}>${other}`) as BeatKey] ?? '',
     }));
   const strong: [School, School][] = [];
   const weak: [School, School][] = [];
