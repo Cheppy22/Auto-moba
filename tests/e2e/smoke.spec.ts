@@ -2,6 +2,8 @@ import { expect, test, type Page } from '@playwright/test';
 import {
   clearPawnPlan,
   eventCount,
+  isOldHud,
+  openHand,
   pauseAtStart,
   setCam,
   setSpeed,
@@ -86,8 +88,9 @@ test('title, setup, gambits, pawn, fork, adjourn, checkmate and report', async (
   await expect(page.getByTestId('phase')).toHaveText('Act 1');
   await expect(page.getByTestId('stage')).toBeVisible();
   await expect(page.getByTestId('no-webgl')).toHaveCount(0);
-  await expect(page.locator('[data-testid="roster"] .roster-cell')).toHaveCount(5);
-  await expect(page.locator('[data-testid="roster-enemy"] .roster-cell')).toHaveCount(5);
+  const oldHud = await isOldHud(page);
+  await expect(page.locator('[data-testid^="roster-A-"]')).toHaveCount(5);
+  await expect(page.locator('[data-testid^="roster-B-"]')).toHaveCount(5);
   await expect(page.getByTestId('roster-A-king')).toHaveAttribute('aria-label', /Generic.*Mid/);
   await expect(page.getByTestId('roster-A-king')).toHaveAttribute('data-rank', '1');
   await expect(page.locator('[data-testid^="gambit-"]')).toHaveCount(3);
@@ -106,10 +109,15 @@ test('title, setup, gambits, pawn, fork, adjourn, checkmate and report', async (
   const blackStyle = blackLabel.split(', ')[1];
   expect(blackStyle.length).toBeGreaterThan(2);
   await page.getByTestId('roster-B-queen').click();
-  await expect(page.getByTestId('unit-card')).toHaveCount(0);
-  await page.getByTestId('roster-B-queen').click();
+  // the old roster follows on the first tap and shows the card on the second; a court-bar token shows it at once
+  if (oldHud) {
+    await expect(page.getByTestId('unit-card')).toHaveCount(0);
+    await page.getByTestId('roster-B-queen').click();
+  }
   await expect(page.getByTestId('unit-card')).toBeVisible();
-  await expect(page.getByTestId('unit-card-style')).toHaveText(blackStyle);
+  // the old portrait names the style in its label; a court-bar token only shows the rank
+  if (oldHud) await expect(page.getByTestId('unit-card-style')).toHaveText(blackStyle);
+  else await expect(page.getByTestId('unit-card-style')).not.toBeEmpty();
   await expect(page.getByTestId('unit-card-piece')).toContainText('Queen');
   await expect(page.getByTestId('unit-card-piece')).toContainText('Black');
   await expect(page.getByTestId('unit-card-items')).toBeVisible();
@@ -134,6 +142,7 @@ test('title, setup, gambits, pawn, fork, adjourn, checkmate and report', async (
   const laneSlot = s.hand.find((c) => c.target === 'lane' && c.usable)!.slot;
   const before = await eventCount(page, 'gambit', 'A');
   // holding a card opens it enlarged with its full text; nothing is played
+  await openHand(page);
   const card = (await page.getByTestId(`gambit-${laneSlot}`).boundingBox())!;
   await page.mouse.move(card.x + card.width / 2, card.y + card.height / 2);
   await page.mouse.down();
@@ -144,6 +153,7 @@ test('title, setup, gambits, pawn, fork, adjourn, checkmate and report', async (
   expect(await eventCount(page, 'gambit', 'A')).toBe(before);
   await page.getByTestId('gambit-info-close').click();
   await expect(page.getByTestId('gambit-info')).toHaveCount(0);
+  await openHand(page);
   await page.getByTestId(`gambit-${laneSlot}`).click();
   await expect(page.getByTestId('aim')).toBeVisible();
   await expect(page.getByTestId('aim-top')).toBeVisible();
@@ -151,6 +161,7 @@ test('title, setup, gambits, pawn, fork, adjourn, checkmate and report', async (
   await expect(page.getByTestId('aim-bot')).toBeVisible();
   await page.getByTestId('aim-cancel').click();
   await expect(page.getByTestId('aim')).toHaveCount(0);
+  await openHand(page);
   await page.getByTestId(`gambit-${laneSlot}`).click();
   await page.getByTestId('aim-mid').click();
   await expect(page.getByTestId('aim')).toHaveCount(0);
@@ -161,6 +172,7 @@ test('title, setup, gambits, pawn, fork, adjourn, checkmate and report', async (
   await setTempo(page, 100);
   s = await stepUntil(page, { kind: 'card', target: 'point' });
   const pointSlot = s.hand.find((c) => c.target === 'point' && c.usable)!.slot;
+  await openHand(page);
   await page.getByTestId(`gambit-${pointSlot}`).click();
   await expect(page.getByTestId('aim-hint')).toContainText('Tap the board');
   const vp = page.viewportSize()!;
@@ -172,6 +184,7 @@ test('title, setup, gambits, pawn, fork, adjourn, checkmate and report', async (
   await setTempo(page, 0);
   s = await snap(page);
   const idle = s.hand.find((c) => c.cardId !== '' && !c.usable)!;
+  await openHand(page);
   await expect(page.getByTestId(`gambit-${idle.slot}`)).toHaveAttribute('data-usable', 'false');
   await expect(page.getByTestId(`gambit-${idle.slot}`)).toContainText(/Tempo|down/);
   // a card that cannot be played is aria-disabled but still answers a tap with the reason

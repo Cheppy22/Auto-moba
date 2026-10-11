@@ -1,5 +1,14 @@
 import { expect, test } from '@playwright/test';
-import { eventCount, setCam, startLive, step, stepUntil, viewReady, watchErrors } from './helpers';
+import {
+  eventCount,
+  openHand,
+  setCam,
+  startLive,
+  step,
+  stepUntil,
+  viewReady,
+  watchErrors,
+} from './helpers';
 
 test.use({ viewport: { width: 800, height: 520 } });
 
@@ -33,8 +42,8 @@ test('3D view: camera modes, follow, caption and picking', async ({ page }) => {
   await page.mouse.up();
   await page.mouse.wheel(0, -400);
 
-  // tap a portrait (either side): the camera follows that piece
-  await page.getByTestId('roster-B-queen').click();
+  // tap one of your portraits: the camera follows that piece (a Black token opens its card instead under the court bar)
+  await page.getByTestId('roster-A-queen').click();
   await expect(page.getByTestId('cam-btn')).toHaveAttribute('data-mode', 'follow');
   await page.getByTestId('roster-A-king').click();
   await expect(page.getByTestId('cam-btn')).toHaveAttribute('data-mode', 'follow');
@@ -96,6 +105,8 @@ test('a tap on a piece in the 3D view opens its card, a tap on bare ground close
   // follow the King so he is in the middle of the screen
   await page.getByTestId('roster-A-king').click();
   await expect(page.getByTestId('cam-btn')).toHaveAttribute('data-mode', 'follow');
+  // the table camera eases in over a couple of seconds: let it settle before reading the piece's spot
+  await page.waitForTimeout(3000);
   const handle = await page.waitForFunction(
     () => {
       interface Sess {
@@ -148,24 +159,30 @@ test('a tap on a piece in the 3D view opens its card, a tap on bare ground close
 test('an enemy gambit is aimed with a tap on a Black piece', async ({ page }) => {
   test.setTimeout(300_000);
   const errors = watchErrors(page);
+  // a roomier window: at 800x520 the court bar's aim banner covers the Black base
+  await page.setViewportSize({ width: 1280, height: 800 });
   await startLive(page, '42');
   await viewReady(page);
   const s = await stepUntil(page, { kind: 'card', target: 'enemy', cardId: 'check' });
   const slot = s.hand.find((c) => c.cardId === 'check')!.slot;
-  // follow a Black piece that is still standing so it is in the middle of the screen
+  // follow a Black piece that is still standing, so it sits in the middle of the screen and clear of
+  // the aim banner (a court-bar token opens a card instead of following, so the camera is set directly)
   const piece = await page.evaluate(() => {
     interface Sess {
       match: {
         state: { teams: { B: { heroIds: number[] } } };
-        unitById(id: number): { alive: boolean; hero?: { defId: string } } | undefined;
+        unitById(id: number): { id: number; alive: boolean; hero?: { defId: string } } | undefined;
       };
+      setUi(patch: { cam: 'follow'; follow: number }): void;
     }
     const s = (window as unknown as { __session: Sess }).__session;
     const ids = s.match.state.teams.B.heroIds;
-    const alive = ids.map((id) => s.match.unitById(id)!).find((u) => u.alive);
-    return alive!.hero!.defId;
+    const alive = ids.map((id) => s.match.unitById(id)!).find((u) => u.alive)!;
+    s.setUi({ cam: 'follow', follow: alive.id });
+    return alive.hero!.defId;
   });
-  await page.getByTestId(`roster-B-${piece}`).click();
+  await page.waitForTimeout(3000); // the table camera eases in
+  await openHand(page);
   await page.getByTestId(`gambit-${slot}`).click();
   await expect(page.getByTestId('aim-hint')).toContainText('Tap a Black piece');
   const handle = await page.waitForFunction(
@@ -186,12 +203,10 @@ test('an enemy gambit is aimed with a tap on a Black piece', async ({ page }) =>
       const u = s.match.unitById(id)!;
       const p = s.view.project(u.x, u.y, 20);
       const rect = document.querySelector('canvas')!.getBoundingClientRect();
-      const inside =
-        p.visible &&
-        p.x > rect.width * 0.25 &&
-        p.x < rect.width * 0.75 &&
-        p.y > rect.height * 0.25 &&
-        p.y < rect.height * 0.65;
+      // on screen and not under a HUD element
+      const hit = document.elementFromPoint(rect.left + p.x, rect.top + p.y);
+      const bare = hit === document.querySelector('canvas') || !!hit?.closest('.aim-layer');
+      const inside = p.visible && p.x > 0 && p.x < rect.width && bare;
       return inside ? { x: rect.left + p.x, y: rect.top + p.y } : null;
     },
     piece,
@@ -221,6 +236,6 @@ test('without WebGL the game shows a clear message and the HUD still works', asy
   await expect(notice).toBeVisible();
   await expect(notice).toContainText('WebGL');
   await expect(page.getByTestId('stage')).toBeHidden();
-  await expect(page.getByTestId('hand')).toBeVisible();
+  await openHand(page);
   await expect(page.getByTestId('speed-chip')).toBeVisible();
 });

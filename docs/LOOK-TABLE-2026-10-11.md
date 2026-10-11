@@ -1,12 +1,12 @@
 # Look: "Tournament Table" prototype (2026-10-11)
 
-Status: **prototype for owner sign-off, round 2: three variants to pick from**, behind `?look=table` (`&variant=a|b|c`, default `a`; `&frame=square|diamond` overrides the framing). The default look is unchanged. Built from the critic review ([REVIEW-2026-10-11-design.md](REVIEW-2026-10-11-design.md), "Tournament Table") with one owner change: **pieces stay humanoid** (no Staunton miniatures), fleshed out so every piece and style is distinct.
+Status: **variant c, Spotlight Arena, is the default look (owner decision, 2026-10-11)**, replacing the Grand Board garden look. No URL params needed. `?variant=a|b` picks the other variants, `?frame=square|diamond` overrides the framing, `?look=grand` shows the old Grand Board (legacy, comparison only, to be deleted), `?hud=old` forces the old corner HUD. Built from the critic review ([REVIEW-2026-10-11-design.md](REVIEW-2026-10-11-design.md), "Tournament Table") with one owner change: **pieces stay humanoid** (no Staunton miniatures), fleshed out so every piece and style is distinct.
 
-How to see it: add `?look=table` to the game URL (`&variant=b` or `&variant=c` for the other two). Debug line-up of every style: `?look=table&lineup` (whole-board scale), `&lineup=close` (lean in on White's rows), `&lineup=closeb` (Black's rows). The line-up replaces the match's units in the view only.
+How to see the others: add `?variant=a` or `?variant=b` to the game URL. Debug line-up of every style: `?lineup` (whole-board scale), `?lineup=close` (lean in on White's rows), `?lineup=closeb` (Black's rows). The line-up replaces the match's units in the view only.
 
 ## Variants (round 2, 2026-10-11)
 
-Owner feedback on round 1: right direction; show 2–3 variants; make the map bigger on screen; pieces need contrast or contour (their colours blended at distance); pieces 20–25% smaller, verticality on the map, bigger Bastions and Thrones. All three variants share the fixes below and differ in mood, palette, value structure, contour treatment, framing and camera tilt. The owner picks one later; the default look is unchanged until then.
+Owner feedback on round 1: right direction; show 2–3 variants; make the map bigger on screen; pieces need contrast or contour (their colours blended at distance); pieces 20–25% smaller, verticality on the map, bigger Bastions and Thrones. All three variants share the fixes below and differ in mood, palette, value structure, contour treatment, framing and camera tilt. The owner picked **c** on 2026-10-11 (the table below keeps the comparison).
 
 |                                   | **a · Tournament Night** (recommended)                                                | **b · Club Daylight**                                                                   | **c · Spotlight Arena**                                                     |
 | --------------------------------- | ------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
@@ -163,4 +163,4 @@ Round 1:
 3. Gambit and zone effects re-tuned to the miniature scale (they still use the old sizes), plus faceted versions of the Check crown and flares.
 4. Neutral camps and event creatures designed per camp (they are three generic terracotta sizes now); Keeper and obelisks are placeholders.
 5. Real-device performance pass, intro tour reframed for the fixed camera, sound pass (wood, felt, brass, clock).
-6. Retire or keep the old view (`src/render/broadcast`), and move the line-up to a dev-only route.
+6. Delete the old view (`src/render/broadcast`, reachable as `?look=grand` until then), the old corner HUD, and move the line-up to a dev-only route.

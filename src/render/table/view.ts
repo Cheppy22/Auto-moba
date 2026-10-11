@@ -135,15 +135,15 @@ function webgl(canvas: HTMLCanvasElement): WebGLRenderer {
   }
 }
 
-/** URL switch: `?look=table` picks this view. */
+/** URL switch: the table view is the default; `?look=grand` picks the legacy Grand Board view. */
 export function wantsTable(): boolean {
   return (
-    typeof location !== 'undefined' && new URLSearchParams(location.search).get('look') === 'table'
+    typeof location === 'undefined' || new URLSearchParams(location.search).get('look') !== 'grand'
   );
 }
 
 /**
- * The Tournament Table view (prototype, `?look=table`): the whole board on a walnut table under a
+ * The Tournament Table view (the default look): the whole board on a walnut table under a
  * fixed war-table camera, faceted humanoid pieces at miniature scale. Same contract as the
  * broadcast view: reads snapshots and events, never touches the sim.
  */

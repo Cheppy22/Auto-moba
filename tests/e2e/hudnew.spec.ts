@@ -11,10 +11,10 @@ import {
   watchErrors,
 } from './helpers';
 
-/** The new HUD ("court bar"): chosen with `?hud=new`, or by default under `?look=table`. */
+/** The new HUD ("court bar"): the default with the table look (no params); `?hud=new` forces it, `?hud=old` and `?look=grand` give the old corner HUD. */
 
 async function startWith(page: Page, query: string, seed = '42'): Promise<void> {
-  await page.goto(`/?${query}&intro=off`);
+  await page.goto(`/?${query ? `${query}&` : ''}intro=off`);
   await expect(page.getByTestId('title')).toBeVisible();
   await page.getByTestId('seed').fill(seed);
   await page.getByTestId('start').click();
@@ -249,7 +249,7 @@ for (const v of wide) {
     }) => {
       test.setTimeout(180_000);
       const errors = watchErrors(page);
-      await startWith(page, 'look=table');
+      await startWith(page, '');
       await expect(page.getByTestId('hud')).toHaveAttribute('data-shape', 'side');
       expect(await overflow(page)).toBeLessThanOrEqual(0);
       const top = await rootVar(page, '--hud-top');
@@ -291,19 +291,25 @@ for (const v of wide) {
   });
 }
 
-test('the new HUD is the default under the table look and ?hud=old forces the old one', async ({
-  page,
-}) => {
+test('the new HUD is the default and ?hud=old / ?look=grand give the old one', async ({ page }) => {
   test.setTimeout(240_000);
   const errors = watchErrors(page);
-  await startWith(page, 'look=table');
+  await startWith(page, '');
   await expect(page.getByTestId('hud')).toHaveAttribute('data-hud', 'new');
-  await page.goto('/?look=table&hud=old&intro=off');
+  await page.goto('/?hud=old&intro=off');
   await expect(page.getByTestId('title')).toBeVisible();
   await page.getByTestId('start').click();
   await page.getByTestId('quick-start').click();
   await expect(page.getByTestId('hud')).toHaveAttribute('data-hud', 'old');
   await expect(page.getByTestId('drawer')).toHaveCount(0);
   await expect(page.getByTestId('gambit-0')).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test('the legacy ?look=grand look uses the old HUD', async ({ page }) => {
+  test.setTimeout(240_000);
+  const errors = watchErrors(page);
+  await startWith(page, 'look=grand');
+  await expect(page.getByTestId('hud')).toHaveAttribute('data-hud', 'old');
   expect(errors).toEqual([]);
 });

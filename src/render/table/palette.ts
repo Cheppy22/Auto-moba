@@ -1,5 +1,5 @@
 /**
- * Tournament Table palettes, one per look variant (`?look=table&variant=a|b|c`, default `a`).
+ * Tournament Table palettes, one per look variant (`?variant=a|b|c`, default `c` Spotlight Arena).
  * Contrast rule for every variant: the ground (board, felt) stays in one value band and one hue
  * family, the pieces sit outside it (ivory above, ebony below or lifted with a light contour), and
  * every piece carries a team contour (outline + base ring) that reads at phone scale.
@@ -356,10 +356,10 @@ const ARENA: Look = {
 export const LOOKS: Record<VariantId, Look> = { a: NIGHT, b: DAYLIGHT, c: ARENA };
 
 function pick(): Look {
-  if (typeof location === 'undefined') return NIGHT;
+  if (typeof location === 'undefined') return ARENA;
   const q = new URLSearchParams(location.search);
   const v = q.get('variant');
-  const look = v === 'b' || v === 'c' ? LOOKS[v] : NIGHT;
+  const look = v === 'a' || v === 'b' ? LOOKS[v] : ARENA;
   const f = q.get('frame');
   return f === 'square' || f === 'diamond'
     ? { ...look, cam: { ...look.cam, square: f === 'square' } }

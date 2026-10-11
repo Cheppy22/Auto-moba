@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { setSpeed, setTempo, snap, startLive, stepUntil, watchErrors } from './helpers';
+import { openHand, setSpeed, setTempo, snap, startLive, stepUntil, watchErrors } from './helpers';
 
 test.use({ viewport: { width: 800, height: 520 } });
 
@@ -37,6 +37,7 @@ test('long-pressing a gambit card opens it enlarged and pauses the game until it
   const t0 = (await snap(page)).tick;
   await expect.poll(async () => (await snap(page)).tick, { timeout: 20_000 }).toBeGreaterThan(t0);
 
+  await openHand(page);
   // hold the card: the sheet opens with its details and the clock stops
   const box = (await page.getByTestId(`gambit-${slot}`).boundingBox())!;
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
@@ -63,6 +64,7 @@ test('long-pressing a gambit card opens it enlarged and pauses the game until it
     .toBeGreaterThan(frozen);
 
   // right-click opens the same sheet; Play closes it and starts aiming like a tap
+  await openHand(page);
   await page.getByTestId(`gambit-${slot}`).click({ button: 'right' });
   await expect(page.getByTestId('gambit-info')).toBeVisible();
   await page.getByTestId('gambit-info-play').click();

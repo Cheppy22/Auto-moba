@@ -2,9 +2,12 @@ import { expect, test, type Page } from '@playwright/test';
 import {
   boxOf,
   clearPawnPlan,
+  isOldHud,
+  openHand,
   overflow,
   pauseAtStart,
   playPast,
+  setCam,
   setSpeed,
   setTempo,
   snap,
@@ -110,6 +113,8 @@ for (const v of views) {
       await shot(page, `${v.name}-hud`);
       expect(await overflow(page)).toBeLessThanOrEqual(0);
       await centreIsMap(page);
+      const oldHud = await isOldHud(page);
+      if (!oldHud) await openHand(page);
       for (const id of [
         'gambit-0',
         'gambit-1',
@@ -132,34 +137,40 @@ for (const v of views) {
       for (const id of ['speed-chip', 'cam-btn']) await bigEnough(page, id);
       for (const piece of ['king', 'queen', 'rook', 'bishop', 'knight']) {
         await bigEnough(page, `roster-A-${piece}`);
-        await bigEnough(page, `roster-B-${piece}`);
+        if (oldHud) await bigEnough(page, `roster-B-${piece}`);
+        // court-bar tokens are 38 px wide in the side shape (one slim top row), 44 px tall
+        else expect((await boxOf(page, `roster-B-${piece}`)).height).toBeGreaterThanOrEqual(40);
       }
-      // calm HUD: a rank numeral on every portrait of both teams, no pips, no emblem until Rank 4
-      await expect(page.locator('.roster .rank-pips')).toHaveCount(0);
-      await expect(page.locator('.roster .rank-num')).toHaveCount(10);
-      await expect(page.locator('.roster .style-badge')).toHaveCount(0);
       // the gambit cards show a name and a cost only
       await expect(page.locator('.gcard .gdesc')).toHaveCount(0);
-      // the speed chip and the camera button each replace a row of buttons
-      const topH = (await boxOf(page, 'adjourn')).y + (await boxOf(page, 'adjourn')).height;
-      expect(topH, 'one slim row on top').toBeLessThanOrEqual(64);
-      const firstCell = await boxOf(page, 'roster-A-king');
-      expect(firstCell.y, 'the roster sits right under the top row').toBeLessThanOrEqual(68);
-      // the hand never covers the Field Pawn button or the Tempo meter
-      const hand = await boxOf(page, 'hand');
-      const pawn = await boxOf(page, 'field-pawn');
-      const tempo = await boxOf(page, 'tempo');
-      for (const b of [pawn, tempo]) {
-        const apart =
-          b.y >= hand.y + hand.height - 1 ||
-          b.x >= hand.x + hand.width - 1 ||
-          b.x + b.width <= hand.x + 1;
-        expect(apart, 'hand and Tempo/Pawn do not overlap').toBe(true);
+      // the legacy corner HUD's layout (the court bar's is checked in hudnew.spec.ts)
+      if (oldHud) {
+        // calm HUD: a rank numeral on every portrait of both teams, no pips, no emblem until Rank 4
+        await expect(page.locator('.roster .rank-pips')).toHaveCount(0);
+        await expect(page.locator('.roster .rank-num')).toHaveCount(10);
+        await expect(page.locator('.roster .style-badge')).toHaveCount(0);
+        // the speed chip and the camera button each replace a row of buttons
+        const topH = (await boxOf(page, 'adjourn')).y + (await boxOf(page, 'adjourn')).height;
+        expect(topH, 'one slim row on top').toBeLessThanOrEqual(64);
+        const firstCell = await boxOf(page, 'roster-A-king');
+        expect(firstCell.y, 'the roster sits right under the top row').toBeLessThanOrEqual(68);
+        // the hand never covers the Field Pawn button or the Tempo meter
+        const hand = await boxOf(page, 'hand');
+        const pawn = await boxOf(page, 'field-pawn');
+        const tempo = await boxOf(page, 'tempo');
+        for (const b of [pawn, tempo]) {
+          const apart =
+            b.y >= hand.y + hand.height - 1 ||
+            b.x >= hand.x + hand.width - 1 ||
+            b.x + b.width <= hand.x + 1;
+          expect(apart, 'hand and Tempo/Pawn do not overlap').toBe(true);
+        }
       }
 
       // ---- aim a lane gambit with taps
       const s = await stepUntil(page, { kind: 'card', target: 'lane' });
       const slot = s.hand.find((c) => c.target === 'lane' && c.usable)!.slot;
+      await openHand(page);
       await page.getByTestId(`gambit-${slot}`).tap();
       await expect(page.getByTestId('aim')).toBeVisible();
       await shot(page, `${v.name}-aim-lane`);
@@ -177,6 +188,7 @@ for (const v of views) {
 
       // ---- point aim: the next tap on the 3D view plays the card
       const pt = await stepUntil(page, { kind: 'card', target: 'point' });
+      await openHand(page);
       await page
         .getByTestId(`gambit-${pt.hand.find((c) => c.target === 'point' && c.usable)!.slot}`)
         .tap();
@@ -194,8 +206,10 @@ for (const v of views) {
 
       // ---- the piece card: tap a Black portrait to follow, tap again for the card
       await page.getByTestId('roster-B-queen').tap();
-      await expect(page.getByTestId('unit-card')).toHaveCount(0);
-      await page.getByTestId('roster-B-queen').tap();
+      if (oldHud) {
+        await expect(page.getByTestId('unit-card')).toHaveCount(0);
+        await page.getByTestId('roster-B-queen').tap();
+      }
       await expect(page.getByTestId('unit-card')).toBeVisible();
       await expect(page.getByTestId('unit-card-style')).not.toBeEmpty();
       await page.waitForTimeout(400);
@@ -206,9 +220,7 @@ for (const v of views) {
       await centreIsMap(page);
       await page.getByTestId('unit-card-close').tap();
       await expect(page.getByTestId('unit-card')).toHaveCount(0);
-      await page.getByTestId('cam-btn').tap();
-      await page.getByTestId('cam-btn').tap();
-      await expect(page.getByTestId('cam-btn')).toHaveAttribute('data-mode', 'board');
+      await setCam(page, 'board');
 
       // ---- a fork pauses the match and opens a sheet that fits and can be tapped
       await stepUntil(page, { kind: 'fork' });

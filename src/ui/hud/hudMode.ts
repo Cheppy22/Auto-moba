@@ -1,15 +1,15 @@
 import { useEffect, useState } from 'preact/hooks';
 
 /**
- * Which HUD to draw. The new court-bar HUD is the default under the Tournament Table look
- * (`?look=table`) and can be forced anywhere with `?hud=new`; `?hud=old` forces the corner HUD.
+ * Which HUD to draw. The new court-bar HUD is the default with the Tournament Table look
+ * (everything except `?look=grand`) and can be forced anywhere with `?hud=new`; `?hud=old` forces the corner HUD.
  */
 export function wantsNewHud(search: string = window.location.search): boolean {
   const q = new URLSearchParams(search);
   const hud = q.get('hud');
   if (hud === 'new') return true;
   if (hud === 'old') return false;
-  return q.get('look') === 'table';
+  return q.get('look') !== 'grand';
 }
 
 /**

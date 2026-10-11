@@ -178,6 +178,22 @@ export async function playPast(page: Page, tick: number, timeout = 60_000): Prom
     .toBeGreaterThan(tick);
 }
 
+/** True when the page draws the legacy corner HUD (`?look=grand` or `?hud=old`), false for the court bar. */
+export async function isOldHud(page: Page): Promise<boolean> {
+  return (await page.getByTestId('hud').getAttribute('data-hud')) === 'old';
+}
+
+/**
+ * Makes the gambit cards reachable under either HUD: the old one always shows them, the court bar
+ * keeps them in a drawer that an aim folds away, so this opens it if it is shut.
+ */
+export async function openHand(page: Page): Promise<void> {
+  const toggle = page.getByTestId('drawer-toggle');
+  if ((await toggle.count()) === 0) return;
+  if ((await page.getByTestId('drawer').getAttribute('data-open')) !== 'true') await toggle.click();
+  await expect(page.getByTestId('hand')).toBeVisible();
+}
+
 /** Taps the camera button until it shows `mode`. */
 export async function setCam(
   page: Page,
