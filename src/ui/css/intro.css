@@ -42,9 +42,6 @@
   font-size: var(--vs-fs);
   transition: scale var(--out-ms, 800ms) ease-in;
 }
-.intro[data-phase='wait'] .vs {
-  opacity: 0;
-}
 .intro[data-phase='out'] .vs {
   scale: 1.03;
 }
@@ -214,29 +211,38 @@
   color: var(--faint);
 }
 
-.intro-skip {
-  position: absolute;
-  top: calc(10px + env(safe-area-inset-top));
-  right: calc(10px + env(safe-area-inset-right));
-  min-width: 72px;
-  min-height: 40px;
-  color: var(--ivory);
+/* Begin: arrives as the entrance settles, then breathes gently while the card holds */
+.intro-begin {
+  align-self: center;
+  min-width: 168px;
+  min-height: 46px;
+  font-size: calc(var(--vs-fs) * 1.15);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  animation: vs-fade 0.6s ease 1.8s both;
+}
+.intro-begin-hint {
+  align-self: center;
+  margin-top: -0.4em;
+  font-size: calc(var(--vs-fs) * 0.85);
+  color: var(--faint);
+  animation: vs-fade 0.6s ease 2s both;
 }
 
 /* the show: header, then every piece together (Black settles down, White rises), dividers draw */
-.intro:not([data-phase='wait']) .vs-head {
+.intro .vs-head {
   animation: vs-fade 0.6s var(--ease) both;
 }
-.intro:not([data-phase='wait']) .vs-piece {
+.intro .vs-piece {
   animation: vs-rise 1.2s var(--ease) 0.3s both;
 }
-.intro:not([data-phase='wait']) .vs-piece.b {
+.intro .vs-piece.b {
   animation-name: vs-settle;
 }
-.intro:not([data-phase='wait']) .vs-lane + .vs-lane::before {
+.intro .vs-lane + .vs-lane::before {
   animation: vs-draw 0.9s var(--ease) 0.8s both;
 }
-.intro:not([data-phase='wait']) .vs-lane-name {
+.intro .vs-lane-name {
   animation: vs-fade 0.7s ease 1s both;
 }
 
@@ -307,11 +313,11 @@
 
 @media (prefers-reduced-motion: reduce) {
   /* no movement: everything fades in together, then out */
-  .intro:not([data-phase='wait']) .vs-head,
-  .intro:not([data-phase='wait']) .vs-piece,
-  .intro:not([data-phase='wait']) .vs-piece.b,
-  .intro:not([data-phase='wait']) .vs-lane + .vs-lane::before,
-  .intro:not([data-phase='wait']) .vs-lane-name {
+  .intro .vs-head,
+  .intro .vs-piece,
+  .intro .vs-piece.b,
+  .intro .vs-lane + .vs-lane::before,
+  .intro .vs-lane-name {
     animation: vs-fade 0.6s ease 0.1s both;
   }
   .intro[data-phase='out'] .vs {

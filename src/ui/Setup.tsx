@@ -34,6 +34,9 @@ export function Setup() {
   const last = STEPS.length - 1;
   const go = (n: number): void => setPage(Math.max(0, Math.min(last, n)));
 
+  // draw the versus card's portraits now, so the card has them the moment Begin is pressed
+  useEffect(() => s.prewarmPortraits(), [s]);
+
   useEffect(() => {
     const on = (e: KeyboardEvent): void => {
       if (e.altKey || e.ctrlKey || e.metaKey) return;

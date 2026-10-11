@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { boxOf, pauseAtStart, watchErrors } from './helpers';
 
-/** The match intro: a versus card, Black above White, one column per lane; a tap skips it. */
+/** The match intro: a versus card, Black above White, one column per lane; it holds until the player starts. */
 
 async function begin(page: Page, query: string): Promise<void> {
   await page.goto(`/?${query}`);
@@ -11,15 +11,6 @@ async function begin(page: Page, query: string): Promise<void> {
   await expect(page.getByTestId('setup')).toBeVisible();
   await pauseAtStart(page);
   await page.getByTestId('quick-start').click();
-}
-
-/** The intro's clock in the page: held where it is (so a slow machine cannot run it out mid-test) or released. */
-function holdClock(page: Page, held: boolean): Promise<void> {
-  return page.evaluate((hold) => {
-    const s = (window as unknown as { __session: { ui: { intro: { startedAt: number } | null } } })
-      .__session;
-    if (s.ui.intro) s.ui.intro.startedAt = performance.now() + (hold ? 120_000 : -1000);
-  }, held);
 }
 
 const shapes = [
@@ -32,15 +23,14 @@ for (const v of shapes) {
   test.describe(`intro ${v.name}`, () => {
     test.use({ viewport: v.viewport });
 
-    test('ten pieces in two rows by lane, all on screen; a tap skips', async ({ page }) => {
+    test('ten pieces in two rows by lane, all on screen; it holds until a tap', async ({ page }) => {
       test.setTimeout(180_000);
       const errors = watchErrors(page);
       await begin(page, 'look=table');
       const intro = page.getByTestId('intro');
-      await expect(intro).toBeVisible();
-      // the card plays once the board has drawn its first frame; wait for the holding pose
-      await expect(intro).toHaveAttribute('data-phase', 'show', { timeout: 60_000 });
-      await holdClock(page, true);
+      // the card shows at once on Begin: it does not wait for portraits or the scene's first frame
+      await expect(intro).toBeVisible({ timeout: 3_000 });
+      await expect(intro).toHaveAttribute('data-phase', 'show');
       await expect(page.getByTestId('intro-opening-A')).not.toBeEmpty();
       await expect(page.getByTestId('intro-opening-B')).not.toBeEmpty();
       await expect(page.getByTestId('intro-piece')).toHaveCount(10);
@@ -77,7 +67,9 @@ for (const v of shapes) {
         expect(e.r).toBeLessThanOrEqual(v.viewport.width);
         expect(e.b).toBeLessThanOrEqual(v.viewport.height);
       }
-      // each portrait is the piece's own model drawn offscreen (the glyph stands in without WebGL)
+      // each portrait is the piece's own model drawn offscreen (the glyph stands in without WebGL
+      // and until the portrait arrives, normally already drawn while the player was on setup)
+      await page.waitForTimeout(3_000);
       const imgs = await page.locator('.vs-plate img').count();
       if (imgs > 0) {
         expect(imgs).toBe(10);
@@ -85,33 +77,61 @@ for (const v of shapes) {
           /^data:image\/png/,
         );
       }
-      // a tap anywhere ends it (after the first 400 ms) and the board is clear
-      await holdClock(page, false);
+      // a clear Begin button, and the card holds: past the old 6.7 s auto-end it is still up
+      const beginBtn = page.getByTestId('intro-begin');
+      await expect(beginBtn).toBeVisible();
+      const bb = await beginBtn.boundingBox();
+      expect(bb!.y + bb!.height).toBeLessThanOrEqual(v.viewport.height);
+      await page.waitForTimeout(5_000);
+      await expect(intro).toBeVisible();
+      await expect(intro).toHaveAttribute('data-phase', 'show');
+      // a tap anywhere starts the match and the board is clear
       await page.mouse.click(v.viewport.width / 2, v.viewport.height / 2);
-      await expect(intro).toHaveCount(0);
+      await expect(intro).toHaveCount(0, { timeout: 5_000 });
       await expect(page.getByTestId('hud')).toBeVisible();
       expect(errors).toEqual([]);
     });
   });
 }
 
+test.describe('intro start controls', () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  for (const how of ['Begin button', 'Enter', 'Space'] as const) {
+    test(`${how} starts the match`, async ({ page }) => {
+      test.setTimeout(120_000);
+      await begin(page, 'look=table');
+      const intro = page.getByTestId('intro');
+      await expect(intro).toBeVisible({ timeout: 3_000 });
+      // the key that pressed Begin on setup must not start it again straight away
+      await page.waitForTimeout(700);
+      await expect(intro).toBeVisible();
+      if (how === 'Begin button') await page.getByTestId('intro-begin').click();
+      else await page.keyboard.press(how === 'Enter' ? 'Enter' : ' ');
+      await expect(intro).toHaveCount(0, { timeout: 5_000 });
+      await expect(page.getByTestId('hud')).toBeVisible();
+    });
+  }
+});
+
 test.describe('intro reduced motion', () => {
   test.use({ viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' });
 
-  test('fades only, then ends by itself in about four seconds', async ({ page }) => {
-    test.setTimeout(180_000);
+  test('fades only, and waits for the player', async ({ page }) => {
+    test.setTimeout(120_000);
     await begin(page, 'look=table');
     const intro = page.getByTestId('intro');
-    await expect(intro).toHaveAttribute('data-phase', 'show', { timeout: 60_000 });
-    const t0 = Date.now();
+    await expect(intro).toBeVisible({ timeout: 3_000 });
     // no piece moves: the rise and settle animations are replaced by a plain fade
     const names = await page
       .locator('.vs-piece')
       .evaluateAll((els) => els.map((e) => getComputedStyle(e).animationName));
     expect(new Set(names)).toEqual(new Set(['vs-fade']));
-    await expect(intro).toHaveCount(0, { timeout: 15_000 });
-    expect(Date.now() - t0).toBeGreaterThan(3000);
-    expect(Date.now() - t0).toBeLessThan(6500);
+    // it used to end by itself after four seconds; now it holds
+    await page.waitForTimeout(6_000);
+    await expect(intro).toBeVisible();
+    await page.getByTestId('intro-begin').click();
+    await expect(intro).toHaveCount(0, { timeout: 5_000 });
   });
 });
 

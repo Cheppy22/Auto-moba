@@ -493,7 +493,13 @@ export class Match {
       hand,
       pawns: { A: pawnsOf('A'), B: pawnsOf('B') },
       ...(s.pawnPlan
-        ? { pawnPlan: { quota: { ...s.pawnPlan.quota }, reserve: s.pawnPlan.reserve } }
+        ? {
+            pawnPlan: {
+              quota: { ...s.pawnPlan.quota },
+              reserve: s.pawnPlan.reserve,
+              auto: s.pawnPlan.auto,
+            },
+          }
         : {}),
       forks: s.forks
         .filter((f) => this.ctx.unit(f.heroId)?.team === 'A')

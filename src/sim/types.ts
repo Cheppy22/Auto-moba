@@ -414,6 +414,8 @@ export interface PawnPlan {
   quota: PawnQuota;
   /** Tempo kept back so gambits stay playable. */
   reserve: number;
+  /** Auto fielding on or off (a toggle for the match); off keeps the counts but fields nothing. */
+  auto: boolean;
 }
 
 /** A relic held for the rest of the match, with what it is aimed at. */
@@ -857,6 +859,8 @@ export type Command =
   | { type: 'fieldPawn'; lane: LaneId }
   /** White's standing pawn plan: pawns to keep fielded per lane (total within the cap). */
   | { type: 'setPawnPlan'; quota: PawnQuota }
+  /** Turns White's automatic pawn fielding (the standing plan) on or off; the counts are kept. */
+  | { type: 'setPawnAuto'; auto: boolean }
   /** Leaves the Act break sheet and starts the next Act (after a relic is taken). */
   | { type: 'resumeAct' }
   /** Takes one of the break's offered relics, aimed; with three held, `replace` names the one it replaces. */

@@ -8,38 +8,25 @@ export interface IntroPiece {
   lane: LaneId;
 }
 
-/** `wait`: the board is still being built; `show`: the versus card plays; `out`: it dissolves. */
-export type IntroPhase = 'wait' | 'show' | 'out';
+/** `show`: the versus card holds until the player starts; `out`: it dissolves into the board. */
+export type IntroPhase = 'show' | 'out';
 
-/** The match intro, which holds the sim while it plays. */
+/** The match intro, which holds the sim until the player starts the match. */
 export interface IntroState {
+  /** When the card went up (a tap in its first moments is the Begin tap finishing, not a start). */
   startedAt: number;
   reduced: boolean;
   phase: IntroPhase;
+  /** When the dissolve began, or null while the card holds. */
+  outAt: number | null;
   pieces: IntroPiece[];
-  /** Portraits of the pieces' own 3D models (data URLs by `piece:team`); null while drawing or if they could not be drawn. */
+  /** Portraits of the pieces' own 3D models (data URLs by `piece:team`); null until drawn (the glyph stands in) or if they could not be drawn. */
   portraits: ReadonlyMap<string, string> | null;
-  /** True once the portraits are drawn or have failed: the clock waits for it. */
-  portraitsDone: boolean;
 }
 
 /**
- * When the card starts to dissolve and when the intro ends, in ms after its clock starts (the
- * 3D view's first frame). Motion: the header and pieces fade and settle in together by 1.5 s, the
- * dividers draw until 1.8 s, then it holds before a 0.8 s dissolve into the board. Reduced
- * motion: a plain fade in, a longer still hold, a short fade out.
+ * The card has no timer: it plays its 1.8 s entrance (fade and settle, dividers drawn; a plain
+ * fade with reduced motion) and then holds until the player taps, presses Begin, Enter or Space.
+ * Then it dissolves for this long and the match starts.
  */
-const TIMING = {
-  motion: { outAt: 5900, endAt: 6700 },
-  reduced: { outAt: 3500, endAt: 4000 },
-} as const;
-
-export const introTiming = (reduced: boolean): { outAt: number; endAt: number } =>
-  reduced ? TIMING.reduced : TIMING.motion;
-
-/** The phase `elapsed` ms into the intro, or null once it is over. */
-export function phaseAt(elapsed: number, reduced: boolean): 'show' | 'out' | null {
-  const t = introTiming(reduced);
-  if (elapsed >= t.endAt) return null;
-  return elapsed >= t.outAt ? 'out' : 'show';
-}
+export const introOutMs = (reduced: boolean): number => (reduced ? 300 : 700);

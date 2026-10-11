@@ -24,7 +24,16 @@ export function setPawnPlan(ctx: Ctx, quota: PawnQuota): CommandResult {
   ctx.s.pawnPlan = {
     quota: { top: quota.top, mid: quota.mid, bot: quota.bot },
     reserve: PLAN_RESERVE,
+    auto: ctx.s.pawnPlan?.auto ?? true,
   };
+  return { ok: true };
+}
+
+/** Turns the standing plan's automatic fielding on or off for the match; the counts stay. */
+export function setPawnAuto(ctx: Ctx, auto: boolean): CommandResult {
+  const plan = ctx.s.pawnPlan;
+  if (plan) plan.auto = auto;
+  else ctx.s.pawnPlan = { quota: { top: 0, mid: 0, bot: 0 }, reserve: PLAN_RESERVE, auto };
   return { ok: true };
 }
 
@@ -32,7 +41,7 @@ export function setPawnPlan(ctx: Ctx, quota: PawnQuota): CommandResult {
 export function tickPawnPlan(ctx: Ctx): void {
   const s = ctx.s;
   const plan = s.pawnPlan;
-  if (!plan || s.phase.kind !== 'live' || s.tick % 10 !== 0 || committed(ctx)) return;
+  if (!plan || !plan.auto || s.phase.kind !== 'live' || s.tick % 10 !== 0 || committed(ctx)) return;
   if (workingRelic(ctx, 'A', 'pawn_structure')) return;
   fieldTowardQuota(ctx, 'A', plan.quota, plan.reserve, 0);
 }
