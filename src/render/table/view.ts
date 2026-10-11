@@ -26,6 +26,7 @@ import { TableCamera } from './camera';
 import { LaneCam } from './lanecam';
 import { Crowd, crowdInk, facetMaterial, hullOf } from './crowd';
 import { FIG_HEIGHT, type PieceId } from './figures';
+import { CombatFx } from './combatfx';
 import { Bolts, Chips, Tags } from './fx';
 import {
   baseRim,
@@ -48,6 +49,8 @@ const PIECES: readonly PieceId[] = ['king', 'queen', 'rook', 'bishop', 'knight']
 const isPiece = (s: unknown): s is PieceId =>
   typeof s === 'string' && (PIECES as readonly string[]).includes(s);
 const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
+const easeIn = (t: number): number => t * t;
+const easeOut = (t: number): number => 1 - (1 - t) * (1 - t);
 const LOW_HP = 0.3;
 const LOW_HP_RED = '#ff5a48';
 const SHIELD = '#a9d0e0';
@@ -59,6 +62,13 @@ const OLD_PIECE_H = 57;
 const FALL_SEC = 0.9;
 /** Seconds a returning piece takes to drop onto the board. */
 const DROP_SEC = 0.42;
+/** Seconds a teleporting piece takes to beam out, and to condense at its destination. */
+const WARP_OUT_SEC = 0.4;
+const WARP_IN_SEC = 0.45;
+/** A piece whose sim position jumps this far in one frame has teleported (recall, Castle, Fork). */
+const WARP_MIN = 220;
+/** Seconds of game time a hit's outline flash and squash take to fade. */
+const HIT_SEC = 0.26;
 /** Landmarks: Bastions and Thrones drawn bigger than the prototype. */
 const TOWER_S = 1.45;
 const THRONE_S = 1.4;
@@ -73,6 +83,22 @@ type ChessUnit = SnapUnit & {
   pawn?: boolean;
   lane?: string | null;
 };
+
+/** A blow that lands a moment after its event (the swing's snap, or the bolt's flight). */
+interface PendingHit {
+  vid: number;
+  aid: number;
+  t: number;
+  dx: number;
+  dz: number;
+  strength: number;
+  big: boolean;
+  kill: boolean;
+  melee: boolean;
+  team: 'A' | 'B' | 'N';
+}
+
+const WHITE = new Color('#ffffff');
 
 function turn(from: number, to: number, k: number): number {
   const d = Math.atan2(Math.sin(to - from), Math.cos(to - from));
@@ -95,6 +121,22 @@ class Rec {
   phase = 0;
   hp = -1;
   flinch = 0;
+  /** Strength of the last blow taken (squash, recoil, outline flash), fading to 0. */
+  hit = 0;
+  hitX = 0;
+  hitZ = 0;
+  /** Teleport: 0 none, 1 beaming out (held at the departure point), 2 condensing at the destination. */
+  warpPhase = 0;
+  warpT = 0;
+  wx = 0;
+  wz = 0;
+  /** Seconds the recall channel has run (-1 when not channelling), and the mote timer. */
+  recallT = -1;
+  mote = 0;
+  /** Extra height for the health bar so bars of piled-up pieces do not overlap. */
+  barLift = 0;
+  bx = 0;
+  by = 0;
   lunge = 0;
   /** Seconds since the last blow, and the running estimate of the blow interval. */
   since = 9;
@@ -169,6 +211,22 @@ export class TableView {
   private readonly zones: ZoneFx;
   private readonly chips: Chips;
   private readonly bolts: Bolts;
+  private readonly fx: CombatFx;
+  private readonly hits: PendingHit[] = [];
+  private readonly hitPool: PendingHit[] = [];
+  private readonly order: Rec[] = [];
+  private readonly motion: MediaQueryList | null =
+    typeof matchMedia === 'function' ? matchMedia('(prefers-reduced-motion: reduce)') : null;
+  private readonly haloCol = {
+    A: new Color(TEAM.A.halo),
+    B: new Color(TEAM.B.halo),
+    N: new Color('#d88a52'),
+  };
+  private readonly rimCol = {
+    A: new Color(TEAM.A.rim),
+    B: new Color(TEAM.B.rim),
+    N: new Color('#d88a52'),
+  };
   private readonly tags = new Tags();
   private readonly crowds: Record<string, Crowd> = {};
   private readonly crowdList: Crowd[] = [];
@@ -372,10 +430,12 @@ export class TableView {
 
     this.chips = new Chips(this.facet);
     this.bolts = new Bolts(this.facet, this.chips);
+    this.fx = new CombatFx(this.kit);
     this.bars = new BarBatch(this.kit);
     this.gambits = new GambitFx(this.kit);
     this.zones = new ZoneFx(this.kit, content.map.lanes);
     this.scene.add(
+      ...this.fx.meshes,
       this.chips.crowd.mesh,
       this.bolts.crowd.mesh,
       this.gambits.group,
@@ -389,6 +449,12 @@ export class TableView {
       const w = window as unknown as Record<string, unknown>;
       w.__tvStats = () => this.stats();
       w.__tvMeasure = () => this.measure();
+      // dev: fire a blow between two units (ids), for screenshots of the hit effects
+      w.__tvHit = (aid: number, vid: number, frac = 0.06, lethal = false, melee = true) => {
+        const a = this.recs.get(aid);
+        const v = this.recs.get(vid);
+        if (a && v) this.queueHit(a, v, a.team, 0, frac, lethal, melee);
+      };
       w.__tvBoard = () => {
         const [x0, y0, x1, y1] = this.cam.boardBox(this.cssW, this.cssH);
         const cx0 = Math.max(0, x0);
@@ -407,9 +473,18 @@ export class TableView {
     }
   }
 
-  stats(): { calls: number; triangles: number; geometries: number; textures: number } {
+  stats(): {
+    calls: number;
+    triangles: number;
+    geometries: number;
+    textures: number;
+    frames: number;
+    fx: number[];
+  } {
     const i = this.renderer.info;
     return {
+      frames: this.drawn,
+      fx: this.fx.counts(),
       calls: i.render.calls,
       triangles: i.render.triangles,
       geometries: i.memory.geometries,
@@ -476,7 +551,11 @@ export class TableView {
       if (`${ins.top},${ins.bottom},${ins.left},${ins.right}` !== this.cam.fitted) this.resize();
     }
     const real = MathUtils.clamp(frame.dtMs, 0, 100) / 1000;
-    const dt = real * frame.timeScale;
+    // dev only: `window.__tvDt = 0.02` fixes the effect time per frame (deterministic screenshots)
+    const fixed = import.meta.env.DEV
+      ? ((window as unknown as { __tvDt?: number }).__tvDt ?? 0)
+      : 0;
+    const dt = (fixed > 0 ? fixed : real) * frame.timeScale;
     this.time += dt;
     if (snap.tick < this.lastTick) this.reset();
     this.lastTick = snap.tick;
@@ -517,6 +596,7 @@ export class TableView {
     this.lib.ink.B.value = px * TEAM.B.inkPx;
 
     if (!this.lineup) this.handleEvents(events);
+    this.flushHits(dt);
     this.bars.begin(camera);
     this.tags.begin(camera);
     for (const c of this.crowdList) c.begin();
@@ -534,6 +614,7 @@ export class TableView {
       this.zones.setZones(snap.zones, this.half, this.ground, this.time, dt);
     this.gambits.update(dt, this.time, this.unitPos);
     this.bolts.update(dt);
+    this.fx.update(dt);
     this.chips.update(dt);
     this.renderer.render(this.scene, camera);
     this.drawn++;
@@ -728,6 +809,7 @@ export class TableView {
       if (u.kind === 'tower' || u.kind === 'guardian') this.obstacles.push(v);
     }
     this.declutter(dt);
+    this.layoutBars(px);
     for (const u of units) {
       const v = this.recs.get(u.id);
       if (!v || v.stamp !== this.stamp) continue;
@@ -741,13 +823,15 @@ export class TableView {
 
   /** Position, heading, gait and attack timing from the snapshot (before decluttering). */
   private place(v: Rec, u: ChessUnit, alpha: number, dt: number, real: number): void {
-    const x = lerp(u.px, u.x, alpha) - this.half;
-    const z = lerp(u.py, u.y, alpha) - this.half;
+    let x = lerp(u.px, u.x, alpha) - this.half;
+    let z = lerp(u.py, u.y, alpha) - this.half;
     if (v.fig) {
       if (!u.alive) {
         if (v.alive) {
           v.alive = false;
           v.fall = 1e-4;
+          v.warpPhase = 0;
+          v.recallT = -1;
         }
         v.fall = Math.min(1, v.fall + dt / FALL_SEC);
         v.live = false;
@@ -770,6 +854,35 @@ export class TableView {
       v.yaw = u.team === 'B' ? 0 : Math.PI;
       if (u.kind === 'guardian' || u.kind === 'tower') v.yaw = Math.atan2(-x, -z);
       if (this.lineup) v.yaw = this.faceCamera();
+    }
+    if (v.fig && v.placed && !this.lineup) {
+      // a piece whose sim position jumps has teleported: beam out where it stood, condense at the new spot
+      if (v.warpPhase === 0 && this.drawn > 0 && Math.hypot(x - v.sx, z - v.sz) > WARP_MIN)
+        this.startWarp(v);
+      if (v.warpPhase === 1) {
+        v.warpT = Math.min(1, v.warpT + dt / WARP_OUT_SEC);
+        if (v.warpT >= 1) {
+          v.warpPhase = 2;
+          v.warpT = 0;
+          v.sx = x;
+          v.sz = z;
+          v.ox = 0;
+          v.oz = 0;
+          this.arrive(v, x, z);
+        } else {
+          x = v.wx;
+          z = v.wz;
+        }
+      } else if (v.warpPhase === 2) {
+        v.warpT = Math.min(1, v.warpT + dt / WARP_IN_SEC);
+        if (v.warpT >= 1) v.warpPhase = 0;
+      }
+      // the recall channel: counts while the sim says the piece is recalling
+      if (u.recalling) v.recallT = Math.max(0, v.recallT) + dt;
+      else if (v.recallT >= 0) {
+        if (v.recallT > 0.25 && v.warpPhase === 0) this.fizzle(v);
+        v.recallT = -1;
+      }
     }
     const dx = x - v.sx;
     const dz = z - v.sz;
@@ -799,6 +912,7 @@ export class TableView {
     if (u.hp < v.hp - 0.01) v.flinch = 1;
     v.hp = u.hp;
     v.flinch = Math.max(0, v.flinch - dt * 4.5);
+    v.hit = Math.max(0, v.hit - dt / HIT_SEC);
   }
 
   /** Pieces drawn at miniature scale would pile up; spread their drawn positions a little. */
@@ -860,6 +974,47 @@ export class TableView {
     }
   }
 
+  /**
+   * Health bars of piled-up pieces would sit on top of each other: walk the pieces front to back
+   * (lowest on screen first) and lift a bar by one bar-height step until it clears the ones placed.
+   */
+  private layoutBars(px: number): void {
+    const P = this.pieces;
+    const O = this.order;
+    O.length = 0;
+    const cam = this.cam.camera;
+    for (const v of P) {
+      v.barLift = 0;
+      const f = v.fig!;
+      const q = this.tmp.set(v.sx + v.ox, f.height + 14 + v.gy, v.sz + v.oz).project(cam);
+      v.bx = ((q.x + 1) / 2) * this.cssW;
+      v.by = ((1 - q.y) / 2) * this.cssH;
+      O.push(v);
+    }
+    if (O.length < 2) return;
+    O.sort((a, b) => b.by - a.by);
+    const step = 5.5;
+    const toWorld = px / Math.max(0.3, Math.cos((this.cam.tiltDeg * Math.PI) / 180));
+    for (let i = 1; i < O.length; i++) {
+      const a = O[i];
+      const wa = Math.min((a.fig!.halfWidth * 1.7) / px, 18);
+      for (let tries = 0; tries < 5; tries++) {
+        let hit = false;
+        for (let j = 0; j < i; j++) {
+          const b = O[j];
+          const wb = Math.min((b.fig!.halfWidth * 1.7) / px, 18);
+          if (Math.abs(a.bx - b.bx) < (wa + wb) / 2 + 1 && Math.abs(a.by - b.by) < step) {
+            hit = true;
+            break;
+          }
+        }
+        if (!hit) break;
+        a.by -= step;
+        a.barLift += step * toWorld;
+      }
+    }
+  }
+
   private faceCamera(): number {
     const c = this.cam.camera.position;
     return Math.atan2(c.x, c.z);
@@ -908,8 +1063,13 @@ export class TableView {
       const gy = (v.gy = this.board.relief.at(v.x, v.z));
       v.lift = f.height * 0.5;
       v.halfW = f.halfWidth;
-      f.setVisible(true);
-      f.place(v.x, gy, v.z, v.yaw);
+      // teleport: 0 present, 1 gone (out: rises 0 to 1, in: falls 1 to 0); reduced motion fades instead
+      const reduced = this.motion?.matches === true;
+      const wp = v.warpPhase === 1 ? easeIn(v.warpT) : v.warpPhase === 2 ? 1 - easeOut(v.warpT) : 0;
+      f.setVisible(wp < 0.985 || reduced);
+      // a blow shoves the piece back along the line of the swing
+      const shove = reduced ? 0 : v.hit * 7 * SIZE.k;
+      f.place(v.x + v.hitX * shove, gy, v.z + v.hitZ * shove, v.yaw);
       const A = this.attack(v);
       const W = A > 0.02 ? 0 : this.windup(v, u);
       f.pose({
@@ -921,9 +1081,16 @@ export class TableView {
         time: this.time,
         fall: 0,
         drop: v.drop,
+        hit: v.hit,
+        still: reduced,
+        warp: reduced ? 0 : wp,
+        fade: reduced ? 1 - wp : 1,
       });
       // the miniature's base: team metal rim, style-coloured top, a pulsing gold rim when a fork waits
-      const br = Math.max(22, v.halfW * 0.92);
+      const br = Math.max(22, v.halfW * 0.92) * (reduced ? 1 : 1 - 0.85 * wp);
+      if (wp > 0.97 && !reduced) return;
+      if (v.recallT >= 0 && v.warpPhase === 0) this.channel(v, f, br, team, dt, reduced);
+      if (!this.lineup && u.inCombat && u.target !== null) this.thread(v, u.target, br, team, px);
       const fork = u.forkPending === true;
       const pulse = fork ? 0.5 + 0.5 * Math.sin(this.time * 7) : 0;
       this.col.set(T.trim);
@@ -937,7 +1104,7 @@ export class TableView {
       if (fork) this.col.lerp(this.tmpCol.set(GOLD), pulse);
       this.halos.color(this.halos.addXYZ(v.x, gy + 1.4, v.z, 0, hr, 1, hr), this.col);
       // health above the head (as wide as the piece, never wider), rank on the base, emblem when leaning in
-      const top = f.height + 14 + gy;
+      const top = f.height + 14 + gy + v.barLift;
       const bw = Math.min(v.halfW * 1.7, 18 * px);
       const bh = 2.4 * px;
       this.bars.add(v.x, top, v.z, bw, bh, frac, frac < LOW_HP ? LOW_HP_RED : markCol);
@@ -1169,6 +1336,203 @@ export class TableView {
     return 34;
   }
 
+  /* ------------------------------ hits ------------------------------ */
+
+  private queueHit(
+    a: Rec,
+    b: Rec,
+    srcTeam: string,
+    delay: number,
+    frac: number,
+    lethal: boolean,
+    melee: boolean,
+  ): void {
+    if (this.hits.length >= 32) return;
+    const h = this.hitPool.pop() ?? {
+      vid: 0,
+      aid: 0,
+      t: 0,
+      dx: 0,
+      dz: 0,
+      strength: 1,
+      big: false,
+      kill: false,
+      melee: false,
+      team: 'N' as const,
+    };
+    const dx = b.x - a.x;
+    const dz = b.z - a.z;
+    const l = Math.hypot(dx, dz) || 1;
+    h.vid = b.id;
+    h.aid = a.id;
+    h.t = delay;
+    h.dx = dx / l;
+    h.dz = dz / l;
+    h.big = lethal || frac >= 0.12;
+    h.kill = lethal;
+    h.strength = MathUtils.clamp(0.6 + frac * 5, 0.6, h.big ? 1.5 : 1);
+    h.melee = melee;
+    h.team = srcTeam === 'A' ? 'A' : srcTeam === 'B' ? 'B' : 'N';
+    this.hits.push(h);
+  }
+
+  /** Applies the blows that are due: outline flash in the attacker's colour, squash, ring, slash. */
+  private flushHits(dt: number): void {
+    const reduced = this.motion?.matches === true;
+    const px = this.cam.pxNow();
+    for (let i = this.hits.length - 1; i >= 0; i--) {
+      const h = this.hits[i];
+      h.t -= dt;
+      if (h.t > 0) continue;
+      this.hits.splice(i, 1);
+      this.hitPool.push(h);
+      const v = this.recs.get(h.vid);
+      if (!v?.fig || !v.live || v.warpPhase !== 0) continue;
+      const a = this.recs.get(h.aid);
+      const f = v.fig;
+      const br = Math.max(22, v.halfW * 0.92);
+      const col = this.haloCol[h.team];
+      v.hit = Math.max(v.hit, h.strength);
+      v.hitX = h.dx;
+      v.hitZ = h.dz;
+      f.setHitColor(this.col.copy(col).lerp(WHITE, 0.25));
+      if (reduced) continue;
+      // a ring on the floor under the victim; a stronger one, a column and a bigger ring for big hits and kills
+      const y = v.gy + 2;
+      if (h.kill) {
+        this.fx.ring(v.x, y, v.z, col, br * 1.6, br * 4.4, 0.5, 1.3);
+        this.fx.column(v.x, v.gy, v.z, col, br * 0.7, br * 0.5, f.height * 1.7, 0.42, 0, 0.9);
+      } else if (h.big) {
+        this.fx.ring(v.x, y, v.z, col, br * 1.5, br * 3.4, 0.4, 1.2);
+        this.fx.column(v.x, v.gy, v.z, col, br * 0.55, br * 0.4, f.height * 1.3, 0.3, 0, 0.7);
+      } else this.fx.ring(v.x, y, v.z, col, br * 1.4, br * 2.6, 0.3, 0.9);
+      if (h.melee && a?.live) {
+        this.from.set(a.x, this.chest(a.id, a.kind) + a.gy, a.z);
+        this.to.set(v.x, f.height * 0.55 + v.gy, v.z);
+        const rim = this.rimCol[h.team];
+        this.fx.slash(
+          this.from,
+          this.to,
+          this.col.copy(rim).lerp(WHITE, 0.35),
+          MathUtils.clamp(br * 1.7, 26, 80),
+          (h.aid + h.vid) % 2 === 0 ? 0.5 : -0.5,
+        );
+        this.fx.tracer(this.from, this.to, rim, 3.2 * px, 0.2, 1.2);
+      }
+    }
+  }
+
+  /* ------------------------------ teleport ------------------------------ */
+
+  /** Departure: a light column shoots up from where the piece stood, a ring flares, facets rise. */
+  private startWarp(v: Rec): void {
+    v.warpPhase = 1;
+    v.warpT = 0;
+    v.wx = v.sx;
+    v.wz = v.sz;
+    v.recallT = -1;
+    v.hit = 0;
+    const f = v.fig!;
+    const t = v.team === 'B' ? 'B' : 'A';
+    const br = Math.max(22, v.halfW * 0.92);
+    const gy = v.gy;
+    const halo = this.haloCol[t];
+    if (this.motion?.matches === true) {
+      this.fx.ring(v.x, gy + 2, v.z, halo, br * 1.1, br * 1.9, 0.5, 0.7);
+      return;
+    }
+    this.fx.column(v.x, gy, v.z, this.rimCol[t], br * 1.0, br * 0.5, f.height * 3.6, 0.85, 0, 0.9);
+    this.fx.ring(v.x, gy + 2, v.z, halo, br * 1.1, br * 3.0, 0.7, 1);
+    this.fx.ring(v.x, gy + 2, v.z, halo, br * 0.8, br * 2.0, 0.55, 0.6, 0.12);
+    this.chips.rise(v.x, gy + f.height * 0.1, v.z, this.rimCol[t], 8, br * 0.8, 4.5);
+    this.chips.rise(v.x, gy + f.height * 0.3, v.z, TEAM[t].body, 4, br * 0.6, 4);
+  }
+
+  /** Arrival: facets fly in and assemble, a column of light collapses, rings pulse on the dais. */
+  private arrive(v: Rec, x: number, z: number): void {
+    const f = v.fig!;
+    const t = v.team === 'B' ? 'B' : 'A';
+    const br = Math.max(22, v.halfW * 0.92);
+    const gy = this.board.relief.at(x, z);
+    const halo = this.haloCol[t];
+    if (this.motion?.matches === true) {
+      this.fx.ring(x, gy + 2, z, halo, br * 1.0, br * 2.0, 0.5, 0.7);
+      return;
+    }
+    this.fx.column(x, gy, z, this.rimCol[t], br * 0.5, br * 1.5, f.height * 3.0, 0.7, 1, 0.9);
+    this.fx.ring(x, gy + 2, z, halo, br * 1.0, br * 3.6, 0.8, 1);
+    this.fx.ring(x, gy + 2, z, halo, br * 0.8, br * 2.4, 0.6, 0.7, 0.18);
+    this.chips.gather(x, gy + f.height * 0.4, z, this.rimCol[t], 9, br * 3.2, 4.5);
+    this.chips.gather(x, gy + f.height * 0.3, z, TEAM[t].body, 4, br * 2.4, 4);
+  }
+
+  /** The channel was cut short: the closing ring flashes and dies. */
+  private fizzle(v: Rec): void {
+    const t = v.team === 'B' ? 'B' : 'A';
+    const br = Math.max(22, v.halfW * 0.92);
+    this.fx.ring(v.x, v.gy + 2, v.z, this.haloCol[t], br * 1.6, br * 0.8, 0.25, 0.5);
+  }
+
+  /** While a piece recalls: a ring closing in on its base, a light column that grows, a scan ring and motes. */
+  private channel(
+    v: Rec,
+    f: PieceFigure,
+    br: number,
+    team: 'A' | 'B',
+    dt: number,
+    reduced: boolean,
+  ): void {
+    const sec = this.content.tuning.recall.baseSec;
+    const p = MathUtils.clamp(v.recallT / Math.max(0.5, sec), 0, 1);
+    const pulse = reduced ? 0.5 : 0.5 + 0.5 * Math.sin(this.time * 9);
+    const halo = this.haloCol[team];
+    const rim = this.rimCol[team];
+    this.fx.ringNow(v.x, v.gy + 2, v.z, halo, br * lerp(2.7, 1.3, p), 0.5 + 0.4 * pulse);
+    this.fx.columnNow(
+      v.x,
+      v.gy,
+      v.z,
+      rim,
+      br * 0.8,
+      f.height * lerp(1.0, 2.4, p),
+      0.14 + 0.4 * p,
+      this.time * 1.5,
+    );
+    if (reduced) return;
+    const c = (this.time * 1.6 + v.phase0) % 1;
+    this.fx.ringNow(v.x, v.gy + 2 + c * f.height * 1.1, v.z, rim, br * 1.05, 0.75 * (1 - c));
+    v.mote += dt;
+    if (v.mote > 0.3) {
+      v.mote = 0;
+      this.chips.rise(v.x, v.gy + f.height * 0.15, v.z, rim, 1, br * 0.8, 3.2);
+    }
+  }
+
+  /** A faint line on the floor from a piece to the piece it is fighting, in its team colour. */
+  private thread(v: Rec, targetId: number, br: number, team: 'A' | 'B', px: number): void {
+    const o = this.recs.get(targetId);
+    if (!o?.fig || !o.live || o === v) return;
+    const dx = o.x - v.x;
+    const dz = o.z - v.z;
+    const d = Math.hypot(dx, dz);
+    if (d < br * 2.6) return;
+    const ux = dx / d;
+    const uz = dz / d;
+    // the two sides of a duel sit side by side, so both colours show
+    const side = (team === 'A' ? 1 : -1) * 1.7 * px;
+    const ob = Math.max(22, o.halfW * 0.92);
+    this.fx.threadNow(
+      v.x + ux * br * 1.1 - uz * side,
+      v.z + uz * br * 1.1 + ux * side,
+      o.x - ux * ob * 1.1 - uz * side,
+      o.z - uz * ob * 1.1 + ux * side,
+      Math.max(v.gy, o.gy) + 6,
+      this.haloCol[team],
+      3 * px,
+      0.5,
+    );
+  }
+
   private handleEvents(events: NewEvents): void {
     for (const e of events) this.handleEvent(e);
   }
@@ -1184,6 +1548,9 @@ export class TableView {
         if (!a || !b) break;
         if (p.srcKind === 'minion' && p.tgtKind === 'minion') break;
         const structure = p.srcKind === 'tower' || p.srcKind === 'guardian';
+        // damage-over-time ticks arrive every tick: they get no effect of their own
+        const frac = p.amount / Math.max(1, this.byId.get(p.tgt)?.maxHp ?? 1000);
+        if (p.origin !== 'attack' && !structure && frac < 0.02) break;
         this.from.set(a.x, this.chest(p.src, p.srcKind) + a.gy, a.z);
         this.to.set(b.x, this.chest(p.tgt, p.tgtKind) + b.gy, b.z);
         const color = structure
@@ -1193,9 +1560,20 @@ export class TableView {
             : p.srcTeam === 'A'
               ? TEAM.A.rim
               : '#d88a52';
-        if (this.from.distanceTo(this.to) < 70 && !structure)
+        const dist = this.from.distanceTo(this.to);
+        const au = this.byId.get(p.src) as ChessUnit | undefined;
+        const ranged =
+          structure ||
+          au?.attackKind === 'ranged' ||
+          (au?.attackKind == null && (au?.defId === 'ranged' || dist >= 70));
+        if (!ranged)
           this.chips.burst(this.to.x, this.to.y, this.to.z, color, p.lethal ? 6 : 2, 0.7, 3);
         else this.bolts.fire(this.from, this.to, color, p.lethal || structure);
+        if (b.fig && !structure) {
+          // the victim reacts when the blow lands: at the swing's snap, or when the bolt arrives
+          const delay = ranged ? Math.min(0.32, 0.08 + dist / 2400) : 0.06;
+          this.queueHit(a, b, p.srcTeam, delay, frac, p.lethal, !ranged);
+        }
         break;
       }
       case 'death': {
@@ -1452,6 +1830,9 @@ export class TableView {
     }
     this.chips.clear();
     this.bolts.clear();
+    this.fx.clear();
+    this.hitPool.push(...this.hits);
+    this.hits.length = 0;
     this.gambits.clear();
     this.zones.clear();
     this.drawn = 0;
@@ -1469,6 +1850,7 @@ export class TableView {
     this.halos.dispose();
     this.chips.crowd.dispose();
     this.bolts.crowd.dispose();
+    this.fx.dispose();
     this.tags.dispose();
     this.facet.dispose();
     this.kit.dispose();

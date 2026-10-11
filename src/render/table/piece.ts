@@ -2,6 +2,7 @@ import {
   BackSide,
   type BufferGeometry,
   Color,
+  type ColorRepresentation,
   Group,
   Matrix4,
   Mesh,
@@ -125,6 +126,14 @@ export interface FigureMotion {
   fall: number;
   /** Spawn: 0 just appeared (high above), 1 landed. */
   drop: number;
+  /** A struck blow's strength (0 none, about 1 normal, up to 1.5 big): squash and a flash on the outline. */
+  hit?: number;
+  /** Teleport: 0 present, 1 beamed away (stretched into a thin column of light). */
+  warp?: number;
+  /** Opacity, 1 normally; below 1 only for the reduced-motion teleport fade. */
+  fade?: number;
+  /** Reduced motion: a hit flashes the outline but does not squash or rock the piece. */
+  still?: boolean;
 }
 
 const _e = new Euler();
@@ -160,6 +169,11 @@ export class PieceFigure {
   private readonly inkMat: MeshBasicMaterial;
   private readonly depth: MeshDepthMaterial;
   private readonly accent = new Color();
+  private readonly glow = new Color();
+  private readonly inkBase = new Color();
+  private readonly hitCol = new Color();
+  private readonly inkK = { value: 1 };
+  private opacity = 1;
   private readonly seed: number;
   private popAt = -9;
   private pending = false;
@@ -179,6 +193,8 @@ export class PieceFigure {
     this.seed = (piece.charCodeAt(0) * 7 + (team === 'B' ? 3 : 0)) % 17;
     this.accent.set(style ? styleEmblem(style).color : TEAM[team].rim);
     const t = TEAM[team];
+    this.glow.set(t.halo);
+    this.inkBase.set(t.ink);
 
     this.mat = new MeshPhongMaterial({
       vertexColors: true,
@@ -216,12 +232,13 @@ export class PieceFigure {
     this.inkMat.onBeforeCompile = (shader) => {
       shader.uniforms.uBones = { value: this.bones };
       shader.uniforms.uInk = ink;
+      shader.uniforms.uInkK = this.inkK;
       shader.vertexShader =
-        `attribute float aBone;\nuniform mat4 uBones[${BONES}];\nuniform float uInk;\n` +
+        `attribute float aBone;\nuniform mat4 uBones[${BONES}];\nuniform float uInk;\nuniform float uInkK;\n` +
         shader.vertexShader.replace(
           '#include <begin_vertex>',
           `#include <begin_vertex>
-transformed += normalize(normal) * uInk / length(modelMatrix[0].xyz);
+transformed += normalize(normal) * uInk * uInkK / length(modelMatrix[0].xyz);
 transformed = (uBones[int(aBone + 0.5)] * vec4(transformed, 1.0)).xyz;`,
         );
     };
@@ -246,6 +263,11 @@ transformed = (uBones[int(aBone + 0.5)] * vec4(transformed, 1.0)).xyz;`,
   /** The Rank 4 moment: the new look swells in, glowing in its style colour. */
   transform(): void {
     this.pending = true;
+  }
+
+  /** The colour the outline flashes toward on a hit (the attacker's team colour). */
+  setHitColor(c: ColorRepresentation): void {
+    this.hitCol.set(c);
   }
 
   place(x: number, y: number, z: number, yaw: number): void {
@@ -280,7 +302,11 @@ transformed = (uBones[int(aBone + 0.5)] * vec4(transformed, 1.0)).xyz;`,
     const co = Math.cos(ph);
     const A = m.attack;
     const W = m.windup;
-    const F = m.flinch;
+    const H = m.hit ?? 0;
+    const Hs = m.still ? 0 : H;
+    const WP = m.warp ?? 0;
+    // a struck blow squashes the piece and rocks it back on top of the small flinch
+    const F = m.flinch + Hs * 0.6;
     const [rRx, rRz] = d.restR;
     const [rLx, rLz] = d.restL;
 
@@ -289,8 +315,8 @@ transformed = (uBones[int(aBone + 0.5)] * vec4(transformed, 1.0)).xyz;`,
     let z = -F * 3;
     let rx = g.lean * mv - F * 0.3;
     let ry = -sw * g.roll * 0.6 * mv;
-    let sy = 1 + Math.sin(t * 2.1) * 0.012 * idle - F * 0.05;
-    let sxz = 1 + F * 0.04;
+    let sy = 1 + Math.sin(t * 2.1) * 0.012 * idle - F * 0.05 - Hs * 0.09;
+    let sxz = 1 + F * 0.04 + Hs * 0.06;
 
     let aRx = rRx + sw * g.arm * mv * 0.6;
     let aLx = rLx - sw * g.arm * mv;
@@ -362,6 +388,14 @@ transformed = (uBones[int(aBone + 0.5)] * vec4(transformed, 1.0)).xyz;`,
       sxz *= 1 + Math.sin(land * Math.PI) * 0.1;
     }
 
+    // teleport: stretch into a thin tall column of light (leaving) or condense out of one (arriving)
+    if (WP > 0) {
+      const w = clamp01(WP);
+      sy *= 1 + w * w * 0.9;
+      sxz *= Math.max(0.12, 1 - w * 0.92);
+      y += w * w * 22;
+    }
+
     const f = this.fig;
     const S = FIG_SCALE * SIZE.k;
     f.position.set(0, y * S, z * S);
@@ -411,7 +445,36 @@ transformed = (uBones[int(aBone + 0.5)] * vec4(transformed, 1.0)).xyz;`,
     const ac = this.accent;
     const k = pop * 0.7;
     // hit flash is a warm ember, never white, so a struck ebony piece still reads as Black
-    this.mat.emissive.setRGB(F * 0.42 + ac.r * k, F * 0.12 + ac.g * k, F * 0.04 + ac.b * k);
+    const wg = clamp01(WP) * 0.85;
+    const gl = this.glow;
+    // body flash: the old warm ember for the flinch, a hint of the attacker's colour for a blow
+    const Fe = m.flinch;
+    const hc = this.hitCol;
+    const hb = Math.min(1, H) * 0.22;
+    this.mat.emissive.setRGB(
+      Fe * 0.42 + ac.r * k + gl.r * wg + hc.r * hb,
+      Fe * 0.12 + ac.g * k + gl.g * wg + hc.g * hb,
+      Fe * 0.04 + ac.b * k + gl.b * wg + hc.b * hb,
+    );
+    // outline: flashes toward the attacker's colour and thickens on a hit
+    const hk = Math.min(1, H * 1.1);
+    this.inkMat.color.copy(this.inkBase).lerp(this.hitCol, hk);
+    this.inkK.value = 1 + H * 1.1;
+    // opacity only moves for the reduced-motion teleport fade
+    const op = m.fade ?? 1;
+    if (op !== this.opacity) {
+      this.opacity = op;
+      const clear = op < 0.999;
+      if (this.mat.transparent !== clear) {
+        // the opaque shader variant ignores alpha, so switching needs a (cached) recompile
+        this.mat.transparent = clear;
+        this.inkMat.transparent = clear;
+        this.mat.needsUpdate = true;
+        this.inkMat.needsUpdate = true;
+      }
+      this.mat.opacity = op;
+      this.inkMat.opacity = op;
+    }
   }
 
   dispose(): void {

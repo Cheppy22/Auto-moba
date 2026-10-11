@@ -107,6 +107,8 @@ interface Bit {
   age: number;
   life: number;
   color: Color;
+  /** Gravity factor: 1 falls and bounces, 0 drifts, negative floats up. */
+  g: number;
 }
 
 /** Faceted chips: hits, captures and falling buildings. One instanced draw call. */
@@ -144,7 +146,9 @@ export class Chips {
         age: 0,
         life: 1,
         color: new Color(),
+        g: 1,
       };
+      b.g = 1;
       const a = this.rnd() * Math.PI * 2;
       const out = (40 + this.rnd() * 90) * power;
       b.p.set(x, y, z);
@@ -159,6 +163,75 @@ export class Chips {
     }
   }
 
+  /** Shards that float up from a standing piece and shrink away (a piece beaming out). */
+  rise(
+    x: number,
+    y: number,
+    z: number,
+    color: ColorRepresentation,
+    n: number,
+    spread: number,
+    size = 4,
+  ): void {
+    for (let i = 0; i < n && this.live.length < 220; i++) {
+      const b = this.take();
+      const a = this.rnd() * Math.PI * 2;
+      const r = this.rnd() * spread;
+      b.p.set(x + Math.cos(a) * r, y + this.rnd() * spread * 1.4, z + Math.sin(a) * r);
+      b.v.set(0, 90 + this.rnd() * 120, 0);
+      b.g = -0.15;
+      this.finish(b, color, size, 0.55 + this.rnd() * 0.3);
+    }
+  }
+
+  /** Shards that fly in from around a point and shrink into it (a piece assembling). */
+  gather(
+    x: number,
+    y: number,
+    z: number,
+    color: ColorRepresentation,
+    n: number,
+    radius: number,
+    size = 4,
+  ): void {
+    for (let i = 0; i < n && this.live.length < 220; i++) {
+      const b = this.take();
+      const a = this.rnd() * Math.PI * 2;
+      const r = radius * (0.6 + this.rnd() * 0.5);
+      const life = 0.4 + this.rnd() * 0.15;
+      b.p.set(x + Math.cos(a) * r, y + (this.rnd() - 0.2) * radius * 0.9, z + Math.sin(a) * r);
+      b.v.set(x - b.p.x, y - b.p.y, z - b.p.z).multiplyScalar(1 / life);
+      b.g = 0;
+      this.finish(b, color, size, life);
+    }
+  }
+
+  private take(): Bit {
+    return (
+      this.pool.pop() ?? {
+        p: new Vector3(),
+        v: new Vector3(),
+        spin: 0,
+        rot: 0,
+        size: 1,
+        age: 0,
+        life: 1,
+        color: new Color(),
+        g: 1,
+      }
+    );
+  }
+
+  private finish(b: Bit, color: ColorRepresentation, size: number, life: number): void {
+    b.spin = (this.rnd() - 0.5) * 14;
+    b.rot = this.rnd() * 6;
+    b.size = size * (0.6 + this.rnd() * 0.8);
+    b.age = 0;
+    b.life = life;
+    b.color.set(color);
+    this.live.push(b);
+  }
+
   update(dt: number): void {
     const c = this.crowd;
     c.begin();
@@ -170,9 +243,9 @@ export class Chips {
         this.pool.push(b);
         continue;
       }
-      b.v.y -= 620 * dt;
+      b.v.y -= 620 * dt * b.g;
       b.p.addScaledVector(b.v, dt);
-      if (b.p.y < 1) {
+      if (b.g > 0 && b.p.y < 1) {
         b.p.y = 1;
         b.v.y *= -0.3;
         b.v.x *= 0.6;
