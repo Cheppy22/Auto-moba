@@ -34,7 +34,7 @@ export function App() {
       data-phase={kind}
       data-bell={bell}
       data-testid="shell"
-      data-intro={kind === 'live' && s.ui.intro ? 'true' : undefined}
+      data-intro={kind === 'live' && s.ui.intro && s.ui.intro.phase !== 'out' ? 'true' : undefined}
       style={bell === 'none' ? undefined : { '--bell-sat': sat }}
     >
       <Stage />

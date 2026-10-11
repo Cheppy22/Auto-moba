@@ -1,93 +1,97 @@
-/* The match intro and Black's gambit banner. */
+/* The match intro (a versus card) and Black's gambit banner. */
 
-/* ---------- match intro: Openings card, piece tags, lane headers ---------- */
+/* ---------- match intro: Openings across the top, one column per lane, Black above White ---------- */
 .intro {
   position: absolute;
   inset: 0;
   z-index: 12;
+  display: grid;
+  place-items: center;
   overflow: hidden;
   cursor: pointer;
-  background: radial-gradient(ellipse at center, transparent 45%, rgba(13, 11, 9, 0.55) 100%);
+  background: radial-gradient(
+    ellipse at 50% 42%,
+    rgba(13, 11, 9, 0.84) 0%,
+    rgba(13, 11, 9, 0.9) 100%
+  );
+  transition: opacity var(--out-ms, 800ms) ease-in-out;
 }
-.shell[data-intro] .dock,
-.shell[data-intro] .notices,
-.shell[data-intro] .lane-strip,
-.shell[data-intro] .fight-tags,
-.shell[data-intro] .top-ctl {
-  visibility: hidden;
+/* the dissolve: the card lets go and the board shows through */
+.intro[data-phase='out'] {
+  opacity: 0;
 }
-.intro-card,
-.intro-lane,
-.intro-lanes {
-  position: absolute;
-  left: 50%;
-  translate: -50% 0;
-  width: min(calc(100% - 124px), 360px);
+/* the HUD waits behind the card and fades in as it dissolves (the shell drops `data-intro` then) */
+.hud {
+  transition: opacity 0.7s ease;
 }
-html[data-layout='landscape'] .intro-card,
-html[data-layout='landscape'] .intro-lane,
-html[data-layout='landscape'] .intro-lanes {
-  width: min(calc(100% - 330px), 420px);
+.shell[data-intro] .hud {
+  opacity: 0;
 }
-.intro-card {
-  top: 50%;
-  translate: -50% -50%;
+
+.vs {
+  /* the plate size is the tighter of: five pieces across the width, a share of the height */
+  --pic: min(calc((min(100vw, 960px) - 20px - 24px) / 5 - 4px), 19dvh);
+  --vs-fs: clamp(12px, calc(var(--pic) * 0.17), 17px);
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 6px;
-  padding: 12px 12px 14px;
-  background: linear-gradient(180deg, rgba(51, 36, 26, 0.95), rgba(20, 17, 14, 0.96));
-  border: 1px solid var(--brass-dim);
-  border-radius: var(--r-2);
-  box-shadow:
-    var(--sh-2),
-    inset 0 0 0 3px var(--ebony),
-    inset 0 0 0 4px var(--brass-dim);
-  animation: intro-card-in 0.5s var(--ease) both;
+  gap: max(calc(var(--vs-fs) * 1.1), 3dvh);
+  padding: 0 10px;
+  width: fit-content;
+  max-width: 100%;
+  font-size: var(--vs-fs);
+  transition: scale var(--out-ms, 800ms) ease-in;
 }
-.intro-side {
+.intro[data-phase='wait'] .vs {
+  opacity: 0;
+}
+.intro[data-phase='out'] .vs {
+  scale: 1.03;
+}
+
+/* header: White's Opening against Black's, with each side's school marks */
+.vs-head {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: start;
+  gap: 8px;
+}
+.vs-opening {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 3px;
-  padding: 8px 8px 9px;
+  min-width: 0;
   text-align: center;
-  border-radius: var(--r-1);
 }
-.intro-side.b {
-  background: rgba(154, 165, 184, 0.12);
-  border: 1px solid rgba(154, 165, 184, 0.35);
-}
-.intro-court {
-  flex: none;
+.vs-court {
   font-family: var(--font-display);
   font-size: var(--fs-xs);
-  letter-spacing: 0.16em;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
   color: var(--brass);
 }
-.intro-side.b .intro-court,
-.intro-lane-side.b .intro-court {
-  color: var(--b-trim);
+.vs-opening.b .vs-court {
+  color: var(--b);
 }
-.intro-opening {
+.vs-opening-name {
   font-family: var(--font-display);
   font-weight: 400;
-  font-size: var(--fs-xl);
+  font-size: calc(var(--vs-fs) * 1.5);
   line-height: 1.1;
   color: var(--ivory);
+  text-wrap: balance;
 }
-.intro-side.b .intro-opening {
+.vs-opening.b .vs-opening-name {
   color: var(--b-trim);
 }
-.intro-schools {
+.vs-schools {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   gap: 4px;
 }
-.intro-vs {
+.vs-vs {
   align-self: center;
   font-family: var(--font-display);
   font-size: var(--fs-xs);
@@ -95,149 +99,167 @@ html[data-layout='landscape'] .intro-lanes {
   text-transform: uppercase;
   color: var(--brass-dim);
 }
-html[data-layout='landscape'] .intro-card {
-  flex-direction: row;
-  align-items: center;
-  width: min(calc(100% - 330px), 560px);
-}
-html[data-layout='landscape'] .intro-side {
-  flex: 1 1 0;
-}
 
-.intro-tags {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
+/* lanes: columns sized by how many pieces a side holds there (Left 2, Mid 1, Right 2) */
+.vs-lanes {
+  display: flex;
+  align-items: stretch;
 }
-.intro-lines {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  overflow: visible;
-}
-.intro-lines line {
-  stroke-width: 1.25;
-  stroke-opacity: 0.75;
-  animation: intro-fade 0.4s ease 0.15s both;
-}
-.intro-lines line.a {
-  stroke: var(--a-trim);
-}
-.intro-lines line.b {
-  stroke: var(--b-trim);
-}
-.intro-pin {
-  position: absolute;
-  left: 0;
-  top: 0;
-  transform: translate(-999px, -999px);
-  will-change: transform;
-}
-.intro-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 8px 2px 5px;
-  translate: -50% -50%;
-  white-space: nowrap;
-  font-size: var(--fs-xs);
-  font-weight: 600;
-  line-height: 18px;
-  color: var(--ivory);
-  background: rgba(20, 17, 14, 0.92);
-  border: 1px solid var(--brass-dim);
-  border-radius: var(--r-1);
-  box-shadow: var(--sh-1);
-  animation: intro-pop 0.35s var(--ease) 0.1s both;
-}
-.intro-tag.b {
-  color: var(--b-trim);
-  background: rgba(28, 34, 44, 0.93);
-  border-color: #6f7a8e;
-}
-
-.intro-lane {
-  top: calc(66px + env(safe-area-inset-top));
+.vs-lane {
+  position: relative;
+  flex: var(--n, 1) 1 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 7px 10px 8px;
-  background: linear-gradient(180deg, rgba(51, 36, 26, 0.95), rgba(20, 17, 14, 0.96));
-  border: 1px solid var(--brass-dim);
-  border-radius: var(--r-1);
-  box-shadow: var(--sh-2);
-  animation: intro-pop 0.35s var(--ease) both;
+  gap: max(6px, 1.2dvh);
+  min-width: 0;
+  padding: 0 4px;
 }
-.intro-lane-name {
+.vs-lane-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-family: var(--font-display);
   font-weight: 400;
-  font-size: var(--fs-md);
-  letter-spacing: 0.1em;
+  font-size: var(--fs-sm);
+  letter-spacing: 0.2em;
   text-transform: uppercase;
   color: var(--brass-hi);
 }
-.intro-lane-side {
+.vs-lane-name::before,
+.vs-lane-name::after {
+  content: '';
+  flex: 1 1 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--brass-dim));
+}
+.vs-lane-name::after {
+  transform: scaleX(-1);
+}
+/* the divider between lanes, drawn out from its middle */
+.vs-lane + .vs-lane::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: -4px;
+  bottom: -4px;
+  width: 1px;
+  background: linear-gradient(
+    180deg,
+    transparent,
+    var(--brass-dim) 14%,
+    var(--brass) 50%,
+    var(--brass-dim) 86%,
+    transparent
+  );
+}
+.vs-row {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 2px 10px;
-  font-size: var(--fs-sm);
-  color: var(--ivory);
+  justify-content: center;
+  gap: 4px;
 }
-.intro-lane-side.b {
-  color: var(--b-trim);
-}
-.intro-lane-side .intro-court {
-  width: 44px;
-}
-.intro-piece {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-}
-.intro-lanes {
-  top: 50%;
-  translate: -50% -50%;
+.vs-piece {
+  flex: 1 1 0;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-}
-.intro-lanes .intro-lane {
-  position: static;
-  translate: none;
-  width: auto;
-  padding: 5px 10px 6px;
+  align-items: center;
   gap: 2px;
+  text-align: center;
 }
-.intro-lanes .intro-lane-name {
-  font-size: var(--fs-sm);
+.vs-plate {
+  display: grid;
+  place-items: center;
+  width: var(--pic);
+  max-width: 100%;
+  aspect-ratio: 1;
+  border-radius: var(--r-2);
+  border: 1px solid var(--brass-dim);
+  background: radial-gradient(
+    circle at 50% 40%,
+    rgba(240, 213, 138, 0.22),
+    rgba(201, 163, 90, 0.05) 72%
+  );
+  box-shadow: inset 0 0 0 2px rgba(13, 11, 9, 0.5);
 }
+.vs-piece.b .vs-plate {
+  border-color: rgba(154, 165, 184, 0.55);
+  background: radial-gradient(
+    circle at 50% 40%,
+    rgba(154, 165, 184, 0.42),
+    rgba(154, 165, 184, 0.12) 72%
+  );
+}
+.vs-plate img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+.vs-name {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--vs-fs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  line-height: 1.15;
+  color: var(--ivory);
+}
+.vs-piece.b .vs-name {
+  color: var(--b-trim);
+}
+.vs-role {
+  font-size: calc(var(--vs-fs) * 0.9);
+  line-height: 1.1;
+  color: var(--faint);
+}
+
 .intro-skip {
   position: absolute;
-  left: 50%;
-  bottom: calc(18px + env(safe-area-inset-bottom));
-  translate: -50% 0;
-  min-width: 88px;
+  top: calc(10px + env(safe-area-inset-top));
+  right: calc(10px + env(safe-area-inset-right));
+  min-width: 72px;
   min-height: 40px;
   color: var(--ivory);
 }
 
-@keyframes intro-card-in {
+/* the show: header, then every piece together (Black settles down, White rises), dividers draw */
+.intro:not([data-phase='wait']) .vs-head {
+  animation: vs-fade 0.6s var(--ease) both;
+}
+.intro:not([data-phase='wait']) .vs-piece {
+  animation: vs-rise 1.2s var(--ease) 0.3s both;
+}
+.intro:not([data-phase='wait']) .vs-piece.b {
+  animation-name: vs-settle;
+}
+.intro:not([data-phase='wait']) .vs-lane + .vs-lane::before {
+  animation: vs-draw 0.9s var(--ease) 0.8s both;
+}
+.intro:not([data-phase='wait']) .vs-lane-name {
+  animation: vs-fade 0.7s ease 1s both;
+}
+
+@keyframes vs-fade {
   from {
     opacity: 0;
-    translate: -50% calc(-50% + 14px);
   }
 }
-@keyframes intro-pop {
+@keyframes vs-rise {
   from {
     opacity: 0;
-    scale: 0.92;
+    translate: 0 22px;
   }
 }
-@keyframes intro-fade {
+@keyframes vs-settle {
   from {
     opacity: 0;
+    translate: 0 -22px;
+  }
+}
+@keyframes vs-draw {
+  from {
+    scale: 1 0;
   }
 }
 
@@ -284,10 +306,20 @@ html[data-layout='landscape'] .intro-side {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .intro-card,
-  .intro-tag,
-  .intro-lane,
-  .intro-lines line,
+  /* no movement: everything fades in together, then out */
+  .intro:not([data-phase='wait']) .vs-head,
+  .intro:not([data-phase='wait']) .vs-piece,
+  .intro:not([data-phase='wait']) .vs-piece.b,
+  .intro:not([data-phase='wait']) .vs-lane + .vs-lane::before,
+  .intro:not([data-phase='wait']) .vs-lane-name {
+    animation: vs-fade 0.6s ease 0.1s both;
+  }
+  .intro[data-phase='out'] .vs {
+    scale: none;
+  }
+  .hud {
+    transition: none;
+  }
   .black-play {
     animation-duration: 0.01ms;
   }

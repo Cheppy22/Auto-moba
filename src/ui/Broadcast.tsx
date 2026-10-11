@@ -1,8 +1,28 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { GameEvent, Match } from '../sim';
 import { laneNear } from '../analysis/feedback';
-import { introShot, laneMid } from './intro';
 import { useSession } from './session';
+
+/** The point halfway along a lane's centre line (where the board camera leans in). */
+function laneMid(poly: readonly (readonly number[])[]): { x: number; y: number } {
+  let total = 0;
+  for (let i = 1; i < poly.length; i++)
+    total += Math.hypot(poly[i][0] - poly[i - 1][0], poly[i][1] - poly[i - 1][1]);
+  let left = total / 2;
+  for (let i = 1; i < poly.length; i++) {
+    const len = Math.hypot(poly[i][0] - poly[i - 1][0], poly[i][1] - poly[i - 1][1]);
+    if (left <= len && len > 0) {
+      const k = left / len;
+      return {
+        x: poly[i - 1][0] + (poly[i][0] - poly[i - 1][0]) * k,
+        y: poly[i - 1][1] + (poly[i][1] - poly[i - 1][1]) * k,
+      };
+    }
+    left -= len;
+  }
+  const last = poly[poly.length - 1];
+  return { x: last[0], y: last[1] };
+}
 
 /** The camera follows White's King until a portrait is tapped. */
 function kingId(m: Match): number | null {
@@ -102,11 +122,12 @@ export function Broadcast() {
           if (ev.length) seq = ev[ev.length - 1].seq;
           const snap = m.snapshot();
           const intro = s.ui.intro;
-          const shot = intro ? introShot(s.content, intro) : director.update(snap, fresh);
+          const shot = director.update(snap, fresh);
           view.draw(snap, fresh, {
             alpha,
             shot,
-            mode: intro ? 'auto' : s.ui.cam,
+            // behind the versus card the board sits in its whole-board frame
+            mode: intro ? 'board' : s.ui.cam,
             followId: s.ui.follow ?? kingId(m),
             laneFocus:
               s.ui.cam === 'board' && s.ui.zoomLane

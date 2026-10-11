@@ -718,13 +718,6 @@ html[data-layout='desktop'] .hud.v2 {
   right: calc(6px + env(safe-area-inset-right));
 }
 
-/* the intro owns the screen: only the clock, trays and Black's court stay */
-.shell[data-intro] .hud.v2 .v2-ctl,
-.shell[data-intro] .hud.v2 .v2-lanes,
-.shell[data-intro] .hud.v2 .v2-drawer {
-  visibility: hidden;
-}
-
 @media (prefers-reduced-motion: reduce) {
   .tray-item,
   .tray-item.leaving {
