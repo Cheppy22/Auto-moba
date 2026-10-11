@@ -159,7 +159,8 @@ interface Ink {
 function ink(team: 'A' | 'B', style: string | null): Ink {
   const t = TEAM[team];
   const s = style ? styleEmblem(style).color : null;
-  const cloth = s ?? t.cloth;
+  // big cloth areas lean toward the team value so a bright style never hides the side
+  const cloth = s ? mix(s, team === 'A' ? t.body : t.shade, team === 'A' ? 0.12 : 0.28) : t.cloth;
   return {
     t,
     cloth,

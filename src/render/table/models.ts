@@ -222,9 +222,10 @@ export function throne(team: Team): BufferGeometry {
 /** Neutral creatures: fired terracotta beasts with glowing eyes, in three sizes. */
 export function creature(tier: 0 | 1 | 2): BufferGeometry {
   const c = CLAY;
+  const shrink = 0.85;
   if (tier === 2) {
     // golem: hulking torso, small horned head, fists on the ground
-    return merge([
+    return scaled(shrink, [
       { g: box(16, 28, 18), c: c.shade, p: [-14, 14, 0] },
       { g: box(16, 28, 18), c: c.shade, p: [14, 14, 0] },
       { g: dodeca(34), c: c.body, p: [0, 58, 0], s: [1.15, 0.95, 0.9] },
@@ -262,6 +263,12 @@ export function creature(tier: 0 | 1 | 2): BufferGeometry {
     p.push({ g: cone(2.6, 12, 4), c: c.horn, p: [6, 18, 34], r: [1.1, 0, 0] });
   }
   const g = merge(p);
+  g.scale(k * shrink, k * shrink, k * shrink);
+  return g;
+}
+
+function scaled(k: number, parts: Part[]): BufferGeometry {
+  const g = merge(parts);
   g.scale(k, k, k);
   return g;
 }

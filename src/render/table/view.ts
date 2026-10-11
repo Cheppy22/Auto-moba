@@ -404,11 +404,9 @@ export class TableView {
     // camera: whole board; Follow leans in on the followed piece
     let lean: { x: number; z: number } | null = null;
     if (this.lineup === 'close' || this.lineup === 'closeb') {
-      const c = this.cam.camera.position;
-      const len = Math.hypot(c.x, c.z) || 1;
-      const k = this.lineup === 'close' ? 520 : -520;
-      this.lean.x = (c.x / len) * k;
-      this.lean.z = (c.z / len) * k;
+      const k = this.lineup === 'close' ? 560 : -560;
+      this.lean.x = this.cam.dir.x * k;
+      this.lean.z = this.cam.dir.z * k;
       lean = this.lean;
     } else if (frame.mode === 'follow' && frame.followId !== null) {
       const f = this.recs.get(frame.followId);

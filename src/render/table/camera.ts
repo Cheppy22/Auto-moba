@@ -25,7 +25,8 @@ export class TableCamera {
   /** World units per CSS pixel at the board centre (whole-board pose). */
   unitPx = 5;
   private readonly pts: Vector3[] = [];
-  private readonly dir = new Vector3();
+  /** Horizontal direction from the board centre toward the player's seat. */
+  readonly dir = new Vector3();
   private el = 0.6;
   private boardX = 0;
   private boardZ = 0;

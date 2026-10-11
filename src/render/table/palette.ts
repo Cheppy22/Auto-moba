@@ -70,8 +70,8 @@ export const TEAM: Record<'A' | 'B', TeamScheme> = {
 
 /** Neutral creatures: fired terracotta with glowing eyes. */
 export const CLAY = {
-  body: '#b0714a',
-  shade: '#7d4a2e',
+  body: '#9a6243',
+  shade: '#6e4129',
   dark: '#4a2a1a',
   eye: '#ffd36a',
   horn: '#e9d9b8',

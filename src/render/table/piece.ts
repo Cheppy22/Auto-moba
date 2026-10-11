@@ -400,7 +400,8 @@ transformed = (uBones[int(aBone + 0.5)] * vec4(transformed, 1.0)).xyz;`,
 
     const ac = this.accent;
     const k = pop * 0.7;
-    this.mat.emissive.setRGB(F * 0.55 + ac.r * k, F * 0.5 + ac.g * k, F * 0.45 + ac.b * k);
+    // hit flash is a warm ember, never white, so a struck ebony piece still reads as Black
+    this.mat.emissive.setRGB(F * 0.42 + ac.r * k, F * 0.12 + ac.g * k, F * 0.04 + ac.b * k);
   }
 
   dispose(): void {
