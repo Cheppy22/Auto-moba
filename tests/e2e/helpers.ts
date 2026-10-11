@@ -218,6 +218,14 @@ export async function stepUntil(
         // the match halts for a White fork: only a test that waits for one leaves it open
         if (until.kind !== 'fork' && s.match.state.forks.length > 0)
           s.match.issue({ type: 'autoForks' });
+        // and at each Act break: the AI takes a relic and the next Act starts
+        if (s.match.state.bell.stage === 'break') {
+          s.match.issue({ type: 'autoRelic' });
+          if (!s.match.issue({ type: 'resumeAct' }).ok) {
+            s.match.issue({ type: 'declineRelic' });
+            s.match.issue({ type: 'resumeAct' });
+          }
+        }
         topUp();
         x = s.match.snapshot();
       }
@@ -249,7 +257,7 @@ export function overflow(page: Page): Promise<number> {
   return page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
 }
 
-/** Plays the whole match to Checkmate inside the page (White's forks are answered by the AI). */
+/** Plays the whole match to Checkmate inside the page (White's forks and Act breaks are answered by the AI). */
 export async function playToEnd(page: Page): Promise<void> {
   await page.evaluate(() => {
     const s = (
@@ -262,6 +270,14 @@ export async function playToEnd(page: Page): Promise<void> {
     s.setUi({ speed: 0 });
     for (let i = 0; i < 400 && s.match.state.phase.kind === 'live'; i++) {
       if (s.match.state.forks.length > 0) s.match.issue({ type: 'autoForks' });
+      if (s.match.state.bell.stage === 'break') {
+        // an Act break: the AI takes a relic and the next Act starts
+        s.match.issue({ type: 'autoRelic' });
+        if (!s.match.issue({ type: 'resumeAct' }).ok) {
+          s.match.issue({ type: 'declineRelic' });
+          s.match.issue({ type: 'resumeAct' });
+        }
+      }
       s.match.step(600);
     }
     s.notify();

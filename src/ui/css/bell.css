@@ -278,6 +278,16 @@ html[data-layout='landscape'] .bs-body {
 html[data-layout='landscape'] .bs-resume {
   min-height: 44px;
 }
+/* a refusal ("Pick a card ...", "you hold three relics") must show above the sheet, over its Resume bar */
+.hud[data-bell='break'] .toast {
+  position: absolute;
+  z-index: 9;
+  left: 0;
+  right: 0;
+  bottom: calc(76px + env(safe-area-inset-bottom));
+  width: fit-content;
+  margin: 0 auto;
+}
 @media (prefers-reduced-motion: reduce) {
   .breaksheet {
     transition: none;

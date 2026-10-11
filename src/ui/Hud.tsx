@@ -190,7 +190,12 @@ export function Hud() {
   const snap = m.snapshot();
   const aim = s.ui.aim;
   const aimCard = aim?.kind === 'gambit' ? snap.hand[aim.slot] : undefined;
-  const tapMap = !!aimCard && (aimCard.target === 'point' || aimCard.target === 'enemy');
+  // a card that expired or was dealt anew while aiming leaves the aim stale: no tap layer for it
+  const tapMap =
+    !!aimCard &&
+    aim?.kind === 'gambit' &&
+    aimCard.cardId === aim.cardId &&
+    (aimCard.target === 'point' || aimCard.target === 'enemy');
   const forkIds = snap.forks.map((f) => f.heroId);
   const held = snap.forks.length > 0;
   const stopped = snap.act.bell === 'break' && !held;

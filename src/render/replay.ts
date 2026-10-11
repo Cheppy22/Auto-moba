@@ -5,7 +5,8 @@ import { makeView, toScreen, toWorld, type View } from './view';
 const NO_INSETS = { top: 4, right: 4, bottom: 4, left: 4 };
 
 function replayView(w: number, h: number, mapSize: number, dpr: number): View {
-  return makeView(w, h, mapSize, 600, NO_INSETS, 1, dpr);
+  // the whole board fits: half the view span is 54% of the map size (bases sit near the top and bottom edge)
+  return makeView(w, h, mapSize, mapSize * 0.54, NO_INSETS, 1, dpr);
 }
 
 export interface ReplayPoint {

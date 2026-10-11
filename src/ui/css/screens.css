@@ -1,6 +1,7 @@
 /* ---------- title ---------- */
 .title {
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 /* a low-contrast checkerboard under a warm vignette */
 .title-art {
@@ -15,6 +16,8 @@
 }
 .title-wrap {
   position: relative;
+  /* auto margins centre it, and a short screen (a phone on its side) scrolls instead of clipping */
+  margin: auto;
   max-width: 640px;
   display: flex;
   flex-direction: column;

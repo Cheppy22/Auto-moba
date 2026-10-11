@@ -65,7 +65,7 @@ export function Roster(props: { team: 'A' | 'B'; forks: number[]; snap: Snapshot
         const style = h.style ? styleLabel(s.content, h.defId, h.style) : 'Generic';
         const tap = (): void => {
           if (longPressed()) return;
-          if (team === 'A' && s.aimingAlly() && s.aimUnit(u.id)) return;
+          if (s.aimUnit(u.id, team)) return;
           if (followed) s.openCard(u.id);
           else s.setUi({ cam: 'follow', follow: u.id, card: s.ui.card !== null ? u.id : null });
         };
