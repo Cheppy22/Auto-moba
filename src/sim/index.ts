@@ -23,6 +23,7 @@ export type {
 } from './content/schema';
 export { PATHS, PIECE_IDS, RELIC_FAMILIES, SEALED_TRIGGERS } from './content/schema';
 export { CUSTOM_BEHAVIORS } from './combat';
+export { naturalPath } from './setup';
 export { hashContent } from './core/rng';
 export { buildTerrain, clearLine, confine, shapeDist, walkable } from './world/terrain';
 export type { BlockShape, OpenSlots, Terrain, WalkKind, WalkShape } from './world/terrain';

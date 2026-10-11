@@ -12,7 +12,7 @@ import { BreakSheet } from './hud/BreakSheet';
 import { LaneBars } from './hud/LaneBars';
 import { FightTags, NoteLane } from './hud/Notes';
 import { clockSec } from './format';
-import { useSession } from './session';
+import { useEscape, useSession } from './session';
 
 /** One chip for the run speed: 1x, 2x, 4x, 8x, then paused; tap to step to the next. */
 function SpeedChip(props: { held: boolean }) {
@@ -40,14 +40,20 @@ function SpeedChip(props: { held: boolean }) {
   );
 }
 
-const CAM_LABEL: Record<CamMode, string> = { auto: 'Auto', follow: 'Follow', free: 'Free' };
+const CAM_LABEL: Record<CamMode, string> = {
+  board: 'Board',
+  auto: 'Auto',
+  follow: 'Follow',
+  free: 'Free',
+};
 const CAM_TIP: Record<CamMode, string> = {
+  board: 'The whole board, fixed (tap a lane to lean in)',
   auto: 'The camera follows the big plays',
   follow: 'Tracking one piece (tap a portrait to switch)',
   free: 'Drag to pan, scroll or pinch to zoom, right-drag to turn',
 };
 
-/** One button for the camera: Auto, Follow, Free; tap to step to the next. */
+/** One button for the camera: Board, Auto, Follow, Free; tap to step to the next. */
 function CamButton() {
   const s = useSession();
   const mode = s.ui.cam;
@@ -133,7 +139,8 @@ function TopBar(props: { snap: Snapshot; held: boolean }) {
 
 function Notices(props: { act: Snapshot['act'] }) {
   const s = useSession();
-  const text = s.ui.caption;
+  // one band at a time: the auto camera's caption waits while the bell is ringing
+  const text = props.act.bell === 'none' ? s.ui.caption : null;
   const banners = s.ui.chips.filter((c) => c.kind !== 'rank');
   const bell = props.act;
   const ranks = s.ui.chips.filter((c) => c.kind === 'rank');
@@ -187,6 +194,8 @@ export function Hud() {
   const forkIds = snap.forks.map((f) => f.heroId);
   const held = snap.forks.length > 0;
   const stopped = snap.act.bell === 'break' && !held;
+  const zoom = s.ui.cam === 'board' ? s.ui.zoomLane : null;
+  useEscape(zoom !== null, () => s.zoomLane(null));
   return (
     <div
       class={`hud ${held ? 'held' : ''}`}
@@ -214,7 +223,7 @@ export function Hud() {
       <Roster team="B" forks={[]} snap={snap} />
       {!stopped && (
         <div class="lane-strip">
-          <LaneBars lanes={snap.momentum} />
+          <LaneBars lanes={snap.momentum} active={zoom} onPick={(lane) => s.zoomLane(lane)} />
         </div>
       )}
       <Notices act={snap.act} />

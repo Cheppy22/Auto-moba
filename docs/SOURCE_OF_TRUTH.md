@@ -157,6 +157,7 @@ Each hero re-plans about once per second and scores goals (farm lane, push tower
 - **Map labels** are drawn last and nudged or skipped on collision.
 - Escape closes overlays; an unspent-gold reminder appears before starting a phase; the Shop tab shows your gold.
 - **View** (spec: [BROADCAST.md](BROADCAST.md)): the three.js 3D view is the only game view. The 2D map is removed. Jungle shops are tapped as HTML pins over the 3D view.
+  - **Board** (the default on the chess branch, 2026-10-11) is a fixed view of the whole board; tap a lane to lean in, tap again to sit back. Spec: [CHESS.md](CHESS.md) "Interface".
   - **Auto** camera works like an NFL broadcast: a high wide shot when it's quiet, a sideline camera that dollies onto the most important play (guardian siege, tower falls, multi-kills, team fights, kills, jungle events, skirmishes), and a lower-third caption naming the play.
   - **Follow** tracks your hero; tap any roster portrait to follow that hero instead. **Free** lets you drag, zoom and turn the camera.
   - Art is built from code. Physics (ragdolls, debris) is visual only and never affects the match. If WebGL is missing, the game shows a clear message instead of a picture.
@@ -209,6 +210,7 @@ Meta-progression between matches; era-themed lane identity; "The Core" alternate
 | Why the teams fight is deliberately undecided               | White Queen vs. Red Queen chess game on a Looking-Glass board (White Court and Red Court, Kings, Checkmate)                                                         |
 | Forks decided within 10 s without pausing (chess branch)    | The game pauses at Rank 4 and 8 forks until the player chooses (CHESS.md)                                                                                           |
 | Style chosen at setup; forks at Rank 4 and 8 (chess branch) | Pieces generic until Rank 4; the Rank 4 choice is the archetype; Rank 8 keeps a fork (CHESS.md)                                                                     |
+| Auto (director) camera as the default view (chess branch)   | Fixed whole-board camera ("war table") by default; tap a lane to zoom, tap again to return; Auto, Follow and Free stay on the camera button (CHESS.md, 2026-10-11)  |
 | Act change never stops play (chess branch)                  | Act ends with the bell: grey wait for calm (≤30 s), 3 tolls, slow halt, break sheet with Act report, Orders and a relic draft; next Act starts on resume (CHESS.md) |
 
 ## Where to look first (for code work)

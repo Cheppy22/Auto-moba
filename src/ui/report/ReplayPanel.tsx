@@ -198,16 +198,13 @@ export function ReplayPanel(props: { data: ReportData; id: number; active: boole
         </div>
         <div class="row wrap tiny dim">
           <span>
-            <span style={{ color: 'rgba(255, 170, 90, 0.9)' }}>■</span> fights
+            <span style={{ color: 'var(--clock-hi)' }}>■</span> fights
           </span>
           <span>
             <span class="gold">■</span> purchases
           </span>
           <span>
             <span style={{ color: 'var(--bad)' }}>✕</span> falls
-          </span>
-          <span>
-            <span style={{ color: 'var(--accent)' }}>◯</span> recalls
           </span>
         </div>
         {selected ? (

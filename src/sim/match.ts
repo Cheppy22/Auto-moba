@@ -16,6 +16,7 @@ import { createKeeper } from './keeper';
 import { tickObelisks } from './obelisks';
 import { pawnCap, pawnsAlive } from './pawns';
 import { cardCost, formationError, pawnCost, refillSec, tempoCap } from './relics';
+import { tickPawnPlan } from './pawnPlan';
 import { bannerZones, freshRelicRun, tickRelics } from './relicsLive';
 import { actTicks, enterAct } from './phase';
 import { bellTimeScale, frozen, freshBell, tickBell } from './bell';
@@ -237,6 +238,7 @@ function stepTick(ctx: Ctx): void {
   tickForks(ctx);
   tickGambits(ctx);
   tickRelics(ctx);
+  tickPawnPlan(ctx);
   const order: PlayTeam[] = Math.floor(s.tick / 20) % 2 === 0 ? ['A', 'B'] : ['B', 'A'];
   for (const team of order) {
     for (const id of s.teams[team].heroIds) {
@@ -500,6 +502,9 @@ export class Match {
       tempo: { A: Math.floor(s.tempo.A), B: Math.floor(s.tempo.B) },
       hand,
       pawns: { A: pawnsOf('A'), B: pawnsOf('B') },
+      ...(s.pawnPlan
+        ? { pawnPlan: { quota: { ...s.pawnPlan.quota }, reserve: s.pawnPlan.reserve } }
+        : {}),
       forks: s.forks
         .filter((f) => this.ctx.unit(f.heroId)?.team === 'A')
         .map((f) => {

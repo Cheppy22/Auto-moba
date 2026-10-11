@@ -12,7 +12,7 @@
     "tolls": 3,
     "tollSec": 1,
     "haltTicks": 15,
-    "pendingSaturation": 0.7,
+    "pendingSaturation": 0.5,
     "resumeWaveSec": 1,
     "replan": { "minDeaths": 2, "chance": 0.75 }
   },

@@ -105,9 +105,9 @@ export function drawReplay(
     0,
     Math.PI * 2,
   );
-  g.fillStyle = '#12111b';
+  g.fillStyle = '#14110e';
   g.fill();
-  g.strokeStyle = 'rgba(224,169,62,0.35)';
+  g.strokeStyle = 'rgba(201,163,90,0.35)';
   g.lineWidth = 1;
   g.stroke();
 
@@ -121,9 +121,9 @@ export function drawReplay(
       g.fill();
       g.strokeStyle = biome.palette.glow + '66';
     } else {
-      g.fillStyle = 'rgba(16,14,24,0.6)';
+      g.fillStyle = 'rgba(42,30,22,0.7)';
       g.fill();
-      g.strokeStyle = 'rgba(185,160,230,0.22)';
+      g.strokeStyle = 'rgba(201,163,90,0.22)';
     }
     g.lineWidth = 1;
     g.stroke();
@@ -133,10 +133,10 @@ export function drawReplay(
     lane.forEach(([x, y], i) => (i === 0 ? g.moveTo(...xy(x, y)) : g.lineTo(...xy(x, y))));
     g.lineCap = 'round';
     g.lineJoin = 'round';
-    g.strokeStyle = 'rgba(120,100,150,0.3)';
+    g.strokeStyle = 'rgba(201,163,90,0.3)';
     g.lineWidth = 26 * p;
     g.stroke();
-    g.strokeStyle = '#272233';
+    g.strokeStyle = '#4a3a2a';
     g.lineWidth = 21 * p;
     g.stroke();
   }
@@ -169,8 +169,8 @@ export function drawReplay(
   for (const f of data.fights) {
     const sel = f.id === data.selectedFight;
     const active = tick >= f.startTick && tick <= f.endTick;
-    g.strokeStyle = sel ? '#ffffff' : active ? '#f0b44c' : 'rgba(224,169,62,0.7)';
-    g.fillStyle = sel ? 'rgba(255,255,255,0.18)' : 'rgba(224,169,62,0.12)';
+    g.strokeStyle = sel ? '#ffffff' : active ? '#f0d58a' : 'rgba(201,163,90,0.7)';
+    g.fillStyle = sel ? 'rgba(255,255,255,0.18)' : 'rgba(201,163,90,0.12)';
     g.lineWidth = sel ? 3 : 1.5;
     g.beginPath();
     g.arc(...xy(f.x, f.y), 20 * p + 2, 0, Math.PI * 2);
@@ -178,7 +178,7 @@ export function drawReplay(
     g.stroke();
   }
   for (const d of data.deaths) {
-    g.strokeStyle = '#d04a52';
+    g.strokeStyle = '#e0675a';
     g.lineWidth = 2.5;
     const s = 6 * p + 2;
     g.beginPath();
@@ -196,15 +196,6 @@ export function drawReplay(
     const s = 4 * p + 2;
     const [bx, by] = xy(pt.x, pt.y);
     g.fillRect(bx - s, by - s, s * 2, s * 2);
-  }
-  for (const r of data.recalls) {
-    const pt = pointAt(data.path, r.tick);
-    if (!pt) continue;
-    g.strokeStyle = '#c4a8f0';
-    g.lineWidth = 1.5;
-    g.beginPath();
-    g.arc(...xy(pt.x, pt.y), 7 * p + 3, 0, Math.PI * 2);
-    g.stroke();
   }
   const now = pointAt(data.path, tick);
   if (now) {

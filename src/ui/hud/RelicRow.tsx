@@ -1,6 +1,6 @@
 import { useState } from 'preact/hooks';
 import type { PlayTeam, Snapshot } from '../../sim';
-import { FamilyChip, RelicSeal, aimText } from '../relics';
+import { FamilyChip, RelicSeal, aimText, relicText, shownRelics } from '../relics';
 import { useEscape, useSession } from '../session';
 
 /**
@@ -10,7 +10,7 @@ import { useEscape, useSession } from '../session';
 export function RelicRow(props: { team: PlayTeam; snap: Snapshot }) {
   const s = useSession();
   const [open, setOpen] = useState<string | null>(null);
-  const held = props.snap.relics.held[props.team];
+  const held = shownRelics(props.snap, props.team);
   useEscape(open !== null, () => setOpen(null));
   if (held.length === 0) return null;
   const shown = held.find((h) => h.id === open);
@@ -44,7 +44,7 @@ export function RelicRow(props: { team: PlayTeam; snap: Snapshot }) {
               <b>{def.name}</b>
             </header>
             <FamilyChip family={def.family} />
-            <p>{def.desc}</p>
+            <p>{relicText(s.content, def, props.team, s.match!.state.opening[props.team])}</p>
             {def.bind !== 'none' && (
               <p class="relic-pop-aim">
                 Aimed at {aimText(s.content, shown, (id) => s.match!.unitById(id)) || 'nothing'}

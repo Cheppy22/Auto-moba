@@ -131,7 +131,7 @@ Rally relics: Closed Position, King's Ransom, Compensation, Sortie (one in each 
 - Once Standing Order exists, move the four lane-buff cards (Advance, Hold the File, Open File, Pawn Storm) to set-at-the-break form only; the hand keeps signature, Initiative and Sacrifice cards.
 - Cut the hand from 3 to 2 cards; Quiet Move is the test bed for this before it becomes the default.
 - Slow the churn: refill 6 → 10 s and expiry 40 → 60 s, so the hand changes less and asks for fewer glances.
-- Keep Field Pawn; Pawn Structure covers players who don't want to tap it.
+- Keep Field Pawn; Pawn Structure covers players who don't want to tap it. Since 2026-10-11 every White side also has a base standing pawn plan (CHESS.md "Pawnlings and pawns"); Pawn Structure is the better version of it (a chosen reserve, and auto pawns cost 2 less) and takes over while it is held.
 - Lower the gambit-value target from 8–15 to 4–8 points once relics carry the planning, and check it with taps per minute in a browser playtest.
 
 ## Wave 1 build notes (2026-10-10)

@@ -324,13 +324,14 @@ html[data-layout='landscape'] .rcard-take {
 /* offers strip, collapsible facts, and the controls for Sealed Move, Pawn Structure and Battery */
 .rl-strip {
   position: sticky;
-  top: 0;
+  /* stick to the top of the sheet's padding, so card text never shows in a gap above the strip */
+  top: calc(-1 * var(--sp-3));
   z-index: 3;
   display: flex;
   flex-wrap: nowrap;
   align-items: center;
   gap: 6px;
-  padding: 6px 0;
+  padding: calc(var(--sp-3) + 6px) 0 6px;
   background: rgb(36, 28, 20);
   border-bottom: 1px solid var(--rule);
 }
@@ -360,8 +361,13 @@ html[data-layout='landscape'] .rcard-take {
 .rl-strip-chip span {
   min-width: 0;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  /* a long name wraps to a second line rather than being cut off */
+  line-height: 1.1;
+  text-align: left;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 .rl-strip b {
   flex: none;

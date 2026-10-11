@@ -2,20 +2,19 @@ import { PALETTE } from '../../render/theme';
 
 /**
  * Chart colours. Teams keep the game's identity colours (ivory White, silver-violet Black).
- * Everything else takes the validated categorical slots in fixed order (dark steps: lightness band,
- * chroma floor, adjacent colour-blind separation and 3:1 contrast on the panel all pass), so a
- * series keeps its colour across charts.
+ * Everything else takes slots drawn from the Grand Board palette in fixed order (slate, copper,
+ * baize, brass, bone, periwinkle, clock red), so a series keeps its colour across charts.
  */
 export const TEAM_COLOR = { A: PALETTE.teamA, B: PALETTE.teamB } as const;
 
 export const CAT = {
-  blue: '#3987e5',
-  orange: '#d95926',
-  aqua: '#199e70',
-  yellow: '#c98500',
-  magenta: '#d55181',
-  violet: '#9085e9',
-  red: '#e66767',
+  blue: '#9aa5b8',
+  orange: '#b9794a',
+  aqua: '#5fae86',
+  yellow: '#c9a35a',
+  magenta: '#cbbd9f',
+  violet: '#8e9bc9',
+  red: '#e0675a',
 } as const;
 
 /** Damage types: Blade, Soul, True. */

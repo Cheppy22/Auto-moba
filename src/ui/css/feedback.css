@@ -4,10 +4,10 @@
 .lane-strip {
   position: absolute;
   z-index: 2;
-  top: calc(54px + env(safe-area-inset-top));
+  top: calc(52px + env(safe-area-inset-top));
   left: 50%;
   translate: -50% 0;
-  width: min(calc(100% - 136px), 180px);
+  width: min(calc(100% - 136px), 228px);
   pointer-events: none;
 }
 .lanebars {
@@ -23,7 +23,7 @@
 }
 .lane-letter {
   font-style: normal;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
   line-height: 1;
   letter-spacing: 0.04em;
@@ -33,9 +33,9 @@
 .lane-track {
   position: relative;
   flex: 1 1 auto;
-  height: 6px;
+  height: 8px;
   overflow: hidden;
-  border-radius: 3px;
+  border-radius: 4px;
   background: var(--b);
   border: 1px solid var(--ebony);
   box-shadow:
@@ -54,6 +54,24 @@
   inset: 0 auto 0 50%;
   width: 1px;
   background: rgba(20, 17, 14, 0.55);
+}
+/* live strip: each lane is a button that leans the board camera in on it */
+.lanebar.pick {
+  min-height: 24px;
+  padding: 2px 5px;
+  font: inherit;
+  cursor: pointer;
+  pointer-events: auto;
+  background: rgba(20, 17, 14, 0.66);
+  border: 1px solid rgba(201, 163, 90, 0.3);
+  border-radius: 6px;
+}
+.lanebar.pick.on {
+  border-color: var(--brass-hi);
+  box-shadow: 0 0 8px rgba(240, 213, 138, 0.5);
+}
+.lanebar.pick.on .lane-letter {
+  color: var(--brass-hi);
 }
 .lanebars.big {
   flex-direction: column;
@@ -76,10 +94,10 @@
 
 /* the banners and the caption sit just below the strip */
 .notices {
-  top: calc(72px + env(safe-area-inset-top));
+  top: calc(82px + env(safe-area-inset-top));
 }
 html[data-layout='landscape'] .notices {
-  top: calc(70px + env(safe-area-inset-top));
+  top: calc(80px + env(safe-area-inset-top));
 }
 
 /* ---------- fight verdict tags, pinned in the 3D view ---------- */

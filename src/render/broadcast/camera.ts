@@ -12,6 +12,8 @@ const PORTRAIT_AZIMUTH = -Math.PI / 4;
 /** Phones held sideways turn it so the bases sit left and right, between the corner HUD. */
 const LAND_AZIMUTH = Math.PI / 4;
 const TARGET_LIFT = 6;
+/** Board mode: how much closer a tapped lane is framed than the whole board. */
+const LANE_ZOOM = 1.9;
 /** The camera never gets closer than this to the ground beneath it. */
 const CLEARANCE = 22;
 
@@ -104,7 +106,7 @@ export class CameraRig {
     this.controls.screenSpacePanning = false;
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.09;
-    this.controls.minDistance = MIN_DIST * 0.8;
+    this.controls.minDistance = MIN_DIST * 2;
     this.controls.maxDistance = MAX_DIST;
     this.controls.minPolarAngle = 0.25;
     this.controls.maxPolarAngle = 1.38;
@@ -216,6 +218,24 @@ export class CameraRig {
         elev: FOLLOW_ELEV,
         azim: baseAz + drift * 0.6,
         dist: this.fit(this.portrait ? 190 : 150, FOLLOW_ELEV),
+      };
+    }
+    if (frame.mode === 'board') {
+      const f = frame.laneFocus;
+      if (f)
+        return {
+          x: f.x - half,
+          z: f.y - half,
+          elev: Math.min(this.wideElev, 1),
+          azim: this.wideAzim,
+          dist: Math.max(MIN_DIST, this.wideDist / LANE_ZOOM),
+        };
+      return {
+        x: this.wideX,
+        z: this.wideZ,
+        elev: this.wideElev,
+        azim: this.wideAzim,
+        dist: this.wideDist,
       };
     }
     if (shot.kind === 'wide' || this.forceWide) {

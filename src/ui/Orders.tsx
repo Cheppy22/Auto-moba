@@ -1,5 +1,5 @@
 import { useState } from 'preact/hooks';
-import type { PieceId, Unit } from '../sim';
+import type { LaneId, PieceId, Snapshot, Unit } from '../sim';
 import { LaneBoard, type BoardPiece } from './LaneBoard';
 import {
   PATHS,
@@ -7,6 +7,7 @@ import {
   PATH_LABEL,
   PIECE_ORDER,
   PieceGlyph,
+  LANES,
   LANE_LABEL,
   LANE_SLOTS,
   pieceLabel,
@@ -150,11 +151,79 @@ export function Paths() {
   );
 }
 
-/** Lanes and paths together: the Orders tab of the Act break sheet. */
-export function Orders(props: { formation?: string | null }) {
+/**
+ * Pawn counts per lane (the Orders tab at each Act break): pawns are fielded on their own toward
+ * these counts whenever Tempo is above the reserve; Field Pawn stays as a manual extra. Pawn
+ * Structure, once held, does this job itself (pick its counts in Relics).
+ */
+export function PawnPlan(props: { snap: Snapshot }) {
+  const s = useSession();
+  const { snap } = props;
+  const plan = snap.pawnPlan;
+  const relic = snap.relics.held.A.some((h) => h.id === 'pawn_structure');
+  const cap = snap.relics.pawnCap;
+  const quota = plan?.quota ?? { top: 0, mid: 0, bot: 0 };
+  const total = LANES.reduce((n, l) => n + quota[l], 0);
+  const set = (lane: LaneId, delta: number): void => {
+    if (quota[lane] + delta < 0 || total + delta > cap) return;
+    s.issue({ type: 'setPawnPlan', quota: { ...quota, [lane]: quota[lane] + delta } });
+  };
+  return (
+    <section class="card col pawn-plan" data-testid="pawn-plan">
+      <b>Pawns per lane</b>
+      {relic ? (
+        <p class="dim small" data-testid="pawn-plan-relic">
+          Pawn Structure is in play: it fields your pawns toward its own counts (set them in
+          Relics).
+        </p>
+      ) : (
+        <>
+          <p class="dim small">
+            Fielded for you during the Act while Tempo stays above {plan?.reserve ?? 20} (kept for
+            gambits). Field Pawn still adds extras. Pawn Structure: you choose the reserve, and
+            pawns cost 2 less.
+          </p>
+          <div class="rl-steppers" role="group" aria-label="Pawns to keep in each lane">
+            {LANES.map((lane) => (
+              <div class="rl-stepper" key={lane}>
+                <span class="rl-aim-label">{LANE_LABEL[lane]}</span>
+                <button
+                  class="rl-step"
+                  aria-label={`Fewer pawns in the ${LANE_LABEL[lane]} lane`}
+                  data-testid={`plan-${lane}-minus`}
+                  disabled={quota[lane] <= 0}
+                  onClick={() => set(lane, -1)}
+                >
+                  −
+                </button>
+                <b data-testid={`plan-${lane}`}>{quota[lane]}</b>
+                <button
+                  class="rl-step"
+                  aria-label={`More pawns in the ${LANE_LABEL[lane]} lane`}
+                  data-testid={`plan-${lane}-plus`}
+                  disabled={total >= cap}
+                  onClick={() => set(lane, 1)}
+                >
+                  +
+                </button>
+              </div>
+            ))}
+            <span class="rl-total" data-testid="plan-total">
+              {total}/{cap}
+            </span>
+          </div>
+        </>
+      )}
+    </section>
+  );
+}
+
+/** Lanes, pawn counts and paths together: the Orders tab of the Act break sheet. */
+export function Orders(props: { formation?: string | null; snap: Snapshot }) {
   return (
     <div class="col orders" data-testid="tab-orders">
       <Lanes formation={props.formation} />
+      <PawnPlan snap={props.snap} />
       <Paths />
     </div>
   );

@@ -242,7 +242,10 @@ transformed = (uBones[int(aBone + 0.5)] * vec4(transformed, 1.0)).xyz;`,
       19,
     );
     ring.position.y = 0.9;
-    this.markers.add(kit.blob(13, 0.65), ring);
+    // a team rim (brass for White, silver for Black) so a piece reads against any road
+    const teamRim = kit.styleRing(team === 'A' ? PALETTE.whiteTrim : PALETTE.blackTrim, 26, 0.95);
+    teamRim.position.y = 0.8;
+    this.markers.add(kit.blob(17, 0.7), teamRim, ring);
     this.animate({ yaw: 0, move: 0, phase: 0, lunge: 0, flinch: 0, time: 0 }, undefined);
   }
 

@@ -1,4 +1,14 @@
-import type { Content, RelicAim, RelicDef, RelicFamily, SealedTrigger, Unit } from '../sim';
+import type {
+  Content,
+  HeldRelic,
+  PlayTeam,
+  RelicAim,
+  RelicDef,
+  RelicFamily,
+  SealedTrigger,
+  Snapshot,
+  Unit,
+} from '../sim';
 import { LANES, LANE_LABEL, LANE_TAG, pieceLabel } from './pieces';
 
 /** Sealed Move triggers in full (the picker) and in brief (the seal row and held card). */
@@ -64,6 +74,41 @@ export function aimText(
     parts.push(`${lanes}, reserve ${held.reserve ?? 0}`);
   }
   return parts.join(' · ');
+}
+
+/**
+ * A team's held relics as the player may see them. Black's pick at the break stays secret until the
+ * next Act starts (the sheet and the seal row show it on resume).
+ */
+export function shownRelics(snap: Snapshot, team: PlayTeam): HeldRelic[] {
+  const held = snap.relics.held[team];
+  if (team === 'A' || snap.act.bell !== 'break') return held;
+  const fresh = snap.relics.latest.B;
+  return held.filter((h) => h.id !== fresh);
+}
+
+/** A relic's effect line. A Rally relic already wears a Rally chip, so the "Rally." that opens its text is dropped. */
+export const relicDesc = (def: RelicDef): string => def.desc.replace(/^Rally\.\s+/, '');
+
+/**
+ * A relic's text for a side. The card text is written for White ("your Opening", "Italian Game:
+ * every card costs 2 less"); Black's reads as its own Opening, French Defence, and so on.
+ */
+export function relicText(
+  content: Content,
+  def: RelicDef,
+  team: PlayTeam,
+  opening: string,
+): string {
+  const desc = relicDesc(def);
+  if (team === 'A') return desc;
+  const name = content.openingById.get(opening)?.name ?? "Black's";
+  let text = desc.replace(/your Opening's/g, `${name}'s`).replace(/your Opening/g, name);
+  if (opening !== 'italian')
+    text = text
+      .replace(/ ?Italian Game: [^.]*\./, '')
+      .replace(/ \(any school for Italian Game\)/, '');
+  return text;
 }
 
 export const bindsLane = (def: RelicDef): boolean => def.bind === 'lane' || def.bind === 'laneCard';

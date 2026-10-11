@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { GameEvent, Match } from '../sim';
-import { introShot } from './intro';
+import { laneNear } from '../analysis/feedback';
+import { introShot, laneMid } from './intro';
 import { useSession } from './session';
 
 /** The camera follows White's King until a portrait is tapped. */
@@ -13,6 +14,8 @@ function kingId(m: Match): number | null {
 const IDLE_FRAME_MS = 1000;
 /** How far (CSS pixels) a pointer may travel and still count as a tap on the board. */
 const TAP_PX = 8;
+/** How far (map units) a tap may be from a lane's centre line and still pick that lane. */
+const LANE_TAP = 260;
 
 /** The game view: a three.js scene. Picking calls are handed to the session for gambit aiming. */
 export function Broadcast() {
@@ -34,6 +37,7 @@ export function Broadcast() {
         } catch (err) {
           const noGl = err instanceof Error && err.message === 'WebGL is not available';
           if (!noGl) console.error('The 3D view failed to start', err);
+          s.viewFailed = true;
           setFailed(noGl ? 'webgl' : 'error');
           return;
         }
@@ -61,8 +65,14 @@ export function Broadcast() {
           const u = id === null ? undefined : m.unitById(id);
           if (u?.hero) s.openCard(u.id);
           else {
+            const covered = s.ui.card !== null || s.ui.info !== null;
             s.closeCard();
             s.closeInfo();
+            // the board camera: a tap on a lane leans in on it, a tap off the lanes (or on the same lane) sits back
+            if (!covered && s.ui.cam === 'board') {
+              const g = view.pickGround(e.clientX, e.clientY);
+              s.zoomLane(g ? laneNear(s.content.map.lanes, g.x, g.y, LANE_TAP) : null);
+            }
           }
         };
         canvas.addEventListener('pointerdown', onDown);
@@ -97,6 +107,10 @@ export function Broadcast() {
             shot,
             mode: intro ? 'auto' : s.ui.cam,
             followId: s.ui.follow ?? kingId(m),
+            laneFocus:
+              s.ui.cam === 'board' && s.ui.zoomLane
+                ? laneMid(s.content.map.lanes[s.ui.zoomLane])
+                : null,
             dtMs: Math.min(100, now - last),
             timeScale: s.timeScale,
           });
@@ -115,6 +129,7 @@ export function Broadcast() {
       })
       .catch((err) => {
         console.error('The 3D view failed to load', err);
+        s.viewFailed = true;
         if (!dead) setFailed('error');
       });
     return () => {

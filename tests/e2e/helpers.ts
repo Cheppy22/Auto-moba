@@ -33,7 +33,7 @@ export interface TestSession {
     step(n: number): number;
     snapshot(): TestSnap;
     events: { type: string; payload: Record<string, unknown> }[];
-    issue(cmd: { type: string }): { ok: boolean };
+    issue(cmd: { type: string; quota?: Record<string, number> }): { ok: boolean };
     state: {
       phase: { kind: string };
       tempo: { A: number; B: number };
@@ -57,8 +57,17 @@ export function watchErrors(page: Page): string[] {
   return errors;
 }
 
-/** Title -> setup (defaults) -> Begin -> live, paused so the sim only moves when a test steps it. */
-export async function startLive(page: Page, seed = '42', pause = true): Promise<void> {
+/**
+ * Title -> setup (defaults) -> Begin -> live, paused so the sim only moves when a test steps it.
+ * White starts with a standing pawn plan (2 / 2 / 2) that fields pawns by itself; most specs count
+ * the pawns they field by hand, so they clear it unless `plan` is true.
+ */
+export async function startLive(
+  page: Page,
+  seed = '42',
+  pause = true,
+  plan = false,
+): Promise<void> {
   await page.goto('/?intro=off');
   await expect(page.getByTestId('title')).toBeVisible();
   await page.getByTestId('seed').fill(seed);
@@ -68,6 +77,15 @@ export async function startLive(page: Page, seed = '42', pause = true): Promise<
   await page.getByTestId('begin').click();
   await expect(page.getByTestId('hud')).toBeVisible();
   await viewReady(page);
+  if (!plan) await clearPawnPlan(page);
+}
+
+/** Drops White's standing pawn plan (the default 2 / 2 / 2), so only hand-fielded pawns exist. */
+export function clearPawnPlan(page: Page): Promise<void> {
+  return page.evaluate(() => {
+    const s = (window as unknown as { __session: TestSession }).__session;
+    s.match.issue({ type: 'setPawnPlan', quota: { top: 0, mid: 0, bot: 0 } });
+  });
 }
 
 /** Waits for the 3D view to exist (taps on the board need it), or for the no-WebGL notice. */
@@ -146,9 +164,12 @@ export async function playPast(page: Page, tick: number, timeout = 60_000): Prom
 }
 
 /** Taps the camera button until it shows `mode`. */
-export async function setCam(page: Page, mode: 'auto' | 'follow' | 'free'): Promise<void> {
+export async function setCam(
+  page: Page,
+  mode: 'board' | 'auto' | 'follow' | 'free',
+): Promise<void> {
   const btn = page.getByTestId('cam-btn');
-  for (let i = 0; i < 4 && (await btn.getAttribute('data-mode')) !== mode; i++) await btn.click();
+  for (let i = 0; i < 5 && (await btn.getAttribute('data-mode')) !== mode; i++) await btn.click();
   await expect(btn).toHaveAttribute('data-mode', mode);
 }
 

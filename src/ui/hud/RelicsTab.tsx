@@ -9,10 +9,17 @@ import type {
   Snapshot,
 } from '../../sim';
 import { SEALED_TRIGGERS } from '../../sim';
-import { useLayout } from '../layout';
 import { whitePieces } from '../Orders';
 import { LANES, LANE_LABEL, LANE_TAG, PieceGlyph, pieceLabel } from '../pieces';
-import { FAMILY_COLOR, FamilyChip, RelicSeal, TRIGGER_LABEL, aimText, bindsLane } from '../relics';
+import {
+  FAMILY_COLOR,
+  FamilyChip,
+  RelicSeal,
+  TRIGGER_LABEL,
+  aimText,
+  bindsLane,
+  relicDesc,
+} from '../relics';
 import { SCHOOL_NAME } from '../schools';
 import { useSession } from '../session';
 
@@ -296,7 +303,6 @@ function OfferCard(props: {
   take: { label: string; disabled: boolean; onTake: () => void };
 }) {
   const { offer, def } = props;
-  const layout = useLayout();
   return (
     <article
       class={`rcard ${offer.tailored ? 'tailored' : ''} ${def.rally ? 'rally' : ''}`}
@@ -318,8 +324,8 @@ function OfferCard(props: {
           </span>
         </div>
       </header>
-      <p class="rcard-desc">{def.desc}</p>
-      <details class="rcard-more" open={layout !== 'portrait'}>
+      <p class="rcard-desc">{relicDesc(def)}</p>
+      <details class="rcard-more">
         <summary>Rewards and counter</summary>
         <dl class="rcard-facts">
           <dt>Rewards</dt>
@@ -385,7 +391,7 @@ function HeldCard(props: { held: HeldRelic; def: RelicDef; snap: Snapshot }) {
           </span>
         </div>
       </header>
-      <p class="rcard-desc">{def.desc}</p>
+      <p class="rcard-desc">{relicDesc(def)}</p>
       {def.bind !== 'none' && (
         <AimControl
           def={def}
@@ -459,7 +465,6 @@ export function RelicsTab(props: { snap: Snapshot }) {
             </section>
           )}
           <nav class="rl-strip" aria-label={`${offers.length} offers`} data-testid="relic-strip">
-            <b>{offers.length} offers:</b>
             {offers.map((o) => {
               const def = s.content.relicById.get(o.id)!;
               return (

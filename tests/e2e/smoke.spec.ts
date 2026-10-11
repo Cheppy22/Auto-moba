@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import {
+  clearPawnPlan,
   eventCount,
   pauseAtStart,
   setCam,
@@ -55,6 +56,7 @@ test('title, setup, gambits, pawn, fork, adjourn, checkmate and report', async (
   await expect(page.getByTestId('stage')).toHaveAttribute('data-ready', 'true', {
     timeout: 60_000,
   });
+  await clearPawnPlan(page);
   await expect(page.getByTestId('speed-chip')).toHaveAttribute('data-speed', '0');
   await expect(page.getByTestId('phase')).toHaveText('Act 1');
   await expect(page.getByTestId('stage')).toBeVisible();
