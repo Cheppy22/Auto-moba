@@ -477,23 +477,24 @@ export class Session {
     if (r?.ok) this.setUi({ aim: null });
   }
 
-  /** A White portrait tapped while an ally card is being aimed: plays the card on that piece. */
-  aimUnit(id: number): boolean {
+  /**
+   * A portrait tapped while a card that needs a piece is being aimed: a White portrait for an ally
+   * card (Exchange), a Black portrait for an enemy card (Check, Fork) plays the card on that piece.
+   * True when the tap was meant for the card (even if the sim refused it), so it must not also
+   * follow the piece.
+   */
+  aimUnit(id: number, team: 'A' | 'B' = 'A'): boolean {
     const aim = this.ui.aim;
     const m = this.match;
     if (!aim || aim.kind !== 'gambit' || !m) return false;
     const card = m.snapshot().hand[aim.slot];
-    if (!card || card.cardId !== aim.cardId || card.target !== 'ally') return false;
+    if (!card || card.cardId !== aim.cardId) return false;
+    // Siege aims at a Bastion or Throne, which has no portrait
+    const want = team === 'A' ? 'ally' : card.cardId === 'siege' ? null : 'enemy';
+    if (card.target !== want) return false;
     const r = this.issue({ type: 'playGambit', slot: aim.slot, targetId: id });
     if (r.ok) this.setUi({ aim: null });
     return true;
-  }
-
-  /** True while an ally card (Exchange) waits for one of White's pieces to be tapped. */
-  aimingAlly(): boolean {
-    const aim = this.ui.aim;
-    if (!aim || aim.kind !== 'gambit' || !this.match) return false;
-    return this.match.snapshot().hand[aim.slot]?.target === 'ally';
   }
 
   /** One of White's pieces under a tap, or the nearest one around the tapped ground. */
