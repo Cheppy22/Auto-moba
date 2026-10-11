@@ -7,6 +7,7 @@
 | 0 Safety net | done   | pass    | 10/10 identical | pending                 |
 | 1 Dead code  | done   | pass    | 10/10 identical | pending                 |
 | 2 Auction    | done   | pending | 10/10 identical | pending                 |
+| 3 Dedupe     | done   | pending | 10/10 identical | pending                 |
 
 Branch `test-product-2` at `5627502`. Plan only: no source code was changed. Reviewer: Opus.
 

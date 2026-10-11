@@ -58,6 +58,7 @@ import type {
   TeamSetup,
   Unit,
 } from './types';
+import { PLAY_TEAMS } from './names';
 
 function initialState(content: Content, config: MatchConfig): MatchState {
   const seed = config.seed;
@@ -189,7 +190,7 @@ function startMatch(ctx: Ctx, white: TeamSetup): void {
   const s = ctx.s;
   s.setup.A = white;
   s.opening = { A: white.opening, B: s.setup.B.opening };
-  for (const team of ['A', 'B'] as PlayTeam[]) {
+  for (const team of PLAY_TEAMS) {
     for (const lane of LANES) {
       makeTower(ctx, team, lane as LaneId, 0);
       makeTower(ctx, team, lane as LaneId, 1);

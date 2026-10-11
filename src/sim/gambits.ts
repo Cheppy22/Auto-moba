@@ -24,6 +24,7 @@ import { LANES, lanePoint } from './world/map';
 import { confine, shapeDist, walkable, type WalkShape } from './world/terrain';
 import type { CommandResult, GambitOrder, Modifier, PlayTeam, Unit, ZoneState } from './types';
 import { other } from './types';
+import { PLAY_TEAMS } from './names';
 
 /** The mod that marks a Poisoned Pawn (a no-op multiplier; its presence is the mark). */
 export const POISON_MOD = 'gambit:poisoned_pawn';
@@ -102,7 +103,7 @@ export function syncHands(ctx: Ctx, team: PlayTeam): void {
 }
 
 export function initHands(ctx: Ctx): void {
-  for (const team of ['A', 'B'] as PlayTeam[]) {
+  for (const team of PLAY_TEAMS) {
     ctx.s.hands[team] = [];
     for (let i = 0; i < ctx.t.gambits.handSize; i++) {
       ctx.s.hands[team].push({ cardId: null, expireTick: 0, refillTick: null });
@@ -603,7 +604,7 @@ export function tickGambits(ctx: Ctx): void {
     addTempo(ctx, 'A', tempoRate(ctx, 'A'));
     addTempo(ctx, 'B', tempoRate(ctx, 'B'));
   }
-  for (const team of ['A', 'B'] as PlayTeam[]) {
+  for (const team of PLAY_TEAMS) {
     const hand = s.hands[team];
     for (let i = 0; i < hand.length; i++) {
       const h = hand[i];
@@ -628,7 +629,7 @@ export function tickGambits(ctx: Ctx): void {
     if (s.zones.length !== standing) syncWalls(ctx);
     for (const z of s.zones) tickZone(ctx, z);
   }
-  for (const team of ['A', 'B'] as PlayTeam[]) {
+  for (const team of PLAY_TEAMS) {
     if (!s.autoGambits[team]) continue;
     if (s.tick % TPS === (team === 'A' ? 5 : 15)) aiGambits(ctx, team);
   }

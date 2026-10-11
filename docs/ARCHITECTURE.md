@@ -35,7 +35,8 @@ The prototype is one browser game in TypeScript. A deterministic simulation core
 
 ```
 content/         JSON: heroes, items, upgrades, biomes, pressure, badges, map, tuning
-src/sim/         pure simulation: core, world, systems, ai, events, commands, content loader
+src/sim/         pure simulation: core, world, systems, ai, events, commands, content loader,
+                 names (PLAY_TEAMS, team/lane/piece words), world/map (nearestBy, laneDist)
 src/analysis/    pure: event log -> report models (stats, fights, badges, paths)
 src/render/      theme, emblems, report replay (Canvas 2D);
                  broadcast/ = the three.js game view, terrain and play director

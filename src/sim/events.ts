@@ -9,6 +9,7 @@ import { newUnit } from './units';
 import { findPath, lanePoint, laneWaypoints, laneT } from './world/map';
 import type { EventInst, LaneId, PlayTeam, Unit } from './types';
 import { other } from './types';
+import { PLAY_TEAMS } from './names';
 
 /**
  * Timed jungle events (content/events/*.json). Each one is announced (`warning`), then `active`.
@@ -87,7 +88,7 @@ function beginWarning(ctx: Ctx, def: EventDef): void {
         : findPath(ctx.world, pa, pb, openSet);
   } else {
     lane = pick(s.rng, 'events', def.lanes);
-    target = pick(s.rng, 'events', ['A', 'B'] as PlayTeam[]);
+    target = pick(s.rng, 'events', PLAY_TEAMS);
     const from = other(target);
     const lg = ctx.world.lanes[lane];
     const wps = laneWaypoints(ctx.world, from, lane);
@@ -380,7 +381,7 @@ function tickWell(ctx: Ctx, ev: EventInst, def: EventDef): void {
   for (const h of ctx.grid.query(ev.x, ev.y, def.radius)) {
     if (h.alive && h.kind === 'hero' && h.team !== 'neutral') present[h.team]++;
   }
-  for (const team of ['A', 'B'] as PlayTeam[]) {
+  for (const team of PLAY_TEAMS) {
     const foe = other(team);
     if (present[team] > 0 && present[foe] === 0) ev.claim[team] += 5;
     else if (present[team] === 0) ev.claim[team] = Math.max(0, ev.claim[team] - 3);

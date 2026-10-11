@@ -12,8 +12,8 @@ import type {
   LaneId,
   PlayTeam,
 } from './types';
+import { PLAY_TEAMS } from './names';
 
-const TEAMS: PlayTeam[] = ['A', 'B'];
 const METRICS = [
   'dealt',
   'structure',
@@ -76,7 +76,7 @@ export function buildActReport(ctx: Ctx): ActReport {
   const teams = { A: teamStat(ctx, 'A'), B: teamStat(ctx, 'B') };
   const pieceOf = new Map<number, ActPieceStat>();
   const teamOf = new Map<number, PlayTeam>();
-  for (const team of TEAMS) {
+  for (const team of PLAY_TEAMS) {
     for (const p of teams[team].pieces) {
       pieceOf.set(p.id, p);
       teamOf.set(p.id, team);
@@ -190,14 +190,15 @@ export function buildActReport(ctx: Ctx): ActReport {
         break;
     }
   }
-  for (const team of TEAMS) teams[team].damage = Math.round(teams[team].damage);
-  for (const team of TEAMS) teams[team].mitigated = Math.round(teams[team].mitigated);
-  for (const team of TEAMS)
+  for (const team of PLAY_TEAMS) teams[team].damage = Math.round(teams[team].damage);
+  for (const team of PLAY_TEAMS) teams[team].mitigated = Math.round(teams[team].mitigated);
+  for (const team of PLAY_TEAMS)
     for (const p of teams[team].pieces) {
       p.damage = Math.round(p.damage);
       p.mitigated = Math.round(p.mitigated);
     }
-  for (const team of TEAMS) for (const c of teams[team].cards) c.seconds = Math.round(c.seconds);
+  for (const team of PLAY_TEAMS)
+    for (const c of teams[team].cards) c.seconds = Math.round(c.seconds);
   return {
     act: ctx.s.phase.n,
     waves: ctx.s.actTally.waves,

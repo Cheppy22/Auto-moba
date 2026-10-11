@@ -28,6 +28,7 @@ import { removeBoardClaim } from './ai/claims';
 import { addTempo, onPoisonedDeath } from './gambits';
 import { classifyFall, flushFights, noteFall, noteMinionLoss } from './feedback';
 import { flushRuns, noteDeath } from './impact';
+import { PLAY_TEAMS } from './names';
 
 export function spawnWaves(ctx: Ctx): void {
   const w = ctx.t.waves;
@@ -45,7 +46,7 @@ export function spawnWaves(ctx: Ctx): void {
   // by wave (a deterministic stagger) so the clash point drifts to either side of the centre.
   const waveNo = Math.round((ctx.s.nextWaveTick - w.firstSec * TPS) / (w.intervalSec * TPS));
   const leader: PlayTeam = waveNo % 2 === 0 ? 'A' : 'B';
-  for (const team of ['A', 'B'] as PlayTeam[]) {
+  for (const team of PLAY_TEAMS) {
     for (const lane of LANES) {
       const lead = lane === 'mid' && team === leader ? w.midLeadUnits : 0;
       const melee = baseMelee + wingMelee(ctx, team, lane);
@@ -323,7 +324,7 @@ export function processDeaths(ctx: Ctx): void {
 }
 
 export function respawnHeroes(ctx: Ctx): void {
-  for (const team of ['A', 'B'] as PlayTeam[]) {
+  for (const team of PLAY_TEAMS) {
     for (const id of ctx.s.teams[team].heroIds) {
       const u = ctx.unit(id);
       if (!u || u.alive || !u.hero || u.hero.respawnAt === null) continue;
@@ -355,7 +356,7 @@ export function passiveGold(ctx: Ctx): void {
   if (ctx.s.tick - ctx.s.lastPassiveTick < every) return;
   ctx.s.lastPassiveTick = ctx.s.tick;
   const amount = ctx.t.passiveGoldPerSec * 10;
-  for (const team of ['A', 'B'] as PlayTeam[]) {
+  for (const team of PLAY_TEAMS) {
     for (const id of ctx.s.teams[team].heroIds) {
       const u = ctx.unit(id);
       if (u) giveGold(ctx, u, amount, 'passive');
@@ -366,7 +367,7 @@ export function passiveGold(ctx: Ctx): void {
 export function sampleAndFlush(ctx: Ctx): void {
   const tick = ctx.s.tick;
   if (tick % 10 === 0) {
-    for (const team of ['A', 'B'] as PlayTeam[]) {
+    for (const team of PLAY_TEAMS) {
       for (const id of ctx.s.teams[team].heroIds) {
         const u = ctx.unit(id);
         if (u && u.alive)

@@ -7,6 +7,7 @@ import type {
   PieceId,
   PlayTeam,
 } from './types';
+import { LANE_NAME, PIECE_NAME } from './names';
 
 export interface Callout {
   /** Rule that produced it (one callout per rule per subject). */
@@ -20,8 +21,7 @@ export interface Callout {
   piece?: PieceId;
 }
 
-const LANE_NAMES: Record<LaneId, string> = { top: 'Left', mid: 'Mid', bot: 'Right' };
-const laneName = (lane: LaneId): string => LANE_NAMES[lane];
+const laneName = (lane: LaneId): string => LANE_NAME[lane];
 
 const fightVerdict = (f: FightRecord, viewer: PlayTeam): 'won' | 'lost' | 'even' => {
   const won = f.lost[viewer === 'A' ? 'B' : 'A'];
@@ -29,13 +29,7 @@ const fightVerdict = (f: FightRecord, viewer: PlayTeam): 'won' | 'lost' | 'even'
   return won > lost ? 'won' : won < lost ? 'lost' : 'even';
 };
 
-const PIECE: Record<string, string> = {
-  king: 'King',
-  queen: 'Queen',
-  rook: 'Rook',
-  bishop: 'Bishop',
-  knight: 'Knight',
-};
+const PIECE: Record<string, string | undefined> = PIECE_NAME;
 const KILLER: Record<string, string> = {
   minion: 'pawns',
   tower: 'Bastions',

@@ -1,7 +1,7 @@
-import type { Content, PlayTeam } from '../sim';
+import { LANE_NAME, teamWord, type Content, type PlayTeam } from '../sim';
 import type { Report } from './index';
 
-const LANE_NAMES: Record<string, string> = { top: 'Left', mid: 'Mid', bot: 'Right' };
+const LANE_NAMES: Record<string, string | undefined> = LANE_NAME;
 
 /** top/mid/bot -> Left/Mid/Right (the names the map shows). */
 export function laneName(lane: string): string {
@@ -15,16 +15,14 @@ export function teamLabel(team: string, viewer: PlayTeam = 'A'): string {
 }
 
 /** The two sides of the board: Team A is White, Team B is Black. */
-export function courtName(team: string): string {
-  return team === 'A' ? 'White' : team === 'B' ? 'Black' : team;
-}
+export const courtName = teamWord;
 
 /** The base structure's display name: each side has a Throne. */
 function throneName(team: string): string {
   return team === 'A' ? 'White Throne' : team === 'B' ? 'Black Throne' : 'Throne';
 }
 
-const cap = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
+export const cap = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
 
 /** A piece's display name, e.g. "White Knight". */
 export function pieceName(team: string, piece: string): string {

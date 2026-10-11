@@ -2,6 +2,7 @@ import { dist, sqrt } from '../core/math';
 import type { LaneId, MapDef } from '../content/schema';
 import type { PlayTeam } from '../types';
 import { buildTerrain, segmentBlocked, type Terrain } from './terrain';
+import { PLAY_TEAMS } from '../names';
 
 export interface Pt {
   x: number;
@@ -86,6 +87,49 @@ export function laneT(lane: LaneGeo, x: number, y: number): number {
   return bestD / lane.length;
 }
 
+/** How far a point is from a lane's centre line. */
+export function laneDist(lane: LaneGeo, x: number, y: number): number {
+  const p = lanePoint(lane, laneT(lane, x, y));
+  return dist(x, y, p.x, p.y);
+}
+
+/** How far a point is from a polyline (the nearest point on any of its segments). */
+export function distToPolyline(x: number, y: number, line: readonly (readonly number[])[]): number {
+  let best = Infinity;
+  for (let i = 1; i < line.length; i++) {
+    const [ax, ay] = line[i - 1];
+    const [bx, by] = line[i];
+    const dx = bx - ax;
+    const dy = by - ay;
+    const len2 = dx * dx + dy * dy;
+    const t = len2 > 0 ? Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / len2)) : 0;
+    best = Math.min(best, Math.hypot(x - (ax + t * dx), y - (ay + t * dy)));
+  }
+  return best;
+}
+
+/**
+ * The key with the smallest distance, if it is closer than `maxOff`. On equal distances the first
+ * key wins; with `later` the last wins and `maxOff` itself still counts as near enough.
+ */
+export function nearestBy<K>(
+  keys: readonly K[],
+  distTo: (key: K) => number,
+  maxOff = Infinity,
+  later = false,
+): K | null {
+  let best: K | null = null;
+  let bestD = maxOff;
+  for (const key of keys) {
+    const d = distTo(key);
+    if (later ? d <= bestD : d < bestD) {
+      bestD = d;
+      best = key;
+    }
+  }
+  return best;
+}
+
 export function laneWaypoints(world: World, team: PlayTeam, lane: LaneId): [number, number][] {
   const pts: [number, number][] = world.lanes[lane].pts.map((p): [number, number] => [p[0], p[1]]);
   return team === 'A' ? pts : pts.reverse();
@@ -163,7 +207,7 @@ export function buildWorld(map: MapDef): World {
   };
   const centre = map.size / 2;
   const guardianPos = {} as Record<PlayTeam, Pt>;
-  for (const t of ['A', 'B'] as PlayTeam[]) {
+  for (const t of PLAY_TEAMS) {
     const b = basePos[t];
     const dx = centre - b.x;
     const dy = centre - b.y;

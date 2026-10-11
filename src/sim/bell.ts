@@ -4,9 +4,8 @@ import { replanLanes } from './ai/replan';
 import { buildActReport } from './actReport';
 import { closeDraft, resolveDraft } from './draft';
 import { actTicks, endAct, enterAct } from './phase';
-import type { BellStage, BellState, PlayTeam } from './types';
-
-const PIECE_TEAMS: PlayTeam[] = ['A', 'B'];
+import type { BellStage, BellState } from './types';
+import { PLAY_TEAMS } from './names';
 
 export const freshBell = (): BellState => ({
   stage: 'none',
@@ -31,7 +30,7 @@ function setStage(ctx: Ctx, stage: BellStage, toll?: number): void {
 }
 
 function boardCalm(ctx: Ctx): boolean {
-  for (const team of PIECE_TEAMS) {
+  for (const team of PLAY_TEAMS) {
     for (const id of ctx.s.teams[team].heroIds) {
       const u = ctx.unit(id);
       if (u?.alive && inCombat(ctx.s.tick, u)) return false;

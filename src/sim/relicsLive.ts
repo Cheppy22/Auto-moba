@@ -13,8 +13,7 @@ import { addMod } from './stats';
 import { LANES, lanePoint } from './world/map';
 import type { LaneId, Modifier, PlayTeam, RelicRun, SnapZone, Unit } from './types';
 import { other } from './types';
-
-const TEAMS: PlayTeam[] = ['A', 'B'];
+import { PLAY_TEAMS } from './names';
 
 export const freshRelicRun = (): RelicRun => ({
   sealed: {
@@ -74,7 +73,7 @@ function hold(
 /** Everything the live relics set up when an Act starts. */
 export function onActStart(ctx: Ctx): void {
   const run = ctx.s.relics.run;
-  for (const team of TEAMS) {
+  for (const team of PLAY_TEAMS) {
     const bonus = actStartTempo(ctx, team);
     ctx.s.tempo[team] = Math.min(ctx.s.tempo[team], tempoCap(ctx, team));
     if (bonus > 0) addTempo(ctx, team, bonus);
@@ -337,7 +336,7 @@ function sortie(ctx: Ctx, team: PlayTeam): void {
 export function tickRelics(ctx: Ctx): void {
   const s = ctx.s;
   if (s.phase.kind !== 'live' || frozen(ctx)) return;
-  for (const team of TEAMS) {
+  for (const team of PLAY_TEAMS) {
     if (s.relics.held[team].length === 0) continue;
     const t = s.tick + (team === 'A' ? 0 : 2);
     if (t % 5 === 0) {
@@ -362,7 +361,7 @@ export function tickRelics(ctx: Ctx): void {
 export function bannerZones(ctx: Ctx, endTick: number): SnapZone[] {
   const out: SnapZone[] = [];
   const radius = (ctx.c.relicById.get('strong_square')?.params.radius ?? 160) * ctx.world.k;
-  for (const team of TEAMS) {
+  for (const team of PLAY_TEAMS) {
     const b = ctx.s.relics.run.banner[team];
     if (b && !b.toppled && workingRelic(ctx, team, 'strong_square'))
       out.push({

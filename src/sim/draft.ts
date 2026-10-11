@@ -22,8 +22,8 @@ import type {
   RelicOffer,
 } from './types';
 import { other } from './types';
+import { PLAY_TEAMS } from './names';
 
-const TEAMS: PlayTeam[] = ['A', 'B'];
 const NO_AIM: RelicAim = {
   lane: null,
   piece: null,
@@ -58,7 +58,7 @@ const standing = (ctx: Ctx, team: PlayTeam): number =>
 /** Behind: a fallen Throne, fewer Bastions standing, or 40+ less Tempo earned in the Act. */
 function computeBehind(ctx: Ctx, report: ActReport): Record<PlayTeam, boolean> {
   const out = { A: false, B: false };
-  for (const team of TEAMS) {
+  for (const team of PLAY_TEAMS) {
     const foe = other(team);
     out[team] =
       ctx.s.throneDown[team] ||
@@ -502,7 +502,7 @@ export function resolveDraft(ctx: Ctx, report: ActReport): void {
     A: { offers: [], severity: 0 },
     B: { offers: [], severity: 0 },
   };
-  for (const team of TEAMS) {
+  for (const team of PLAY_TEAMS) {
     r.latest[team] = null;
     if (r.mode[team] !== 'manual') reaim(ctx, team, report);
     drawn[team] = drawOffers(ctx, team, report);
@@ -510,7 +510,7 @@ export function resolveDraft(ctx: Ctx, report: ActReport): void {
     r.settled[team] = drawn[team].offers.length === 0;
     ctx.emit('relicOffered', { team, ids: drawn[team].offers.map((o) => o.id) });
   }
-  for (const team of TEAMS) {
+  for (const team of PLAY_TEAMS) {
     if (r.settled[team]) continue;
     const mode: RelicMode = r.mode[team];
     if (mode === 'manual') continue;
@@ -522,7 +522,7 @@ export function resolveDraft(ctx: Ctx, report: ActReport): void {
 
 /** The draft is closed when the Act resumes. */
 export function closeDraft(ctx: Ctx): void {
-  for (const team of TEAMS) {
+  for (const team of PLAY_TEAMS) {
     ctx.s.relics.offers[team] = [];
     ctx.s.relics.settled[team] = true;
   }

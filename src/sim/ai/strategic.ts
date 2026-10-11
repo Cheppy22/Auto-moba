@@ -2,7 +2,7 @@ import { dist } from '../core/math';
 import { hpPct, isTargetable, type Ctx } from '../ctx';
 import type { LaneId } from '../content/schema';
 import { startRecall } from '../recall';
-import { findPath, LANES, lanePoint, laneT } from '../world/map';
+import { findPath, LANES, laneDist, nearestBy } from '../world/map';
 import type { Goal, GoalKind, PlayTeam, Unit } from '../types';
 import { other } from '../types';
 import { closestLane, enemyTowerTarget, lanePath, pointAtProgress, progressAt } from './lanes';
@@ -195,25 +195,13 @@ export function retreatLanePath(
   y: number,
 ): [number, number][] | null {
   const lane = closestLane(ctx, u);
-  const geo = ctx.world.lanes[lane];
-  const p = lanePoint(geo, laneT(geo, u.x, u.y));
-  if (dist(u.x, u.y, p.x, p.y) > ctx.t.ai.laneHugRadius) return null;
+  if (laneDist(ctx.world.lanes[lane], u.x, u.y) > ctx.t.ai.laneHugRadius) return null;
   return lanePath(ctx, u, lane, x, y, ctx.t.ai.laneHugRadius, () => []);
 }
 
 function laneOfGoal(ctx: Ctx, g: Goal): LaneId | null {
-  let best: LaneId | null = null;
-  let bestD = Infinity;
-  for (const lane of LANES) {
-    const geo = ctx.world.lanes[lane];
-    const p = lanePoint(geo, laneT(geo, g.x, g.y));
-    const d = dist(g.x, g.y, p.x, p.y);
-    if (d < bestD) {
-      bestD = d;
-      best = lane;
-    }
-  }
-  return bestD <= ctx.t.ai.laneHugRadius ? best : null;
+  const lane = nearestBy(LANES, (l) => laneDist(ctx.world.lanes[l], g.x, g.y));
+  return lane && laneDist(ctx.world.lanes[lane], g.x, g.y) <= ctx.t.ai.laneHugRadius ? lane : null;
 }
 
 export function strategicUpdate(ctx: Ctx, u: Unit): void {

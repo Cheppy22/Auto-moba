@@ -1,6 +1,5 @@
+import { TPS } from '../sim';
 import type { Session } from '../ui/session';
-
-const TPS = 20;
 
 export class FrameClock {
   private raf = 0;

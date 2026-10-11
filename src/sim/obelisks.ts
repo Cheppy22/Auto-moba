@@ -5,6 +5,7 @@ import { giveGold } from './shop';
 import { newUnit } from './units';
 import type { Stats } from './content/schema';
 import type { PlayTeam } from './types';
+import { PLAY_TEAMS } from './names';
 
 export function scheduleObelisks(ctx: Ctx): void {
   const n = ctx.s.phase.n;
@@ -115,7 +116,7 @@ export function tickObelisks(ctx: Ctx): void {
     for (const h of ctx.grid.query(ob.x, ob.y, cfg.radius)) {
       if (h.alive && h.kind === 'hero' && h.team !== 'neutral') present[h.team]++;
     }
-    for (const team of ['A', 'B'] as PlayTeam[]) {
+    for (const team of PLAY_TEAMS) {
       const foe: PlayTeam = team === 'A' ? 'B' : 'A';
       if (present[team] > 0 && present[foe] === 0) ob.obelisk.claim[team] += 5;
       else if (present[team] === 0)

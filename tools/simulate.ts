@@ -7,6 +7,7 @@ import {
   type TeamSetup,
 } from '../src/sim';
 import { teamNetWorth } from '../src/sim/curses';
+import { PLAY_TEAMS } from '../src/sim';
 
 export interface HeroResult {
   team: PlayTeam;
@@ -97,7 +98,7 @@ export function simulateMatch(content: Content, seed: number, opts: SimOptions =
   const s = m.state;
   const winner = s.winner;
   const heroes: HeroResult[] = [];
-  for (const team of ['A', 'B'] as PlayTeam[]) {
+  for (const team of PLAY_TEAMS) {
     for (const id of s.teams[team].heroIds) {
       const h = m.unitById(id)!.hero!;
       heroes.push({
@@ -123,8 +124,7 @@ export function simulateMatch(content: Content, seed: number, opts: SimOptions =
     acceptedBy: [] as { item: string; won: boolean }[],
   };
   const teamOfHero = new Map<number, PlayTeam>();
-  for (const team of ['A', 'B'] as PlayTeam[])
-    for (const id of s.teams[team].heroIds) teamOfHero.set(id, team);
+  for (const team of PLAY_TEAMS) for (const id of s.teams[team].heroIds) teamOfHero.set(id, team);
   const obelisks: Record<PlayTeam, number> = { A: 0, B: 0 };
   const gambits: Record<PlayTeam, Record<string, number>> = { A: {}, B: {} };
   const pawns: Record<PlayTeam, number> = { A: 0, B: 0 };

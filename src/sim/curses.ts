@@ -2,6 +2,7 @@ import { pick, rand } from './core/rng';
 import type { Ctx } from './ctx';
 import { netWorth } from './shop';
 import type { CurseOffer, PlayTeam, Unit } from './types';
+import { PLAY_TEAMS } from './names';
 
 function freeSlot(ctx: Ctx, u: Unit): void {
   const h = u.hero!;
@@ -71,7 +72,7 @@ export function evaluateCurseOffers(ctx: Ctx): void {
   const loser: PlayTeam = a < b ? 'A' : 'B';
   let total = 0;
   let count = 0;
-  for (const t of ['A', 'B'] as PlayTeam[]) {
+  for (const t of PLAY_TEAMS) {
     for (const id of ctx.s.teams[t].heroIds) {
       const u = ctx.unit(id);
       if (u) {
