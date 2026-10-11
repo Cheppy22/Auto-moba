@@ -2,6 +2,8 @@ import { existsSync } from 'node:fs';
 import { defineConfig } from '@playwright/test';
 
 const localChromium = '/opt/pw-browsers/chromium';
+// parallel worktrees set PW_PORT so they never reuse each other's dev server
+const port = Number(process.env.PW_PORT ?? 4173);
 
 export default defineConfig({
   testDir: 'tests/e2e',
@@ -11,15 +13,15 @@ export default defineConfig({
   workers: 1,
   reporter: 'list',
   use: {
-    baseURL: 'http://localhost:4173',
+    baseURL: `http://localhost:${port}`,
     viewport: { width: 1280, height: 800 },
     launchOptions: existsSync(localChromium)
       ? { executablePath: localChromium, args: ['--no-sandbox'] }
       : {},
   },
   webServer: {
-    command: 'npx vite --port 4173 --strictPort',
-    url: 'http://localhost:4173',
+    command: `npx vite --port ${port} --strictPort`,
+    url: `http://localhost:${port}`,
     reuseExistingServer: true,
     timeout: 120_000,
   },
