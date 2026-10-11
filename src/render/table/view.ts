@@ -227,6 +227,11 @@ export class TableView {
     B: new Color(TEAM.B.rim),
     N: new Color('#d88a52'),
   };
+  /** Brighter team colours for light on the pale dais and for the teleport columns. */
+  private readonly hotCol = {
+    A: new Color(TEAM.A.rim).lerp(WHITE, 0.5),
+    B: new Color(TEAM.B.rim).lerp(WHITE, 0.5),
+  };
   private readonly tags = new Tags();
   private readonly crowds: Record<string, Crowd> = {};
   private readonly crowdList: Crowd[] = [];
@@ -480,11 +485,13 @@ export class TableView {
     textures: number;
     frames: number;
     fx: number[];
+    time: number;
   } {
     const i = this.renderer.info;
     return {
       frames: this.drawn,
       fx: this.fx.counts(),
+      time: this.time,
       calls: i.render.calls,
       triangles: i.render.triangles,
       geometries: i.memory.geometries,
@@ -551,11 +558,20 @@ export class TableView {
       if (`${ins.top},${ins.bottom},${ins.left},${ins.right}` !== this.cam.fitted) this.resize();
     }
     const real = MathUtils.clamp(frame.dtMs, 0, 100) / 1000;
-    // dev only: `window.__tvDt = 0.02` fixes the effect time per frame (deterministic screenshots)
-    const fixed = import.meta.env.DEV
-      ? ((window as unknown as { __tvDt?: number }).__tvDt ?? 0)
-      : 0;
-    const dt = (fixed > 0 ? fixed : real) * frame.timeScale;
+    // dev only: `window.__tvDt = 0.02` fixes the effect time per frame and `window.__tvBudget`
+    // (seconds) runs it for that long, then freezes it (deterministic screenshots)
+    let dtRaw = real;
+    if (import.meta.env.DEV) {
+      const w = window as unknown as { __tvDt?: number; __tvBudget?: number };
+      if (w.__tvDt) {
+        dtRaw = w.__tvDt;
+        if (w.__tvBudget !== undefined) {
+          dtRaw = Math.max(1e-6, Math.min(dtRaw, w.__tvBudget));
+          w.__tvBudget = Math.max(0, w.__tvBudget - dtRaw);
+        }
+      }
+    }
+    const dt = dtRaw * frame.timeScale;
     this.time += dt;
     if (snap.tick < this.lastTick) this.reset();
     this.lastTick = snap.tick;
@@ -1441,9 +1457,9 @@ export class TableView {
       this.fx.ring(v.x, gy + 2, v.z, halo, br * 1.1, br * 1.9, 0.5, 0.7);
       return;
     }
-    this.fx.column(v.x, gy, v.z, this.rimCol[t], br * 1.0, br * 0.5, f.height * 3.6, 0.85, 0, 0.9);
-    this.fx.ring(v.x, gy + 2, v.z, halo, br * 1.1, br * 3.0, 0.7, 1);
-    this.fx.ring(v.x, gy + 2, v.z, halo, br * 0.8, br * 2.0, 0.55, 0.6, 0.12);
+    this.fx.column(v.x, gy, v.z, this.hotCol[t], br * 1.1, br * 0.5, f.height * 3.8, 0.85, 0, 1.4);
+    this.fx.ring(v.x, gy + 2, v.z, this.hotCol[t], br * 1.1, br * 3.4, 0.7, 1.4);
+    this.fx.ring(v.x, gy + 2, v.z, halo, br * 0.8, br * 2.4, 0.55, 0.9, 0.12);
     this.chips.rise(v.x, gy + f.height * 0.1, v.z, this.rimCol[t], 8, br * 0.8, 4.5);
     this.chips.rise(v.x, gy + f.height * 0.3, v.z, TEAM[t].body, 4, br * 0.6, 4);
   }
@@ -1459,9 +1475,10 @@ export class TableView {
       this.fx.ring(x, gy + 2, z, halo, br * 1.0, br * 2.0, 0.5, 0.7);
       return;
     }
-    this.fx.column(x, gy, z, this.rimCol[t], br * 0.5, br * 1.5, f.height * 3.0, 0.7, 1, 0.9);
-    this.fx.ring(x, gy + 2, z, halo, br * 1.0, br * 3.6, 0.8, 1);
-    this.fx.ring(x, gy + 2, z, halo, br * 0.8, br * 2.4, 0.6, 0.7, 0.18);
+    this.fx.column(x, gy, z, this.hotCol[t], br * 0.6, br * 1.6, f.height * 3.2, 0.7, 1, 1.4);
+    // saturated team colour: pale light would vanish on the pale dais
+    this.fx.ring(x, gy + 2, z, halo, br * 1.0, br * 4.4, 0.8, 2.2);
+    this.fx.ring(x, gy + 2, z, halo, br * 0.8, br * 3.0, 0.6, 1.8, 0.18);
     this.chips.gather(x, gy + f.height * 0.4, z, this.rimCol[t], 9, br * 3.2, 4.5);
     this.chips.gather(x, gy + f.height * 0.3, z, TEAM[t].body, 4, br * 2.4, 4);
   }
@@ -1485,17 +1502,17 @@ export class TableView {
     const sec = this.content.tuning.recall.baseSec;
     const p = MathUtils.clamp(v.recallT / Math.max(0.5, sec), 0, 1);
     const pulse = reduced ? 0.5 : 0.5 + 0.5 * Math.sin(this.time * 9);
-    const halo = this.haloCol[team];
+    const halo = this.hotCol[team];
     const rim = this.rimCol[team];
-    this.fx.ringNow(v.x, v.gy + 2, v.z, halo, br * lerp(2.7, 1.3, p), 0.5 + 0.4 * pulse);
+    this.fx.ringNow(v.x, v.gy + 2, v.z, halo, br * lerp(2.7, 1.3, p), 0.7 + 0.5 * pulse);
     this.fx.columnNow(
       v.x,
       v.gy,
       v.z,
-      rim,
-      br * 0.8,
-      f.height * lerp(1.0, 2.4, p),
-      0.14 + 0.4 * p,
+      halo,
+      br * 0.95,
+      f.height * lerp(1.0, 2.6, p),
+      0.35 + 0.6 * p,
       this.time * 1.5,
     );
     if (reduced) return;
