@@ -201,7 +201,7 @@ describe('wave 1 relic effects', () => {
     const lane = u.hero!.lane!;
     const before = stat(m, u, 'moveSpeed');
     hold(m, 'A', { id: 'half_open_file', lane });
-    expect(stat(m, u, 'moveSpeed') / before).toBeCloseTo(1.12, 5);
+    expect(stat(m, u, 'moveSpeed') / before).toBeCloseTo(1.08, 5);
     m.state.relics.held.A[0].lane = lane === 'top' ? 'bot' : 'top';
     expect(stat(m, u, 'moveSpeed') / before).toBeCloseTo(0.96, 5);
 
@@ -245,7 +245,7 @@ describe('wave 1 relic effects', () => {
     const other = stat(m, queen, 'bladeDmg');
     hold(m, 'A', { id: 'crown_jewel', piece: king.id });
     expect(stat(m, king, 'maxHp') / hp).toBeCloseTo(1.08, 5);
-    expect(stat(m, king, 'bladeDmg') / dmg).toBeCloseTo(1.12, 5);
+    expect(stat(m, king, 'bladeDmg') / dmg).toBeCloseTo(1.08, 5);
     expect(stat(m, queen, 'bladeDmg') / other).toBeCloseTo(0.97, 5);
   });
 
@@ -256,7 +256,7 @@ describe('wave 1 relic effects', () => {
     expect(u.stats.incomeMult).toBe(1);
     hold(m, 'A', { id: 'development', piece: u.id });
     recompute(m.ctx, u);
-    expect(u.stats.incomeMult).toBeCloseTo(1.2, 5);
+    expect(u.stats.incomeMult).toBeCloseTo(1.15, 5);
     expect(bountyMul(m.ctx, u)).toBe(1.5);
     expect(bountyMul(m.ctx, piece(m, 'A', 'king'))).toBe(1);
   });
@@ -296,7 +296,7 @@ describe('wave 1 relic effects', () => {
     expect(cardCost(m.ctx, 'A', card('advance'))).toBe(card('advance').cost - 2);
   });
 
-  it('Standing Order keeps a lane card on at half strength and out of the deck', () => {
+  it('Standing Order keeps a lane card on at 40% strength and out of the deck', () => {
     const m = fresh();
     const u = piece(m, 'A', 'rook');
     const lane = u.hero!.lane!;
@@ -305,7 +305,7 @@ describe('wave 1 relic effects', () => {
     const dmg = storm.stats.bladeDmg;
     hold(m, 'A', { id: 'standing_order', lane, card: 'hold_the_file' });
     const strong = content.gambitById.get('hold_the_file')!.params.armorMul;
-    expect(stat(m, u, 'armor') / before).toBeCloseTo(1 + (strong - 1) / 2, 5);
+    expect(stat(m, u, 'armor') / before).toBeCloseTo(1 + (strong - 1) * 0.4, 5);
     m.state.relics.held.A[0].card = 'pawn_storm';
     const stormMul = content.gambitById.get('pawn_storm')!.params.damageMul;
     expect(stat(m, storm, 'bladeDmg') / dmg).toBeCloseTo(1 + (stormMul - 1) * 0.3333, 3);
