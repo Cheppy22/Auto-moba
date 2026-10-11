@@ -1,5 +1,6 @@
 import { useRef } from 'preact/hooks';
 import type { Snapshot } from '../../sim';
+import { AutoPawn } from '../AutoPawn';
 import { useEscape, useSession } from '../session';
 import { Aim } from './Aim';
 import { Command } from './Command';
@@ -19,6 +20,8 @@ export function Drawer(props: { snap: Snapshot; open: boolean; onOpen: (open: bo
   const s = useSession();
   const { snap, open, onOpen } = props;
   const playable = snap.hand.filter((c) => c.cardId !== '' && c.usable).length;
+  // Pawn Structure fields pawns by its own counts, so the plan's switch has nothing to do
+  const relicPawns = snap.relics.held.A.some((h) => h.id === 'pawn_structure');
   const down = useRef<number | null>(null);
   useEscape(open, () => onOpen(false));
   return (
@@ -33,6 +36,11 @@ export function Drawer(props: { snap: Snapshot; open: boolean; onOpen: (open: bo
         <Aim snap={snap} />
         <div class="dr-hand" id="dr-hand" aria-hidden={!open}>
           <div class="dr-hand-in">
+            {!relicPawns && (
+              <div class="dr-tools">
+                <AutoPawn snap={snap} testId="drawer-auto-pawn" />
+              </div>
+            )}
             <Hand snap={snap} />
           </div>
         </div>
