@@ -9,6 +9,7 @@ import type {
   Posture,
   Role,
   School,
+  SealedTrigger,
   StatKey,
   Stats,
 } from './content/schema';
@@ -23,6 +24,7 @@ export type {
   Posture,
   Role,
   School,
+  SealedTrigger,
   StatKey,
   Stats,
 };
@@ -419,17 +421,26 @@ export interface ActTally {
 /** Who picks a side's relics: the AI rule, nobody, random, or the player (the browser's White). */
 export type RelicMode = 'ai' | 'none' | 'random' | 'manual';
 
+/** Pawn Structure: how many elite pawns to keep in each lane. */
+export type PawnQuota = Record<LaneId, number>;
+
 /** A relic held for the rest of the match, with what it is aimed at. */
 export interface HeldRelic {
   id: string;
   lane: LaneId | null;
   /** The bound piece's unit id. */
   piece: number | null;
-  /** Standing Order: the lane card that is always on. */
+  /** Standing Order: the lane card that is always on. Sealed Move: the card that fires. */
   card: string | null;
+  /** Sealed Move: what sets the card off. */
+  trigger: SealedTrigger | null;
+  /** Pawn Structure: the pawns to keep in each lane. */
+  quota: PawnQuota | null;
+  /** Pawn Structure: Tempo kept back before an auto pawn is fielded. */
+  reserve: number | null;
 }
 
-export type RelicAim = Pick<HeldRelic, 'lane' | 'piece' | 'card'>;
+export type RelicAim = Pick<HeldRelic, 'lane' | 'piece' | 'card' | 'trigger' | 'quota' | 'reserve'>;
 
 export interface RelicOffer {
   id: string;
@@ -441,7 +452,21 @@ export interface RelicOffer {
   aim: RelicAim;
 }
 
+/** What the live relics keep track of (reset when an Act starts unless noted). */
+export interface RelicRun {
+  sealed: Record<PlayTeam, { fired: boolean; since: number | null; skip: number[] }>;
+  /** An enemy piece fell this Act (a Sealed Move trigger). */
+  enemyDown: Record<PlayTeam, boolean>;
+  /** Sortie: Bastions that already called a rotation (kept for the match). */
+  sortied: Record<PlayTeam, number[]>;
+  /** Strong Square: the banner this Act and how long a lone enemy has stood on it. */
+  banner: Record<PlayTeam, { x: number; y: number; toppled: boolean; alone: number } | null>;
+  /** Curtain Wall: the last tick an enemy was near each Bastion. */
+  wall: Record<number, number>;
+}
+
 export interface RelicState {
+  run: RelicRun;
   held: Record<PlayTeam, HeldRelic[]>;
   /** The three cards of the draft that is open at the break (empty otherwise). */
   offers: Record<PlayTeam, RelicOffer[]>;
@@ -727,20 +752,13 @@ export interface EventPayloads {
   relicTaken: {
     team: PlayTeam;
     relic: string;
-    lane: LaneId | null;
-    piece: number | null;
-    card: string | null;
     replaced: string | null;
     auto: boolean;
-  };
-  relicAimed: {
-    team: PlayTeam;
-    relic: string;
-    lane: LaneId | null;
-    piece: number | null;
-    card: string | null;
-  };
+  } & RelicAim;
+  relicAimed: { team: PlayTeam; relic: string } & RelicAim;
   relicDeclined: { team: PlayTeam };
+  sealedMove: { team: PlayTeam; card: string; trigger: SealedTrigger; outcome: 'fired' | 'lapsed' };
+  relicTriggered: { team: PlayTeam; relic: string; lane: LaneId };
   laneSet: { id: number; lane: LaneId };
   pathSet: { id: number; path: Path };
   recall: {
@@ -998,6 +1016,10 @@ export interface SnapRelics {
   /** The relic each side took at the latest break. */
   latest: Record<PlayTeam, string | null>;
   behind: Record<PlayTeam, boolean>;
+  /** Why White's pieces cannot start the next Act in their lanes (null when they can). */
+  formation: string | null;
+  /** The pawns White may keep fielded in the next Act (Pawn Structure quotas fit inside it). */
+  pawnCap: number;
 }
 
 export interface SnapAct {
