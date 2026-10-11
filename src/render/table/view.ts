@@ -23,6 +23,7 @@ import type { BroadcastFrame, NewEvents } from '../broadcast/types';
 import { ZoneFx } from '../broadcast/zones';
 import { Board, FRAME } from './board';
 import { TableCamera } from './camera';
+import { LaneCam } from './lanecam';
 import { Crowd, crowdInk, facetMaterial, hullOf } from './crowd';
 import { FIG_HEIGHT, type PieceId } from './figures';
 import { Bolts, Chips, Tags } from './fx';
@@ -187,6 +188,7 @@ export class TableView {
   private readonly to = new Vector3();
   private readonly col = new Color();
   private readonly lean = { x: 0, z: 0 };
+  private readonly laneCam: LaneCam;
   private readonly lineup: 'board' | 'close' | 'closeb' | null;
   private lineupUnits: ChessUnit[] | null = null;
   private time = 0;
@@ -381,6 +383,7 @@ export class TableView {
       this.bars.group,
       this.tags.mesh,
     );
+    this.laneCam = new LaneCam(content, canvas, this.groundAt, () => this.cam.pxNow());
     this.resize();
     if (import.meta.env.DEV) {
       const w = window as unknown as Record<string, unknown>;
@@ -487,7 +490,12 @@ export class TableView {
 
     // camera: whole board; Follow leans in on the followed piece
     let lean: { x: number; z: number } | null = null;
-    if (this.lineup === 'close' || this.lineup === 'closeb') {
+    const lane =
+      frame.mode === 'board' && !this.lineup
+        ? this.laneCam.update(frame.laneFocus ?? null, this.half)
+        : this.laneCam.update(null, this.half);
+    if (lane) lean = lane;
+    else if (this.lineup === 'close' || this.lineup === 'closeb') {
       const k = this.lineup === 'close' ? 560 : -560;
       this.lean.x = this.cam.dir.x * k;
       this.lean.z = this.cam.dir.z * k;
@@ -501,7 +509,8 @@ export class TableView {
       }
     }
     this.leaning = lean !== null;
-    this.cam.update(real, lean, this.lineup ? 0.62 : undefined);
+    if (lane) this.cam.update(real, lane, this.laneCam.zoom, true, this.laneCam.active ? 10 : 4);
+    else this.cam.update(real, lean, this.lineup ? 0.62 : undefined);
     const camera = this.cam.camera;
     const px = this.cam.pxNow();
     this.lib.ink.A.value = px * TEAM.A.inkPx;
@@ -559,6 +568,28 @@ export class TableView {
     };
   }
 
+  /** The world point (x, z on the lane floor, y = 0) under a client position. */
+  private readonly groundAt = (
+    clientX: number,
+    clientY: number,
+    out: { x: number; z: number },
+  ): boolean => {
+    const rect = this.canvas.getBoundingClientRect();
+    const w = rect.width || this.canvas.clientWidth;
+    const h = rect.height || this.canvas.clientHeight;
+    if (w <= 0 || h <= 0) return false;
+    const nx = ((clientX - rect.left) / w) * 2 - 1;
+    const ny = 1 - ((clientY - rect.top) / h) * 2;
+    const cam = this.cam.camera;
+    const o = this.org.setFromMatrixPosition(cam.matrixWorld);
+    const d = this.ray.set(nx, ny, 0.5).unproject(cam).sub(o).normalize();
+    if (d.y > -1e-4) return false;
+    const t = -o.y / d.y;
+    out.x = o.x + d.x * t;
+    out.z = o.z + d.z * t;
+    return true;
+  };
+
   /** The sim point under a screen position: the view ray meets the board plane. */
   pickGround(clientX: number, clientY: number): { x: number; y: number } | null {
     const rect = this.canvas.getBoundingClientRect();
@@ -568,13 +599,10 @@ export class TableView {
     const nx = ((clientX - rect.left) / w) * 2 - 1;
     const ny = 1 - ((clientY - rect.top) / h) * 2;
     if (nx < -1 || nx > 1 || ny < -1 || ny > 1) return null;
-    const cam = this.cam.camera;
-    const o = this.org.setFromMatrixPosition(cam.matrixWorld);
-    const d = this.ray.set(nx, ny, 0.5).unproject(cam).sub(o).normalize();
-    if (d.y > -1e-4) return null;
-    const t = -o.y / d.y;
-    const x = o.x + d.x * t + this.half;
-    const y = o.z + d.z * t + this.half;
+    const g = { x: 0, z: 0 };
+    if (!this.groundAt(clientX, clientY, g)) return null;
+    const x = g.x + this.half;
+    const y = g.z + this.half;
     const size = this.half * 2;
     if (x < 0 || y < 0 || x > size || y > size) return null;
     return { x, y };
@@ -1430,6 +1458,7 @@ export class TableView {
   }
 
   dispose(): void {
+    this.laneCam.dispose();
     this.canvas.removeEventListener('webglcontextlost', this.onLost);
     this.canvas.removeEventListener('webglcontextrestored', this.onRestored);
     this.reset();

@@ -19,6 +19,9 @@ const FOV = LOOK.cam.fov;
 const LANE_FIT = 36;
 /** How much closer the camera sits when it leans in on a piece. */
 const LEAN = 0.42;
+/** Lane lean-in: the starting distance (about 1.9× closer, like the default look) and the closest. */
+export const LANE_LEAN = 0.52;
+export const LANE_CLOSE = 0.24;
 
 /**
  * The war-table camera: one fixed three-quarter view of the whole board, fitted to the screen
@@ -47,6 +50,8 @@ export class TableCamera {
   private time = 0;
   private settled = false;
   private cssH = 1;
+  /** Half the HUD's vertical imbalance (bottom − top, CSS px): lean-ins centre in the free band. */
+  private freeShift = 0;
   private readonly tmp = new Vector3();
   private readonly right = new Vector3();
   private readonly fwd = new Vector3();
@@ -127,6 +132,7 @@ export class TableCamera {
     else this.dir.set(Math.SQRT1_2, 0, Math.SQRT1_2);
     const ins = this.insets(w, h);
     this.fitted = `${ins.top},${ins.bottom},${ins.left},${ins.right}`;
+    this.freeShift = (ins.bottom - ins.top) / 2;
     // tilt: portrait is width-bound, so it takes the variant's tilt; landscape and desktop search
     // their range for the tilt that frames the board biggest (steeper wins ties)
     const range: readonly [number, number] =
@@ -236,19 +242,32 @@ export class TableCamera {
     return (2 * this.d * Math.tan(MathUtils.degToRad(FOV / 2))) / Math.max(1, this.cssH);
   }
 
-  /** Eases toward the whole-board pose, or the lean-in pose on `lean` (world x, z). */
-  update(dt: number, lean: { x: number; z: number } | null, amount = LEAN): void {
+  /**
+   * Eases toward the whole-board pose, or the lean-in pose on `lean` (world x, z) at `amount` of
+   * the whole-board distance. `free` skips the clamp toward the centre (lane pans reach the bases);
+   * `rate` is the easing speed (faster while a finger drags the view).
+   */
+  update(
+    dt: number,
+    lean: { x: number; z: number } | null,
+    amount = LEAN,
+    free = false,
+    rate = 3.2,
+  ): void {
     this.time += dt;
     let tx = this.boardX;
     let tz = this.boardZ;
     let td = this.boardD;
     if (lean) {
-      const lim = this.half * 0.62;
-      tx = MathUtils.clamp(lean.x, -lim, lim);
-      tz = MathUtils.clamp(lean.z, -lim, lim);
+      const lim = free ? Infinity : this.half * 0.62;
       td = this.boardD * amount;
+      // the lean point sits in the middle of the HUD-free band, not the canvas
+      const tanV = Math.tan(MathUtils.degToRad(FOV / 2));
+      const back = (this.freeShift * 2 * td * tanV) / Math.max(1, this.cssH) / Math.sin(this.el);
+      tx = MathUtils.clamp(lean.x, -lim, lim) + this.dir.x * back;
+      tz = MathUtils.clamp(lean.z, -lim, lim) + this.dir.z * back;
     }
-    const k = 1 - Math.exp(-dt * 3.2);
+    const k = 1 - Math.exp(-dt * rate);
     this.x += (tx - this.x) * k;
     this.z += (tz - this.z) * k;
     this.d += (td - this.d) * k;

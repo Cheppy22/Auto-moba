@@ -42,6 +42,7 @@ export function Broadcast() {
           return;
         }
         s.view = view;
+        canvas.addEventListener('table-sitback', () => s.zoomLane(null)); // table look: zoomed out of a lane
         canvas.dataset.ready = 'true';
         const director = new Director(s.content);
         // a tap (not a drag) on a piece opens its card; a tap on empty ground closes the card
