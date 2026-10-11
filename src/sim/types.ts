@@ -278,6 +278,8 @@ export interface Unit {
   /** Taunted: must attack unit `by` until the tick. */
   taunt?: { by: number; untilTick: number };
   lastDamagedTick: number;
+  /** Knockback queued by heavy hits this tick, applied with the body collisions. */
+  knock?: { x: number; y: number };
   /** Waypoint around solid terrain while the unit walks a detour; null when it walks straight. */
   detour: { x: number; y: number; untilTick: number } | null;
 }

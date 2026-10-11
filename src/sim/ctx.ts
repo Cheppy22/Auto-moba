@@ -61,3 +61,13 @@ export function isTargetable(ctx: Ctx, u: Unit): boolean {
   }
   return true;
 }
+
+/**
+ * The k-th unit to act this tick, out of n: the sweep starts at `tick % n` and walks forward on even
+ * ticks, backward on odd ones, so no team acts first more often just because its units were made
+ * first (that order decided close fights once units nudge and judge each other mid-sweep).
+ */
+export function turnIndex(tick: number, n: number, k: number): number {
+  const start = tick % n;
+  return tick % 2 === 0 ? (start + k) % n : (start - k + n) % n;
+}

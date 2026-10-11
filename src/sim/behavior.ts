@@ -1,7 +1,7 @@
 import { TPS, performAttack, tauntTarget } from './combat';
 import { dist } from './core/math';
 import { touchesFixedBody } from './collision';
-import { hpPct, isEnemy, isTargetable, type Ctx } from './ctx';
+import { hpPct, isEnemy, isTargetable, turnIndex, type Ctx } from './ctx';
 import { matchupAt } from './ai/power';
 import {
   diveBlocked,
@@ -451,9 +451,8 @@ export function stepUnits(ctx: Ctx): void {
   planSlots(ctx);
   const units = ctx.s.units;
   const n = units.length;
-  const start = n > 0 ? ctx.s.tick % n : 0;
   for (let k = 0; k < n; k++) {
-    const u = units[(start + k) % n];
+    const u = units[turnIndex(ctx.s.tick, n, k)];
     if (!u.alive) continue;
     if (u.atkCd > 0) u.atkCd--;
     if (u.stunUntil !== undefined && u.stunUntil > ctx.s.tick) continue;

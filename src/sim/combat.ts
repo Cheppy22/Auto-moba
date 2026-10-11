@@ -86,8 +86,9 @@ function recordDamage(
 
 /**
  * A heavy hit from a piece (at least `spacing.knockback.minFrac` of the victim's max health) nudges
- * a piece, pawn or pawnling straight away from the attacker, at most `max` units, and only along a
- * clear walkable line. Returns the distance moved.
+ * a piece, pawn or pawnling straight away from the attacker, at most `max` units in all per tick.
+ * The nudge is only queued here and applied with the body collisions (`applyKnockback`), so it never
+ * matters which unit acted first in the tick. Returns the distance queued.
  */
 function knockback(ctx: Ctx, src: Unit | null, tgt: Unit, dmg: number): number {
   if (!src || src.kind !== 'hero' || (tgt.kind !== 'hero' && tgt.kind !== 'minion') || tgt.ev)
@@ -99,15 +100,28 @@ function knockback(ctx: Ctx, src: Unit | null, tgt: Unit, dmg: number): number {
   const dy = tgt.y - src.y;
   const d = Math.sqrt(dx * dx + dy * dy);
   if (d < 0.001) return 0;
-  const step = Math.min(kb.max, kb.perFrac * frac);
-  const nx = tgt.x + (dx / d) * step;
-  const ny = tgt.y + (dy / d) * step;
-  const terrain = ctx.world.terrain;
-  if (!walkable(terrain, ctx.open, nx, ny) || !clearLine(terrain, ctx.open, tgt.x, tgt.y, nx, ny))
-    return 0;
-  tgt.x = nx;
-  tgt.y = ny;
+  const queued = tgt.knock ? Math.sqrt(tgt.knock.x ** 2 + tgt.knock.y ** 2) : 0;
+  const step = Math.min(kb.max - queued, kb.perFrac * frac);
+  if (step <= 0) return 0;
+  const k = tgt.knock ?? (tgt.knock = { x: 0, y: 0 });
+  k.x += (dx / d) * step;
+  k.y += (dy / d) * step;
   return step;
+}
+
+/** Applies queued knockback, only along a clear walkable line (never through walls). */
+export function applyKnockback(ctx: Ctx, u: Unit): void {
+  const k = u.knock;
+  if (!k) return;
+  u.knock = undefined;
+  if (!u.alive) return;
+  const nx = u.x + k.x;
+  const ny = u.y + k.y;
+  const terrain = ctx.world.terrain;
+  if (!walkable(terrain, ctx.open, nx, ny) || !clearLine(terrain, ctx.open, u.x, u.y, nx, ny))
+    return;
+  u.x = nx;
+  u.y = ny;
 }
 
 export function dealDamage(

@@ -94,8 +94,7 @@ describe('piece judgement', () => {
     t.hp = t.stats.maxHp;
     tower.targetId = null;
     place(t, ...at(tower.stats.range + j.diveMargin + 10));
-    t.px = t.x - toA.x / l;
-    t.py = t.y - toA.y / l;
+    t.hero!.engage = 'flee';
     place(u, ...at(tower.stats.range + j.diveMargin + 200));
     expect(diveBlocked(ctx, u, t)).toBe(true);
   });

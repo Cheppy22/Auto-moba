@@ -1,3 +1,4 @@
+import { applyKnockback } from './combat';
 import { sqrt } from './core/math';
 import type { Ctx } from './ctx';
 import { confine } from './world/terrain';
@@ -148,6 +149,7 @@ export function resolveCollisions(ctx: Ctx): void {
   mobile.length = 0;
   fixed.length = 0;
   for (const u of ctx.s.units) {
+    if (u.knock) applyKnockback(ctx, u);
     if (!collides(u)) continue;
     if (isFixed(u)) fixed.push(u);
     else mobile.push(u);

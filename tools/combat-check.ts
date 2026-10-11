@@ -38,6 +38,8 @@ const out = {
   meleeSamples: 0,
   ownSideShare: 0,
   pieceDeaths: 0,
+  // piece deaths by the team that lost the piece
+  deathsBy: { A: 0, B: 0 },
   deathsInTowerRange: 0,
   lowHpTowerFightTicks: 0,
   causes: {} as Record<string, number>,
@@ -96,6 +98,8 @@ for (let k = 0; k < matches; k++) {
       };
       if (p.kind !== 'hero') continue;
       out.pieceDeaths++;
+      const victimTeam = ctx.unit(p.id)?.team;
+      if (victimTeam === 'A' || victimTeam === 'B') out.deathsBy[victimTeam]++;
       const c = p.fall?.cause ?? 'none';
       out.causes[c] = (out.causes[c] ?? 0) + 1;
       const v = ctx.unit(p.id)!;

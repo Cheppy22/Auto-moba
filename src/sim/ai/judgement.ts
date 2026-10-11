@@ -81,9 +81,10 @@ export function diveBlocked(ctx: Ctx, u: Unit, t: Unit): boolean {
     const toCover = dist(t.x, t.y, near.x, near.y) - near.stats.range - j.diveMargin;
     const mySpeed = (u.stats.moveSpeed * ctx.t.movement.speedMul) / TPS;
     const itsSpeed = (t.stats.moveSpeed * ctx.t.movement.speedMul) / TPS;
-    // the target runs if it is fleeing or moving away from us this tick
-    const away = (t.x - t.px) * (t.x - u.x) + (t.y - t.py) * (t.y - u.y) > 0;
-    const runs = t.hero?.engage === 'flee' || away;
+    // the target runs when it is breaking off or heading home (its state, not this tick's motion,
+    // so the answer does not depend on which unit moved first in the tick)
+    const g = t.hero?.goal?.kind;
+    const runs = t.hero?.engage === 'flee' || g === 'retreat' || g === 'base';
     const gap = Math.max(0, dist(u.x, u.y, t.x, t.y) - u.stats.range);
     const closing = Math.max(mySpeed * 0.25, runs ? mySpeed - itsSpeed : mySpeed);
     if (toCover / Math.max(0.01, itsSpeed) >= gap / closing) return false;
