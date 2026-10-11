@@ -136,7 +136,8 @@ function followPath(ctx: Ctx, u: Unit): boolean {
     u.pathI++;
     return true;
   }
-  const moved = stepToward(ctx, u, wp[0], wp[1]);
+  // routed: a unit pulled off its path (a chase into the jungle) walks around walls back to it
+  const moved = stepToward(ctx, u, wp[0], wp[1], 1, true);
   if (u.hero) u.hero.distance += moved;
   if (dist(u.x, u.y, wp[0], wp[1]) <= 1 && u.pathI < u.path.length - 1) u.pathI++;
   return true;
