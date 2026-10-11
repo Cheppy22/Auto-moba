@@ -133,7 +133,7 @@
     "maxHpPerSec": 0.09
   },
   "guardian": {
-    "hp": 5400,
+    "hp": 4200,
     "damage": 90,
     "range": 140,
     "atkSpeed": 0.9,
@@ -152,8 +152,8 @@
     "comebackBounty": 40
   },
   "respawn": {
-    "baseSec": 14,
-    "basePerPhase": 5,
+    "baseSec": 16,
+    "basePerPhase": 6,
     "growthPerSec": 0.12,
     "maxSec": 70
   },
@@ -367,7 +367,7 @@
   "judgement": {
     "badOdds": 0.45,
     "finishSec": 1.5,
-    "retreatHp": { "king": 0.2, "queen": 0.15, "rook": 0.12, "bishop": 0.22, "knight": 0.15 },
+    "retreatHp": { "king": 0.15, "queen": 0.12, "rook": 0.1, "bishop": 0.18, "knight": 0.12 },
     "retreatExitHp": 0.12,
     "fleeExit": 1.3,
     "fleeMinSec": 2,
