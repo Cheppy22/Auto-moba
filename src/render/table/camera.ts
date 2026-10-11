@@ -52,6 +52,8 @@ export class TableCamera {
   private cssH = 1;
   /** Half the HUD's vertical imbalance (bottom − top, CSS px): lean-ins centre in the free band. */
   private freeShift = 0;
+  /** Half the HUD's horizontal imbalance (left − right, CSS px). */
+  private freeShiftX = 0;
   private readonly tmp = new Vector3();
   private readonly right = new Vector3();
   private readonly fwd = new Vector3();
@@ -92,16 +94,17 @@ export class TableCamera {
 
   /**
    * Screen space the HUD covers. The HUD may publish `--hud-top` / `--hud-bottom` (and
-   * `--hud-left` / `--hud-right`) in CSS px on the root element; otherwise the phone HUD's bands
-   * are assumed (portrait: a 90 px top bar and a 150 px bottom row, full width for the board).
+   * `--hud-left` / `--hud-right`) in CSS px on the root element (the court-bar HUD does); until
+   * it does, that HUD's usual bands are assumed (portrait 155 top / 136 bottom, full width; wide
+   * screens a slim top bar and White's column on the left).
    */
   insets(w: number, h: number): Insets {
     const def: Insets =
-      h > w
-        ? { top: 90, bottom: 150, left: 0, right: 0 }
+      w / h < 1.3
+        ? { top: 155, bottom: 136, left: 0, right: 0 }
         : h < 520
-          ? { top: 54, bottom: 64, left: 58, right: 58 }
-          : { top: 64, bottom: 84, left: 84, right: 84 };
+          ? { top: 57, bottom: 0, left: 80, right: 0 }
+          : { top: 72, bottom: 0, left: 102, right: 0 };
     if (typeof document === 'undefined' || typeof getComputedStyle !== 'function') return def;
     const st = getComputedStyle(document.documentElement);
     const v = (name: string, fb: number): number => {
@@ -135,6 +138,7 @@ export class TableCamera {
     const ins = this.insets(w, h);
     this.fitted = `${ins.top},${ins.bottom},${ins.left},${ins.right}`;
     this.freeShift = (ins.bottom - ins.top) / 2;
+    this.freeShiftX = (ins.left - ins.right) / 2;
     // tilt: portrait is width-bound, so it takes the variant's tilt; landscape and desktop search
     // their range for the tilt that frames the board biggest (steeper wins ties)
     const range: readonly [number, number] =
@@ -265,9 +269,12 @@ export class TableCamera {
       td = this.boardD * amount;
       // the lean point sits in the middle of the HUD-free band, not the canvas
       const tanV = Math.tan(MathUtils.degToRad(FOV / 2));
-      const back = (this.freeShift * 2 * td * tanV) / Math.max(1, this.cssH) / Math.sin(this.el);
-      tx = MathUtils.clamp(lean.x, -lim, lim) + this.dir.x * back;
-      tz = MathUtils.clamp(lean.z, -lim, lim) + this.dir.z * back;
+      const upx = (2 * td * tanV) / Math.max(1, this.cssH);
+      const back = (this.freeShift * upx) / Math.sin(this.el);
+      const side = this.freeShiftX * upx;
+      // screen right on the ground is (dir.z, -dir.x)
+      tx = MathUtils.clamp(lean.x, -lim, lim) + this.dir.x * back - this.dir.z * side;
+      tz = MathUtils.clamp(lean.z, -lim, lim) + this.dir.z * back + this.dir.x * side;
     }
     const k = 1 - Math.exp(-dt * rate);
     this.x += (tx - this.x) * k;

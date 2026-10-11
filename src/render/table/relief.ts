@@ -105,7 +105,7 @@ export class Relief {
   private readonly tiles: [number, number][];
   private readonly courts: { x: number; y: number; h: number }[];
 
-  constructor(content: Content, extent: number, n = 200) {
+  constructor(content: Content, extent: number, n = 150) {
     const map = content.map;
     const half = map.size / 2;
     this.half = half;

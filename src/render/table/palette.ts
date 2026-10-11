@@ -132,8 +132,8 @@ const NIGHT: Look = {
     frameGrad: ['#3f2818', '#4b301d', '#331f12'],
     frame: '#4a2f1d',
     frameDark: '#24160d',
-    sqLight: '#7a7062',
-    sqDark: '#454039',
+    sqLight: '#75726b',
+    sqDark: '#43413d',
     felt: '#2c4a43',
     feltDark: '#223a35',
     feltLight: '#33544c',
@@ -269,7 +269,7 @@ const DAYLIGHT: Look = {
     back: '#dfe8ff',
     backK: 0.6,
   },
-  cam: { portrait: 60, landscape: [34, 50], desktop: [40, 56], fov: 30, square: true },
+  cam: { portrait: 64, landscape: [34, 50], desktop: [40, 56], fov: 30, square: true },
   size: 0.77,
 };
 
