@@ -42,7 +42,7 @@
       "desc": "The bound piece deals 12% more damage and has 8% more health; your other four pieces deal 3% less.",
       "rewards": "Pick one carry and build the team around it.",
       "counter": "Initiative: Check and Fork on the obvious target.",
-      "tags": ["initiative", "sacrifice"],
+      "tags": ["initiative", "sacrifice", "huntress", "duelist"],
       "params": {
         "damageMul": 1.12,
         "healthMul": 1.08,
@@ -119,7 +119,7 @@
       "desc": "Pick a lane card and a lane: it is always on there at half strength (Pawn Storm at one third). The card leaves your deck while it is bound.",
       "rewards": "A lane doctrine with no live taps.",
       "counter": "The card's own school counter: Fortress and Position against March cards.",
-      "tags": ["march", "position", "fortress"],
+      "tags": ["march", "position", "fortress", "pawn-heavy"],
       "cards": ["advance", "hold_the_file", "open_file", "pawn_storm"],
       "params": {
         "strength": 0.5,
@@ -199,7 +199,7 @@
       "desc": "From each Act start a banner stands at the bound lane's river crossing all Act: allies within 160 gain 10 armor and 10 resist. An enemy piece that stands alone on it for 5 seconds topples it until the next Act.",
       "rewards": "Hold a choke without spending cards.",
       "counter": "Initiative: kill the holders, then topple it.",
-      "tags": ["position", "fortress"],
+      "tags": ["position", "fortress", "bastion", "zealot", "warlord"],
       "params": {
         "radius": 160,
         "armor": 10,
@@ -359,7 +359,7 @@
       "desc": "Your lanes may be 3/1/1, with three pieces in the bound lane (taking it moves your pieces). The two lone pieces gain 10% armor and resist.",
       "rewards": "A three-piece hammer in one lane.",
       "counter": "Area damage (Regent, Shadow) on the stack. March on a thin lane. Barricade.",
-      "tags": ["march", "initiative"],
+      "tags": ["march", "initiative", "vanguard", "warlord", "lancer"],
       "params": {
         "armorMul": 1.1,
         "resistMul": 1.1

@@ -46,7 +46,7 @@
     "pawnCapMax": 2,
     "reserves": [0, 20, 40],
     "behindTempo": 40,
-    "ai": { "base": 1, "tailored": 1, "tailoredSeverity": 0.6, "tag": 0.5, "jitter": 0.4 }
+    "ai": { "base": 1, "tailored": 0.5, "tailoredSeverity": 0.6, "tag": 0.5, "jitter": 0.4 }
   },
   "gambits": {
     "tempoStart": 30,
