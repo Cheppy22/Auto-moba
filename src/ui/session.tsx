@@ -580,7 +580,7 @@ export class Session {
 
   /** Leaves the Act break sheet: the next Act begins. */
   resumeAct(): void {
-    if (this.issue({ type: 'resumeAct' }).ok) this.setUi({ breakTab: 'report' });
+    if (this.issue({ type: 'resumeAct' }).ok) this.setUi({ breakTab: 'report', aim: null });
   }
 
   setBreakTab(tab: UiState['breakTab']): void {
