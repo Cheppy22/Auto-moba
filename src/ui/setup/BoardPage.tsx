@@ -221,7 +221,7 @@ export function BoardPage(props: {
         </div>
         <div class="bp-right">
           <h4 class="sp-sub">Your pieces</h4>
-          <div class="pcards" data-testid="piece-cards">
+          <div class="pcards" data-testid="desc-list">
             {entries.map((e) => {
               const def = c.pieceById.get(e.piece)!;
               const isOpen = open === e.piece;
