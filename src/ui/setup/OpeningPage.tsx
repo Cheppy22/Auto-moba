@@ -110,7 +110,7 @@ function OpeningCard(props: {
                   >
                     <SchoolGlyph school={g.school} size={14} />
                     <b>{g.name}</b>
-                    <i>{g.cost}</i>
+                    <i>{g.cost} Tempo</i>
                   </span>
                 ))}
               </div>
@@ -147,7 +147,8 @@ export function OpeningPage(props: {
           />
         ))}
       </div>
-      <div class="recap" aria-label="Your setup">
+      <h4 class="sp-sub">Your setup</h4>
+      <div class="recap" aria-label="Your setup" data-testid="recap">
         {props.entries.map((e) => (
           <span class="recap-piece" key={e.piece}>
             <PieceGlyph piece={e.piece} team="A" size={22} />

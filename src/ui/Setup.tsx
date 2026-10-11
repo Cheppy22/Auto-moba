@@ -101,7 +101,12 @@ export function Setup() {
           ]}
         </Pager>
         <footer class="sp-foot">
-          <button class="btn back" data-testid="back" disabled={page === 0} onClick={() => go(page - 1)}>
+          <button
+            class="btn back"
+            data-testid="back"
+            disabled={page === 0}
+            onClick={() => go(page - 1)}
+          >
             Back
           </button>
           <span class="sp-count dim">

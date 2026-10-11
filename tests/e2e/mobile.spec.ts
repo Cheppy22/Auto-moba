@@ -67,18 +67,38 @@ for (const v of views) {
       await expect(page.getByTestId('setup')).toBeVisible();
       await shot(page, `${v.name}-setup`);
       expect(await overflow(page)).toBeLessThanOrEqual(0);
-      await expect(page.getByTestId('begin')).toBeInViewport({ ratio: 1 });
-      await expect(page.getByTestId('lane-board')).toBeInViewport({ ratio: 1 });
-      for (const id of ['begin', 'zone-top', 'zone-mid', 'zone-bot', 'chip-king', 'chip-queen']) {
+      // page 1: all five piece tabs, the three paths and Next are on screen without scrolling
+      for (const id of ['quick-start', 'next', 'step-2', 'step-3']) {
+        await expect(page.getByTestId(id)).toBeInViewport({ ratio: 1 });
         await bigEnough(page, id);
       }
-      for (const el of await page.locator('[data-testid^="opening-"][role="radio"]').all())
-        expect((await el.boundingBox())!.height).toBeGreaterThanOrEqual(40);
+      for (const piece of ['king', 'queen', 'rook', 'bishop', 'knight']) {
+        await expect(page.getByTestId(`piece-${piece}`)).toBeInViewport({ ratio: 1 });
+        await bigEnough(page, `piece-${piece}`);
+      }
       for (const el of await page.locator('[data-testid^="path-"][role="radio"]').all())
         expect((await el.boundingBox())!.height).toBeGreaterThanOrEqual(40);
+      // page 2: the lane board and its pieces are big enough to tap; the King goes to Mid
+      await page.getByTestId('next').tap();
+      await expect(page.getByTestId('step-2')).toHaveAttribute('aria-current', 'step');
+      await shot(page, `${v.name}-setup-board`);
+      expect(await overflow(page)).toBeLessThanOrEqual(0);
+      await expect(page.getByTestId('lane-board')).toBeInViewport({ ratio: 1 });
+      for (const id of ['zone-top', 'zone-mid', 'zone-bot', 'chip-king', 'chip-queen']) {
+        await bigEnough(page, id);
+      }
       await page.getByTestId('chip-king').tap();
       await page.getByTestId('zone-mid').tap();
       await expect(page.getByTestId('zone-mid')).toContainText('King');
+      // page 3: the Openings are tappable and Begin is in view
+      await page.getByTestId('next').tap();
+      await expect(page.getByTestId('step-3')).toHaveAttribute('aria-current', 'step');
+      await shot(page, `${v.name}-setup-opening`);
+      expect(await overflow(page)).toBeLessThanOrEqual(0);
+      for (const el of await page.locator('[data-testid^="opening-"][role="radio"]').all())
+        expect((await el.boundingBox())!.height).toBeGreaterThanOrEqual(40);
+      await expect(page.getByTestId('begin')).toBeInViewport({ ratio: 1 });
+      await bigEnough(page, 'begin');
       await pauseAtStart(page);
       await page.getByTestId('begin').tap();
 

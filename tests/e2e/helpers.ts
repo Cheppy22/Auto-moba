@@ -60,7 +60,7 @@ export function watchErrors(page: Page): string[] {
 }
 
 /**
- * Title -> setup (defaults) -> Begin -> live, paused so the sim only moves when a test steps it.
+ * Title -> setup (defaults, Quick start) -> live, paused so the sim only moves when a test steps it.
  * White starts with a standing pawn plan (2 / 2 / 2) that fields pawns by itself; most specs count
  * the pawns they field by hand, so they clear it unless `plan` is true.
  */
@@ -76,7 +76,8 @@ export async function startLive(
   await page.getByTestId('start').click();
   await expect(page.getByTestId('setup')).toBeVisible();
   if (pause) await pauseAtStart(page);
-  await page.getByTestId('begin').click();
+  // "Quick start" begins with the defaults from any of the three setup pages
+  await page.getByTestId('quick-start').click();
   await expect(page.getByTestId('hud')).toBeVisible();
   await viewReady(page);
   if (!plan) await clearPawnPlan(page);

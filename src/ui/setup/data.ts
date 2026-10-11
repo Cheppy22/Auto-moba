@@ -1,4 +1,3 @@
-import { naturalPath } from '../../sim';
 import type {
   AbilityDef,
   Content,
@@ -24,26 +23,65 @@ export const PATH_FOCUS: Record<Path, string> = {
   utility: 'Support and control first',
 };
 
-export interface PathBuy {
+/** The piece's build list for a path, as items (the order the AI shopper works down). */
+export function buildOrder(c: Content, piece: PieceId, path: Path): ItemDef[] {
+  const def = c.pieceById.get(piece);
+  if (!def) return [];
+  return def.paths[path].map((id) => c.itemById.get(id)).filter((x): x is ItemDef => !!x);
+}
+
+export interface FirstBuy {
   item: ItemDef;
-  /** The cheaper items the AI buys on the way (empty for a tier 1 item). */
-  parts: ItemDef[];
+  /** The bigger item this purchase is a part of (null when the item is bought whole). */
+  toward: ItemDef | null;
 }
 
 /**
- * The deterministic order the AI shopper follows for a piece's path: its build list (the same list
- * `nextPurchase` walks in `src/sim/ai/shopping.ts`). A tier 2 or 3 item is bought piece by piece,
- * so each entry also lists its components. A style picked at Rank 4 may swap the list.
+ * The first purchases the AI shopper makes for a piece's path. This replays `nextPurchase`
+ * (`src/sim/ai/shopping.ts`) with a small wallet that grows until the next buy is affordable: it
+ * works down the build list, buys the item when it can pay, otherwise the first affordable
+ * component, otherwise saves. Owned components are credited against the price (`src/sim/shop.ts`).
+ * It ignores the counter item the AI may slip in against the enemy's damage mix, so these are
+ * "typical" first buys, not a promise.
  */
-export function buildOrder(c: Content, piece: PieceId, path: Path): PathBuy[] {
-  const def = c.pieceById.get(piece);
-  if (!def) return [];
-  const out: PathBuy[] = [];
-  for (const id of def.paths[path]) {
-    const item = c.itemById.get(id);
-    if (!item) continue;
-    const parts = item.from.map((f) => c.itemById.get(f)).filter((x): x is ItemDef => !!x);
-    out.push({ item, parts });
+export function firstBuys(c: Content, piece: PieceId, path: Path, count = 3): FirstBuy[] {
+  const owned: ItemDef[] = [];
+  const out: FirstBuy[] = [];
+  let gold = c.tuning.startingGold;
+  const chain = (it: ItemDef, id: string): boolean =>
+    it.from.some((f) => f === id || (c.itemById.has(f) && chain(c.itemById.get(f)!, id)));
+  const has = (id: string): boolean => owned.some((o) => o.id === id || chain(o, id));
+  const price = (it: ItemDef): number =>
+    it.cost -
+    it.from.reduce((t, f) => t + (owned.some((o) => o.id === f) ? c.itemById.get(f)!.cost : 0), 0);
+  const buy = (it: ItemDef, toward: ItemDef | null): void => {
+    gold -= price(it);
+    for (const f of it.from) {
+      const at = owned.findIndex((o) => o.id === f);
+      if (at >= 0) owned.splice(at, 1);
+    }
+    owned.push(it);
+    out.push({ item: it, toward });
+  };
+  for (let guard = 0; out.length < count && guard < 400; guard++) {
+    let bought = false;
+    for (const target of buildOrder(c, piece, path)) {
+      if (has(target.id)) continue;
+      if (price(target) <= gold) {
+        buy(target, null);
+        bought = true;
+      } else {
+        const part = target.from
+          .map((f) => c.itemById.get(f))
+          .find((x): x is ItemDef => !!x && !has(x.id) && price(x) <= gold);
+        if (part) {
+          buy(part, target);
+          bought = true;
+        }
+      }
+      break;
+    }
+    if (!bought) gold += 50;
   }
   return out;
 }
@@ -112,13 +150,12 @@ export function pathMeaning(c: Content, piece: PieceId, path: Path): string {
   const order = buildOrder(c, piece, path);
   if (!def) return '';
   const names = order
-    .filter((b) => b.item.tier >= 2)
+    .filter((it) => it.tier >= 2)
     .slice(0, 2)
-    .map((b) => b.item.name);
-  const nat = naturalPath(def) === path;
+    .map((it) => it.name);
   const lead = `${PATH_FOCUS[path]}.`;
   const body = names.length ? ` The ${def.name} builds toward ${names.join(' and ')}.` : '';
-  return `${lead}${body}${nat ? ` This is the ${def.name}'s natural path.` : ''}`;
+  return `${lead}${body}`;
 }
 
 // ---------------------------------------------------------------- page 2: pieces and synergy
@@ -146,23 +183,22 @@ const heals = (a: AbilityDef): boolean =>
   (a.target === 'allyArea' || a.target === 'lowestAlly') &&
   a.effects.some((e) => e.type === 'heal' || e.type === 'shield');
 
-/** The first sentence of a long text. */
-export function firstSentence(s: string): string {
-  const m = /^.*?[.!?](?=\s|$)/.exec(s);
-  return m ? m[0] : s;
-}
-
 export interface LaneNote {
   /** A short heading, such as "Healing cover". */
   title: string;
   text: string;
 }
 
+/** What an ally-targeted heal or shield skill does, in four words ("heals nearby allies"). */
+function coverVerb(a: AbilityDef): string {
+  const verb = a.effects.some((e) => e.type === 'heal') ? 'heals' : 'shields';
+  return a.target === 'lowestAlly' ? `${verb} the most wounded ally` : `${verb} nearby allies`;
+}
+
 /**
  * Plain-language notes for two pieces that share a lane, derived from content only: an ally heal or
- * shield ability, an ally aura, a durable melee piece in front of a ranged one, and the jungler rule
- * (in a two-piece lane a farmer clears the jungle, the Knight if both farm). Nothing notable gives
- * an empty list.
+ * shield skill, an ally aura, and a durable melee piece in front of a ranged one. Nothing notable
+ * gives an empty list.
  */
 export function laneNotes(c: Content, a: PieceId, b: PieceId): LaneNote[] {
   const pa = c.pieceById.get(a);
@@ -177,7 +213,7 @@ export function laneNotes(c: Content, a: PieceId, b: PieceId): LaneNote[] {
     if (heal)
       notes.push({
         title: 'Cover',
-        text: `${x.name}'s ${heal.name} can mend or shield the ${y.name}: ${firstSentence(heal.desc)}`,
+        text: `${x.name}'s ${heal.name} ${coverVerb(heal)}, the ${y.name} included.`,
       });
     for (const p of x.passives) {
       const aura = p.effects.some((e) => e.type === 'aura' && e.target === 'ally');
@@ -193,19 +229,16 @@ export function laneNotes(c: Content, a: PieceId, b: PieceId): LaneNote[] {
     [pa, pb],
     [pb, pa],
   ] as const) {
-    if (front.disposition === 'defender' && front.attackKind === 'melee' && back.attackKind === 'ranged')
+    if (
+      front.disposition === 'defender' &&
+      front.attackKind === 'melee' &&
+      back.attackKind === 'ranged'
+    )
       notes.push({
         title: 'Front and back',
-        text: `${front.name} (${front.stats.maxHp} health, melee) takes the blows while the ${back.name} hits from ${back.stats.range} range.`,
+        text: `${front.name} is the tough front (${front.stats.maxHp} health, melee); the ${back.name} hits from ${back.stats.range} range behind it.`,
       });
   }
-  const farmers = [pa, pb].filter((p) => p.disposition === 'farmer');
-  const jungler = farmers.find((p) => p.id === 'knight') ?? farmers[0];
-  if (jungler)
-    notes.push({
-      title: 'Jungle',
-      text: `${jungler.name} is a farmer, so in a two-piece lane it clears the jungle camps while its partner holds the lane.`,
-    });
   return notes;
 }
 
@@ -227,7 +260,8 @@ const BEATS: Partial<Record<BeatKey, string>> = {
   'initiative>fortress': 'Picks off the healer or King before the defence holds.',
   'clock>sacrifice': 'Tempo drain and forced discards stop the costly swing card being played.',
   'position>sacrifice': 'Barricade and Regroup keep pieces away from where the swing lands.',
-  'initiative>position': 'Check, Fork and Pin kill or lock the pieces holding an Outpost or Barricade.',
+  'initiative>position':
+    'Check, Fork and Pin kill or lock the pieces holding an Outpost or Barricade.',
   'march>clock': 'Steady cheap pressure wins while Clock spends Tempo on information.',
 };
 

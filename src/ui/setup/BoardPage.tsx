@@ -2,8 +2,7 @@ import { useRef, useState } from 'preact/hooks';
 import type { Content, LaneId, PieceId, SetupEntry } from '../../sim';
 import { moveToLane, swapLanes } from '../LaneBoard';
 import { LANES, LANE_SLOTS, PieceGlyph } from '../pieces';
-import { passiveParts } from './data';
-import { DISPOSITION_LABEL, DISPOSITION_NOTE, LANE_FULL, laneNotes } from './data';
+import { DISPOSITION_LABEL, DISPOSITION_NOTE, LANE_FULL, laneNotes, passiveParts } from './data';
 
 interface Dragging {
   piece: PieceId;
@@ -22,10 +21,12 @@ export function BoardPage(props: {
   const { content: c, entries, selected } = props;
   const [drag, setDrag] = useState<Dragging | null>(null);
   const [over, setOver] = useState<LaneId | null>(null);
+  const [open, setOpen] = useState<PieceId | null>(null);
   const press = useRef<{ id: number; x: number; y: number; piece: PieceId; moved: boolean } | null>(
     null,
   );
   const swallow = useRef(false);
+  const bd = useRef<HTMLDivElement>(null);
 
   const zoneTap = (lane: LaneId): void => {
     if (selected) props.onChange(moveToLane(entries, selected, lane));
@@ -86,7 +87,7 @@ export function BoardPage(props: {
       </div>
       <div class="bp-grid">
         <div class="bp-left">
-          <div class="bd" data-testid="lane-board">
+          <div class="bd" data-testid="lane-board" ref={bd}>
             <div class="bd-side bd-black">Black’s court (hidden)</div>
             <div class="bd-lanes">
               {lanes.map(({ lane, here }) => (
@@ -131,7 +132,8 @@ export function BoardPage(props: {
                           chipTap(e.piece, lane);
                         }}
                         onPointerDown={(ev) => {
-                          if (!ev.isPrimary || (ev.pointerType === 'mouse' && ev.button !== 0)) return;
+                          if (!ev.isPrimary || (ev.pointerType === 'mouse' && ev.button !== 0))
+                            return;
                           press.current = {
                             id: ev.pointerId,
                             x: ev.clientX,
@@ -179,8 +181,14 @@ export function BoardPage(props: {
               ))}
             </div>
             <div class="bd-side bd-white">Your court</div>
-            {drag && (
-              <span class="bd-ghost" style={{ left: `${drag.x}px`, top: `${drag.y}px` }}>
+            {drag && bd.current && (
+              <span
+                class="bd-ghost"
+                style={{
+                  left: `${drag.x - bd.current.getBoundingClientRect().left}px`,
+                  top: `${drag.y - bd.current.getBoundingClientRect().top}px`,
+                }}
+              >
                 <PieceGlyph piece={drag.piece} team="A" size={40} />
               </span>
             )}
@@ -194,7 +202,8 @@ export function BoardPage(props: {
                     <PieceGlyph piece={here[0].piece} team="A" size={22} />
                     <PieceGlyph piece={here[1].piece} team="A" size={22} />
                     <b>
-                      {c.pieceById.get(here[0].piece)!.name} + {c.pieceById.get(here[1].piece)!.name}
+                      {c.pieceById.get(here[0].piece)!.name} +{' '}
+                      {c.pieceById.get(here[1].piece)!.name}
                     </b>
                     <span class="chip gold">{LANE_FULL[lane]}</span>
                   </div>
@@ -212,24 +221,32 @@ export function BoardPage(props: {
         </div>
         <div class="bp-right">
           <h4 class="sp-sub">Your pieces</h4>
-          <div class="pcards">
+          <div class="pcards" data-testid="piece-cards">
             {entries.map((e) => {
               const def = c.pieceById.get(e.piece)!;
-              const open = selected === e.piece;
+              const isOpen = open === e.piece;
               return (
-                <div key={e.piece} class={`pcard ${open ? 'open' : ''}`} data-testid={`desc-${e.piece}`}>
+                <div
+                  key={e.piece}
+                  class={`pcard ${isOpen ? 'open' : ''} ${selected === e.piece ? 'sel' : ''}`}
+                  data-testid={`desc-${e.piece}`}
+                >
                   <button
                     class="pcard-head"
-                    aria-expanded={open}
-                    onClick={() => props.onSelect(open ? null : e.piece)}
+                    aria-expanded={isOpen}
+                    data-testid={`desc-toggle-${e.piece}`}
+                    onClick={() => setOpen(isOpen ? null : e.piece)}
                   >
-                    <PieceGlyph piece={e.piece} team="A" size={30} />
+                    <PieceGlyph piece={e.piece} team="A" size={32} />
                     <span class="pcard-name">
                       <b>{def.name}</b>
                       <span class="dim">{def.title}</span>
                     </span>
                     <span class="pcard-chips">
-                      <span class={`chip disp disp-${def.disposition}`} title={DISPOSITION_NOTE[def.disposition]}>
+                      <span
+                        class={`chip disp disp-${def.disposition}`}
+                        title={DISPOSITION_NOTE[def.disposition]}
+                      >
                         {DISPOSITION_LABEL[def.disposition]}
                       </span>
                       <span class="chip">{def.attackKind}</span>
@@ -237,11 +254,11 @@ export function BoardPage(props: {
                     </span>
                     <span class="pcard-caret" aria-hidden="true" />
                   </button>
-                  {open && (
+                  <div class="pcard-drawer" aria-hidden={!isOpen}>
                     <div class="pcard-body" data-testid={`desc-${e.piece}-body`}>
                       <p class="pcard-role">
-                        <b>{DISPOSITION_LABEL[def.disposition]}:</b> {DISPOSITION_NOTE[def.disposition]}.{' '}
-                        {def.playstyle}
+                        <b>{DISPOSITION_LABEL[def.disposition]}.</b>{' '}
+                        {DISPOSITION_NOTE[def.disposition]}. {def.playstyle}
                       </p>
                       <h5>Base skills</h5>
                       <ul class="skills">
@@ -254,13 +271,14 @@ export function BoardPage(props: {
                           const parts = passiveParts(p.desc ?? '');
                           return (
                             <li key={`p${i}`} class="passive">
-                              <b>{parts.name || 'Passive'}</b> <span>{parts.text}</span>
+                              <b>{parts.name || 'Passive'}</b> <i>passive</i>{' '}
+                              <span>{parts.text}</span>
                             </li>
                           );
                         })}
                       </ul>
                     </div>
-                  )}
+                  </div>
                 </div>
               );
             })}
