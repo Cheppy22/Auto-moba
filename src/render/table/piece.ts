@@ -13,7 +13,6 @@ import {
   Vector3,
   Euler,
 } from 'three';
-import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { styleEmblem } from '../emblems';
 import {
   ARM_L,
@@ -30,15 +29,29 @@ import {
   TORSO,
 } from './figures';
 import { merge } from './mesh';
-import { TEAM, TABLE } from './palette';
+import { hullOf } from './crowd';
+import { LOOK, TEAM } from './palette';
 
-/** Figure units to world units: the King stands 190 world units tall (miniature scale). */
+/** Figure units to world units at the prototype size (its King stood 190 world units tall). */
 export const FIG_SCALE = 1.9;
+
+/**
+ * Size multiplier on the prototype miniatures for the current screen shape; the view sets it on
+ * every refit so the on-screen height is `LOOK.size` of the prototype's whatever the tilt.
+ * Pawns, pawnlings, bases and rings follow it.
+ */
+export const SIZE = { k: LOOK.size };
+
+/** Size multiplier that keeps the on-screen height at `LOOK.size` of the prototype's. */
+export function sizeFor(tiltDeg: number, protoTiltDeg: number): number {
+  const r = Math.PI / 180;
+  return (LOOK.size * Math.cos(protoTiltDeg * r)) / Math.cos(tiltDeg * r);
+}
 
 /** Shared GPU resources for every figure (geometry cache, the ink width uniform). */
 export class FigureLib {
-  /** Outline width in world units; the view sets it from the camera so it stays about 1 px. */
-  readonly ink = { value: 3 };
+  /** Outline width per team in world units; the view sets it from the camera (a fixed px width). */
+  readonly ink = { A: { value: 3 }, B: { value: 3 } };
   private readonly geos = new Map<
     string,
     { geo: BufferGeometry; hull: BufferGeometry; def: FigureDef }
@@ -54,11 +67,7 @@ export class FigureLib {
     if (!e) {
       const def = buildFigure(piece, team, style);
       const geo = merge(def.parts);
-      const h = geo.clone();
-      for (const name of ['normal', 'color', 'aGlow']) h.deleteAttribute(name);
-      const hull = mergeVertices(h, 0.05);
-      hull.computeVertexNormals();
-      h.dispose();
+      const hull = hullOf(geo, ['aBone']);
       e = { geo, hull, def };
       this.geos.set(key, e);
     }
@@ -137,9 +146,13 @@ export class PieceFigure {
   readonly piece: PieceId;
   readonly team: 'A' | 'B';
   readonly style: string | null;
-  /** World height and half width at rest. */
-  readonly height: number;
-  readonly halfWidth: number;
+  /** World height and half width at rest (at the current size). */
+  get height(): number {
+    return this.def.height * FIG_SCALE * SIZE.k;
+  }
+  get halfWidth(): number {
+    return this.def.halfWidth * FIG_SCALE * SIZE.k;
+  }
   private readonly fig = new Group();
   private readonly def: FigureDef;
   private readonly bones: Matrix4[] = Array.from({ length: BONES }, () => new Matrix4());
@@ -163,8 +176,6 @@ export class PieceFigure {
     this.style = style;
     const { geo, hull, def } = lib.get(piece, team, style);
     this.def = def;
-    this.height = def.height * FIG_SCALE;
-    this.halfWidth = def.halfWidth * FIG_SCALE;
     this.seed = (piece.charCodeAt(0) * 7 + (team === 'B' ? 3 : 0)) % 17;
     this.accent.set(style ? styleEmblem(style).color : TEAM[team].rim);
     const t = TEAM[team];
@@ -198,8 +209,8 @@ export class PieceFigure {
     };
     this.mat.customProgramCacheKey = () => 'table-figure';
 
-    this.inkMat = new MeshBasicMaterial({ color: TABLE.ink, side: BackSide });
-    const ink = lib.ink;
+    this.inkMat = new MeshBasicMaterial({ color: t.ink, side: BackSide });
+    const ink = lib.ink[team];
     this.inkMat.onBeforeCompile = (shader) => {
       shader.uniforms.uBones = { value: this.bones };
       shader.uniforms.uInk = ink;
@@ -350,7 +361,8 @@ transformed = (uBones[int(aBone + 0.5)] * vec4(transformed, 1.0)).xyz;`,
     }
 
     const f = this.fig;
-    f.position.set(0, y * FIG_SCALE, z * FIG_SCALE);
+    const S = FIG_SCALE * SIZE.k;
+    f.position.set(0, y * S, z * S);
     f.rotation.set(rx, ry, 0);
 
     // Rank 4: swell and glow in the style colour
@@ -360,11 +372,7 @@ transformed = (uBones[int(aBone + 0.5)] * vec4(transformed, 1.0)).xyz;`,
     }
     const pop = Math.max(0, 1 - (m.time - this.popAt) / 1.1);
     const swell = pop > 0 ? Math.sin(pop * Math.PI) * 0.22 : 0;
-    f.scale.set(
-      FIG_SCALE * (sxz + swell),
-      FIG_SCALE * (sy + swell * 1.3),
-      FIG_SCALE * (sxz + swell),
-    );
+    f.scale.set(S * (sxz + swell), S * (sy + swell * 1.3), S * (sxz + swell));
 
     // legs swing opposite each other, lifting the forward foot
     const step = g.stride * mv;

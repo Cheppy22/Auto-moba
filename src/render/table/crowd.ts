@@ -1,5 +1,6 @@
 import {
-  type BufferGeometry,
+  BackSide,
+  BufferGeometry,
   Color,
   type ColorRepresentation,
   DynamicDrawUsage,
@@ -7,10 +8,45 @@ import {
   InstancedMesh,
   type Material,
   Matrix4,
+  MeshBasicMaterial,
   MeshPhongMaterial,
   Quaternion,
   Vector3,
 } from 'three';
+import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+
+/** Welded copy of a model (position plus the kept attributes) with smooth normals, for outlines. */
+export function hullOf(geo: BufferGeometry, keep: string[] = []): BufferGeometry {
+  const h = new BufferGeometry();
+  h.setAttribute('position', geo.getAttribute('position').clone());
+  for (const k of keep) {
+    const a = geo.getAttribute(k);
+    if (a) h.setAttribute(k, a.clone());
+  }
+  const hull = mergeVertices(h, 0.05);
+  hull.computeVertexNormals();
+  h.dispose();
+  return hull;
+}
+
+/** Inverted-hull outline for instanced crowds: `ink` is the width in world units. */
+export function crowdInk(color: ColorRepresentation, ink: { value: number }): MeshBasicMaterial {
+  const m = new MeshBasicMaterial({ color, side: BackSide });
+  m.onBeforeCompile = (shader) => {
+    shader.uniforms.uInk = ink;
+    shader.vertexShader =
+      'uniform float uInk;\n' +
+      shader.vertexShader.replace(
+        '#include <begin_vertex>',
+        `#include <begin_vertex>
+#ifdef USE_INSTANCING
+transformed += normalize(normal) * uInk / length(instanceMatrix[0].xyz);
+#endif`,
+      );
+  };
+  m.customProgramCacheKey = () => 'table-crowd-ink';
+  return m;
+}
 
 /**
  * The faceted material every static model shares: vertex colours, flat shading, a soft
@@ -63,6 +99,8 @@ const _c = new Color();
 /** An instanced set redrawn every frame: begin(), add() per member, end(). */
 export class Crowd {
   readonly mesh: InstancedMesh;
+  /** Optional outline drawn from the same instance matrices. */
+  ink: InstancedMesh | null = null;
   private n = 0;
 
   constructor(
@@ -80,6 +118,16 @@ export class Crowd {
       for (let i = 0; i < cap; i++) this.mesh.setColorAt(i, _c);
       this.mesh.instanceColor?.setUsage(DynamicDrawUsage);
     }
+  }
+
+  /** Adds an inverted-hull outline that shares this crowd's instance matrices. */
+  outline(hull: BufferGeometry, mat: Material): InstancedMesh {
+    const o = new InstancedMesh(hull, mat, this.cap);
+    o.instanceMatrix = this.mesh.instanceMatrix;
+    o.frustumCulled = false;
+    o.count = 0;
+    this.ink = o;
+    return o;
   }
 
   begin(): void {
@@ -127,11 +175,14 @@ export class Crowd {
 
   end(): void {
     this.mesh.count = this.n;
+    if (this.ink) this.ink.count = this.n;
     this.mesh.instanceMatrix.needsUpdate = true;
     if (this.mesh.instanceColor) this.mesh.instanceColor.needsUpdate = true;
   }
 
   dispose(): void {
     this.mesh.dispose();
+    this.ink?.geometry.dispose();
+    this.ink?.dispose();
   }
 }

@@ -14,7 +14,7 @@ import {
   slab,
   spike,
 } from './mesh';
-import { CLAY, TABLE, TEAM } from './palette';
+import { CLAY, LOOK, TABLE, TEAM } from './palette';
 
 /**
  * Static faceted models drawn as instanced crowds (one draw call per kind and team). All sizes
@@ -24,11 +24,8 @@ import { CLAY, TABLE, TEAM } from './palette';
 const PI = Math.PI;
 type Team = 'A' | 'B';
 
-/** Stone, roof and pennant colours of each side's buildings. */
-const BUILD: Record<Team, { stone: string; stoneDark: string; roof: string; pennant: string }> = {
-  A: { stone: '#d9cdb0', stoneDark: '#a8987a', roof: '#b58d47', pennant: '#e2b85c' },
-  B: { stone: '#3a3b42', stoneDark: '#26272d', roof: '#56637e', pennant: '#8f9ad0' },
-};
+/** Stone, roof and pennant colours of each side's buildings (per look variant). */
+const BUILD = LOOK.build;
 
 /** Pawnling: a Staunton pawn on stubby legs (ball head, collar, bell body), 54 tall. */
 export function pawnling(team: Team, ranged: boolean): BufferGeometry {

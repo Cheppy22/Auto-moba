@@ -1,6 +1,7 @@
 import { MathUtils, PerspectiveCamera, Vector3 } from 'three';
 import type { Content } from '../../sim';
 import type { Orient } from './board';
+import { LOOK } from './palette';
 
 /** Screen space the HUD covers, in CSS pixels; the board is fitted inside the rest. */
 interface Insets {
@@ -10,7 +11,12 @@ interface Insets {
   right: number;
 }
 
-const FOV = 28;
+const FOV = LOOK.cam.fov;
+/**
+ * Lanes are fitted to their centre line plus a piece's width (not the felt's full width): the
+ * two outer lane corners may lose a sliver of felt at the screen edge, the board gets ~7% bigger.
+ */
+const LANE_FIT = 36;
 /** How much closer the camera sits when it leans in on a piece. */
 const LEAN = 0.42;
 
@@ -28,6 +34,9 @@ export class TableCamera {
   /** Horizontal direction from the board centre toward the player's seat. */
   readonly dir = new Vector3();
   private el = 0.6;
+  /** Tilt of the whole-board pose (degrees), and the prototype's tilt for this screen shape. */
+  tiltDeg = 34;
+  protoTilt = 30;
   private boardX = 0;
   private boardZ = 0;
   private boardD = 6000;
@@ -44,7 +53,7 @@ export class TableCamera {
   /** Half the board size (clamps for the lean-in). */
   private readonly half: number;
 
-  constructor(content: Content, topY: number) {
+  constructor(content: Content, topY: number, throneTop: number) {
     const map = content.map;
     const half = map.size / 2;
     this.half = half;
@@ -62,16 +71,48 @@ export class TableCamera {
         const [bx, by] = lane[i];
         const n = Math.max(1, Math.ceil(Math.hypot(bx - ax, by - ay) / 120));
         for (let k = 0; k <= n; k++)
-          add(ax + ((bx - ax) * k) / n, ay + ((by - ay) * k) / n, map.walk.lane);
+          add(ax + ((bx - ax) * k) / n, ay + ((by - ay) * k) / n, LANE_FIT);
       }
     for (const [x, y] of Object.values(map.bases)) add(x, y, map.walk.base);
+    // the Thrones are landmarks: their banners must fit too
+    for (const [bx, by] of Object.values(map.bases)) {
+      const dx = half - bx;
+      const dy = half - by;
+      const len = Math.hypot(dx, dy) || 1;
+      const gx = bx + (dx / len) * map.guardianOffset - half;
+      const gz = by + (dy / len) * map.guardianOffset - half;
+      this.pts.push(new Vector3(gx, 0, gz), new Vector3(gx, throneTop, gz));
+    }
   }
 
-  private insets(w: number, h: number): Insets {
-    if (h > w) return { top: 66, bottom: 126, left: 0, right: 0 };
-    if (h < 520) return { top: 54, bottom: 64, left: 58, right: 58 };
-    return { top: 64, bottom: 84, left: 84, right: 84 };
+  /**
+   * Screen space the HUD covers. The HUD may publish `--hud-top` / `--hud-bottom` (and
+   * `--hud-left` / `--hud-right`) in CSS px on the root element; otherwise the phone HUD's bands
+   * are assumed (portrait: a 90 px top bar and a 150 px bottom row, full width for the board).
+   */
+  insets(w: number, h: number): Insets {
+    const def: Insets =
+      h > w
+        ? { top: 90, bottom: 150, left: 0, right: 0 }
+        : h < 520
+          ? { top: 54, bottom: 64, left: 58, right: 58 }
+          : { top: 64, bottom: 84, left: 84, right: 84 };
+    if (typeof document === 'undefined' || typeof getComputedStyle !== 'function') return def;
+    const st = getComputedStyle(document.documentElement);
+    const v = (name: string, fb: number): number => {
+      const n = parseFloat(st.getPropertyValue(name));
+      return Number.isFinite(n) && n >= 0 ? n : fb;
+    };
+    return {
+      top: v('--hud-top', def.top),
+      bottom: v('--hud-bottom', def.bottom),
+      left: v('--hud-left', def.left),
+      right: v('--hud-right', def.right),
+    };
   }
+
+  /** The insets the last fit used (so the view can refit when the HUD changes them). */
+  fitted = '';
 
   /** Re-fits the whole-board pose for a canvas of w×h CSS pixels. */
   fit(w: number, h: number): void {
@@ -81,11 +122,51 @@ export class TableCamera {
     cam.updateProjectionMatrix();
     this.cssH = h;
     this.orient = h > w ? 'portrait' : 'landscape';
-    this.el = MathUtils.degToRad(h > w ? 30 : h < 520 ? 31 : 38);
     // portrait: the camera sits behind White's corner; landscape: behind the Right lane's corner
     if (this.orient === 'portrait') this.dir.set(-Math.SQRT1_2, 0, Math.SQRT1_2);
     else this.dir.set(Math.SQRT1_2, 0, Math.SQRT1_2);
     const ins = this.insets(w, h);
+    this.fitted = `${ins.top},${ins.bottom},${ins.left},${ins.right}`;
+    // tilt: portrait is width-bound, so it takes the variant's tilt; landscape and desktop search
+    // their range for the tilt that frames the board biggest (steeper wins ties)
+    const range: readonly [number, number] =
+      h > w
+        ? [LOOK.cam.portrait, LOOK.cam.portrait]
+        : h < 520
+          ? LOOK.cam.landscape
+          : LOOK.cam.desktop;
+    let best = { el: range[1], x: 0, z: 0, d: Infinity };
+    for (let deg = range[1]; deg >= range[0] - 1e-6; deg -= 2) {
+      this.el = MathUtils.degToRad(deg);
+      const f = this.solve(ins, w, h, 28);
+      if (f.d < best.d * 0.985) best = { el: deg, ...f };
+    }
+    this.el = MathUtils.degToRad(best.el);
+    this.tiltDeg = best.el;
+    this.protoTilt = h > w ? 30 : h < 520 ? 31 : 38;
+    const { x, z, d } = this.solve(ins, w, h, 48);
+    const tanV = Math.tan(MathUtils.degToRad(FOV / 2));
+    this.boardX = x;
+    this.boardZ = z;
+    this.boardD = d;
+    this.unitPx = (2 * d * tanV) / Math.max(1, h);
+    if (!this.settled) {
+      this.x = x;
+      this.z = z;
+      this.d = d;
+      this.settled = true;
+    }
+    this.pose(this.x, this.z, this.d);
+  }
+
+  /** Camera target and distance that fit the board inside the insets at the current tilt. */
+  private solve(
+    ins: Insets,
+    w: number,
+    h: number,
+    iters: number,
+  ): { x: number; z: number; d: number } {
+    const cam = this.camera;
     const sx0 = -1 + (2 * ins.left) / w;
     const sx1 = 1 - (2 * ins.right) / w;
     const sy0 = -1 + (2 * ins.bottom) / h;
@@ -95,7 +176,7 @@ export class TableCamera {
     let x = 0;
     let z = 0;
     let d = 7000;
-    for (let it = 0; it < 48; it++) {
+    for (let it = 0; it < iters; it++) {
       this.pose(x, z, d);
       let bx0 = Infinity;
       let bx1 = -Infinity;
@@ -119,17 +200,23 @@ export class TableCamera {
       z += this.right.z * sh + this.fwd.z * sv;
       d *= Math.pow(k, 0.85);
     }
-    this.boardX = x;
-    this.boardZ = z;
-    this.boardD = d;
-    this.unitPx = (2 * d * tanV) / Math.max(1, h);
-    if (!this.settled) {
-      this.x = x;
-      this.z = z;
-      this.d = d;
-      this.settled = true;
+    return { x, z, d };
+  }
+
+  /** The board's on-screen box (CSS px) at the whole-board pose: [x0, y0, x1, y1]. */
+  boardBox(w: number, h: number): [number, number, number, number] {
+    let bx0 = Infinity;
+    let bx1 = -Infinity;
+    let by0 = Infinity;
+    let by1 = -Infinity;
+    for (let i = 0; i < this.pts.length; i += 2) {
+      const q = this.tmp.copy(this.pts[i]).project(this.camera);
+      bx0 = Math.min(bx0, q.x);
+      bx1 = Math.max(bx1, q.x);
+      by0 = Math.min(by0, q.y);
+      by1 = Math.max(by1, q.y);
     }
-    this.pose(this.x, this.z, this.d);
+    return [((bx0 + 1) / 2) * w, ((1 - by1) / 2) * h, ((bx1 + 1) / 2) * w, ((1 - by0) / 2) * h];
   }
 
   private pose(x: number, z: number, d: number): void {
@@ -150,7 +237,7 @@ export class TableCamera {
   }
 
   /** Eases toward the whole-board pose, or the lean-in pose on `lean` (world x, z). */
-  update(dt: number, lean: { x: number; z: number } | null): void {
+  update(dt: number, lean: { x: number; z: number } | null, amount = LEAN): void {
     this.time += dt;
     let tx = this.boardX;
     let tz = this.boardZ;
@@ -159,7 +246,7 @@ export class TableCamera {
       const lim = this.half * 0.62;
       tx = MathUtils.clamp(lean.x, -lim, lim);
       tz = MathUtils.clamp(lean.z, -lim, lim);
-      td = this.boardD * LEAN;
+      td = this.boardD * amount;
     }
     const k = 1 - Math.exp(-dt * 3.2);
     this.x += (tx - this.x) * k;
