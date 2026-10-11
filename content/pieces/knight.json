@@ -154,7 +154,7 @@
         {
           "stat": "maxHp",
           "kind": "mul",
-          "value": 0.92
+          "value": 1
         },
         {
           "stat": "armor",
@@ -348,11 +348,11 @@
               "type": "damage",
               "dmgType": "blade",
               "base": 0,
-              "bladeScale": 0.25,
+              "bladeScale": 0.15,
               "soulScale": 0
             }
           ],
-          "desc": "Forager: hits on pawnlings, camps and structures deal a further 25% Blade bonus damage."
+          "desc": "Forager: hits on pawnlings, camps and structures deal a further 15% Blade bonus damage."
         },
         {
           "on": "periodic",

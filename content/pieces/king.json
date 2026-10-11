@@ -595,10 +595,10 @@
           "effects": [
             {
               "type": "heal",
-              "fractionOfDamage": 0.18
+              "fractionOfDamage": 0.12
             }
           ],
-          "desc": "Stolen Tithe: heals for 18% of his attack damage."
+          "desc": "Stolen Tithe: heals for 12% of his attack damage."
         },
         {
           "on": "kill",
