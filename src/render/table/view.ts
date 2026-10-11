@@ -1,4 +1,6 @@
 import {
+  AdditiveBlending,
+  NormalBlending,
   CanvasTexture,
   Color,
   DirectionalLight,
@@ -21,7 +23,7 @@ import type { BroadcastFrame, NewEvents } from '../broadcast/types';
 import { ZoneFx } from '../broadcast/zones';
 import { Board, FRAME } from './board';
 import { TableCamera } from './camera';
-import { Crowd, facetMaterial } from './crowd';
+import { Crowd, crowdInk, facetMaterial, hullOf } from './crowd';
 import { FIG_HEIGHT, type PieceId } from './figures';
 import { Bolts, Chips, Tags } from './fx';
 import {
@@ -37,8 +39,9 @@ import {
   spirit,
   throne,
 } from './models';
-import { CLAY, TABLE, TEAM } from './palette';
-import { FIG_SCALE, FigureLib, PieceFigure } from './piece';
+import { CLAY, LOOK, TABLE, TEAM } from './palette';
+import { FIG_SCALE, FigureLib, PieceFigure, SIZE, sizeFor } from './piece';
+import { RELIEF } from './relief';
 
 const PIECES: readonly PieceId[] = ['king', 'queen', 'rook', 'bishop', 'knight'];
 const isPiece = (s: unknown): s is PieceId =>
@@ -55,6 +58,11 @@ const OLD_PIECE_H = 57;
 const FALL_SEC = 0.9;
 /** Seconds a returning piece takes to drop onto the board. */
 const DROP_SEC = 0.42;
+/** Landmarks: Bastions and Thrones drawn bigger than the prototype. */
+const TOWER_S = 1.45;
+const THRONE_S = 1.4;
+/** Throne model height (world units at scale 1). */
+const THRONE_H = 245;
 
 type ChessUnit = SnapUnit & {
   piece?: string | null;
@@ -99,6 +107,8 @@ class Rec {
   stamp = 0;
   lift = 20;
   halfW = 12;
+  /** Ground height under the unit (board relief). */
+  gy = 0;
   fig?: PieceFigure;
   pieceId: PieceId | null = null;
   readonly phase0: number;
@@ -166,6 +176,7 @@ export class TableView {
   private readonly rim: Crowd;
   private readonly top: Crowd;
   private readonly blobs: Crowd;
+  private readonly halos: Crowd;
   private readonly crystal: Crowd;
   private readonly key: DirectionalLight;
   private readonly back: DirectionalLight;
@@ -179,6 +190,7 @@ export class TableView {
   private readonly lineup: 'board' | 'close' | 'closeb' | null;
   private lineupUnits: ChessUnit[] | null = null;
   private time = 0;
+  private insetClock = 0;
   private stamp = 0;
   private lastTick = -1;
   private drawn = 0;
@@ -218,19 +230,20 @@ export class TableView {
     const g = bg.getContext('2d')!;
     const grad = g.createLinearGradient(0, 0, 0, 256);
     grad.addColorStop(0, TABLE.hallTop);
-    grad.addColorStop(0.55, '#1a1311');
+    grad.addColorStop(0.55, TABLE.hallMid);
     grad.addColorStop(1, TABLE.hallBottom);
     g.fillStyle = grad;
     g.fillRect(0, 0, 4, 256);
     const bgTex = this.kit.own(new CanvasTexture(bg));
     bgTex.colorSpace = SRGBColorSpace;
     this.scene.background = bgTex;
-    this.scene.fog = new Fog('#120d0b', 9000, 26000);
+    this.scene.fog = new Fog(TABLE.fog, 9000, 26000);
 
     // light: warm cream sky over walnut bounce, a warm key from White's left, a cool rim from behind
-    const sky = new HemisphereLight('#fff0d6', '#3b2a1c', 1.05);
-    this.key = new DirectionalLight('#ffe2b4', 2.1);
-    this.back = new DirectionalLight('#a8bfff', 1.25);
+    const L = LOOK.light;
+    const sky = new HemisphereLight(L.sky, L.ground, L.skyK);
+    this.key = new DirectionalLight(L.key, L.keyK);
+    this.back = new DirectionalLight(L.back, L.backK);
     this.key.castShadow = this.shadows;
     if (this.shadows) {
       const sc = this.key.shadow.camera;
@@ -248,7 +261,11 @@ export class TableView {
     this.scene.add(sky, this.key, this.key.target, this.back, this.back.target);
 
     this.board = new Board(content, coarse ? 2048 : 3072);
-    this.cam = new TableCamera(content, FIG_HEIGHT.king * FIG_SCALE);
+    this.cam = new TableCamera(
+      content,
+      FIG_HEIGHT.king * FIG_SCALE * 1.1 + RELIEF.blockHigh,
+      THRONE_H * THRONE_S + RELIEF.baseInner,
+    );
     this.scene.add(this.board.group);
 
     // instanced crowds: one draw call per kind and side
@@ -265,10 +282,15 @@ export class TableView {
       this.scene.add(c.mesh);
       return c;
     };
+    // pawns and pawnlings carry the same team contour as the pieces
+    const inked = (c: Crowd, t: 'A' | 'B'): void => {
+      const m = this.kit.own(crowdInk(TEAM[t].ink, this.lib.ink[t]));
+      this.scene.add(c.outline(hullOf(c.mesh.geometry), m));
+    };
     for (const t of ['A', 'B'] as const) {
-      crowd(`melee${t}`, pawnling(t, false), 90, true);
-      crowd(`ranged${t}`, pawnling(t, true), 60, true);
-      crowd(`pawn${t}`, pawn(t), 24, true);
+      inked(crowd(`melee${t}`, pawnling(t, false), 90, true), t);
+      inked(crowd(`ranged${t}`, pawnling(t, true), 60, true), t);
+      inked(crowd(`pawn${t}`, pawn(t), 24, true), t);
       crowd(`tower${t}`, bastion(t), 10, true);
       crowd(`guardian${t}`, throne(t), 2, true);
     }
@@ -296,7 +318,7 @@ export class TableView {
         map: blobTex,
         transparent: true,
         depthWrite: false,
-        opacity: this.shadows ? 0.55 : 0.9,
+        opacity: Math.min(1, (this.shadows ? 0.55 : 0.9) * LOOK.blob),
       }),
     );
     this.blobs = new Crowd(
@@ -306,6 +328,45 @@ export class TableView {
     );
     this.blobs.mesh.renderOrder = 1;
     this.scene.add(this.blobs.mesh);
+
+    // team base rings: a flat ring on the board under every piece and pawn (instance colour)
+    const glow = LOOK.halo.mode === 'glow';
+    const haloTex = this.kit.texture(`table-halo-${LOOK.halo.mode}`, 128, 128, (hg) => {
+      const rr = hg.createRadialGradient(64, 64, 0, 64, 64, 64);
+      if (glow) {
+        rr.addColorStop(0, 'rgba(255,255,255,0)');
+        rr.addColorStop(0.5, 'rgba(255,255,255,0.12)');
+        rr.addColorStop(0.7, 'rgba(255,255,255,1)');
+        rr.addColorStop(0.8, 'rgba(255,255,255,0.55)');
+        rr.addColorStop(1, 'rgba(255,255,255,0)');
+      } else {
+        rr.addColorStop(0, 'rgba(255,255,255,0)');
+        rr.addColorStop(0.66, 'rgba(255,255,255,0)');
+        rr.addColorStop(0.7, 'rgba(255,255,255,1)');
+        rr.addColorStop(0.93, 'rgba(255,255,255,1)');
+        rr.addColorStop(0.98, 'rgba(255,255,255,0)');
+      }
+      hg.fillStyle = rr;
+      hg.fillRect(0, 0, 128, 128);
+    });
+    const haloMat = this.kit.own(
+      new MeshBasicMaterial({
+        map: haloTex,
+        transparent: true,
+        depthWrite: false,
+        opacity: LOOK.halo.opacity,
+        blending: glow ? AdditiveBlending : NormalBlending,
+        fog: false,
+      }),
+    );
+    this.halos = new Crowd(
+      this.kit.geo('table-blob', () => new PlaneGeometry(2, 2).rotateX(-Math.PI / 2)),
+      haloMat,
+      200,
+      true,
+    );
+    this.halos.mesh.renderOrder = 2;
+    this.scene.add(this.halos.mesh);
 
     this.chips = new Chips(this.facet);
     this.bolts = new Bolts(this.facet, this.chips);
@@ -325,6 +386,21 @@ export class TableView {
       const w = window as unknown as Record<string, unknown>;
       w.__tvStats = () => this.stats();
       w.__tvMeasure = () => this.measure();
+      w.__tvBoard = () => {
+        const [x0, y0, x1, y1] = this.cam.boardBox(this.cssW, this.cssH);
+        const cx0 = Math.max(0, x0);
+        const cy0 = Math.max(0, y0);
+        const cx1 = Math.min(this.cssW, x1);
+        const cy1 = Math.min(this.cssH, y1);
+        return {
+          box: [x0, y0, x1, y1].map((n) => Math.round(n)),
+          w: Math.round(cx1 - cx0),
+          h: Math.round(cy1 - cy0),
+          pctArea: Math.round(((cx1 - cx0) * (cy1 - cy0) * 1000) / (this.cssW * this.cssH)) / 10,
+          pctH: Math.round(((cy1 - cy0) * 1000) / this.cssH) / 10,
+          variant: LOOK.id,
+        };
+      };
     }
   }
 
@@ -345,14 +421,14 @@ export class TableView {
     for (const v of this.recs.values()) {
       if (!v.live) continue;
       if (!v.fig && (v.kind !== 'minion' || v.team === 'neutral')) continue;
-      const h = v.fig ? v.fig.height : v.elite ? 83 : 54;
-      const a = this.tmp.set(v.x, 0, v.z).project(cam);
+      const h = v.fig ? v.fig.height : (v.elite ? 83 : 54) * SIZE.k;
+      const a = this.tmp.set(v.x, v.gy, v.z).project(cam);
       const ay = ((1 - a.y) / 2) * this.cssH;
-      const b = this.tmp.set(v.x, h, v.z).project(cam);
+      const b = this.tmp.set(v.x, h + v.gy, v.z).project(cam);
       const by = ((1 - b.y) / 2) * this.cssH;
-      const c = this.tmp.set(v.x, h / 2, v.z).project(cam);
+      const c = this.tmp.set(v.x, h / 2 + v.gy, v.z).project(cam);
       const d = this.from
-        .set(v.x, h / 2, v.z)
+        .set(v.x, h / 2 + v.gy, v.z)
         .addScaledVector(this.to.set(1, 0, 0).applyQuaternion(cam.quaternion), v.halfW * 2)
         .project(cam);
       out.push({
@@ -373,6 +449,7 @@ export class TableView {
     this.cssH = this.canvas.clientHeight;
     this.renderer.setSize(w, h, false);
     this.cam.fit(w, h);
+    SIZE.k = sizeFor(this.cam.tiltDeg, this.cam.protoTilt);
     this.board.setOrient(this.cam.orient);
     // key light from White's front-left, rim from behind the board (relative to the seat)
     const c = this.cam.camera.position;
@@ -386,8 +463,15 @@ export class TableView {
 
   draw(snap: Snapshot, events: NewEvents, frame: BroadcastFrame): void {
     if (this.lost) return;
+    // refit when the canvas or the HUD's published insets change (insets checked once a second)
+    this.insetClock += frame.dtMs;
     if (this.canvas.clientWidth !== this.cssW || this.canvas.clientHeight !== this.cssH)
       this.resize();
+    else if (this.insetClock > 1000) {
+      this.insetClock = 0;
+      const ins = this.cam.insets(this.cssW, this.cssH);
+      if (`${ins.top},${ins.bottom},${ins.left},${ins.right}` !== this.cam.fitted) this.resize();
+    }
     const real = MathUtils.clamp(frame.dtMs, 0, 100) / 1000;
     const dt = real * frame.timeScale;
     this.time += dt;
@@ -417,19 +501,22 @@ export class TableView {
       }
     }
     this.leaning = lean !== null;
-    this.cam.update(real, lean);
+    this.cam.update(real, lean, this.lineup ? 0.62 : undefined);
     const camera = this.cam.camera;
     const px = this.cam.pxNow();
-    this.lib.ink.value = px * 0.9;
+    this.lib.ink.A.value = px * TEAM.A.inkPx;
+    this.lib.ink.B.value = px * TEAM.B.inkPx;
 
     if (!this.lineup) this.handleEvents(events);
     this.bars.begin(camera);
     this.tags.begin(camera);
     for (const c of this.crowdList) c.begin();
     this.blobs.begin();
+    this.halos.begin();
     this.syncUnits(units, frame.alpha, dt, real, px, frame.followId);
     for (const c of this.crowdList) c.end();
     this.blobs.end();
+    this.halos.end();
     this.bars.end();
     this.tags.end();
     if (!this.lineup) this.syncRings(snap);
@@ -448,14 +535,18 @@ export class TableView {
   private readonly unitPos = (id: number, out: Vector3): boolean => {
     const v = this.recs.get(id);
     if (!v?.live) return false;
-    out.set(v.x, (v.fig ? v.fig.height : 40) - 50, v.z);
+    out.set(v.x, (v.fig ? v.fig.height : 40) - 50 + v.gy, v.z);
     return true;
   };
 
   /** Where a sim point (plus `lift` old-scale units) lands on the canvas, in CSS pixels. */
   project(x: number, y: number, lift = 0): { x: number; y: number; visible: boolean } {
     const v = this.tmp
-      .set(x - this.half, lift * ((FIG_HEIGHT.king * FIG_SCALE) / OLD_PIECE_H), y - this.half)
+      .set(
+        x - this.half,
+        lift * ((FIG_HEIGHT.king * FIG_SCALE * SIZE.k) / OLD_PIECE_H),
+        y - this.half,
+      )
       .project(this.cam.camera);
     const w = this.canvas.clientWidth;
     const h = this.canvas.clientHeight;
@@ -504,7 +595,7 @@ export class TableView {
     let bestD = PICK_PX * PICK_PX;
     for (const v of this.recs.values()) {
       if (!v.live) continue;
-      const q = this.tmp.set(v.x, v.lift, v.z).project(cam);
+      const q = this.tmp.set(v.x, v.lift + v.gy, v.z).project(cam);
       if (q.z < -1 || q.z > 1) continue;
       const dx = ((q.x + 1) / 2) * w - px;
       const dy = ((1 - q.y) / 2) * h - py;
@@ -547,14 +638,14 @@ export class TableView {
       v.halfW = v.fig.halfWidth;
       this.scene.add(v.fig.root);
     } else if (u.kind === 'tower') {
-      v.lift = 70;
-      v.halfW = 46;
+      v.lift = 70 * TOWER_S;
+      v.halfW = 46 * TOWER_S;
     } else if (u.kind === 'guardian') {
-      v.lift = 110;
-      v.halfW = 90;
+      v.lift = 110 * THRONE_S;
+      v.halfW = 90 * THRONE_S;
     } else if (u.kind === 'minion') {
-      v.lift = v.elite ? 40 : 26;
-      v.halfW = v.elite ? 16 : 11;
+      v.lift = (v.elite ? 40 : 26) * SIZE.k;
+      v.halfW = (v.elite ? 16 : 11) * SIZE.k;
     } else if (u.kind === 'camp') {
       v.lift = 30;
       v.halfW = 22;
@@ -786,8 +877,11 @@ export class TableView {
       }
       v.x = v.sx + v.ox;
       v.z = v.sz + v.oz;
+      const gy = (v.gy = this.board.relief.at(v.x, v.z));
+      v.lift = f.height * 0.5;
+      v.halfW = f.halfWidth;
       f.setVisible(true);
-      f.place(v.x, 0, v.z, v.yaw);
+      f.place(v.x, gy, v.z, v.yaw);
       const A = this.attack(v);
       const W = A > 0.02 ? 0 : this.windup(v, u);
       f.pose({
@@ -806,12 +900,16 @@ export class TableView {
       const pulse = fork ? 0.5 + 0.5 * Math.sin(this.time * 7) : 0;
       this.col.set(T.trim);
       if (fork) this.col.lerp(this.tmpCol.set(GOLD), pulse);
-      this.rim.color(this.rim.addXYZ(v.x, 0, v.z, 0, br, 14, br), this.col);
+      this.rim.color(this.rim.addXYZ(v.x, gy, v.z, 0, br, 14, br), this.col);
       this.col.set(u.style ? styleEmblem(u.style).color : T.body);
-      this.top.color(this.top.addXYZ(v.x, 0, v.z, 0, br, 14, br), this.col);
-      this.blobs.addXYZ(v.x, 0.8, v.z, 0, br * 1.5, 1, br * 1.5);
+      this.top.color(this.top.addXYZ(v.x, gy, v.z, 0, br, 14, br), this.col);
+      this.blobs.addXYZ(v.x, gy + 0.8, v.z, 0, br * 1.5, 1, br * 1.5);
+      const hr = br * LOOK.halo.size;
+      this.col.set(T.halo);
+      if (fork) this.col.lerp(this.tmpCol.set(GOLD), pulse);
+      this.halos.color(this.halos.addXYZ(v.x, gy + 1.4, v.z, 0, hr, 1, hr), this.col);
       // health above the head (as wide as the piece, never wider), rank on the base, emblem when leaning in
-      const top = f.height + 14;
+      const top = f.height + 14 + gy;
       const bw = Math.min(v.halfW * 1.7, 18 * px);
       const bh = 2.4 * px;
       this.bars.add(v.x, top, v.z, bw, bh, frac, frac < LOW_HP ? LOW_HP_RED : markCol);
@@ -833,11 +931,11 @@ export class TableView {
       const rr = this.camRight;
       const fx = v.x + (cx / cl) * br * 0.9 + rr.x * br * 0.55;
       const fz = v.z + (cz / cl) * br * 0.9 + rr.z * br * 0.55;
-      this.tags.rank(fx, ts * 0.5 + 2, fz, ts, u.rank ?? 1, team, fork);
+      this.tags.rank(fx, ts * 0.5 + 2 + gy, fz, ts, u.rank ?? 1, team, fork);
       if ((this.leaning || u.id === followId) && u.style) {
         this.tags.emblem(
           fx + this.camRight.x * ts * 1.05,
-          ts * 0.5 + 2,
+          ts * 0.5 + 2 + gy,
           fz + this.camRight.z * ts * 1.05,
           ts,
           u.style,
@@ -847,6 +945,7 @@ export class TableView {
     }
     v.x = v.sx;
     v.z = v.sz;
+    const gy = (v.gy = this.board.relief.at(v.x, v.z));
     const A = v.lunge * v.lunge * (3 - 2 * v.lunge);
     switch (u.kind) {
       case 'minion': {
@@ -861,13 +960,13 @@ export class TableView {
           const bob = ev
             ? Math.sin(this.time * 2.4 + v.phase0) * 6 + 10
             : Math.abs(Math.sin(v.phase)) * 3 * v.move;
-          const i = c.add(v.x, bob, v.z, v.yaw, ev ? 1.1 : 1.15, A * 0.3 - v.flinch * 0.25);
+          const i = c.add(v.x, bob + gy, v.z, v.yaw, ev ? 1.1 : 1.15, A * 0.3 - v.flinch * 0.25);
           c.color(i, this.hurt(v));
-          this.blobs.addXYZ(v.x, 0.8, v.z, 0, tier === 2 ? 70 : 34, 1, tier === 2 ? 70 : 34);
+          this.blobs.addXYZ(v.x, gy + 0.8, v.z, 0, tier === 2 ? 70 : 34, 1, tier === 2 ? 70 : 34);
           if (u.hp < u.maxHp - 0.5)
             this.bars.add(
               v.x,
-              tier === 2 ? 135 : ev ? 80 : 62,
+              (tier === 2 ? 135 : ev ? 80 : 62) + gy,
               v.z,
               22 * px,
               3 * px,
@@ -882,22 +981,27 @@ export class TableView {
         const hop = Math.abs(Math.sin(v.phase * 1.2)) * (elite ? 5 : 4) * v.move;
         const i = c.add(
           v.x,
-          hop,
+          hop + gy,
           v.z,
           v.yaw,
-          elite ? 1.15 : 1.1,
+          (elite ? 1.15 : 1.1) * SIZE.k,
           v.move * 0.12 + A * 0.35 - v.flinch * 0.3,
           Math.sin(v.phase * 1.2) * 0.08 * v.move,
         );
         c.color(i, this.hurt(v));
-        const br = elite ? 17 : 13;
+        const br = (elite ? 17 : 13) * SIZE.k;
         this.col.set(T.trim);
-        this.rim.color(this.rim.addXYZ(v.x, hop * 0.2, v.z, 0, br, elite ? 10 : 8, br), this.col);
-        this.blobs.addXYZ(v.x, 0.8, v.z, 0, br * 1.6, 1, br * 1.6);
+        this.rim.color(
+          this.rim.addXYZ(v.x, hop * 0.2 + gy, v.z, 0, br, (elite ? 10 : 8) * SIZE.k, br),
+          this.col,
+        );
+        this.blobs.addXYZ(v.x, gy + 0.8, v.z, 0, br * 1.6, 1, br * 1.6);
+        const hr = br * LOOK.halo.size * 1.1;
+        this.halos.color(this.halos.addXYZ(v.x, gy + 1.4, v.z, 0, hr, 1, hr), this.col.set(T.halo));
         if (u.hp < u.maxHp - 0.5)
           this.bars.add(
             v.x,
-            elite ? 108 : 64,
+            (elite ? 108 : 64) * SIZE.k + gy,
             v.z,
             (elite ? 15 : 10) * px,
             2.4 * px,
@@ -908,17 +1012,19 @@ export class TableView {
       }
       case 'tower': {
         const c = this.crowds[`tower${team}`];
-        const i = c.add(v.x, 0, v.z, v.yaw, 0.85, A * 0.04, 0);
+        const i = c.add(v.x, gy, v.z, v.yaw, 0.85 * TOWER_S, A * 0.04, 0);
         c.color(i, this.damaged(v, frac));
-        this.blobs.addXYZ(v.x, 0.8, v.z, 0, 90, 1, 90);
-        if (frac < 0.999) this.bars.add(v.x, 200, v.z, 26 * px, 2.8 * px, frac, markCol);
+        this.blobs.addXYZ(v.x, gy + 0.8, v.z, 0, 90 * TOWER_S, 1, 90 * TOWER_S);
+        if (frac < 0.999)
+          this.bars.add(v.x, 200 * TOWER_S + gy, v.z, 26 * px, 2.8 * px, frac, markCol);
         break;
       }
       case 'guardian': {
         const c = this.crowds[`guardian${team}`];
-        const i = c.add(v.x, 0, v.z, v.yaw, 1, 0, 0);
+        const i = c.add(v.x, gy, v.z, v.yaw, THRONE_S, 0, 0);
         c.color(i, this.damaged(v, frac));
-        if (frac < 0.999) this.bars.add(v.x, 262, v.z, 34 * px, 3.2 * px, frac, markCol);
+        if (frac < 0.999)
+          this.bars.add(v.x, 262 * THRONE_S + gy, v.z, 34 * px, 3.2 * px, frac, markCol);
         break;
       }
       case 'camp': {
@@ -926,7 +1032,7 @@ export class TableView {
         const c = this.crowds[`beast${tier}`];
         const i = c.add(
           v.x,
-          Math.abs(Math.sin(v.phase)) * 3 * v.move,
+          Math.abs(Math.sin(v.phase)) * 3 * v.move + gy,
           v.z,
           v.yaw,
           1,
@@ -935,7 +1041,7 @@ export class TableView {
         c.color(i, this.hurt(v));
         this.blobs.addXYZ(
           v.x,
-          0.8,
+          gy + 0.8,
           v.z,
           0,
           tier === 2 ? 70 : tier === 1 ? 46 : 32,
@@ -945,7 +1051,7 @@ export class TableView {
         if (u.hp < u.maxHp)
           this.bars.add(
             v.x,
-            tier === 2 ? 135 : tier === 1 ? 82 : 58,
+            (tier === 2 ? 135 : tier === 1 ? 82 : 58) + gy,
             v.z,
             18 * px,
             2.6 * px,
@@ -955,25 +1061,25 @@ export class TableView {
         break;
       }
       case 'obelisk': {
-        this.crowds.obelisk.add(v.x, 0, v.z, 0, 1.2);
+        this.crowds.obelisk.add(v.x, gy, v.z, 0, 1.2);
         const claim = MathUtils.clamp(u.claim, -1, 1);
         this.col.set('#e9e2d0');
         if (claim > 0.02) this.col.lerp(this.tmpCol.set(TEAM.A.rim), claim);
         else if (claim < -0.02) this.col.lerp(this.tmpCol.set(TEAM.B.rim), -claim);
         const i = this.crystal.add(
           v.x,
-          Math.sin(this.time * 1.6 + v.phase0) * 4,
+          Math.sin(this.time * 1.6 + v.phase0) * 4 + gy,
           v.z,
           this.time * 0.6,
           1.2,
         );
         this.crystal.color(i, this.col);
-        this.blobs.addXYZ(v.x, 0.8, v.z, 0, 36, 1, 36);
+        this.blobs.addXYZ(v.x, gy + 0.8, v.z, 0, 36, 1, 36);
         break;
       }
       case 'keeper':
-        this.crowds.keeper.add(v.x, Math.sin(this.time * 1.3) * 2, v.z, this.time * 0.4, 1.3);
-        this.blobs.addXYZ(v.x, 0.8, v.z, 0, 36, 1, 36);
+        this.crowds.keeper.add(v.x, Math.sin(this.time * 1.3) * 2 + gy, v.z, this.time * 0.4, 1.3);
+        this.blobs.addXYZ(v.x, gy + 0.8, v.z, 0, 36, 1, 36);
         break;
       default:
         break;
@@ -1029,9 +1135,9 @@ export class TableView {
   private chest(id: number, kind: string): number {
     const v = this.recs.get(id);
     if (v?.fig) return v.fig.height * 0.55;
-    if (kind === 'tower') return 120;
-    if (kind === 'guardian') return 140;
-    if (kind === 'minion') return v?.elite ? 50 : 30;
+    if (kind === 'tower') return 120 * TOWER_S;
+    if (kind === 'guardian') return 140 * THRONE_S;
+    if (kind === 'minion') return (v?.elite ? 50 : 30) * SIZE.k;
     return 34;
   }
 
@@ -1050,8 +1156,8 @@ export class TableView {
         if (!a || !b) break;
         if (p.srcKind === 'minion' && p.tgtKind === 'minion') break;
         const structure = p.srcKind === 'tower' || p.srcKind === 'guardian';
-        this.from.set(a.x, this.chest(p.src, p.srcKind), a.z);
-        this.to.set(b.x, this.chest(p.tgt, p.tgtKind), b.z);
+        this.from.set(a.x, this.chest(p.src, p.srcKind) + a.gy, a.z);
+        this.to.set(b.x, this.chest(p.tgt, p.tgtKind) + b.gy, b.z);
         const color = structure
           ? '#f0b44c'
           : p.srcTeam === 'B'
@@ -1212,7 +1318,11 @@ export class TableView {
       let ring = this.rings.get(e.id);
       if (!ring) {
         ring = new EventRing(this.kit, e.type, e.radius);
-        ring.group.position.set(e.x - this.half, 1.5, e.y - this.half);
+        ring.group.position.set(
+          e.x - this.half,
+          1.5 + this.board.relief.atSim(e.x, e.y),
+          e.y - this.half,
+        );
         this.rings.set(e.id, ring);
         this.scene.add(ring.group);
       }
@@ -1327,6 +1437,7 @@ export class TableView {
     this.lib.dispose();
     for (const c of Object.values(this.crowds)) c.dispose();
     this.blobs.dispose();
+    this.halos.dispose();
     this.chips.crowd.dispose();
     this.bolts.crowd.dispose();
     this.tags.dispose();

@@ -1,6 +1,8 @@
 import {
   BoxGeometry,
+  BufferGeometry,
   CanvasTexture,
+  Float32BufferAttribute,
   Group,
   LinearMipmapLinearFilter,
   Mesh,
@@ -13,6 +15,7 @@ import {
 import type { Content } from '../../sim';
 import { buildTerrain } from '../../sim';
 import { TABLE } from './palette';
+import { bastionSites, Relief, RELIEF } from './relief';
 
 /** Walnut frame width around the board (world units). */
 export const FRAME = 130;
@@ -64,6 +67,8 @@ export class Board {
   readonly group = new Group();
   readonly half: number;
   readonly extent: number;
+  /** Ground heights (raised squares, daises, court pits, Bastion tiles). */
+  readonly relief: Relief;
   private readonly top: Mesh;
   private readonly topMat: MeshLambertMaterial;
   private readonly owned: { dispose(): void }[] = [];
@@ -80,14 +85,16 @@ export class Board {
     const E = half + FRAME;
     this.extent = E;
     this.texSize = texSize;
+    this.relief = new Relief(content, E);
 
     // table: a walnut plane with a pool of lamp light under the board
     const [tc, tg] = canvas(1024, 1024);
     const r = tg.createRadialGradient(512, 512, 40, 512, 512, 512);
-    r.addColorStop(0, '#5a3b26');
-    r.addColorStop(0.28, '#3e2818');
-    r.addColorStop(0.62, '#21150d');
-    r.addColorStop(1, '#0e0a08');
+    const tg4 = TABLE.tableGrad;
+    r.addColorStop(0, tg4[0]);
+    r.addColorStop(0.28, tg4[1]);
+    r.addColorStop(0.62, tg4[2]);
+    r.addColorStop(1, tg4[3]);
     tg.fillStyle = r;
     tg.fillRect(0, 0, 1024, 1024);
     tg.globalAlpha = 0.05;
@@ -109,10 +116,11 @@ export class Board {
     table.position.y = -SLAB;
     table.receiveShadow = true;
 
-    // the slab and frame sides
+    // the slab under the frame; its top sits below the court pits (the relief's rim drops onto it)
     const slabMat = this.own(new MeshLambertMaterial({ color: TABLE.frameDark }));
-    const slab = new Mesh(this.own(new BoxGeometry(E * 2, SLAB - 1, E * 2)), slabMat);
-    slab.position.y = -SLAB / 2 - 0.6;
+    const slabTop = -24;
+    const slab = new Mesh(this.own(new BoxGeometry(E * 2, SLAB + slabTop, E * 2)), slabMat);
+    slab.position.y = (-SLAB + slabTop) / 2;
     slab.receiveShadow = true;
 
     // brass bead around the playing field, dark bead at the outer edge
@@ -140,17 +148,15 @@ export class Board {
       bead(E * 2 + 8, 12, 7, sign * (E - 2), 0, true, dark);
     }
 
-    // the painted top (board + frame)
+    // the painted top (board + frame), lifted into relief (smooth normals: grid-aligned facets
+    // would saw-tooth along the diagonal and curved lane edges)
     this.topMat = this.own(new MeshLambertMaterial({ color: '#ffffff' }));
-    this.top = new Mesh(
-      this.own(new PlaneGeometry(E * 2, E * 2).rotateX(-Math.PI / 2)),
-      this.topMat,
-    );
+    this.top = new Mesh(this.own(this.reliefGeometry()), this.topMat);
     this.top.receiveShadow = true;
 
     // iron gates over jungle courts that are not open yet
     const [gc, gg] = canvas(256, 256);
-    gg.fillStyle = 'rgba(14,10,8,0.32)';
+    gg.fillStyle = 'rgba(14,10,8,0.14)';
     gg.fillRect(0, 0, 256, 256);
     gg.strokeStyle = 'rgba(30,26,24,0.7)';
     gg.lineWidth = 7;
@@ -178,6 +184,44 @@ export class Board {
     }
 
     this.group.add(table, slab, this.top);
+  }
+
+  /** One indexed grid over board and frame, heights from the relief, UVs onto the painted top. */
+  private reliefGeometry(): BufferGeometry {
+    const R = this.relief;
+    const n = R.n;
+    const w = n + 1;
+    const pos = new Float32Array(w * w * 3);
+    const uv = new Float32Array(w * w * 2);
+    for (let j = 0; j <= n; j++)
+      for (let i = 0; i <= n; i++) {
+        const k = j * w + i;
+        const x = -R.extent + i * R.cell;
+        const z = -R.extent + j * R.cell;
+        pos[k * 3] = x;
+        // the outermost ring drops to the slab: the board's side edge
+        const rim = i === 0 || j === 0 || i === n || j === n;
+        pos[k * 3 + 1] = rim ? -SLAB * 0.6 : R.h[k];
+        pos[k * 3 + 2] = z;
+        uv[k * 2] = (x + this.extent) / (2 * this.extent);
+        uv[k * 2 + 1] = 1 - (z + this.extent) / (2 * this.extent);
+      }
+    // split each cell along the anti-diagonal (the Mid lane's direction) so its edges stay clean
+    const idx: number[] = [];
+    for (let j = 0; j < n; j++)
+      for (let i = 0; i < n; i++) {
+        const a = j * w + i;
+        const b = a + 1;
+        const c = a + w;
+        const d = c + 1;
+        idx.push(a, c, b, b, c, d);
+      }
+    const geo = new BufferGeometry();
+    geo.setAttribute('position', new Float32BufferAttribute(pos, 3));
+    geo.setAttribute('uv', new Float32BufferAttribute(uv, 2));
+    geo.setIndex(idx);
+    geo.computeVertexNormals();
+    return geo;
   }
 
   private own<T extends { dispose(): void }>(x: T): T {
@@ -214,9 +258,9 @@ export class Board {
 
     // frame: walnut with a soft sheen and a brass inlay line
     const fg = g.createLinearGradient(-FRAME, -FRAME, size + FRAME, size + FRAME);
-    fg.addColorStop(0, '#4d311e');
-    fg.addColorStop(0.5, '#5c3b24');
-    fg.addColorStop(1, '#3f2818');
+    fg.addColorStop(0, TABLE.frameGrad[0]);
+    fg.addColorStop(0.5, TABLE.frameGrad[1]);
+    fg.addColorStop(1, TABLE.frameGrad[2]);
     g.fillStyle = fg;
     g.fillRect(-FRAME, -FRAME, size + FRAME * 2, size + FRAME * 2);
     g.strokeStyle = TABLE.brassDark;
@@ -225,7 +269,7 @@ export class Board {
 
     // notation: files a-h along White's near edges, ranks 1-8 along the other near edge
     const sq = size / 8;
-    g.fillStyle = '#d9b46a';
+    g.fillStyle = TABLE.notation;
     g.font = `${Math.round(FRAME * 0.5)}px 'IM Fell English SC', Georgia, serif`;
     g.textAlign = 'center';
     g.textBaseline = 'middle';
@@ -251,9 +295,9 @@ export class Board {
       }
     // lamp light: warm centre, darker corners
     const lamp = g.createRadialGradient(half, half, size * 0.05, half, half, size * 0.75);
-    lamp.addColorStop(0, 'rgba(255,226,170,0.10)');
+    lamp.addColorStop(0, `rgba(255,226,170,${TABLE.lampIn})`);
     lamp.addColorStop(0.6, 'rgba(0,0,0,0)');
-    lamp.addColorStop(1, 'rgba(10,6,3,0.35)');
+    lamp.addColorStop(1, `rgba(10,6,3,${TABLE.lampOut})`);
     g.fillStyle = lamp;
     g.fillRect(0, 0, size, size);
 
@@ -314,6 +358,20 @@ export class Board {
     stroke(-6, TABLE.feltLight, 0.55);
     stroke(-6, TABLE.felt, 0.42);
 
+    // Bastion squares: a marble tile edged in brass under every Bastion
+    for (const [tx, ty] of bastionSites(this.content)) {
+      const h = RELIEF.tileHalf;
+      g.fillStyle = 'rgba(10,6,4,0.6)';
+      g.fillRect(tx - h - 8, ty - h - 8, h * 2 + 16, h * 2 + 16);
+      g.fillStyle = TABLE.brass;
+      g.fillRect(tx - h - 3, ty - h - 3, h * 2 + 6, h * 2 + 6);
+      g.fillStyle = TABLE.sqLight;
+      g.fillRect(tx - h + 3, ty - h + 3, h * 2 - 6, h * 2 - 6);
+      g.strokeStyle = TABLE.brassDark;
+      g.lineWidth = 3;
+      g.strokeRect(tx - h * 0.62, ty - h * 0.62, h * 1.24, h * 1.24);
+    }
+
     // base medallions: brass ring, team marble, an eight-point brass star
     for (const [team, [bx, by]] of Object.entries(map.bases)) {
       const R = map.walk.base;
@@ -367,7 +425,7 @@ export class Board {
       const [x, y] = along(map.lanes[id], map.walk.base + 34);
       g.fillStyle = 'rgba(10,6,4,0.55)';
       glyph(name, x + 3, y + 3);
-      g.fillStyle = '#e2c27c';
+      g.fillStyle = TABLE.laneName;
       glyph(name, x, y);
     }
 

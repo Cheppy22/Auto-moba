@@ -6,7 +6,7 @@
 
 - What changed and when: [CHANGELOG.md](CHANGELOG.md). Never put history in this file.
 - How the code is organized: [ARCHITECTURE.md](ARCHITECTURE.md).
-- Dated specs and reports this file links to: [ITEMS.md](ITEMS.md), [PLAYTEST.md](PLAYTEST.md), [BALANCE_REPORT.md](BALANCE_REPORT.md), [BROADCAST.md](BROADCAST.md), [WONDERLAND.md](WONDERLAND.md), [LOOK-TABLE-2026-10-11.md](LOOK-TABLE-2026-10-11.md) (Tournament Table look prototype, `?look=table`).
+- Dated specs and reports this file links to: [ITEMS.md](ITEMS.md), [PLAYTEST.md](PLAYTEST.md), [BALANCE_REPORT.md](BALANCE_REPORT.md), [BROADCAST.md](BROADCAST.md), [WONDERLAND.md](WONDERLAND.md), [LOOK-TABLE-2026-10-11.md](LOOK-TABLE-2026-10-11.md) (Tournament Table look prototype, `?look=table`, three variants `&variant=a|b|c`).
 - Old design docs, kept for history only: [archive/](archive/).
 
 ## Update rules (every session must follow these)

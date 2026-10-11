@@ -1,17 +1,46 @@
 # Look: "Tournament Table" prototype (2026-10-11)
 
-Status: **prototype for owner sign-off**, behind `?look=table`. The default look is unchanged. Built from the critic review ([REVIEW-2026-10-11-design.md](REVIEW-2026-10-11-design.md), "Tournament Table") with one owner change: **pieces stay humanoid** (no Staunton miniatures), fleshed out so every piece and style is distinct.
+Status: **prototype for owner sign-off, round 2: three variants to pick from**, behind `?look=table` (`&variant=a|b|c`, default `a`). The default look is unchanged. Built from the critic review ([REVIEW-2026-10-11-design.md](REVIEW-2026-10-11-design.md), "Tournament Table") with one owner change: **pieces stay humanoid** (no Staunton miniatures), fleshed out so every piece and style is distinct.
 
-How to see it: add `?look=table` to the game URL. Debug line-up of every style: `?look=table&lineup` (whole-board scale), `&lineup=close` (lean in on White's rows), `&lineup=closeb` (Black's rows). The line-up replaces the match's units in the view only.
+How to see it: add `?look=table` to the game URL (`&variant=b` or `&variant=c` for the other two). Debug line-up of every style: `?look=table&lineup` (whole-board scale), `&lineup=close` (lean in on White's rows), `&lineup=closeb` (Black's rows). The line-up replaces the match's units in the view only.
+
+## Variants (round 2, 2026-10-11)
+
+Owner feedback on round 1: right direction; show 2–3 variants; make the map bigger on screen; pieces need contrast or contour (their colours blended at distance); then (later the same day) pieces 20–25% smaller, verticality on the map, bigger Bastions and Thrones so the map feels larger. All three variants share the fixes below and differ in mood, palette, contour treatment and camera tilt.
+
+|                            | **a · Tournament Night** (recommended)                                     | **b · Club Daylight**                                          | **c · Spotlight Arena**                                                              |
+| -------------------------- | -------------------------------------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| Mood                       | Round 1's walnut hall at night, board pushed darker and greyer             | Bright club room: grey-blue hall, light ash table              | Black hall, near-black slate board under a spotlight                                 |
+| Ground                     | Desaturated mid-dark squares #6f675a / #4c463e, deep bottle felt #2c4a43   | Cool grey stone #a3a7aa / #7b8085, mid slate-blue felt #56728e | Slate #3b4047 / #2b2f35, graphite-teal felt #1e2d30, bright brass lane edges         |
+| White                      | Ivory, thin **dark ink** contour (1.15 px), **gold base ring**             | Ivory, **heavy dark ink** (2 px), cream base disc              | Ivory, **glowing gold contour** (1.2 px) and gold rim light, additive gold ring      |
+| Black                      | Ebony, thin **cobalt contour** (1 px) + cool rim light, **blue base ring** | Ebony, dark ink (1.6 px) + pale rim light, black base disc     | Lifted gunmetal body, **glowing cyan contour** + strong cyan rim, additive cyan ring |
+| Portrait tilt              | 48°                                                                        | 40°                                                            | 54°                                                                                  |
+| Board on screen at 390×844 | 46% of the screen (47% of its height)                                      | 40% (41%)                                                      | 51% (52%)                                                                            |
+
+Round 1 at 390×844 framed the board in **28% of the screen (30% of its height)**, measured the same way (bounding box of the lanes and bases).
+
+- **a** keeps round 1's identity and fixes the blending with three cues that each work alone: value (ivory on mid-dark, ebony lifted by a cobalt edge), a team-coloured ring under every piece and pawn, and an outline in a team colour. It is the calmest read at phone scale. **Recommended.**
+- **b** is the "board game box" read: light ground, every piece inked like a printed counter. Clean in daylight and on bright phones; Black reads least strongly of the three on the slate felt, and its tilt is the lowest (smallest board).
+- **c** is the loudest and the most readable at a glance (gold against cyan, both glow on near-black), and has the biggest board (steepest tilt), but it drifts from the warm tournament-table identity toward a neon arena, and Black stops being black (gunmetal with cyan edges).
+
+### Shared fixes (every variant)
+
+- **Bigger board:** the camera fits the board inside the new phone HUD's free space: it reads `--hud-top` / `--hud-bottom` (and `--hud-left` / `--hud-right`) from the root element and falls back to 90 px / 150 px in portrait (full width for the board), re-checking once a second. Portrait is width-bound, so the gain comes from a steeper tilt per variant and from fitting the lanes to their centre line plus a piece width (only a sliver of felt at the two outer lane corners can touch the screen edge). Landscape and desktop search the variant's tilt range for the tilt that frames the board biggest.
+- **Contour:** inverted-hull outlines on every piece **and** on the instanced pawns and pawnlings, in a per-team colour and a fixed CSS-pixel width; a team base ring (instanced, one draw call) under every piece and pawn; per-team rim light; contact shadows strength per variant.
+- **Smaller pieces:** on-screen height is about 78% of round 1 (King 26 px at 390×844, was 33–34); the view corrects the world size for the tilt so the size is the same whatever the screen shape. Pawns, pawnlings and bases follow.
+- **Relief (verticality):** lanes are the floor; the chessboard squares between them stand up as raised blocks (a two-height checker, 32 / 42 units, bevelled); bases are two-tier daises (22 / 42); jungle courts are stepped pits (−9 / −18) under their iron gates; every Bastion stands on a raised marble tile (14) edged in brass. View only: units sample the same height grid, so they climb the ramps and step into courts; the sim stays flat. One 150×150 grid mesh with smooth normals carries the painted top (`src/render/table/relief.ts`).
+- **Landmarks:** Bastions drawn 1.45× and Thrones 1.4× round 1's size.
 
 ## What it is
 
 - One real chessboard on a walnut table in a dark tournament hall, under a **fixed war-table camera** that frames the whole board (portrait: White at the bottom; landscape and desktop: White on the left).
 - Lanes are **felt runners edged in brass** over an 8×8 board in mid tones; jungle courts are **recessed squares** (iron gates while closed); bases are brass-ringed marble medallions; notation a–h / 1–8 on the frame; LEFT / MID / RIGHT painted at White's lane mouths.
-- Pieces are **chunky, faceted humanoids** (flat-shaded low poly, in the spirit of Absolver and Risk of Rain 2) at **miniature scale**: drawn about 3.3× their old world size, on round bases with a team-metal rim and a style-coloured top.
+- Pieces are **chunky, faceted humanoids** (flat-shaded low poly, in the spirit of Absolver and Risk of Rain 2) at **miniature scale**, on round bases with a team-metal rim and a style-coloured top, over a team-coloured ring.
 - **Follow** (camera button or portrait tap) leans in on the followed piece (about 2.4×); Auto and Free show the whole board.
 
 ## Palette and materials
+
+The table below is round 1 (variant `a` keeps the hall, frame, brass and team colours; its board and felt are darker and greyer). Every variant's full palette lives in `src/render/table/palette.ts` (`LOOKS`).
 
 | Use                                            | Value                                                             |
 | ---------------------------------------------- | ----------------------------------------------------------------- |
@@ -68,7 +97,9 @@ Before Rank 4 a piece wears only team colours (team cloth instead of the style c
 
 ## Scale rules (measured)
 
-Fixed whole-board view, seed 42, 0:40 into Act 1 (`window.__tvMeasure()` in dev; CSS px, foot to crown):
+Round 2, variant `a` (fixed whole-board view, seed 42, 0:40 into Act 1, CSS px foot to crown): 390×844 King 26, Queen 25, Bishop 23, Knight 22, Rook 20, pawn 11, pawnling 7.3; 844×390 KING_L; 1440×900 KING_D. Board box with `window.__tvBoard()` in dev.
+
+Round 1 (prototype):
 
 |                 | 390×844 | 844×390 | 1440×900 |
 | --------------- | ------- | ------- | -------- |
@@ -82,7 +113,7 @@ Fixed whole-board view, seed 42, 0:40 into Act 1 (`window.__tvMeasure()` in dev;
 The current look shows the same pieces at about 9–16 px on its default camera at 0:40 in portrait (12–17 px in landscape) and 8–12 px on wide shots, so the table look is about 2.2–2.5× taller on a phone. Badges never outgrow the piece: one rank numeral on the base front (8 px, at most 30% of the piece), style emblems only when leaning in or on the followed piece; health bars are 2.4 px tall and no wider than the piece; buildings show a bar only once damaged.
 
 - Pieces are drawn bigger than their sim footprint, so the view **spreads crowded pieces** a little (visual offset up to 46 units, eased; pushed off Bastions and Thrones). The sim never sees it; picking and effects use the drawn position.
-- Portrait is width-limited (the diamond board is as wide as it is tall), so there is spare height above and below the board: that's where a C2-style HUD (clock and capture trays on top, portraits in a row at the bottom) would go instead of the side columns.
+- Portrait is width-limited (the diamond board is as wide as it is tall). Round 2 spends the spare height on a steeper tilt and leaves the top and bottom bands to the phone HUD.
 
 ## Motion rules
 
@@ -92,6 +123,10 @@ The current look shows the same pieces at about 9–16 px on its default camera 
 - Pawns and pawnlings hop and lean (instanced, no limbs); structures darken and redden as they lose health and burst into stone and roof chips when they fall; the camera shakes only on structure falls and Checkmate.
 
 ## Performance
+
+Round 2 (variant `a`, phone viewport, big fight): PERF_LINE
+
+Round 1:
 
 - One draw call (plus an outline) per piece; everything else is instanced: pawnlings, pawns, bases, blob shadows, chips, bolts, buildings and neutrals are one draw call per kind and side. One shared material program for all modelled things.
 - Measured: about 78 draw calls and 22k triangles in an early skirmish on a phone viewport; 92 calls and 28k triangles in a late big fight; 117 calls and 45k triangles on desktop with the shadow pass. The board top is one 2048² (phone) or 3072² (desktop) texture; no per-frame allocations in the unit loop.
