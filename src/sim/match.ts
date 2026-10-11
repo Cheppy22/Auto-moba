@@ -15,7 +15,8 @@ import { POISON_MOD, cardBlock, initHands, tickGambits } from './gambits';
 import { createKeeper } from './keeper';
 import { tickObelisks } from './obelisks';
 import { pawnCap, pawnsAlive } from './pawns';
-import { cardCost, pawnCost } from './relics';
+import { cardCost, formationError, pawnCost, refillSec, tempoCap } from './relics';
+import { bannerZones, freshRelicRun, tickRelics } from './relicsLive';
 import { actTicks, enterAct } from './phase';
 import { bellTimeScale, frozen, freshBell, tickBell } from './bell';
 import { freshTally } from './actReport';
@@ -48,6 +49,7 @@ import type {
   MatchState,
   PlayTeam,
   Recorder,
+  RelicAim,
   RelicMode,
   Replay,
   ReplayOp,
@@ -135,6 +137,7 @@ function initialState(content: Content, config: MatchConfig): MatchState {
     actTally: freshTally(0),
     feedback: freshFeedback(),
     relics: {
+      run: freshRelicRun(),
       held: { A: [], B: [] },
       offers: { A: [], B: [] },
       settled: { A: true, B: true },
@@ -144,6 +147,8 @@ function initialState(content: Content, config: MatchConfig): MatchState {
     },
   };
 }
+
+const copyAim = <T extends RelicAim>(a: T): T => ({ ...a, quota: a.quota ? { ...a.quota } : null });
 
 function relicModes(config: MatchConfig): Record<PlayTeam, RelicMode> {
   const manual = config.pauseForBreak ?? false;
@@ -231,6 +236,7 @@ function stepTick(ctx: Ctx): void {
   tickCampRespawns(ctx);
   tickForks(ctx);
   tickGambits(ctx);
+  tickRelics(ctx);
   const order: PlayTeam[] = Math.floor(s.tick / 20) % 2 === 0 ? ['A', 'B'] : ['B', 'A'];
   for (const team of order) {
     for (const id of s.teams[team].heroIds) {
@@ -515,30 +521,37 @@ export class Match {
       check: { ...s.check },
       throneDown: { ...s.throneDown },
       opening: s.phase.kind === 'setup' ? { A: null, B: null } : { ...s.opening },
-      zones: s.zones.map((z) => {
-        const wall = z.wall;
-        return {
-          kind: z.kind,
-          team: z.team,
-          ...(z.lane ? { lane: z.lane } : {}),
-          x: z.x,
-          y: z.y,
-          radius: z.radius,
-          ...(wall ? { angle: Math.atan2(wall.by - wall.ay, wall.bx - wall.ax) } : {}),
-          ticksLeft: Math.max(0, z.endTick - s.tick),
-        };
-      }),
+      zones: [
+        ...s.zones.map((z) => {
+          const wall = z.wall;
+          return {
+            kind: z.kind,
+            team: z.team,
+            ...(z.lane ? { lane: z.lane } : {}),
+            x: z.x,
+            y: z.y,
+            radius: z.radius,
+            ...(wall ? { angle: Math.atan2(wall.by - wall.ay, wall.bx - wall.ax) } : {}),
+            ticksLeft: Math.max(0, z.endTick - s.tick),
+          };
+        }),
+        ...bannerZones(this.ctx, s.phase.startTick + actTicks(this.ctx)),
+      ],
       momentum: laneMomentum(this.ctx),
       relics: {
         held: {
-          A: s.relics.held.A.map((h) => ({ ...h })),
-          B: s.relics.held.B.map((h) => ({ ...h })),
+          A: s.relics.held.A.map(copyAim),
+          B: s.relics.held.B.map(copyAim),
         },
-        offers: s.relics.offers.A.map((o) => ({ ...o, aim: { ...o.aim } })),
+        offers: s.relics.offers.A.map((o) => ({ ...o, aim: copyAim(o.aim) })),
         settled: s.relics.settled.A,
         latest: { ...s.relics.latest },
         behind: { ...s.relics.behind },
+        formation: formationError(this.ctx, 'A'),
+        pawnCap: pawnCap(this.ctx, 'A', s.phase.n + 1),
       },
+      tempoMax: tempoCap(this.ctx, 'A'),
+      handRefillSec: refillSec(this.ctx, 'A'),
     };
   }
 

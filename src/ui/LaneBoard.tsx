@@ -7,11 +7,16 @@ export interface BoardPiece {
 }
 
 /** Moves a piece to a lane; if that lane is full it swaps with the piece already there. */
-export function moveToLane<T extends BoardPiece>(list: T[], piece: PieceId, lane: LaneId): T[] {
+export function moveToLane<T extends BoardPiece>(
+  list: T[],
+  piece: PieceId,
+  lane: LaneId,
+  slots: Record<LaneId, number> = LANE_SLOTS,
+): T[] {
   const mine = list.find((e) => e.piece === piece);
   if (!mine || mine.lane === lane) return list;
   const there = list.filter((e) => e.lane === lane);
-  const swap = there.length >= LANE_SLOTS[lane] ? there[0] : null;
+  const swap = there.length >= slots[lane] ? there[0] : null;
   return list.map((e) => {
     if (e === mine) return { ...e, lane };
     if (swap && e === swap) return { ...e, lane: mine.lane };
@@ -38,11 +43,14 @@ export function LaneBoard(props: {
   onSelect: (piece: PieceId | null) => void;
   onChange: (next: BoardPiece[]) => void;
   testid?: string;
+  /** Pieces each lane holds (Battery lets one lane hold three). */
+  slots?: Record<LaneId, number>;
 }) {
+  const slots = props.slots ?? LANE_SLOTS;
   const { pieces, selected } = props;
   const zoneTap = (lane: LaneId): void => {
     if (!selected) return;
-    props.onChange(moveToLane(pieces, selected, lane));
+    props.onChange(moveToLane(pieces, selected, lane, slots));
   };
   const chipTap = (piece: PieceId, lane: LaneId): void => {
     if (selected && selected !== piece) {
@@ -58,7 +66,7 @@ export function LaneBoard(props: {
     <div class="laneboard" data-testid={props.testid ?? 'lane-board'}>
       {LANES.map((lane) => {
         const here = pieces.filter((e) => e.lane === lane);
-        const free = LANE_SLOTS[lane] - here.length;
+        const free = slots[lane] - here.length;
         return (
           <div
             key={lane}
@@ -66,7 +74,7 @@ export function LaneBoard(props: {
             data-testid={`zone-${lane}`}
             role="button"
             tabIndex={0}
-            aria-label={`${LANE_LABEL[lane]} lane, ${here.length} of ${LANE_SLOTS[lane]}`}
+            aria-label={`${LANE_LABEL[lane]} lane, ${here.length} of ${slots[lane]}`}
             onClick={() => zoneTap(lane)}
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') {
@@ -78,7 +86,7 @@ export function LaneBoard(props: {
             <div class="lane-name">
               {LANE_LABEL[lane]}
               <span class="dim">
-                {here.length}/{LANE_SLOTS[lane]}
+                {here.length}/{slots[lane]}
               </span>
             </div>
             <div class="lane-slots">

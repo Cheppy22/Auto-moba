@@ -9,7 +9,16 @@ import { enemyTowerTarget } from './ai/lanes';
 import { bindZone, noteDrain, noteHeal, startRun } from './impact';
 import { fieldPawn, pawnCap, pawnsAlive } from './pawns';
 import { teamPiece } from './pieces';
-import { LANE_SPEED_TAG, boundCards, cardCost, pawnCost } from './relics';
+import {
+  LANE_SPEED_TAG,
+  boundCards,
+  cardCost,
+  handSize,
+  pawnCost,
+  refillSec,
+  tempoCap,
+  tempoRate,
+} from './relics';
 import { addMod } from './stats';
 import { LANES, lanePoint } from './world/map';
 import { confine, shapeDist, walkable, type WalkShape } from './world/terrain';
@@ -31,7 +40,7 @@ const p = (def: GambitDef, key: string, fallback: number): number => def.params[
 export function addTempo(ctx: Ctx, team: PlayTeam, amount: number): void {
   if (amount <= 0) return;
   ctx.s.actTally.tempo[team] += amount;
-  ctx.s.tempo[team] = Math.min(ctx.t.gambits.tempoMax, ctx.s.tempo[team] + amount);
+  ctx.s.tempo[team] = Math.min(tempoCap(ctx, team), ctx.s.tempo[team] + amount);
 }
 
 function alivePieces(ctx: Ctx, team: PlayTeam): Unit[] {
@@ -79,6 +88,17 @@ export function dropBoundCards(ctx: Ctx, team: PlayTeam): void {
   ctx.s.hands[team].forEach((h, i) => {
     if (h.cardId !== null && bound.includes(h.cardId)) deal(ctx, team, i);
   });
+}
+
+/** Quiet Move shrinks the hand to two cards; losing it deals the third back. */
+export function syncHands(ctx: Ctx, team: PlayTeam): void {
+  const hand = ctx.s.hands[team];
+  const want = handSize(ctx, team);
+  while (hand.length > want) hand.pop();
+  while (hand.length < want) {
+    hand.push({ cardId: null, expireTick: 0, refillTick: null });
+    deal(ctx, team, hand.length - 1);
+  }
 }
 
 export function initHands(ctx: Ctx): void {
@@ -129,7 +149,7 @@ function timedMod(
   });
 }
 
-function setOrder(ctx: Ctx, u: Unit, order: GambitOrder): void {
+export function setOrder(ctx: Ctx, u: Unit, order: GambitOrder): void {
   const h = u.hero!;
   h.order = order;
   h.goalSetTick = -999;
@@ -522,6 +542,25 @@ function applyCard(ctx: Ctx, team: PlayTeam, def: GambitDef, t: GambitTarget): v
   }
 }
 
+/** Pays for a card, runs it and logs it (shared by the hand and by Sealed Move). */
+function cast(
+  ctx: Ctx,
+  team: PlayTeam,
+  def: GambitDef,
+  target: GambitTarget,
+  cost: number,
+): CommandResult {
+  const t = validTarget(ctx, team, def, target);
+  if (typeof t === 'string') return { ok: false, reason: t };
+  ctx.s.tempo[team] -= cost;
+  const run = startRun(ctx, team, def, t);
+  const zones = ctx.s.zones.length;
+  applyCard(ctx, team, def, t);
+  if (ctx.s.zones.length > zones) bindZone(run, ctx.s.zones[ctx.s.zones.length - 1]);
+  ctx.emit('gambit', { team, cardId: def.id, ...t });
+  return { ok: true };
+}
+
 /** Plays the card in a team's hand slot (validates everything first). */
 export function playGambit(
   ctx: Ctx,
@@ -537,17 +576,23 @@ export function playGambit(
   if (block) return { ok: false, reason: block };
   const h = ctx.s.hands[team][slot];
   const def = ctx.c.gambitById.get(h.cardId!)!;
-  const t = validTarget(ctx, team, def, target);
-  if (typeof t === 'string') return { ok: false, reason: t };
-  ctx.s.tempo[team] -= cardCost(ctx, team, def);
-  const run = startRun(ctx, team, def, t);
-  const zones = ctx.s.zones.length;
-  applyCard(ctx, team, def, t);
-  if (ctx.s.zones.length > zones) bindZone(run, ctx.s.zones[ctx.s.zones.length - 1]);
+  const r = cast(ctx, team, def, target, cardCost(ctx, team, def));
+  if (!r.ok) return r;
   h.cardId = null;
-  h.refillTick = ctx.s.tick + Math.round(ctx.t.gambits.refillSec * TPS);
-  ctx.emit('gambit', { team, cardId: def.id, ...t });
+  h.refillTick = ctx.s.tick + Math.round(refillSec(ctx, team) * TPS);
   return { ok: true };
+}
+
+/**
+ * Sealed Move: the AI's targeting picks where the card goes. Plays it for `cost` Tempo when it has
+ * a target, its piece is up and the Tempo is there; false otherwise (the caller waits and retries).
+ */
+export function playSealed(ctx: Ctx, team: PlayTeam, def: GambitDef, cost: number): boolean {
+  if (ctx.s.tempo[team] < cost) return false;
+  if (def.piece && !teamPiece(ctx, team, def.piece)?.alive) return false;
+  const target = plan(ctx, team, def)?.target;
+  if (!target) return false;
+  return cast(ctx, team, def, target, cost).ok;
 }
 
 // ---------------------------------------------------------------- tick
@@ -555,8 +600,8 @@ export function playGambit(
 export function tickGambits(ctx: Ctx): void {
   const s = ctx.s;
   if (s.tick % TPS === 0) {
-    addTempo(ctx, 'A', ctx.t.gambits.tempoPerSec);
-    addTempo(ctx, 'B', ctx.t.gambits.tempoPerSec);
+    addTempo(ctx, 'A', tempoRate(ctx, 'A'));
+    addTempo(ctx, 'B', tempoRate(ctx, 'B'));
   }
   for (const team of ['A', 'B'] as PlayTeam[]) {
     const hand = s.hands[team];
@@ -1023,6 +1068,6 @@ export function aiGambits(ctx: Ctx, team: PlayTeam): void {
   const cost = pawnCost(ctx, team);
   const reserve = wanted > 0 ? wanted : 20;
   if (pawnsAlive(ctx, team) >= pawnCap(ctx, team)) return;
-  if (s.tempo[team] >= cost + reserve || s.tempo[team] >= ctx.t.gambits.tempoMax - 10)
+  if (s.tempo[team] >= cost + reserve || s.tempo[team] >= tempoCap(ctx, team) - 10)
     fieldPawn(ctx, team, pawnLane(ctx, team));
 }

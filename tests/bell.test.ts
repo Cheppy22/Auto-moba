@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Match } from '../src/sim';
 import { tickBell } from '../src/sim/bell';
+import { formationError } from '../src/sim/relics';
 import { content, liveMatch, logHash, piece, toAct, toBell } from './helpers';
 
 const TPS = content.tuning.tickRate;
@@ -92,7 +93,7 @@ describe('the Act break', () => {
     expect(ticks).toBe(bell.calmSec * TPS);
   });
 
-  it('is deterministic with the sheet, replays exactly, and keeps lanes 2/2/1 after AI re-plans', () => {
+  it('is deterministic with the sheet, replays exactly, and keeps lanes 2/2/1 (3/1/1 with Battery) after AI re-plans', () => {
     const a = playToResume(5);
     expect(logHash(playToResume(5))).toBe(logHash(a));
     const again = Match.fromReplay(content, JSON.parse(JSON.stringify(a.exportReplay())));
@@ -101,7 +102,11 @@ describe('the Act break', () => {
     for (const seed of [1, 2, 3, 4]) {
       const m = liveMatch(seed);
       toAct(m, 4);
-      for (const team of ['A', 'B'] as const) expect(laneCounts(m, team)).toBe('2/1/2');
+      for (const team of ['A', 'B'] as const) {
+        expect(formationError(m.ctx, team)).toBeNull();
+        if (!m.state.relics.held[team].some((h) => h.id === 'battery'))
+          expect(laneCounts(m, team)).toBe('2/1/2');
+      }
     }
   });
 });

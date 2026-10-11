@@ -1,5 +1,21 @@
-import type { Content, RelicAim, RelicDef, RelicFamily, Unit } from '../sim';
-import { LANE_LABEL, pieceLabel } from './pieces';
+import type { Content, RelicAim, RelicDef, RelicFamily, SealedTrigger, Unit } from '../sim';
+import { LANES, LANE_LABEL, LANE_TAG, pieceLabel } from './pieces';
+
+/** Sealed Move triggers in full (the picker) and in brief (the seal row and held card). */
+export const TRIGGER_LABEL: Record<SealedTrigger, string> = {
+  bastion: 'One of my Bastions drops below 50%',
+  kill: 'An enemy piece dies',
+  guarded: 'My Crown Jewel or Guarded piece drops below 40%',
+  lane3: '3 or more enemy pieces in one lane',
+  clock: 'The Act clock reaches 2:00',
+};
+export const TRIGGER_SHORT: Record<SealedTrigger, string> = {
+  bastion: 'Bastion under 50%',
+  kill: 'Enemy piece dies',
+  guarded: 'Key piece under 40%',
+  lane3: '3+ enemies in a lane',
+  clock: 'Clock at 2:00',
+};
 
 export const FAMILY_ORDER: RelicFamily[] = ['lane', 'carry', 'pawns', 'siege', 'orders'];
 
@@ -41,6 +57,12 @@ export function aimText(
     if (piece) parts.push(pieceLabel(content, piece));
   }
   if (held.card) parts.push(content.gambitById.get(held.card)?.name ?? held.card);
+  if (held.trigger) parts.push(TRIGGER_SHORT[held.trigger]);
+  const q = held.quota;
+  if (q) {
+    const lanes = LANES.map((l) => `${LANE_TAG[l]}${q[l]}`).join(' ');
+    parts.push(`${lanes}, reserve ${held.reserve ?? 0}`);
+  }
   return parts.join(' · ');
 }
 

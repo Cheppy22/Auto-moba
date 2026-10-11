@@ -1,8 +1,19 @@
 import { useState } from 'preact/hooks';
-import type { HeldRelic, LaneId, RelicAim, RelicDef, RelicOffer, Snapshot } from '../../sim';
+import type {
+  HeldRelic,
+  LaneId,
+  RelicAim,
+  RelicDef,
+  RelicOffer,
+  SealedTrigger,
+  Snapshot,
+} from '../../sim';
+import { SEALED_TRIGGERS } from '../../sim';
+import { useLayout } from '../layout';
 import { whitePieces } from '../Orders';
 import { LANES, LANE_LABEL, LANE_TAG, PieceGlyph, pieceLabel } from '../pieces';
-import { FAMILY_COLOR, FamilyChip, RelicSeal, aimText, bindsLane } from '../relics';
+import { FAMILY_COLOR, FamilyChip, RelicSeal, TRIGGER_LABEL, aimText, bindsLane } from '../relics';
+import { SCHOOL_NAME } from '../schools';
 import { useSession } from '../session';
 
 type Pick = Partial<RelicAim>;
@@ -92,16 +103,159 @@ function CardChips(props: {
   );
 }
 
-/** The chips a relic takes: a lane, a piece, or a lane and a card. */
-function AimControl(props: {
-  def: RelicDef;
+/** Sealed Move: a card from the Opening's schools and a trigger, as two compact pickers. */
+function SealedControls(props: {
   aim: RelicAim;
+  guardedOk: boolean;
   onChange: (patch: Pick) => void;
   testid: string;
 }) {
+  const s = useSession();
+  const schools = s.content.openingById.get(s.match!.state.opening.A)?.schools ?? [];
+  const cards = s.content.gambits.filter(
+    (g) => g.weight > 0 && (schools.length === 0 || schools.includes(g.school)),
+  );
+  const groups = [...new Set(cards.map((g) => g.school))];
+  const discount = s.content.relicById.get('sealed_move')?.params.discount ?? 10;
+  return (
+    <div class="rl-sealed">
+      <label class="rl-pick">
+        <span class="rl-aim-label">Card</span>
+        <select
+          value={props.aim.card ?? ''}
+          data-testid={`${props.testid}-card`}
+          aria-label="Sealed card"
+          onChange={(e) => props.onChange({ card: e.currentTarget.value })}
+        >
+          {groups.map((school) => (
+            <optgroup key={school} label={SCHOOL_NAME[school]}>
+              {cards
+                .filter((g) => g.school === school)
+                .map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {g.name} ({Math.max(0, g.cost - discount)} Tempo)
+                  </option>
+                ))}
+            </optgroup>
+          ))}
+        </select>
+      </label>
+      <label class="rl-pick">
+        <span class="rl-aim-label">When</span>
+        <select
+          value={props.aim.trigger ?? ''}
+          data-testid={`${props.testid}-trigger`}
+          aria-label="Sealed trigger"
+          onChange={(e) => props.onChange({ trigger: e.currentTarget.value as SealedTrigger })}
+        >
+          {SEALED_TRIGGERS.map((t) => (
+            <option key={t} value={t} disabled={t === 'guarded' && !props.guardedOk}>
+              {TRIGGER_LABEL[t]}
+            </option>
+          ))}
+        </select>
+      </label>
+    </div>
+  );
+}
+
+/** Pawn Structure: a stepper per lane (at most the pawn cap in all) and three Tempo reserves. */
+function QuotaControls(props: {
+  aim: RelicAim;
+  cap: number;
+  reserves: number[];
+  onChange: (patch: Pick) => void;
+  testid: string;
+}) {
+  const quota = props.aim.quota ?? { top: 0, mid: 0, bot: 0 };
+  const total = LANES.reduce((n, l) => n + quota[l], 0);
+  const set = (lane: LaneId, delta: number): void => {
+    const value = quota[lane] + delta;
+    if (value < 0 || total + delta > props.cap) return;
+    props.onChange({ quota: { ...quota, [lane]: value } });
+  };
+  return (
+    <div class="rl-quota">
+      <div class="rl-steppers" role="group" aria-label="Pawns to keep in each lane">
+        {LANES.map((lane) => (
+          <div class="rl-stepper" key={lane}>
+            <span class="rl-aim-label">{LANE_LABEL[lane]}</span>
+            <button
+              class="rl-step"
+              aria-label={`Fewer pawns in the ${LANE_LABEL[lane]} lane`}
+              data-testid={`${props.testid}-${lane}-minus`}
+              disabled={quota[lane] <= 0}
+              onClick={() => set(lane, -1)}
+            >
+              −
+            </button>
+            <b data-testid={`${props.testid}-${lane}`}>{quota[lane]}</b>
+            <button
+              class="rl-step"
+              aria-label={`More pawns in the ${LANE_LABEL[lane]} lane`}
+              data-testid={`${props.testid}-${lane}-plus`}
+              disabled={total >= props.cap}
+              onClick={() => set(lane, 1)}
+            >
+              +
+            </button>
+          </div>
+        ))}
+        <span class="rl-total" data-testid={`${props.testid}-total`}>
+          {total}/{props.cap}
+        </span>
+      </div>
+      <div class="rl-aim" role="radiogroup" aria-label="Tempo reserve">
+        <span class="rl-aim-label">Reserve</span>
+        {props.reserves.map((r) => (
+          <button
+            key={r}
+            class={`rl-chip ${props.aim.reserve === r ? 'on' : ''}`}
+            role="radio"
+            aria-checked={props.aim.reserve === r}
+            data-testid={`${props.testid}-reserve-${r}`}
+            onClick={() => props.onChange({ reserve: r })}
+          >
+            {r}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** The controls a relic takes: a lane, a piece, a lane and a card, a card and a trigger, or quotas. */
+function AimControl(props: {
+  def: RelicDef;
+  aim: RelicAim;
+  snap: Snapshot;
+  onChange: (patch: Pick) => void;
+  testid: string;
+}) {
+  const s = useSession();
   const { def, aim } = props;
+  const guardedOk = props.snap.relics.held.A.some(
+    (h) => (h.id === 'crown_jewel' || h.id === 'guarded_piece') && h.piece !== null,
+  );
   return (
     <>
+      {def.bind === 'sealed' && (
+        <SealedControls
+          aim={aim}
+          guardedOk={guardedOk}
+          onChange={props.onChange}
+          testid={`${props.testid}-sealed`}
+        />
+      )}
+      {def.bind === 'quota' && (
+        <QuotaControls
+          aim={aim}
+          cap={props.snap.relics.pawnCap}
+          reserves={s.content.tuning.relics.reserves}
+          onChange={props.onChange}
+          testid={`${props.testid}-quota`}
+        />
+      )}
       {def.bind === 'laneCard' && (
         <CardChips
           def={def}
@@ -117,6 +271,9 @@ function AimControl(props: {
           testid={`${props.testid}-lane`}
           label={`${def.name} lane`}
         />
+      )}
+      {def.id === 'battery' && (
+        <p class="rl-note">Taking or aiming it moves your pieces to 3/1/1. Fine-tune in Orders.</p>
       )}
       {def.bind === 'piece' && (
         <PieceChips
@@ -134,10 +291,12 @@ function OfferCard(props: {
   offer: RelicOffer;
   def: RelicDef;
   aim: RelicAim;
+  snap: Snapshot;
   onAim: (patch: Pick) => void;
   take: { label: string; disabled: boolean; onTake: () => void };
 }) {
   const { offer, def } = props;
+  const layout = useLayout();
   return (
     <article
       class={`rcard ${offer.tailored ? 'tailored' : ''} ${def.rally ? 'rally' : ''}`}
@@ -160,12 +319,15 @@ function OfferCard(props: {
         </div>
       </header>
       <p class="rcard-desc">{def.desc}</p>
-      <dl class="rcard-facts">
-        <dt>Rewards</dt>
-        <dd>{def.rewards}</dd>
-        <dt>Counter</dt>
-        <dd>{def.counter}</dd>
-      </dl>
+      <details class="rcard-more" open={layout !== 'portrait'}>
+        <summary>Rewards and counter</summary>
+        <dl class="rcard-facts">
+          <dt>Rewards</dt>
+          <dd>{def.rewards}</dd>
+          <dt>Counter</dt>
+          <dd>{def.counter}</dd>
+        </dl>
+      </details>
       {offer.why && (
         <p class="rcard-why" data-testid={`relic-why-${def.id}`}>
           <i>Offered because</i> {offer.why}
@@ -175,6 +337,7 @@ function OfferCard(props: {
         <AimControl
           def={def}
           aim={props.aim}
+          snap={props.snap}
           onChange={props.onAim}
           testid={`relic-aim-${def.id}`}
         />
@@ -191,12 +354,19 @@ function OfferCard(props: {
   );
 }
 
-function HeldCard(props: { held: HeldRelic; def: RelicDef }) {
+function HeldCard(props: { held: HeldRelic; def: RelicDef; snap: Snapshot }) {
   const s = useSession();
   const { held, def } = props;
   const m = s.match!;
   const where = aimText(s.content, held, (id) => m.unitById(id));
-  const aim: RelicAim = { lane: held.lane, piece: held.piece, card: held.card };
+  const aim: RelicAim = {
+    lane: held.lane,
+    piece: held.piece,
+    card: held.card,
+    trigger: held.trigger,
+    quota: held.quota,
+    reserve: held.reserve,
+  };
   return (
     <article
       class="rcard held"
@@ -220,6 +390,7 @@ function HeldCard(props: { held: HeldRelic; def: RelicDef }) {
         <AimControl
           def={def}
           aim={aim}
+          snap={props.snap}
           onChange={(patch) => s.issue({ type: 'aimRelic', relicId: def.id, ...patch })}
           testid={`relic-reaim-${def.id}`}
         />
@@ -287,6 +458,28 @@ export function RelicsTab(props: { snap: Snapshot }) {
               </button>
             </section>
           )}
+          <nav class="rl-strip" aria-label={`${offers.length} offers`} data-testid="relic-strip">
+            <b>{offers.length} offers:</b>
+            {offers.map((o) => {
+              const def = s.content.relicById.get(o.id)!;
+              return (
+                <button
+                  key={o.id}
+                  class="rl-strip-chip"
+                  data-testid={`relic-strip-${def.id}`}
+                  style={{ '--family': FAMILY_COLOR[def.family] }}
+                  onClick={() =>
+                    document
+                      .querySelector(`[data-testid="relic-offer-${def.id}"]`)
+                      ?.scrollIntoView({ block: 'start', behavior: 'smooth' })
+                  }
+                >
+                  <RelicSeal family={def.family} size={18} />
+                  <span>{def.name}</span>
+                </button>
+              );
+            })}
+          </nav>
           <div class="rl-offers" data-testid="relic-offers">
             {offers.map((o) => {
               const def = s.content.relicById.get(o.id)!;
@@ -296,6 +489,7 @@ export function RelicsTab(props: { snap: Snapshot }) {
                   offer={o}
                   def={def}
                   aim={aimOf(o)}
+                  snap={props.snap}
                   onAim={(patch) => setAims({ ...aims, [o.id]: { ...aimOf(o), ...patch } })}
                   take={{
                     label: full ? 'Replace and take' : 'Take this relic',
@@ -333,7 +527,9 @@ export function RelicsTab(props: { snap: Snapshot }) {
             break.
           </p>
         ) : (
-          held.A.map((h) => <HeldCard key={h.id} held={h} def={s.content.relicById.get(h.id)!} />)
+          held.A.map((h) => (
+            <HeldCard key={h.id} held={h} def={s.content.relicById.get(h.id)!} snap={props.snap} />
+          ))
         )}
       </section>
     </div>

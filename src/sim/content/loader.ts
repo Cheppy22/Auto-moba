@@ -142,6 +142,9 @@ export function validateRefs(c: Content): string[] {
     for (const card of r.cards)
       if (!c.gambitById.has(card)) errs.push(`relic ${r.id}: unknown card ${card}`);
     if (r.bind === 'laneCard' && r.cards.length === 0) errs.push(`relic ${r.id}: needs cards`);
+    for (const cards of Object.values(r.triggerCards))
+      for (const card of cards)
+        if (!c.gambitById.has(card)) errs.push(`relic ${r.id}: unknown trigger card ${card}`);
   }
   if (!c.openingById.has('italian')) errs.push('openings: needs the balanced "italian" opening');
   if (!c.gambits.some((g) => g.piece === null && g.weight > 0))

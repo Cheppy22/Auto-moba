@@ -10,7 +10,10 @@
       "rewards": "One committed push lane.",
       "counter": "Position: Barricade stalls the faster wave. Fortress: Hold the File outlasts it.",
       "tags": ["march", "position", "pawn-heavy"],
-      "params": { "speedMul": 1.12, "otherMul": 0.96 }
+      "params": {
+        "speedMul": 1.12,
+        "otherMul": 0.96
+      }
     },
     {
       "id": "closed_position",
@@ -40,7 +43,11 @@
       "rewards": "Pick one carry and build the team around it.",
       "counter": "Initiative: Check and Fork on the obvious target.",
       "tags": ["initiative", "sacrifice"],
-      "params": { "damageMul": 1.12, "healthMul": 1.08, "othersMul": 0.97 }
+      "params": {
+        "damageMul": 1.12,
+        "healthMul": 1.08,
+        "othersMul": 0.97
+      }
     },
     {
       "id": "development",
@@ -52,7 +59,10 @@
       "rewards": "Decide who reaches Rank 8 first.",
       "counter": "Focus it: every kill pays the enemy more.",
       "tags": ["initiative", "gambit-heavy"],
-      "params": { "incomeMul": 1.2, "bountyMul": 1.5 }
+      "params": {
+        "incomeMul": 1.2,
+        "bountyMul": 1.5
+      }
     },
     {
       "id": "pawn_majority",
@@ -64,7 +74,11 @@
       "rewards": "A pawn-heavy doctrine.",
       "counter": "Area damage clears them. Fortress soaks cheap pushes.",
       "tags": ["march", "pawn-heavy", "warlord", "bastion", "light", "sovereign", "paladin"],
-      "params": { "cost": 12, "capBonus": 2, "healthMul": 0.9 }
+      "params": {
+        "cost": 12,
+        "capBonus": 2,
+        "healthMul": 0.9
+      }
     },
     {
       "id": "pawn_lever",
@@ -76,7 +90,9 @@
       "rewards": "Pick the lane to crack; send pawns and the Ram.",
       "counter": "Fortress: Hold the File and Closed Position. A Bastion Rook.",
       "tags": ["march", "pawn-heavy", "ram"],
-      "params": { "structureMul": 1.2 }
+      "params": {
+        "structureMul": 1.2
+      }
     },
     {
       "id": "opening_theory",
@@ -88,7 +104,11 @@
       "rewards": "Commit to your Opening.",
       "counter": "The schools that counter your Opening's.",
       "tags": ["opening", "gambit-heavy"],
-      "params": { "favoured": -5, "other": 5, "italian": -2 }
+      "params": {
+        "favoured": -5,
+        "other": 5,
+        "italian": -2
+      }
     },
     {
       "id": "standing_order",
@@ -101,7 +121,267 @@
       "counter": "The card's own school counter: Fortress and Position against March cards.",
       "tags": ["march", "position", "fortress"],
       "cards": ["advance", "hold_the_file", "open_file", "pawn_storm"],
-      "params": { "strength": 0.5, "stormStrength": 0.3333 }
+      "params": {
+        "strength": 0.5,
+        "stormStrength": 0.3333
+      }
+    },
+    {
+      "id": "sealed_move",
+      "name": "Sealed Move",
+      "family": "orders",
+      "bind": "sealed",
+      "aim": "offense",
+      "desc": "Pick one card from your Opening's schools (any school for Italian Game) and a trigger. Once per Act it plays itself when the trigger trips, aimed by the AI's targeting, for 10 Tempo less. Short of Tempo it waits 5 seconds, then lapses.",
+      "rewards": "A pre-planned answer instead of a reflex.",
+      "counter": "The card's own school counter. A trigger the enemy can bait.",
+      "tags": ["gambit-heavy", "opening"],
+      "triggerCards": {
+        "bastion": ["hold_the_file", "regroup", "barricade", "outpost", "sanctuary", "castle"],
+        "kill": ["advance", "pawn_storm", "siege", "check", "fork", "exchange"],
+        "guarded": ["sanctuary", "regroup", "hold_the_file", "outpost", "castle"],
+        "lane3": [
+          "barricade",
+          "hold_the_file",
+          "poisoned_pawn",
+          "outpost",
+          "exchange",
+          "pawn_sacrifice"
+        ],
+        "clock": ["advance", "open_file", "pawn_storm", "siege", "queens_gambit", "pawn_sacrifice"]
+      },
+      "params": {
+        "discount": 10,
+        "lapseSec": 5,
+        "clockSec": 120,
+        "bastionBelow": 0.5,
+        "guardedBelow": 0.4,
+        "stack": 3
+      }
+    },
+    {
+      "id": "pawn_structure",
+      "name": "Pawn Structure",
+      "family": "pawns",
+      "bind": "quota",
+      "aim": "offense",
+      "desc": "Set a pawn quota for each lane (at most your pawn cap) and a Tempo reserve of 0, 20 or 40. A pawn is fielded on its own in any lane under quota while Tempo is at least its cost plus the reserve. Auto pawns cost 2 less. Field Pawn still works.",
+      "rewards": "A planned pawn plan instead of live taps.",
+      "counter": "Whatever kills pawns. Poisoned Pawn and Clock drain the reserve.",
+      "tags": ["pawn-heavy", "march"],
+      "params": {
+        "discount": 2,
+        "total": 6,
+        "reserve": 20
+      }
+    },
+    {
+      "id": "wing_gambit",
+      "name": "Wing Gambit",
+      "family": "lane",
+      "bind": "lane",
+      "aim": "defense",
+      "desc": "You give up the bound lane: your Bastions there take 15% more damage. Every pawnling wave in your other two lanes gets 1 more melee pawnling.",
+      "rewards": "Give up one lane to overload two.",
+      "counter": "An Errant or a Ram split-pushes the conceded lane. March pushes it fast.",
+      "tags": ["pawn-heavy", "march", "sacrifice"],
+      "params": {
+        "takenMul": 1.15,
+        "extraMelee": 1
+      }
+    },
+    {
+      "id": "strong_square",
+      "name": "Strong Square",
+      "family": "lane",
+      "bind": "lane",
+      "aim": "defense",
+      "desc": "From each Act start a banner stands at the bound lane's river crossing all Act: allies within 160 gain 10 armor and 10 resist. An enemy piece that stands alone on it for 5 seconds topples it until the next Act.",
+      "rewards": "Hold a choke without spending cards.",
+      "counter": "Initiative: kill the holders, then topple it.",
+      "tags": ["position", "fortress"],
+      "params": {
+        "radius": 160,
+        "armor": 10,
+        "resist": 10,
+        "toppleSec": 5
+      }
+    },
+    {
+      "id": "guarded_piece",
+      "name": "Guarded Piece",
+      "family": "carry",
+      "bind": "piece",
+      "aim": "protect",
+      "desc": "The bound piece takes 12% less damage while another of your pieces is within 300.",
+      "rewards": "Pair pieces in one lane (set in Orders).",
+      "counter": "Position: Barricade or Regroup splits the pair. Lancer dives.",
+      "tags": ["fortress", "position", "bastion", "paladin"],
+      "params": {
+        "takenMul": 0.88,
+        "radius": 300
+      }
+    },
+    {
+      "id": "knights_tour",
+      "name": "Knight's Tour",
+      "family": "carry",
+      "bind": "none",
+      "aim": "offense",
+      "desc": "Your Knight moves 15% faster out of combat, deals 25% more damage to camps and earns 4 Tempo for each camp it clears.",
+      "rewards": "A roaming Knight that feeds Tempo.",
+      "counter": "Initiative: the lone Knight is a Fork or Check target.",
+      "tags": ["initiative", "gambit-heavy"],
+      "params": {
+        "speedMul": 1.15,
+        "campMul": 1.25,
+        "tempo": 4
+      }
+    },
+    {
+      "id": "kings_ransom",
+      "name": "King's Ransom",
+      "family": "carry",
+      "bind": "none",
+      "aim": "offense",
+      "rally": true,
+      "desc": "Rally. While you are in Check, the 10% team damage penalty is lifted and your other pieces take 10% less damage. King respawn time is unchanged. Off while you are not behind.",
+      "rewards": "Play a brave King without collapsing when he falls.",
+      "counter": "Push the Throne during Check: the Throne itself gains nothing.",
+      "tags": ["fortress", "sacrifice", "sovereign"],
+      "params": {
+        "takenMul": 0.9
+      }
+    },
+    {
+      "id": "pawn_chain",
+      "name": "Pawn Chain",
+      "family": "pawns",
+      "bind": "none",
+      "aim": "offense",
+      "desc": "Each of your pawns gains 4% damage and armor for every other pawn of yours within 150 (at most 12%).",
+      "rewards": "Field pawns in clumps in one lane.",
+      "counter": "Area damage (Regent, Shadow). Barricade splits the chain.",
+      "tags": ["march", "pawn-heavy", "warlord", "bastion", "light", "sovereign", "paladin"],
+      "params": {
+        "perPawn": 0.04,
+        "max": 0.12,
+        "radius": 150
+      }
+    },
+    {
+      "id": "spare_tempo",
+      "name": "Spare Tempo",
+      "family": "pawns",
+      "bind": "none",
+      "aim": "offense",
+      "desc": "Your Tempo cap is 130 (from 100). At each Act start you gain 10% of the Tempo you hold, at most 10.",
+      "rewards": "Bank for a planned burst (Check and Fork cost 75).",
+      "counter": "March: steady cheap pressure while you save.",
+      "tags": ["gambit-heavy", "initiative", "sacrifice"],
+      "params": {
+        "cap": 130,
+        "share": 0.1,
+        "bonusMax": 10
+      }
+    },
+    {
+      "id": "compensation",
+      "name": "Compensation",
+      "family": "pawns",
+      "bind": "none",
+      "aim": "offense",
+      "rally": true,
+      "desc": "Rally. While you start an Act behind: your pawn cap is 2 higher and you earn 0.25 more Tempo per second for that Act.",
+      "rewards": "Rebuild with pawns after a bad Act.",
+      "counter": "Stay even: it switches off.",
+      "tags": ["pawn-heavy", "march"],
+      "params": {
+        "capBonus": 2,
+        "tempoPerSec": 0.25
+      }
+    },
+    {
+      "id": "curtain_wall",
+      "name": "Curtain Wall",
+      "family": "siege",
+      "bind": "none",
+      "aim": "defense",
+      "desc": "Your Bastions have 15% more health. Outer Bastions regain 0.5% health per second when no enemy unit has been within 300 for 5 seconds.",
+      "rewards": "Turtle early, win late with the Queen.",
+      "counter": "March: any pawn near the wall stops the regen. Pawn Sacrifice.",
+      "tags": ["fortress", "position"],
+      "params": {
+        "healthMul": 1.15,
+        "regen": 0.005,
+        "radius": 300,
+        "quietSec": 5
+      }
+    },
+    {
+      "id": "royal_keep",
+      "name": "Royal Keep",
+      "family": "siege",
+      "bind": "none",
+      "aim": "defense",
+      "desc": "Your Throne has 20% more health and deals 25% more damage. In Endgame (Act 7 and on) your Throne takes 25% more damage instead of 50%.",
+      "rewards": "A late game with a slow, strong Queen.",
+      "counter": "Siege early, before Endgame.",
+      "tags": ["fortress", "sovereign"],
+      "params": {
+        "healthMul": 1.2,
+        "damageMul": 1.25,
+        "endgameMul": 1.25
+      }
+    },
+    {
+      "id": "quiet_move",
+      "name": "Quiet Move",
+      "family": "orders",
+      "bind": "none",
+      "aim": "offense",
+      "desc": "Your hand is 2 cards (from 3), played cards come back in 4 seconds (from 6), and you earn 20% more Tempo.",
+      "rewards": "Fewer live decisions, more pawns or Sealed Move.",
+      "counter": "Initiative: you hold fewer answers to a pick.",
+      "tags": ["pawn-heavy", "opening"],
+      "params": {
+        "hand": 2,
+        "refillSec": 4,
+        "tempoMul": 1.2
+      }
+    },
+    {
+      "id": "battery",
+      "name": "Battery",
+      "family": "lane",
+      "bind": "lane",
+      "aim": "offense",
+      "desc": "Your lanes may be 3/1/1, with three pieces in the bound lane (taking it moves your pieces). The two lone pieces gain 10% armor and resist.",
+      "rewards": "A three-piece hammer in one lane.",
+      "counter": "Area damage (Regent, Shadow) on the stack. March on a thin lane. Barricade.",
+      "tags": ["march", "initiative"],
+      "params": {
+        "armorMul": 1.1,
+        "resistMul": 1.1
+      }
+    },
+    {
+      "id": "sortie",
+      "name": "Sortie",
+      "family": "siege",
+      "bind": "none",
+      "aim": "defense",
+      "rally": true,
+      "desc": "Rally. The first time each of your Bastions drops below 50%, the nearest piece from another lane rotates to defend it for 20 seconds, and your pieces in that lane deal 15% more damage for 12 seconds. Off while you are not behind.",
+      "rewards": "Planned rotations instead of a live Regroup.",
+      "counter": "Split-push the lane the rotator left. Barricade blocks the path.",
+      "tags": ["position", "fortress"],
+      "params": {
+        "defendSec": 20,
+        "damageMul": 1.15,
+        "buffSec": 12,
+        "below": 0.5
+      }
     }
   ]
 }

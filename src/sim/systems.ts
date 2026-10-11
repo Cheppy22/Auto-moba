@@ -15,7 +15,8 @@ import {
 import { dist } from './core/math';
 import type { Ctx } from './ctx';
 import { hpPct } from './ctx';
-import { bountyMul } from './relics';
+import { bountyMul, wingMelee } from './relics';
+import { onPieceDown } from './relicsLive';
 import { giveGold } from './shop';
 import { makeMinion } from './units';
 import { LANES } from './world/map';
@@ -39,7 +40,7 @@ export function spawnWaves(ctx: Ctx): void {
     phase >= w.extraMeleeFromPhase
       ? w.extraMeleePerPhaseAfter * (phase - w.extraMeleeFromPhase + 1)
       : 0;
-  const melee = w.melee + extra;
+  const baseMelee = w.melee + extra;
   // The short mid lane would clash at the exact centre every wave; the team that "leads" alternates
   // by wave (a deterministic stagger) so the clash point drifts to either side of the centre.
   const waveNo = Math.round((ctx.s.nextWaveTick - w.firstSec * TPS) / (w.intervalSec * TPS));
@@ -47,6 +48,7 @@ export function spawnWaves(ctx: Ctx): void {
   for (const team of ['A', 'B'] as PlayTeam[]) {
     for (const lane of LANES) {
       const lead = lane === 'mid' && team === leader ? w.midLeadUnits : 0;
+      const melee = baseMelee + wingMelee(ctx, team, lane);
       const gap = ctx.t.collision.spawnGap;
       const stagger = ctx.t.collision.spawnStagger;
       // Alternating sides of the lane's centre line, so a wave marches abreast, not in single file.
@@ -171,6 +173,7 @@ function killUnit(ctx: Ctx, u: Unit): void {
       h.fall = fall;
       h.hits = [];
       noteFall(ctx, u);
+      onPieceDown(ctx, u);
       h.deaths++;
       const victimStreak = h.streak;
       h.streak = 0;

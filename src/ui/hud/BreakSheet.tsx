@@ -231,6 +231,7 @@ export function BreakSheet(props: { snap: Snapshot }) {
   if (!act.report) return null;
   const tab = s.ui.breakTab;
   const pending = !props.snap.relics.settled;
+  const formation = props.snap.relics.formation;
   return (
     <>
       <div class="break-scrim" aria-hidden="true" />
@@ -264,17 +265,21 @@ export function BreakSheet(props: { snap: Snapshot }) {
         </header>
         <div class="bs-body scroll">
           {tab === 'report' && <Report report={act.report} snap={props.snap} />}
-          {tab === 'orders' && <Orders />}
+          {tab === 'orders' && <Orders formation={props.snap.relics.formation} />}
           {tab === 'relics' && <RelicsTab snap={props.snap} />}
         </div>
         <footer class="bs-foot">
           <button
             class="btn primary bs-resume"
             data-testid="break-resume"
-            disabled={pending}
+            disabled={pending || !!formation}
             onClick={() => s.resumeAct()}
           >
-            {pending ? 'Take a relic to resume' : `Resume — Act ${act.n + 1}`}
+            {pending
+              ? 'Take a relic to resume'
+              : formation
+                ? 'Fix your lanes in Orders to resume'
+                : `Resume — Act ${act.n + 1}`}
           </button>
         </footer>
       </section>

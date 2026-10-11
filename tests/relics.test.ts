@@ -1,16 +1,30 @@
 import { describe, expect, it } from 'vitest';
-import type { Match, Unit } from '../src/sim';
+import type { HeldRelic, Match, Unit } from '../src/sim';
 import { aimFor, type Hint } from '../src/sim/draft';
 import { dropBoundCards } from '../src/sim/gambits';
+import { fitFormation } from '../src/sim/draft';
 import {
+  actStartTempo,
   boundCards,
   bountyMul,
+  campDamageMul,
   cardCost,
+  checkDamageMul,
+  formationError,
+  handSize,
+  heldRelic,
   LANE_SPEED_TAG,
+  laneCounts,
   pawnCapBonus,
   pawnCost,
+  refillSec,
   structureMul,
+  tempoCap,
+  tempoRate,
+  throneDamageMul,
+  wingMelee,
 } from '../src/sim/relics';
+import { onActStart, onCampCleared } from '../src/sim/relicsLive';
 import { recompute } from '../src/sim/stats';
 import { makeMinion, makePawn } from '../src/sim/units';
 import { content, liveMatch, logHash, piece, toAct, toBell } from './helpers';
@@ -23,8 +37,8 @@ function breakMatch(seed: number): Match {
   return m;
 }
 
-const hold = (m: Match, team: 'A' | 'B', held: Partial<Match['state']['relics']['held']['A'][0]>) =>
-  m.state.relics.held[team].push({ id: '', lane: null, piece: null, card: null, ...held });
+const hold = (m: Match, team: 'A' | 'B', held: Partial<HeldRelic> & { id: string }) =>
+  m.state.relics.held[team].push(heldRelic(held.id, held));
 
 function stat(m: Match, u: Unit, key: 'moveSpeed' | 'armor' | 'maxHp' | 'bladeDmg') {
   recompute(m.ctx, u);
@@ -151,6 +165,10 @@ describe('relic draft', () => {
       expect(aim('development', died).piece).toBe(king.id);
       expect(aim('closed_position', bled).lane).toBe('top');
       expect(aim('half_open_file', bled).lane).toBe('mid');
+      expect(aim('guarded_piece', died).piece).toBe(rook.id);
+      expect(aim('wing_gambit', bled).lane).toBe('top');
+      expect(aim('strong_square', bled).lane).toBe('top');
+      expect(aim('battery', bled).lane).toBe('mid');
     }
   });
 
@@ -299,5 +317,307 @@ describe('wave 1 relic effects', () => {
       m.step(600);
       expect(m.state.hands.A.map((h) => h.cardId)).not.toContain('advance');
     }
+  });
+});
+
+describe('wave 2 relic effects', () => {
+  const quiet = (seed = 21): Match =>
+    liveMatch(seed, { autoGambits: { A: false, B: false }, relics: { A: 'none', B: 'none' } });
+  const put = (u: Unit, x: number, y: number): void => {
+    u.x = x;
+    u.y = y;
+    u.px = x;
+    u.py = y;
+  };
+  const events = (m: Match, type: string) => m.events.filter((e) => e.type === type);
+  const outcomes = (m: Match): string[] =>
+    m.events.flatMap((e) => (e.type === 'sealedMove' ? [e.payload.outcome] : []));
+
+  it('names 23 relics, four of them Rally', () => {
+    expect(content.relics).toHaveLength(23);
+    expect(
+      content.relics
+        .filter((r) => r.rally)
+        .map((r) => r.id)
+        .sort(),
+    ).toEqual(['closed_position', 'compensation', 'kings_ransom', 'sortie']);
+  });
+
+  it('Wing Gambit weakens the conceded lane and adds a melee pawnling to the others', () => {
+    const m = quiet();
+    const tower = m.ctx.towers.A.top[0];
+    const before = tower.stats.damageTakenMult;
+    hold(m, 'A', { id: 'wing_gambit', lane: 'top' });
+    recompute(m.ctx, tower);
+    expect(tower.stats.damageTakenMult / before).toBeCloseTo(1.15, 5);
+    expect(wingMelee(m.ctx, 'A', 'top')).toBe(0);
+    expect(wingMelee(m.ctx, 'A', 'mid')).toBe(1);
+    expect(wingMelee(m.ctx, 'B', 'mid')).toBe(0);
+  });
+
+  it('Strong Square buffs allies at the crossing and a lone enemy topples it in five seconds', () => {
+    const m = quiet();
+    hold(m, 'A', { id: 'strong_square', lane: 'top' });
+    onActStart(m.ctx);
+    const b = m.state.relics.run.banner.A!;
+    expect(m.snapshot().zones.some((z) => z.kind === 'outpost' && z.team === 'A')).toBe(true);
+    const ally = piece(m, 'A', 'rook');
+    const foe = piece(m, 'B', 'rook');
+    const armor = stat(m, ally, 'armor');
+    put(ally, b.x, b.y);
+    m.step(10);
+    expect(stat(m, ally, 'armor')).toBeCloseTo(armor + 10, 5);
+    put(ally, m.ctx.world.basePos.A.x, m.ctx.world.basePos.A.y);
+    for (let i = 0; i < 40 && !b.toppled; i++) {
+      put(foe, b.x, b.y);
+      m.step(5);
+    }
+    expect(b.toppled).toBe(true);
+    expect(events(m, 'relicTriggered')).toHaveLength(1);
+  });
+
+  it('Guarded Piece takes less damage only with a friend within 300', () => {
+    const m = quiet();
+    const king = piece(m, 'A', 'king');
+    const queen = piece(m, 'A', 'queen');
+    hold(m, 'A', { id: 'guarded_piece', piece: king.id });
+    put(queen, king.x + 100, king.y);
+    m.step(10);
+    recompute(m.ctx, king);
+    expect(king.stats.damageTakenMult).toBeCloseTo(0.88, 5);
+    for (const id of m.state.teams.A.heroIds) if (id !== king.id) put(m.unitById(id)!, 9000, 9000);
+    put(queen, 9000, 9000);
+    m.step(40);
+    recompute(m.ctx, king);
+    expect(king.stats.damageTakenMult).toBe(1);
+  });
+
+  it("Knight's Tour speeds the Knight out of combat and pays Tempo for a cleared camp", () => {
+    const m = quiet();
+    const knight = piece(m, 'A', 'knight');
+    hold(m, 'A', { id: 'knights_tour' });
+    m.step(10);
+    expect(knight.mods.find((x) => x.id === 'relic:tour')?.value).toBeCloseTo(1.15, 5);
+    const camp = m.state.units.find((u) => u.kind === 'camp');
+    if (camp) expect(campDamageMul(m.ctx, knight, camp)).toBe(1.25);
+    const tempo = m.state.tempo.A;
+    onCampCleared(m.ctx, knight);
+    expect(m.state.tempo.A).toBe(tempo + 4);
+  });
+
+  it("King's Ransom lifts the Check penalty and shields the other pieces, while behind", () => {
+    const m = quiet();
+    hold(m, 'A', { id: 'kings_ransom' });
+    expect(checkDamageMul(m.ctx, 'A')).toBe(content.tuning.check.damageMul);
+    m.state.relics.behind.A = true;
+    expect(checkDamageMul(m.ctx, 'A')).toBe(1);
+    m.state.check.A = true;
+    m.step(10);
+    const queen = piece(m, 'A', 'queen');
+    recompute(m.ctx, queen);
+    expect(queen.stats.damageTakenMult).toBeCloseTo(0.9, 5);
+    const king = piece(m, 'A', 'king');
+    recompute(m.ctx, king);
+    expect(king.stats.damageTakenMult).toBe(1);
+  });
+
+  it('Pawn Chain adds 4% per neighbour, at most 12%', () => {
+    const m = quiet();
+    hold(m, 'A', { id: 'pawn_chain' });
+    const pawns = [0, 1, 2, 3, 4].map(() => makePawn(m.ctx, 'A', 'mid'));
+    pawns.forEach((u, i) => put(u, 500 + i * 10, 500));
+    const base = pawns[0].stats.bladeDmg;
+    put(pawns[3], 5000, 5000);
+    put(pawns[4], 5000, 5000);
+    m.step(12);
+    expect(stat(m, pawns[0], 'bladeDmg') / base).toBeCloseTo(1.08, 5);
+    put(pawns[3], 500, 520);
+    put(pawns[4], 500, 530);
+    m.step(12);
+    expect(stat(m, pawns[0], 'bladeDmg') / base).toBeCloseTo(1.12, 5);
+  });
+
+  it('Spare Tempo raises the cap and pays a tenth at the Act start; Compensation works while behind', () => {
+    const m = quiet();
+    expect(tempoCap(m.ctx, 'A')).toBe(content.tuning.gambits.tempoMax);
+    hold(m, 'A', { id: 'spare_tempo' });
+    expect(tempoCap(m.ctx, 'A')).toBe(130);
+    m.state.tempo.A = 60;
+    expect(actStartTempo(m.ctx, 'A')).toBeCloseTo(6, 5);
+    m.state.tempo.A = 120;
+    expect(actStartTempo(m.ctx, 'A')).toBe(10);
+    hold(m, 'A', { id: 'compensation' });
+    expect(tempoRate(m.ctx, 'A')).toBe(content.tuning.gambits.tempoPerSec);
+    expect(pawnCapBonus(m.ctx, 'A')).toBe(0);
+    m.state.relics.behind.A = true;
+    expect(tempoRate(m.ctx, 'A')).toBeCloseTo(1.25, 5);
+    expect(pawnCapBonus(m.ctx, 'A')).toBe(2);
+    hold(m, 'A', { id: 'pawn_majority' });
+    expect(pawnCapBonus(m.ctx, 'A')).toBe(relics.pawnCapMax);
+  });
+
+  it('Curtain Wall toughens Bastions and mends an outer one that nobody is near', () => {
+    const m = quiet();
+    const tower = m.ctx.towers.A.top[0];
+    const hp = tower.stats.maxHp;
+    hold(m, 'A', { id: 'curtain_wall' });
+    recompute(m.ctx, tower);
+    expect(tower.stats.maxHp / hp).toBeCloseTo(1.15, 5);
+    tower.hp = tower.stats.maxHp * 0.5;
+    m.step(8 * 20);
+    expect(tower.hp).toBeGreaterThan(tower.stats.maxHp * 0.5);
+  });
+
+  it('Royal Keep strengthens the Throne and halves Endgame’s extra damage to it', () => {
+    const m = quiet();
+    const throne = m.ctx.guardians.A!;
+    const hp = throne.stats.maxHp;
+    const dmg = throne.stats.bladeDmg;
+    hold(m, 'A', { id: 'royal_keep' });
+    recompute(m.ctx, throne);
+    expect(throne.stats.maxHp / hp).toBeCloseTo(1.2, 5);
+    expect(throne.stats.bladeDmg / dmg).toBeCloseTo(1.25, 5);
+    m.state.tagMult.throneDamage = 1.5;
+    expect(throneDamageMul(m.ctx, throne)).toBe(1.25);
+    expect(throneDamageMul(m.ctx, m.ctx.guardians.B!)).toBe(1.5);
+  });
+
+  it('Quiet Move trims the hand to two, speeds the refill and the Tempo', () => {
+    const m = quiet();
+    expect(m.state.hands.A).toHaveLength(content.tuning.gambits.handSize);
+    hold(m, 'A', { id: 'quiet_move' });
+    onActStart(m.ctx);
+    expect(m.state.hands.A).toHaveLength(2);
+    expect(handSize(m.ctx, 'A')).toBe(2);
+    expect(refillSec(m.ctx, 'A')).toBe(4);
+    expect(tempoRate(m.ctx, 'A')).toBeCloseTo(1.2, 5);
+    m.state.relics.held.A = [];
+    onActStart(m.ctx);
+    expect(m.state.hands.A).toHaveLength(content.tuning.gambits.handSize);
+  });
+
+  it('Battery allows 3/1/1 only while held, buffs the lone pieces, and Resume needs a legal formation', () => {
+    const m = breakMatch(7);
+    expect(formationError(m.ctx, 'A')).toBeNull();
+    hold(m, 'A', { id: 'battery', lane: 'mid' });
+    m.state.relics.settled.A = true;
+    fitFormation(m.ctx, 'A');
+    expect(laneCounts(m.ctx, 'A')).toEqual({ top: 1, mid: 3, bot: 1 });
+    expect(formationError(m.ctx, 'A')).toBeNull();
+    const lone = m.state.teams.A.heroIds
+      .map((id) => m.unitById(id)!)
+      .find((u) => u.hero!.lane === 'top')!;
+    recompute(m.ctx, lone);
+    const buffed = lone.stats.armor;
+    m.state.relics.held.A[0].lane = 'top';
+    recompute(m.ctx, lone);
+    expect(buffed / lone.stats.armor).toBeCloseTo(1.1, 5);
+    m.state.relics.held.A[0].lane = 'mid';
+    m.state.relics.held.A = [];
+    expect(formationError(m.ctx, 'A')).not.toBeNull();
+    expect(m.issue({ type: 'resumeAct' }).ok).toBe(false);
+    fitFormation(m.ctx, 'A');
+    expect(laneCounts(m.ctx, 'A')).toEqual({ top: 2, mid: 1, bot: 2 });
+    expect(m.issue({ type: 'resumeAct' }).ok).toBe(true);
+  });
+
+  it('Sortie sends the nearest piece from another lane and buffs the lane, once per Bastion', () => {
+    const m = quiet();
+    hold(m, 'A', { id: 'sortie' });
+    m.state.relics.behind.A = true;
+    const tower = m.ctx.towers.A.top[0];
+    const rotator = m.state.teams.A.heroIds
+      .map((id) => m.unitById(id)!)
+      .filter((u) => u.hero!.lane !== 'top')
+      .sort(
+        (a, b) =>
+          Math.hypot(a.x - tower.x, a.y - tower.y) - Math.hypot(b.x - tower.x, b.y - tower.y),
+      )[0];
+    tower.hp = tower.stats.maxHp * 0.4;
+    m.step(20);
+    expect(rotator.hero!.order?.kind).toBe('defend');
+    expect(rotator.hero!.order?.lane).toBe('top');
+    expect(rotator.mods.some((x) => x.id === 'relic:sortie:bladeDmg')).toBe(true);
+    expect(events(m, 'relicTriggered')).toHaveLength(1);
+    m.step(60);
+    expect(events(m, 'relicTriggered')).toHaveLength(1);
+  });
+
+  it('Sealed Move fires once per Act for 10 less, waits five seconds short of Tempo, then lapses', () => {
+    const m = quiet();
+    hold(m, 'A', { id: 'sealed_move', card: 'pawn_storm', trigger: 'kill' });
+    const cost = content.gambitById.get('pawn_storm')!.cost - 10;
+    m.state.tempo.A = 90;
+    m.step(40);
+    expect(outcomes(m)).toEqual([]);
+    m.state.relics.run.enemyDown.A = true;
+    m.step(40);
+    expect(outcomes(m)).toEqual(['fired']);
+    expect(m.state.tempo.A).toBeGreaterThan(90 - cost - 1);
+    expect(m.state.tempo.A).toBeLessThan(90 - cost + 8);
+    m.state.relics.run.enemyDown.A = true;
+    m.step(200);
+    expect(outcomes(m)).toEqual(['fired']);
+
+    onActStart(m.ctx);
+    m.state.tempo.A = 0;
+    m.state.relics.run.enemyDown.A = true;
+    m.step(20 * 4);
+    expect(outcomes(m)).toEqual(['fired']);
+    m.step(20 * 3);
+    expect(outcomes(m)).toEqual(['fired', 'lapsed']);
+  });
+
+  it('Pawn Structure fields pawns to its quota, 2 cheaper, and keeps the reserve back', () => {
+    const m = quiet();
+    hold(m, 'A', { id: 'pawn_structure', quota: { top: 2, mid: 0, bot: 1 }, reserve: 20 });
+    m.state.tempo.A = 100;
+    m.step(20 * 10);
+    const pawns = m.state.units.filter((u) => u.pawn && u.team === 'A' && u.alive);
+    expect(pawns.filter((u) => u.lane === 'top')).toHaveLength(2);
+    expect(pawns.filter((u) => u.lane === 'bot')).toHaveLength(1);
+    expect(pawns.filter((u) => u.lane === 'mid')).toHaveLength(0);
+
+    const reserve = quiet();
+    hold(reserve, 'A', { id: 'pawn_structure', quota: { top: 1, mid: 1, bot: 1 }, reserve: 40 });
+    reserve.state.tempo.A = 30;
+    reserve.step(20 * 5);
+    expect(reserve.state.units.filter((u) => u.pawn && u.team === 'A')).toHaveLength(0);
+  });
+
+  it('refuses a Sealed Move card outside the Opening, a bad quota, and the guarded trigger without a carry relic', () => {
+    const m = breakMatch(5);
+    const aimOf = (id: string) =>
+      aimFor(m.ctx, 'A', content.relicById.get(id)!, m.state.bell.report!);
+    m.state.relics.settled.A = false;
+    m.state.relics.offers.A = [
+      { id: 'sealed_move', tailored: false, why: null, aim: aimOf('sealed_move') },
+      { id: 'pawn_structure', tailored: false, why: null, aim: aimOf('pawn_structure') },
+    ];
+    const schools = content.openingById.get(m.state.opening.A)!.schools;
+    const outside = content.gambits.find(
+      (g) => schools.length > 0 && !schools.includes(g.school) && g.weight > 0,
+    );
+    const ok = aimOf('sealed_move');
+    const guarded = m.issue({
+      type: 'pickRelic',
+      relicId: 'sealed_move',
+      ...ok,
+      trigger: 'guarded',
+    });
+    expect(guarded.ok).toBe(false);
+    if (outside)
+      expect(
+        m.issue({ type: 'pickRelic', relicId: 'sealed_move', ...ok, card: outside.id }).ok,
+      ).toBe(false);
+    const quota = { top: 9, mid: 9, bot: 9 };
+    const bad = m.issue({
+      type: 'pickRelic',
+      relicId: 'pawn_structure',
+      ...aimOf('pawn_structure'),
+      quota,
+    });
+    expect(bad.ok).toBe(false);
+    expect(m.issue({ type: 'pickRelic', relicId: 'sealed_move', ...ok }).ok).toBe(true);
   });
 });
