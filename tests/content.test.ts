@@ -26,7 +26,6 @@ describe('content', () => {
     }
     expect(content.items.length).toBeGreaterThanOrEqual(15);
     expect(content.cursed).toHaveLength(6);
-    expect(content.holy).toHaveLength(2);
     expect(content.biomes).toHaveLength(5);
     expect(content.pressure.map((p) => p.id)).toEqual([
       'thinning_veil',
@@ -90,7 +89,6 @@ describe('content', () => {
     const all = [
       ...content.items.flatMap((i) => i.triggers),
       ...content.cursed.flatMap((c) => [...c.triggers, ...c.flaws.flatMap((f) => f.triggers)]),
-      ...content.holy.flatMap((h) => h.triggers),
       ...content.pieces.flatMap((p) => [
         ...p.passives,
         ...p.styles.flatMap((st) => [

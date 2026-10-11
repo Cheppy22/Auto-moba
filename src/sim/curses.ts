@@ -24,7 +24,7 @@ function freeSlot(ctx: Ctx, u: Unit): void {
   ctx.emit('sell', { id: u.id, item: id, refund });
 }
 
-export function grantSpecial(ctx: Ctx, u: Unit, itemId: string): void {
+function grantSpecial(ctx: Ctx, u: Unit, itemId: string): void {
   freeSlot(ctx, u);
   u.hero!.items.push(itemId);
   u.dirty = true;

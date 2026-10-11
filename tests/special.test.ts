@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Match } from '../src/sim';
 import { tryCast } from '../src/sim/combat';
-import { evaluateCurseOffers, grantSpecial } from '../src/sim/curses';
+import { evaluateCurseOffers } from '../src/sim/curses';
 import { startRecall } from '../src/sim/recall';
 import { buyItem } from '../src/sim/shop';
 import { recompute } from '../src/sim/stats';
@@ -92,19 +92,6 @@ describe('cursed items', () => {
     expect(m.state.keeper.spot).toBe(nearest.id);
   });
 
-  it('supports a Fallen Saint: holy and cursed together', () => {
-    const m = liveMatch(45);
-    const p = piece(m, 'A', 'rook');
-    grantSpecial(m.ctx, p, content.cursed[0].id);
-    p.hero!.flaws[content.cursed[0].id] = content.cursed[0].flaws[0].id;
-    grantSpecial(m.ctx, p, content.holy[0].id);
-    const held = p.hero!.items;
-    expect(held.some((x) => content.cursedById.has(x))).toBe(true);
-    expect(held.some((x) => content.holyById.has(x))).toBe(true);
-    recompute(m.ctx, p);
-    expect(p.stats.maxHp).toBeGreaterThan(0);
-  });
-
   it('keeper debts doubles both the boon and the flaw', () => {
     const m = liveMatch(42);
     const p = piece(m, 'A', 'queen');
@@ -141,15 +128,6 @@ describe('cursed items', () => {
     p.pendingKill = { killerId: 0 };
     m.step(2);
     expect(p.alive).toBe(false);
-  });
-});
-
-describe('holy auction', () => {
-  it('stays switched off: no bids or awards in a full match', () => {
-    expect(content.tuning.auction.enabled).toBe(false);
-    const m = liveMatch(51);
-    m.step(ACT * 3);
-    expect(m.events.some((e) => e.type === 'bid' || e.type === 'auctionResolved')).toBe(false);
   });
 });
 

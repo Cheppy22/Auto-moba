@@ -300,21 +300,6 @@ export interface SlotState {
   mirrored: boolean;
 }
 
-interface BidState {
-  points: number;
-  gold: number;
-  goldBy: Record<number, number>;
-}
-
-interface AuctionState {
-  holyId: string;
-  bids: Record<PlayTeam, BidState>;
-  resolved: boolean;
-  winner: PlayTeam | null;
-  recipient: number | null;
-  awaitingRecipient: boolean;
-}
-
 export interface CurseOffer {
   heroId: number;
   itemId: string;
@@ -624,7 +609,6 @@ export interface MatchState {
   rng: RngState;
   teams: Record<PlayTeam, TeamState>;
   slots: SlotState[];
-  auction: AuctionState;
   curseOffers: CurseOffer[];
   keeper: KeeperState;
   tagMult: Record<string, number>;
@@ -789,16 +773,6 @@ export interface EventPayloads {
   obeliskSpawn: { unit: number; node: string; x: number; y: number };
   obeliskClaimed: { team: PlayTeam; node: string; reward: string; value: number };
   obeliskExpired: { node: string };
-  bid: { team: PlayTeam; points: number; gold: number; hero: number };
-  auctionResolved: {
-    winner: PlayTeam | null;
-    holy: string;
-    recipient: number;
-    pointsA: number;
-    pointsB: number;
-    goldA: number;
-    goldB: number;
-  };
   curseOffered: { hero: number; item: string; flawType: string };
   curseAccepted: { hero: number; item: string; flaw: string };
   curseRefused: { hero: number; item: string };
@@ -962,7 +936,6 @@ export interface SnapUnit {
   range: number;
   claim: number;
   curse: boolean;
-  holy: boolean;
   target: number | null;
   flash: boolean;
   /** Dealt or took damage within the last 1.5 s (a piece's roster portrait flashes while true). */

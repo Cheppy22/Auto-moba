@@ -23,7 +23,6 @@ import {
   type PieceDef,
   type PieceId,
   type StyleDef,
-  type HolyItemDef,
   type ItemDef,
   type MapDef,
   type OpeningDef,
@@ -65,8 +64,6 @@ export interface Content {
   itemById: Map<string, ItemDef>;
   cursed: CursedItemDef[];
   cursedById: Map<string, CursedItemDef>;
-  holy: HolyItemDef[];
-  holyById: Map<string, HolyItemDef>;
   biomes: BiomeDef[];
   biomeById: Map<string, BiomeDef>;
   events: EventDef[];
@@ -88,11 +85,7 @@ function byId<T extends { id: string }>(list: T[], label: string): Map<string, T
 
 export function validateRefs(c: Content): string[] {
   const errs: string[] = [];
-  const allItemIds = new Set<string>([
-    ...c.itemById.keys(),
-    ...c.cursedById.keys(),
-    ...c.holyById.keys(),
-  ]);
+  const allItemIds = new Set<string>([...c.itemById.keys(), ...c.cursedById.keys()]);
   for (const it of c.items) {
     for (const f of it.from) {
       const comp = c.itemById.get(f);
@@ -172,9 +165,9 @@ export function validateRefs(c: Content): string[] {
   for (const p of ['push', 'farm', 'defend', 'default']) {
     if (!c.tuning.posture[p]) errs.push(`posture table ${p} missing`);
   }
-  if (allItemIds.size !== c.items.length + c.cursed.length + c.holy.length)
+  if (allItemIds.size !== c.items.length + c.cursed.length)
     errs.push('item ids collide across kinds');
-  if (c.cursed.length === 0 || c.holy.length === 0) errs.push('needs cursed and holy items');
+  if (c.cursed.length === 0) errs.push('needs cursed items');
   return errs;
 }
 
@@ -186,7 +179,6 @@ export function loadContent(raw: RawContentFiles): Content {
   const itemFiles = raw.items.map((f) => ItemFileSchema.parse(f));
   const items = itemFiles.flatMap((f) => f.items);
   const cursed = itemFiles.flatMap((f) => f.cursed);
-  const holy = itemFiles.flatMap((f) => f.holy);
   const biomes = raw.biomes.map((b) => BiomeSchema.parse(b));
   const events = raw.events.flatMap((f) => EventFileSchema.parse(f).events);
   const pressure = PressureSchema.parse(raw.pressure).events;
@@ -218,8 +210,6 @@ export function loadContent(raw: RawContentFiles): Content {
     itemById: byId(items, 'item'),
     cursed,
     cursedById: byId(cursed, 'cursed item'),
-    holy,
-    holyById: byId(holy, 'holy item'),
     biomes,
     biomeById: byId(biomes, 'biome'),
     events,

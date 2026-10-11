@@ -30,7 +30,7 @@ Balance experiments without editing content (tools only): `BALANCE_SCALE='{"miko
 ## Layout
 
 ```
-content/    JSON: heroes, items (incl. cursed and holy), upgrades, biomes, pressure, badges, map, tuning
+content/    JSON: heroes, items (incl. cursed), upgrades, biomes, pressure, badges, map, tuning
 src/sim/    deterministic simulation (no browser code; the only way in is src/sim/index.ts)
 src/analysis/  event log -> report models (stats, fights, badges, paths)
 src/render/ Canvas drawing: map, sigils, replay

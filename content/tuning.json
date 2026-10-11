@@ -360,8 +360,6 @@
     "baseHealPerSec": 0.12,
     "pushWaveRadius": 507,
     "defendRadius": 624,
-    "bidFraction": [0.3, 0.5, 1],
-    "bidGoldFraction": 0.2,
     "curseAcceptBase": 0.55,
     "siegeStartHp": 0.55,
     "siegeKeepHp": 0.4,
@@ -463,11 +461,6 @@
   "curse": {
     "threshold": 0.75,
     "minPhase": 2
-  },
-  "auction": {
-    "enabled": false,
-    "pointRate": 3,
-    "loserRefund": 0.5
   },
   "obelisk": {
     "spawnSec": [50, 150],

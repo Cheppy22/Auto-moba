@@ -1,13 +1,12 @@
 import { stepUnits } from './behavior';
 import { resolveCollisions } from './collision';
-import { initAuction } from './auction';
 import { applyCommand } from './commands';
 import type { Content } from './content/loader';
 import type { LaneId } from './content/schema';
 import { inCombat, TPS } from './combat';
 import type { Ctx } from './ctx';
 import { Grid } from './core/grid';
-import { seedStreams } from './core/rng';
+import { rand, seedStreams } from './core/rng';
 import { strategicUpdate } from './ai/strategic';
 import { updateFronts } from './ai/lanes';
 import { tickEvents } from './events';
@@ -93,14 +92,6 @@ function initialState(content: Content, config: MatchConfig): MatchState {
       types: [],
       mirrored: false,
     })),
-    auction: {
-      holyId: '',
-      bids: { A: { points: 0, gold: 0, goldBy: {} }, B: { points: 0, gold: 0, goldBy: {} } },
-      resolved: false,
-      winner: null,
-      recipient: null,
-      awaitingRecipient: false,
-    },
     curseOffers: [],
     keeper: { unitId: -1, spot: '', stock: [] },
     tagMult: {},
@@ -208,7 +199,8 @@ function startMatch(ctx: Ctx, white: TeamSetup): void {
   createKeeper(ctx);
   placeTeam(ctx, 'A', s.setup.A.pieces);
   placeTeam(ctx, 'B', s.setup.B.pieces);
-  initAuction(ctx);
+  // the removed auction drew once from the loot stream here: keep that draw so seeds replay the same
+  rand(ctx.s.rng, 'loot');
   const heroes = [...s.teams.A.heroIds, ...s.teams.B.heroIds].map((id) => {
     const u = ctx.unit(id)!;
     const h = u.hero!;
@@ -387,11 +379,9 @@ export class Match {
       const shield = u.shields.reduce((a, b) => a + b.amount, 0);
       const h = u.hero;
       let curse = false;
-      let holy = false;
       if (h) {
         for (const id of h.items) {
           if (c.cursedById.has(id)) curse = true;
-          if (c.holyById.has(id)) holy = true;
         }
       }
       units.push({
@@ -425,7 +415,6 @@ export class Match {
         range: u.stats.range,
         claim: u.obelisk ? Math.max(u.obelisk.claim.A, u.obelisk.claim.B) / need : 0,
         curse,
-        holy,
         target: u.targetId,
         inCombat: inCombat(s.tick, u),
         flash: u.atkCd >= Math.max(1, Math.round(TPS / Math.max(0.2, u.stats.atkSpeed))) - 2,

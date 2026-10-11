@@ -30,8 +30,7 @@ export function PieceCard() {
   const team = u.team === 'B' ? 'B' : 'A';
   const style = h.style ? s.content.styleByKey.get(`${h.defId}/${h.style}`) : undefined;
   const itemName = (item: string): string =>
-    (s.content.itemById.get(item) ?? s.content.cursedById.get(item) ?? s.content.holyById.get(item))
-      ?.name ?? item;
+    (s.content.itemById.get(item) ?? s.content.cursedById.get(item))?.name ?? item;
   const taken = h.perks
     .filter((p) => p.optionId)
     .map((p) => ({

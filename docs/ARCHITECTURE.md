@@ -165,7 +165,7 @@ Each system owns one slice of `MatchState`, runs at a fixed point in the tick or
 
 - **Keeper:** neutral, untargetable. Each PREP it relocates (`keeper` stream) and rolls its stock from data. If a curse is offered, it is placed near that hero.
 - **Curse offer (each PREP):** losing team = lower team net worth; candidate = its lowest-net-worth hero, only if below 75% of the match average; at most one per phase. Flaw type shown; exact flaw rolled from the item's flaw pool on acceptance (`loot` stream). Permanent.
-- **Holy auction:** bid windows in PREP 1, 2 and 3; bids add up. Bid = team points plus the player's own gold, points converted at a tuning rate. Sealed. Resolves at the end of PREP 3. Ties: more points, then a `loot` roll. The loser gets 50% of its gold back. The winning team picks the recipient.
+- **Holy auction (deleted 2026-10-11; this text describes the old hero game):** bid windows in PREP 1, 2 and 3; bids add up. Bid = team points plus the player's own gold, points converted at a tuning rate. Sealed. Resolves at the end of PREP 3. Ties: more points, then a `loot` roll. The loser gets 50% of its gold back. The winning team picks the recipient.
 - **Team points:** from obelisks and major camps, in a team pool.
 - **Obelisks:** spawn on a schedule at random eligible nodes during phases 1–3; claimed by holding the radius uncontested for a set time; reward = points plus one small effect (buff, gold, or a team shop unlock).
 

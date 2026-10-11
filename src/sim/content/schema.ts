@@ -374,20 +374,9 @@ const CursedItemSchema = z.object({
   boonText: z.string(),
 });
 
-const HolyItemSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  category: CategorySchema,
-  mods: z.array(ModSchema).default([]),
-  triggers: z.array(TriggerSchema).default([]),
-  hint: z.string(),
-  desc: z.string().default(''),
-});
-
 export const ItemFileSchema = z.object({
   items: z.array(ItemSchema).default([]),
   cursed: z.array(CursedItemSchema).default([]),
-  holy: z.array(HolyItemSchema).default([]),
 });
 
 const CampTypeSchema = z.object({
@@ -827,8 +816,6 @@ export const TuningSchema = z.object({
     baseHealPerSec: z.number(),
     pushWaveRadius: z.number(),
     defendRadius: z.number(),
-    bidFraction: z.array(z.number()),
-    bidGoldFraction: z.number(),
     curseAcceptBase: z.number(),
     siegeStartHp: z.number(),
     siegeKeepHp: z.number(),
@@ -877,7 +864,6 @@ export const TuningSchema = z.object({
     threshold: z.number(),
     minPhase: z.number().int(),
   }),
-  auction: z.object({ enabled: z.boolean(), pointRate: z.number(), loserRefund: z.number() }),
   obelisk: z.object({
     spawnSec: z.array(z.number()),
     claimSec: z.number(),
@@ -933,7 +919,6 @@ export type SealedTrigger = z.infer<typeof SealedTriggerSchema>;
 export type GambitEffect = (typeof GAMBIT_EFFECTS)[number];
 export type ItemDef = z.infer<typeof ItemSchema>;
 export type CursedItemDef = z.infer<typeof CursedItemSchema>;
-export type HolyItemDef = z.infer<typeof HolyItemSchema>;
 export type CampTypeDef = z.infer<typeof CampTypeSchema>;
 export type BiomeDef = z.infer<typeof BiomeSchema>;
 export type MapDef = z.infer<typeof MapSchema>;

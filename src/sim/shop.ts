@@ -150,7 +150,7 @@ export function sellItem(ctx: Ctx, u: Unit, itemId: string): CommandResult {
   const i = h.items.indexOf(itemId);
   if (i < 0) return { ok: false, reason: 'item not owned' };
   const item = ctx.c.itemById.get(itemId);
-  if (!item) return { ok: false, reason: 'cursed and holy items cannot be sold' };
+  if (!item) return { ok: false, reason: 'cursed items cannot be sold' };
   const access = shopAccess(ctx, u);
   if (!access.base && !access.keeper) return { ok: false, reason: 'no shop in reach' };
   const refund = Math.round(item.cost * ctx.t.shop.sellRefund);

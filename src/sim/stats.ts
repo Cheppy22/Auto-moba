@@ -65,19 +65,11 @@ function equipment(ctx: Ctx, u: Unit): { mods: TaggedMod[]; trigs: TrigInst[] } 
       }
       continue;
     }
-    const holy = ctx.c.holyById.get(id);
-    if (holy) {
-      for (const m of holy.mods) mods.push({ ...m, tags: ['holy'] });
-      holy.triggers.forEach((def, idx) => trigs.push({ src: id, idx, def }));
-    }
   }
   const owned: Record<string, number> = {};
   for (const id of h.items) {
-    const cat =
-      ctx.c.itemById.get(id)?.category ??
-      ctx.c.cursedById.get(id)?.category ??
-      ctx.c.holyById.get(id)?.category;
-    if (cat && !ctx.c.holyById.has(id)) owned[cat] = (owned[cat] ?? 0) + 1;
+    const cat = ctx.c.itemById.get(id)?.category ?? ctx.c.cursedById.get(id)?.category;
+    if (cat) owned[cat] = (owned[cat] ?? 0) + 1;
   }
   for (const [cat, n] of Object.entries(owned)) {
     const tiers = ctx.t.attunement[cat as keyof typeof ctx.t.attunement];

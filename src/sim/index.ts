@@ -11,7 +11,6 @@ export type {
   CursedItemDef,
   ForkOptionDef,
   GambitDef,
-  HolyItemDef,
   ItemDef,
   MapDef,
   PerkDef,
