@@ -4,7 +4,7 @@ Newest first. One entry per change: what changed, why, and any measured effect. 
 
 ## 2026-10-11
 
-- **Overnight QA playtest and small fixes** (branch `test-product-2`; findings, screenshots list and product review in [QA-2026-10-11.md](QA-2026-10-11.md)). Why: Cheppy asked for a full end-to-end playtest of the live build (8 matches, both looks, three viewports). No Blocker or High found; 7 small bugs fixed, 10 logged open. UI and content text only, no sim change.
+- **Overnight QA playtest and small fixes** (branch `test-product-2`; findings, screenshots list and product review in [QA-2026-10-11.md](QA-2026-10-11.md)). Why: Cheppy asked for a full end-to-end playtest of the live build (8 matches, both looks, three viewports). No Blocker or High found; 9 small bugs fixed, 8 logged open. UI and content text only, no sim change.
   - **Relic text:** a White side playing a non-Italian Opening no longer sees "Italian Game" lines on Sealed Move or Opening Theory; Black's relics (break sheet list and seal pop-over) read in the third person (`8d6ac18`).
   - **Break sheet:** a refused "Take this relic" (no card picked, or no replacement chosen) now shows its message above the sheet (`e1a3307`).
   - **Report Replay map** fits the whole 1950-unit board (it showed a crop of the middle) (`6798e27`).
@@ -12,6 +12,8 @@ Newest first. One entry per change: what changed, why, and any measured effect. 
   - **Gambit aim** no longer leaves an invisible tap layer or carries over into the next Act (`c4d2a91`).
   - **Report pager** no longer snaps back when a slow smooth scroll is still moving (`6a791af`).
   - **Sealed Move** shows a note when it plays or lapses for lack of Tempo (`d10487b`).
+  - **Enemy gambit aim:** with Check or Fork armed, tapping a Black roster portrait plays the card on that piece (`ffb3ad4`).
+  - **E2E helpers:** `playToEnd` and `stepUntil` pass through Act breaks (the sim waits for Resume), which fixes `report.spec` (`92264de`).
   - Open (not fixed): table look lane lean-in and portrait board size, tailored relic mapping (King's Ransom for a dying Knight), setup scroll cue, stacked top notices, truncated card names. See the report table.
   - Tests: `tests/relictext.test.ts` extended; unit tests that time out at 60 s under load pass with `--testTimeout=600000`.
 - **"Tournament Table" look prototype behind `?look=table`** (branch `test-product-2`, spec [LOOK-TABLE-2026-10-11.md](LOOK-TABLE-2026-10-11.md)). Why: Cheppy approved prototyping the critic review's Tournament Table overhaul, but keeping humanoid pieces (no miniatures) and making each of the 5 pieces and 15 styles unmistakable, in a faceted low-poly style. New render-only view in `src/render/table/` (board, camera, figures, piece, models, crowd, fx, view); the only switch is `src/render/broadcast/index.ts`, so the default look, sim, UI and tests are untouched. Fixed whole-board war-table camera (Follow leans in), one chessboard on a walnut table with brass-edged felt lanes and recessed courts, skinned faceted pieces at miniature scale with team-rimmed bases, instanced pawns, buildings and neutrals, anticipation and impact-hold attacks, topple-on-capture. Debug line-up of all styles: `?look=table&lineup` (`=close`, `=closeb`). Measured at 390×844 (whole board, 0:40): King 33–34 px, Queen 29–32, Bishop/Knight ~29, Rook 25–27, pawn 14.5, pawnling 9.4, against about 9–16 px for pieces on the current default camera; about 78 draw calls and 22k triangles in a phone-size fight (104 calls in a late big fight), 113 calls on desktop with shadows.
