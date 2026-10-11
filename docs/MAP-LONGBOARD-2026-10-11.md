@@ -1,11 +1,11 @@
 # Map spec: "The Long Board" (2026-10-11)
 
-Design spec for the owner's workshop decision (2026-10-11). Status: **proposal v2, not built**. v2 applies the owner's sketch on v1: groves turned 180°, verges, Sally Paths. Branch `test-product-2`. Diagram: [img/map-longboard.svg](img/map-longboard.svg).
+Design spec for the owner's workshop decision (2026-10-11). Status: **v2 approved by Cheppy 2026-10-11 (decisions in section 6), not built yet**. v2 applies the owner's sketch on v1: groves turned 180°, verges, Sally Paths. Branch `test-product-2`. Diagram: [img/map-longboard.svg](img/map-longboard.svg).
 
 ## 1. BLUF
 
 1. **Two 8×8 chessboards end to end:** a 2000 × 4000 board. White's base is at the bottom, Black's at the top. Three straight lane-files (Left, Mid, Right) run base to base, with a river on the seam.
-2. **Walks are about 1.5× longer:** the average lane goes from 2611 to 3839 units (×1.47). Raising unit speed by 20% (`speedMul` 1.5 → 1.8) makes walks take about 25% longer in time, and should keep the median match in 12–16 min (predicted 14.5–15.5).
+2. **Walks are about 1.5× longer:** the average lane goes from 2611 to 3839 units (×1.47). Raising unit speed by 15% (`speedMul` 1.5 → 1.725, owner decision) makes walks take about 25% longer in time, and should keep the median match in 12–16 min (predicted 14.5–15.5).
 3. **Three heights:** low river, a midfield terrace and a high home terrace, joined by 12 narrow lane ramps. There are two simple rules: **Reach** (ranged units shooting down get +15% range) and **Sight** (units on high ground spot enemies below 25% farther, and units below only see them up close).
 4. **Five big zones instead of 13 scattered spots:** two groves placed diagonally (each team's grove sits in its own half, on its own Right, and reaches the river), the Pit (Keeper, obelisks, neutral events) and one shop Square per side. A walkable **verge** runs between each side lane and its grove. In the empty corner opposite each grove, a winding **Sally Path** links your Left lane to your Square and has a spur to the tip of the enemy grove. The River Road crosses the middle. 57% of the board is open ground (40% today).
 5. **Fairness is now a 180° turn about the Pit** (it was a mirror across the river). Both teams get exactly the same board from their own seat. The lane ids stay the same, but White's Left lane is Black's Right lane.
@@ -109,14 +109,14 @@ How the sim stores height: a new pure module `src/sim/world/height.ts` with `tie
 
 | Lever                         | Today                   | Proposed                                                                                      | Why                                                                                                        |
 | ----------------------------- | ----------------------- | --------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `movement.speedMul`           | 1.5                     | **1.8**                                                                                       | Walks take about 1.25× as long instead of 1.47×. The board feels long without dead time.                   |
+| `movement.speedMul`           | 1.5                     | **1.725**                                                                                     | Walks take about 1.25× as long instead of 1.47×. The board feels long without dead time.                   |
 | Pawnling speed (36 base)      | 54 u/s                  | 64.8 u/s                                                                                      | First wave clash: Mid 19.9 → 26.9 s, sides 26.3 → 31.0 s                                                   |
 | Rook base → own outer Bastion | 9.6 s Mid / 12.6 s side | 14.1 s / 17.4 s                                                                               | Death costs more walking. Recall (3 s) still brings pieces home.                                           |
 | Waves                         | first 6 s, every 30 s   | unchanged                                                                                     | Gold per Act stays the same. Waves are still 30 s apart; they just meet 7 s (Mid) or 5 s (sides) later.    |
 | Bastions                      | 3600 hp, inner ×1.25    | hp unchanged; positions as in section 2                                                       | One lever at a time. Positions are terrain-led.                                                            |
 | AI radii in `tuning.ai`       | for 1950                | `defendOffLaneRadius` 1170 → 1400, `shopTripRadius` 741 → 1100, `tier3TripRadius` 2535 → 3800 | The Sally Paths and Squares are farther away. Fight-scale radii are unchanged (unit scale `k` stays 1.95). |
 
-Predicted effect: longer walk-outs (+3–5 s per trip) and high-ground defence lengthen matches; a costlier death speeds up snowballs. Net estimate is a 14.5–15.5 min median. **If the median is above 15.5:** set `tower.hp` 3600 → 3300 first, then `speedMul` 1.9. **If it is below 12.5:** set `speedMul` 1.65. Watch **Open File** (+25% speed for 15 s is worth more on a long lane) and Barricade (ramps make it stronger).
+Predicted effect: longer walk-outs (+3–5 s per trip) and high-ground defence lengthen matches; a costlier death speeds up snowballs. Net estimate is a 14.5–15.5 min median. **If the median is above 15.5:** set `tower.hp` 3600 → 3300 first, then `speedMul` 1.8. **If it is below 12.5:** set `speedMul` 1.65. Watch **Open File** (+25% speed for 15 s is worth more on a long lane) and Barricade (ramps make it stronger).
 
 **What to measure** (`npm run balance -- --matches 800 --seed 29000 --quiet --workers 2`, relics off and both-AI; then seed 31000):
 
@@ -153,12 +153,21 @@ Predicted effect: longer walk-outs (+3–5 s per trip) and high-ground defence l
 | 1     | Agent A (sim)                                                  | Schema, `map-long.json`, terrain, world and nav, bounds, camps/Keeper/obelisks/events, spawns, map flag                                                                   | New symmetry test, terrain tests, a 100-match smoke run with 0 stuck units, every match ends                      | 2–3 days                 |
 | 2     | Agent B (rules + AI), after A                                  | `height.ts`, Reach, Sight, ramp hold, climb gate, uphill odds, AI radii                                                                                                   | A unit test per rule (deterministic fixtures), a 200-match smoke run with fight-by-tier stats                     | 1.5–2 days               |
 | 3     | Agent C (render), after A's schema is frozen; runs alongside B | Relief, board painting, camera framing (portrait, landscape, desktop), lane camera, replay map, intro                                                                     | `tests/tablecam.test.ts`, screenshots at 390×844, 844×390 and 1440×900, board px numbers, draw calls ≤ today +10% | 3–4 days                 |
-| 4     | Agent D (balance), after B                                     | `speedMul` 1.8 and levers; 800 × seed 29000 (relics off and both-AI), then 31000                                                                                          | Section 4 targets; baseline re-recorded on purpose                                                                | 1–2 days (machine-bound) |
+| 4     | Agent D (balance), after B                                     | `speedMul` 1.725 and levers; 800 × seed 29000 (relics off and both-AI), then 31000                                                                                        | Section 4 targets; baseline re-recorded on purpose                                                                | 1–2 days (machine-bound) |
 | 5     | Agent A or D                                                   | Flip the default, delete the old map, `npx playwright test`, docs (CHESS.md map section, SOURCE_OF_TRUTH, CHANGELOG, reversed decision: square diagonal map → Long Board) | `npm run check`, e2e, owner play-test                                                                             | 1 day                    |
 
 Total: about **9–12 agent-days**, about **5–6 calendar days** with 2–3 agents. Run one balance job at a time with `--workers 2` (the machine is shared).
 
-## 6. Open decisions for the owner
+## 6. Owner decisions (2026-10-11)
+
+1. **Unit speed +15%** (`speedMul` 1.5 → 1.725; walks take about 1.28× as long).
+2. **Retire the Grand Board look** (no port to the new map; delete it when the Long Board becomes default).
+3. **Both high-ground rules (Reach and Sight)**, weakened if the high-ground side wins over 62% of fights — **plus a minimalist indicator**: a small eye icon above a unit's head while it has the high-ground edge (Sight/Reach active), table-look style, readable at phone scale, not cluttering fights.
+4. **Clearing order:** home ends first (Act 1 W1 + E1), middles Act 2, river tips Act 3.
+5. **Keep the Sally Path spur** into the enemy grove's river tip.
+6. **Build behind `?map=long`** until the balance runs pass, then flip the default.
+
+## 6b. Original decision table (for reference)
 
 | #   | Decision               | Options                                                                                                                    | Recommendation                                                                                                                            |
 | --- | ---------------------- | -------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
