@@ -58,11 +58,11 @@ export function inDuel(ctx: Ctx, u: Unit): boolean {
   const h = u.hero;
   if (!h || !u.alive) return false;
   const tick = ctx.s.tick;
-  const window = Math.round(1.5 * TPS); // same window as `inCombat`
-  if (h.attackers.some((a) => tick - a.tick <= window)) return true;
+  const span = Math.round(1.5 * TPS); // 1.5 s, as in `inCombat`
+  if (h.attackers.some((a) => tick - a.tick <= span)) return true;
   for (const id of ctx.s.teams[other(u.team as PlayTeam)].heroIds) {
     const e = ctx.unit(id)?.hero;
-    if (e?.attackers.some((a) => a.id === u.id && tick - a.tick <= window)) return true;
+    if (e?.attackers.some((a) => a.id === u.id && tick - a.tick <= span)) return true;
   }
   return false;
 }
