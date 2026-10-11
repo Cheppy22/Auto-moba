@@ -106,20 +106,28 @@ html[data-layout='landscape'] .forksheet {
   top: calc(52px + env(safe-area-inset-top));
   width: min(400px, 47%);
   max-height: none;
-  gap: 5px;
-  padding: 7px 8px 8px;
+  gap: 4px;
+  padding: 6px 8px;
 }
 html[data-layout='landscape'] .fs-style-desc,
 html[data-layout='landscape'] .fs-paused {
   display: none;
 }
+/* name and "Rank 4 · Choose an archetype" share one line (saves ~17 px) */
+html[data-layout='landscape'] .fs-title {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 10px;
+}
 html[data-layout='landscape'] .fs-opts {
   grid-template-columns: 1fr;
-  gap: 4px;
+  gap: 3px;
 }
+/* the three archetype cards (3-line text) plus header and button must fit 332 px without scrolling */
 html[data-layout='landscape'] .fs-opt {
-  min-height: 56px;
-  padding: 5px 8px 6px;
+  min-height: 52px;
+  padding: 3px 8px 4px;
 }
 html[data-layout='landscape'] .fs-auto {
   min-height: 40px;

@@ -134,7 +134,7 @@ export function OpeningPage(props: {
     <section class="sp-page op-page" aria-label="Opening">
       <div class="sp-lede">
         <h3>Opening</h3>
-        <p>An Opening tilts which gambit cards your hand of three draws.</p>
+        <p>An Opening tilts which gambit cards you are dealt. Tap More to read how each plays.</p>
       </div>
       <div class="openings" role="radiogroup" aria-label="Opening" data-testid="openings">
         {c.openings.map((o) => (

@@ -124,6 +124,8 @@
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
+  /* the pane is the scroll container, so the pan limit has to be set here, not only on the view */
+  touch-action: pan-y;
   padding: 2px 2px 28px;
 }
 .sp-pane:not(.on) {
@@ -604,9 +606,18 @@
 .bd-ghost {
   position: absolute;
   z-index: 20;
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
   translate: -50% -60%;
   pointer-events: none;
-  filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.7));
+  background: radial-gradient(circle, #3d281c, #14110e);
+  border: 2px solid var(--brass-hi);
+  border-radius: 50%;
+  box-shadow:
+    var(--glow-brass),
+    0 8px 14px rgba(0, 0, 0, 0.7);
 }
 
 .syn {

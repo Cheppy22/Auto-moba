@@ -260,8 +260,7 @@ const BEATS: Partial<Record<BeatKey, string>> = {
   'initiative>fortress': 'Picks off the healer or King before the defence holds.',
   'clock>sacrifice': 'Tempo drain and forced discards stop the costly swing card being played.',
   'position>sacrifice': 'Barricade and Regroup keep pieces away from where the swing lands.',
-  'initiative>position':
-    'Check, Fork and Pin kill or lock the pieces holding an Outpost or Barricade.',
+  'initiative>position': 'Check and Fork kill or lock the pieces holding an Outpost or Barricade.',
   'march>clock': 'Steady cheap pressure wins while Clock spends Tempo on information.',
 };
 
