@@ -17,6 +17,8 @@ Playable chess auto-battler: 5 pieces per side, pawnlings/pawns, Bastions, Check
 
 ## Next steps
 
+The approved order of work after the Long Board is in `docs/FABLE-REVIEW-1-2026-10-11.md` section 5 (Tournament run, interactive armory, Blitz/Classical, named opponents, art swings, onboarding, audio, platform last). Each needs its own spec for approval first.
+
 1. **Long Board map overhaul** — once the owner approves the six decisions in the spec: 5 phases behind `?map=long` (sim map + walkable + pathing; high-ground rules + AI; table render + camera; 800-match balance with a deliberate baseline re-record; switch default + e2e + docs), about 5–6 days with 2–3 agents. Highest risk: AI rotation/pathing.
 2. QA open items: King's Ransom offered by the tailored slot while far ahead; auto-actions (Standing Order, Pawn Structure, pawn plan, Rally) need a note; new HUD side shape: aim banner covers Black's base at 800×520, Black tokens 38 px (< 44); intro portraits small on phones; old-look Black portraits murky.
 3. Balance follow-ups: second style pass (Ram, Errant, Usurper, Lancer, Shadow), relic value runs, third seed for Wing Gambit / Royal Keep.
