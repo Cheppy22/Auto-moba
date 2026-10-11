@@ -965,6 +965,7 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  flex-wrap: wrap;
 }
 .match-pair b {
   font-weight: 600;

@@ -10,7 +10,7 @@ import type {
   School,
 } from '../../sim';
 import { plainText } from '../richtext';
-import { COUNTERED_BY, COUNTERS, SCHOOL_JOB, SCHOOL_NAME } from '../schools';
+import { COUNTERED_BY, COUNTERS, SCHOOL_JOB, SCHOOL_NAME, SCHOOL_ORDER } from '../schools';
 
 /** Pure helpers behind the setup screen: all text comes from content, nothing here touches the sim. */
 
@@ -264,8 +264,10 @@ const BEATS: Partial<Record<BeatKey, string>> = {
   'march>clock': 'Steady cheap pressure wins while Clock spends Tempo on information.',
 };
 
+/** One enemy school against this Opening: one verdict, the own schools behind it, one line why. */
 export interface Matchup {
-  mine: School;
+  /** Own schools that take part (the winning side for good/weak, both sides for even). */
+  mine: School[];
   other: School;
   text: string;
 }
@@ -277,6 +279,8 @@ export interface OpeningInfo {
   cards: string[];
   strongVs: Matchup[];
   weakVs: Matchup[];
+  /** Enemy schools where the Opening's gains and losses cancel out. */
+  evenVs: Matchup[];
   /** Share of draws that come from the favoured schools, with this Opening and with none. */
   share: { with: number; without: number } | null;
 }
@@ -284,6 +288,40 @@ export interface OpeningInfo {
 /** The draw pool: every card with weight, assuming all five pieces are alive. */
 export function deckOf(c: Content): GambitDef[] {
   return c.gambits.filter((g) => g.weight > 0);
+}
+
+/**
+ * Each enemy school gets exactly one verdict against an Opening's schools: wins are own schools
+ * that counter it, losses are own schools it counters; the net decides (good, weak, or even when
+ * both sides exist and cancel). Schools with no counter either way are left out.
+ */
+export function openingMatchups(fav: School[]): {
+  strongVs: Matchup[];
+  weakVs: Matchup[];
+  evenVs: Matchup[];
+} {
+  const out = { strongVs: [] as Matchup[], weakVs: [] as Matchup[], evenVs: [] as Matchup[] };
+  for (const other of SCHOOL_ORDER) {
+    const wins = fav.filter((s) => COUNTERS[s].includes(other));
+    const losses = fav.filter((s) => COUNTERED_BY[s].includes(other));
+    if (wins.length === 0 && losses.length === 0) continue;
+    const why = (list: School[], flip: boolean): string =>
+      list
+        .map((s) => BEATS[(flip ? `${other}>${s}` : `${s}>${other}`) as BeatKey] ?? '')
+        .filter((t) => t !== '')
+        .join(' ');
+    if (wins.length > losses.length)
+      out.strongVs.push({ mine: wins, other, text: why(wins, false) });
+    else if (losses.length > wins.length)
+      out.weakVs.push({ mine: losses, other, text: why(losses, true) });
+    else
+      out.evenVs.push({
+        mine: [...wins, ...losses],
+        other,
+        text: `For: ${why(wins, false)} Against: ${why(losses, true)}`,
+      });
+  }
+  return out;
 }
 
 export function openingInfo(c: Content, o: Opening): OpeningInfo {
@@ -294,18 +332,7 @@ export function openingInfo(c: Content, o: Opening): OpeningInfo {
   const favBase = sum((g) => (fav.includes(g.school) ? g.weight : 0));
   const weighted = sum((g) => g.weight * (fav.includes(g.school) ? 2 : 1));
   const favWeighted = favBase * 2;
-  const matchups = (pairs: [School, School][], flip: boolean): Matchup[] =>
-    pairs.map(([mine, other]) => ({
-      mine,
-      other,
-      text: BEATS[(flip ? `${other}>${mine}` : `${mine}>${other}`) as BeatKey] ?? '',
-    }));
-  const strong: [School, School][] = [];
-  const weak: [School, School][] = [];
-  for (const s of fav) {
-    for (const t of COUNTERS[s]) strong.push([s, t]);
-    for (const t of COUNTERED_BY[s]) weak.push([s, t]);
-  }
+  const { strongVs, weakVs, evenVs } = openingMatchups(fav);
   if (fav.length === 0)
     return {
       explain:
@@ -314,6 +341,7 @@ export function openingInfo(c: Content, o: Opening): OpeningInfo {
       cards: [],
       strongVs: [],
       weakVs: [],
+      evenVs: [],
       share: null,
     };
   const names = fav.map((s) => SCHOOL_NAME[s]);
@@ -321,8 +349,9 @@ export function openingInfo(c: Content, o: Opening): OpeningInfo {
     explain: `${names.join(' and ')} cards come up twice as often when your hand is dealt. Black picks its own Opening in secret; it is shown once the match starts.`,
     plays: fav.map((s) => `${SCHOOL_NAME[s]}: ${SCHOOL_JOB[s].toLowerCase()}.`).join(' '),
     cards: deck.filter((g) => fav.includes(g.school)).map((g) => g.name),
-    strongVs: matchups(strong, false),
-    weakVs: matchups(weak, true),
+    strongVs,
+    weakVs,
+    evenVs,
     share: { with: favWeighted / weighted, without: favBase / base },
   };
 }

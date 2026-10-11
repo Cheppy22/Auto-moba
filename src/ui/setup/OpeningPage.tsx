@@ -62,39 +62,33 @@ function OpeningCard(props: {
             </p>
           )}
           {info.cards.length > 0 && <p class="dim">More often: {info.cards.join(', ')}.</p>}
-          {info.strongVs.length > 0 && (
-            <>
-              <h5>Good against</h5>
-              <ul class="match">
-                {info.strongVs.map((m) => (
-                  <li key={`${m.mine}${m.other}`}>
-                    <span class="match-pair">
-                      <SchoolGlyph school={m.mine} size={13} />
-                      <SchoolGlyph school={m.other} size={13} />
-                      <b style={{ color: SCHOOL_COLOR[m.other] }}>{SCHOOL_NAME[m.other]}</b>
-                    </span>
-                    <span>{m.text}</span>
-                  </li>
-                ))}
-              </ul>
-            </>
-          )}
-          {info.weakVs.length > 0 && (
-            <>
-              <h5>Weak against</h5>
-              <ul class="match">
-                {info.weakVs.map((m) => (
-                  <li key={`${m.mine}${m.other}`}>
-                    <span class="match-pair">
-                      <SchoolGlyph school={m.mine} size={13} />
-                      <SchoolGlyph school={m.other} size={13} />
-                      <b style={{ color: SCHOOL_COLOR[m.other] }}>{SCHOOL_NAME[m.other]}</b>
-                    </span>
-                    <span>{m.text}</span>
-                  </li>
-                ))}
-              </ul>
-            </>
+          {(
+            [
+              ['Good against', info.strongVs],
+              ['Even against', info.evenVs],
+              ['Weak against', info.weakVs],
+            ] as const
+          ).map(
+            ([title, list]) =>
+              list.length > 0 && (
+                <div key={title}>
+                  <h5>{title}</h5>
+                  <ul class="match">
+                    {list.map((m) => (
+                      <li key={m.other}>
+                        <span class="match-pair">
+                          {m.mine.map((s) => (
+                            <SchoolGlyph key={s} school={s} size={13} />
+                          ))}
+                          <SchoolGlyph school={m.other} size={13} />
+                          <b style={{ color: SCHOOL_COLOR[m.other] }}>{SCHOOL_NAME[m.other]}</b>
+                        </span>
+                        <span>{m.text}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ),
           )}
           <h5>Example hands</h5>
           <p class="dim tiny">Samples drawn with this Opening’s weights. Real hands vary.</p>
