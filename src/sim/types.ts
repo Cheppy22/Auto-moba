@@ -424,6 +424,13 @@ export type RelicMode = 'ai' | 'none' | 'random' | 'manual';
 /** Pawn Structure: how many elite pawns to keep in each lane. */
 export type PawnQuota = Record<LaneId, number>;
 
+/** White's standing pawn plan: pawns fielded toward these counts when Tempo allows. */
+export interface PawnPlan {
+  quota: PawnQuota;
+  /** Tempo kept back so gambits stay playable. */
+  reserve: number;
+}
+
 /** A relic held for the rest of the match, with what it is aimed at. */
 export interface HeldRelic {
   id: string;
@@ -656,6 +663,8 @@ export interface MatchState {
   eventSchedule: EventScheduleEntry[];
   nextEventId: number;
   bell: BellState;
+  /** White's standing pawn plan; absent until the player sets one (the AI never does). */
+  pawnPlan?: PawnPlan;
   actTally: ActTally;
   feedback: FeedbackState;
   relics: RelicState;
@@ -873,6 +882,8 @@ export type Command =
   | { type: 'setLane'; heroId: number; lane: LaneId }
   | { type: 'setPath'; heroId: number; path: Path }
   | { type: 'fieldPawn'; lane: LaneId }
+  /** White's standing pawn plan: pawns to keep fielded per lane (total within the cap). */
+  | { type: 'setPawnPlan'; quota: PawnQuota }
   /** Leaves the Act break sheet and starts the next Act (after a relic is taken). */
   | { type: 'resumeAct' }
   /** Takes one of the break's offered relics, aimed; with three held, `replace` names the one it replaces. */
@@ -997,6 +1008,8 @@ export interface Snapshot {
   /** White's hand. */
   hand: SnapGambit[];
   pawns: Record<PlayTeam, { alive: number; cap: number; cost: number }>;
+  /** White's standing pawn plan (present once set). */
+  pawnPlan?: PawnPlan;
   /** White's pending forks. */
   forks: SnapFork[];
   check: Record<PlayTeam, boolean>;

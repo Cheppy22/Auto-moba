@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import {
+  clearPawnPlan,
   eventCount,
   pauseAtStart,
   setCam,
@@ -55,6 +56,7 @@ test('title, setup, gambits, pawn, fork, adjourn, checkmate and report', async (
   await expect(page.getByTestId('stage')).toHaveAttribute('data-ready', 'true', {
     timeout: 60_000,
   });
+  await clearPawnPlan(page);
   await expect(page.getByTestId('speed-chip')).toHaveAttribute('data-speed', '0');
   await expect(page.getByTestId('phase')).toHaveText('Act 1');
   await expect(page.getByTestId('stage')).toBeVisible();
@@ -105,7 +107,7 @@ test('title, setup, gambits, pawn, fork, adjourn, checkmate and report', async (
   // ---- a lane gambit: tap the card, then a lane
   let s = await stepUntil(page, { kind: 'card', target: 'lane' });
   const laneSlot = s.hand.find((c) => c.target === 'lane' && c.usable)!.slot;
-  const before = await eventCount(page, 'gambit');
+  const before = await eventCount(page, 'gambit', 'A');
   // holding a card opens it enlarged with its full text; nothing is played
   const card = (await page.getByTestId(`gambit-${laneSlot}`).boundingBox())!;
   await page.mouse.move(card.x + card.width / 2, card.y + card.height / 2);
@@ -114,7 +116,7 @@ test('title, setup, gambits, pawn, fork, adjourn, checkmate and report', async (
   await page.mouse.up();
   await expect(page.getByTestId('gambit-info')).toBeVisible();
   await expect(page.getByTestId('aim')).toHaveCount(0);
-  expect(await eventCount(page, 'gambit')).toBe(before);
+  expect(await eventCount(page, 'gambit', 'A')).toBe(before);
   await page.getByTestId('gambit-info-close').click();
   await expect(page.getByTestId('gambit-info')).toHaveCount(0);
   await page.getByTestId(`gambit-${laneSlot}`).click();
@@ -127,7 +129,7 @@ test('title, setup, gambits, pawn, fork, adjourn, checkmate and report', async (
   await page.getByTestId(`gambit-${laneSlot}`).click();
   await page.getByTestId('aim-mid').click();
   await expect(page.getByTestId('aim')).toHaveCount(0);
-  expect(await eventCount(page, 'gambit')).toBe(before + 1);
+  expect(await eventCount(page, 'gambit', 'A')).toBe(before + 1);
   await expect(page.getByTestId(`gambit-${laneSlot}`)).toHaveAttribute('data-empty', 'true');
 
   // ---- a point gambit: tap the card, then the 3D view
@@ -138,7 +140,7 @@ test('title, setup, gambits, pawn, fork, adjourn, checkmate and report', async (
   await expect(page.getByTestId('aim-hint')).toContainText('Tap the board');
   const vp = page.viewportSize()!;
   await page.mouse.click(vp.width / 2, vp.height / 2);
-  await expect.poll(() => eventCount(page, 'gambit')).toBe(before + 2);
+  await expect.poll(() => eventCount(page, 'gambit', 'A')).toBe(before + 2);
   await expect(page.getByTestId('aim')).toHaveCount(0);
 
   // ---- a card that cannot be played says why, and the sim's refusal shows as a toast
@@ -161,7 +163,7 @@ test('title, setup, gambits, pawn, fork, adjourn, checkmate and report', async (
   await page.getByTestId('aim-top').click();
   await expect(page.getByTestId('pawn-count')).toContainText('1/8 · 15');
   await expect(page.getByTestId('tempo-value')).toHaveText('45');
-  expect(await eventCount(page, 'pawnFielded')).toBe(1);
+  expect(await eventCount(page, 'pawnFielded', 'A')).toBe(1);
 
   // ---- a fork pauses the match: the sheet opens, the clock stops, choosing resumes play
   s = await stepUntil(page, { kind: 'fork' });

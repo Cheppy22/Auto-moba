@@ -11,7 +11,7 @@ import { fieldPawn, pawnCap, pawnsAlive } from './pawns';
 import { actStartTempo, cardCost, param, pawnCost, tempoCap, workingRelic } from './relics';
 import { addMod } from './stats';
 import { LANES, lanePoint } from './world/map';
-import type { LaneId, Modifier, PlayTeam, RelicRun, SnapZone, Unit } from './types';
+import type { LaneId, Modifier, PawnQuota, PlayTeam, RelicRun, SnapZone, Unit } from './types';
 import { other } from './types';
 
 const TEAMS: PlayTeam[] = ['A', 'B'];
@@ -212,10 +212,17 @@ function curtain(ctx: Ctx, team: PlayTeam): void {
   }
 }
 
-function structure(ctx: Ctx, team: PlayTeam): void {
-  const ps = workingRelic(ctx, team, 'pawn_structure');
-  const quota = ps?.held.quota;
-  if (!ps || !quota || committed(ctx)) return;
+/**
+ * Fields one pawn toward a lane quota: the lane with the biggest gap, once Tempo is above the
+ * reserve. Shared by Pawn Structure and the standing pawn plan (`pawnPlan.ts`).
+ */
+export function fieldTowardQuota(
+  ctx: Ctx,
+  team: PlayTeam,
+  quota: PawnQuota,
+  reserve: number,
+  discount: number,
+): void {
   const have: Record<LaneId, number> = { top: 0, mid: 0, bot: 0 };
   for (const u of ctx.s.units) if (u.alive && u.pawn && u.team === team && u.lane) have[u.lane]++;
   let lane: LaneId | null = null;
@@ -228,9 +235,15 @@ function structure(ctx: Ctx, team: PlayTeam): void {
     }
   }
   if (!lane || pawnsAlive(ctx, team) >= pawnCap(ctx, team)) return;
-  const discount = param(ps, 'discount', 2);
   const cost = Math.max(0, pawnCost(ctx, team) - discount);
-  if (ctx.s.tempo[team] >= cost + (ps.held.reserve ?? 0)) fieldPawn(ctx, team, lane, discount);
+  if (ctx.s.tempo[team] >= cost + reserve) fieldPawn(ctx, team, lane, discount);
+}
+
+function structure(ctx: Ctx, team: PlayTeam): void {
+  const ps = workingRelic(ctx, team, 'pawn_structure');
+  const quota = ps?.held.quota;
+  if (!ps || !quota || committed(ctx)) return;
+  fieldTowardQuota(ctx, team, quota, ps.held.reserve ?? 0, param(ps, 'discount', 2));
 }
 
 // ---------------------------------------------------------------- every second

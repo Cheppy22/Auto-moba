@@ -437,23 +437,23 @@ const FLOOR = '#2c2733';
 
 /** Chessboard: the ivory / ebony pairs for each half (tile size is `ws.tile`). */
 const BOARD = {
-  white: { light: '#c9bb94', dark: '#4a3f48' },
-  black: { light: '#8d8798', dark: '#25212d' },
+  white: { light: '#b3a47f', dark: '#62565d' },
+  black: { light: '#8a8497', dark: '#3a3544' },
 };
 /** Marble road, its brass inlay and the stone beyond it. */
 const ROAD = {
-  marble: '#f3f1ea',
-  seam: '#d9d4c6',
+  marble: '#b9ad90',
+  seam: '#9d927a',
   vein: 'rgba(120,128,138,0.2)',
   brass: '#d1ab5c',
   rim: '#3b2f20',
 };
 /** The palace garden: mown lawn, gravel walks, stone quays. */
 const GARDEN = {
-  lawn: ['#4b6843', '#446239'],
-  gravel: '#cdbf9b',
-  gravelEdge: '#9b8d6b',
-  hedge: '#2f4d35',
+  lawn: ['#55654a', '#4e5d44'],
+  gravel: '#bfb391',
+  gravelEdge: '#93866a',
+  hedge: '#34493a',
   quay: '#cfc5ac',
 };
 

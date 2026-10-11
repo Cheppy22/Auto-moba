@@ -179,10 +179,11 @@
   min-height: 52px;
   padding: 4px 2px;
   cursor: pointer;
-  background: rgba(20, 17, 14, 0.7);
+  /* no backdrop-filter or filter here: a dead tile once painted blank during the bell's halt, when
+     the canvas under it is being desaturated (a compositing glitch); a plain background cannot */
+  background: rgba(20, 17, 14, 0.82);
   border: 1px solid rgba(201, 163, 90, 0.28);
   border-radius: 6px;
-  backdrop-filter: blur(4px);
   -webkit-touch-callout: none;
   user-select: none;
 }
@@ -347,8 +348,11 @@
   background: radial-gradient(circle, #3d281c, #0d0b09);
 }
 .hpring.dead {
-  filter: grayscale(1);
   opacity: 0.55;
+}
+.roster-cell .hpring.dead .in,
+.hpring.dead .in {
+  background: radial-gradient(circle, #3a3733, #0d0b09);
 }
 
 /* ---------- notices: caption, banners, rank chips (small, stacked, quick to fade) ---------- */
@@ -801,6 +805,42 @@
   width: 2px;
   background: var(--brass-hi);
   text-decoration: none;
+}
+/* Tempo sitting full: the bar glows, and after a few idle seconds a line says what to do */
+.tempo.full .tempo-bar i {
+  background: linear-gradient(90deg, var(--brass), #fff0b8);
+  box-shadow: 0 0 8px rgba(240, 213, 138, 0.8);
+}
+.tempo.full .tempo-value {
+  color: var(--brass-hi);
+}
+.tempo.nudge,
+.pawnbtn.nudge {
+  animation: tempo-nudge 1.6s ease-in-out infinite;
+}
+@keyframes tempo-nudge {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(240, 213, 138, 0);
+  }
+  50% {
+    box-shadow: 0 0 10px 2px rgba(240, 213, 138, 0.65);
+  }
+}
+.tempo-nudge {
+  order: 2;
+  align-self: center;
+  max-width: 100%;
+  padding: 2px 12px;
+  text-align: center;
+  font-size: var(--fs-xs);
+  line-height: 1.3;
+  color: var(--brass-hi);
+  background: rgba(20, 17, 14, 0.88);
+  border: 1px solid var(--brass);
+  border-radius: var(--r-1);
+  animation: toast-up var(--t-med) var(--ease) both;
+  pointer-events: none;
 }
 .pawnbtn {
   flex: none;

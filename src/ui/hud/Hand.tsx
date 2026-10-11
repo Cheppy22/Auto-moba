@@ -134,6 +134,8 @@ export function Hand(props: { snap: Snapshot }) {
   const expireTicks = g.expireSec * 20;
   const refillTicks = snap.handRefillSec * 20;
   const aimSlot = s.ui.aim?.kind === 'gambit' ? s.ui.aim.slot : -1;
+  // while the bell has stopped play every card is inert: dim them, but say it once (the bell line), not on each card
+  const stopped = snap.act.bell === 'halt' || snap.act.bell === 'break';
   return (
     <div
       class="hand"
@@ -183,7 +185,7 @@ export function Hand(props: { snap: Snapshot }) {
                 {c.cost}
               </span>
             </span>
-            {!c.usable && <span class="gstate why">{c.reason}</span>}
+            {!c.usable && !stopped && <span class="gstate why">{c.reason}</span>}
             <span class={`timer ${c.ticksLeft < expireTicks * 0.25 ? 'low' : ''}`}>
               <i style={{ width: `${Math.min(100, (c.ticksLeft / expireTicks) * 100)}%` }} />
             </span>

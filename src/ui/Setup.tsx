@@ -1,5 +1,5 @@
 import { useState } from 'preact/hooks';
-import type { Path, PieceId, SetupEntry } from '../sim';
+import { naturalPath, type Path, type PieceId, type SetupEntry } from '../sim';
 import { LaneBoard } from './LaneBoard';
 import { PATHS, PATH_HINT, PATH_LABEL, PIECE_ORDER, PieceGlyph, LANE_LABEL } from './pieces';
 import { SchoolChip } from './schools';
@@ -10,8 +10,13 @@ export function Setup() {
   const s = useSession();
   const m = s.match!;
   const [entries, setEntries] = useState<SetupEntry[]>(() => {
+    // the default lanes come from the AI's setup, but each piece starts on its natural build path
+    // (the Queen, "The Carry", on Offense), not on the AI's random pick
     const d = m.defaultSetup();
-    return PIECE_ORDER.map((p) => d.pieces.find((e) => e.piece === p)!);
+    return PIECE_ORDER.map((p) => {
+      const e = d.pieces.find((x) => x.piece === p)!;
+      return { ...e, path: naturalPath(s.content.pieceById.get(p)!) };
+    });
   });
   const [selected, setSelected] = useState<PieceId | null>(null);
   const openings = s.content.openings;

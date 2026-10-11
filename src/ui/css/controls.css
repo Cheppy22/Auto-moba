@@ -154,6 +154,20 @@
   opacity: 0.38;
   cursor: not-allowed;
 }
+/* the sound switch (Title, Adjourn) */
+.sound-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  font-size: var(--fs-sm);
+}
+.sound-toggle.off {
+  color: var(--dim);
+}
+.title-wrap .sound-toggle {
+  animation: veil-in 1.2s 1.3s both;
+}
 /* primary: an ivory tile with ebony text */
 .btn.primary {
   color: var(--ebony);

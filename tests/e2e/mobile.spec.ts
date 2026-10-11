@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import {
   boxOf,
+  clearPawnPlan,
   overflow,
   pauseAtStart,
   playPast,
@@ -77,6 +78,7 @@ for (const v of views) {
       // ---- live HUD
       await expect(page.getByTestId('hud')).toBeVisible();
       await viewReady(page);
+      await clearPawnPlan(page);
       await page.waitForTimeout(1000);
       await shot(page, `${v.name}-hud`);
       expect(await overflow(page)).toBeLessThanOrEqual(0);
@@ -179,7 +181,7 @@ for (const v of views) {
       await expect(page.getByTestId('unit-card')).toHaveCount(0);
       await page.getByTestId('cam-btn').tap();
       await page.getByTestId('cam-btn').tap();
-      await expect(page.getByTestId('cam-btn')).toHaveAttribute('data-mode', 'auto');
+      await expect(page.getByTestId('cam-btn')).toHaveAttribute('data-mode', 'board');
 
       // ---- a fork pauses the match and opens a sheet that fits and can be tapped
       await stepUntil(page, { kind: 'fork' });

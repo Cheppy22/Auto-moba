@@ -25,6 +25,7 @@ import {
 import { mmss } from './format';
 import { stageAt, type IntroPiece, type IntroState } from './intro';
 import { cap, pieceLabel } from './pieces';
+import { play } from './sound';
 
 export type Speed = 0 | 1 | 2 | 4 | 8;
 
@@ -68,6 +69,8 @@ export interface BlackPlay {
 export interface UiState {
   speed: Speed;
   cam: CamMode;
+  /** Board camera: the lane the view leans in on (null: the whole board). */
+  zoomLane: LaneId | null;
   follow: number | null;
   caption: string | null;
   toast: string | null;
@@ -93,7 +96,8 @@ export interface UiState {
 
 const freshUi = (): UiState => ({
   speed: 1,
-  cam: 'auto',
+  cam: 'board',
+  zoomLane: null,
   follow: null,
   caption: null,
   toast: null,
@@ -114,10 +118,14 @@ const freshUi = (): UiState => ({
 export interface PickView {
   pickGround(clientX: number, clientY: number): { x: number; y: number } | null;
   pickUnit(clientX: number, clientY: number): number | null;
+  /** Frames the 3D view has drawn (the match intro starts its clock after the first). */
+  readonly framesDrawn: number;
   /** Where a map point lands on the canvas (CSS pixels from its top-left). */
   project(x: number, y: number, lift?: number): { x: number; y: number; visible: boolean };
 }
 
+/** White's pawn plan at the start of a match (Orders changes it at each Act break). */
+const DEFAULT_PAWN_PLAN = { top: 2, mid: 2, bot: 2 };
 const RANK_CHIP_MS = 3200;
 const BANNER_MS = 2400;
 const BELL_CHIP_MS = 2200;
@@ -129,10 +137,11 @@ const NOTE_MS = 3200;
 const BLACK_PLAY_MS = 3000;
 /** Banners waiting behind the visible one; at fast speeds the oldest are dropped. */
 const MAX_BLACK_QUEUE = 3;
-const VIEW_WAIT_MS = 4000;
+/** The longest the intro waits for the 3D view's first frame (a slow phone builds the scene for a while). */
+const VIEW_WAIT_MS = 15000;
 /** The run speeds the chip cycles through; 0 is paused. */
 const SPEEDS: Speed[] = [1, 2, 4, 8, 0];
-const CAMS: CamMode[] = ['auto', 'follow', 'free'];
+const CAMS: CamMode[] = ['board', 'auto', 'follow', 'free'];
 /** How far (map units) a tap may miss a unit and still count when it picks the ground. */
 const NEAR_PICK = 90;
 const same = (a: Chip, b: Chip): boolean => a.kind === b.kind && a.title === b.title;
@@ -144,6 +153,8 @@ export class Session {
   version = 0;
   alpha = 1;
   view: PickView | null = null;
+  /** The 3D view could not start (no WebGL): the intro has nothing to wait for. */
+  viewFailed = false;
   /** The sim's step-rate multiplier this frame (1, easing to 0 across the bell's halt). */
   timeScale = 1;
   private lastLeft: number | null = null;
@@ -152,6 +163,8 @@ export class Session {
   private blackQueue: { school: School; text: string }[] = [];
   private blackId = 0;
   private introAt = 0;
+  /** The intro's clock runs only once the 3D view has drawn its first frame. */
+  private introArmed = false;
   /** `?intro=off` skips the match intro (end-to-end tests). */
   private introOn = new URLSearchParams(window.location.search).get('intro') !== 'off';
   private seenSeq = -1;
@@ -233,13 +246,19 @@ export class Session {
     const r = this.match.issue(cmd);
     if (!r.ok) this.toast(r.reason ?? 'rejected');
     else {
-      if (cmd.type === 'setupTeam') this.startIntro();
+      if (cmd.type === 'setupTeam') {
+        // White starts with a standing pawn plan, so a player who never taps still fields pawns
+        this.match.issue({ type: 'setPawnPlan', quota: DEFAULT_PAWN_PLAN });
+        this.startIntro();
+      } else if (cmd.type === 'playGambit') play('thud');
+      else if (cmd.type === 'pickRelic' || cmd.type === 'autoRelic') play('chime');
       this.notify();
     }
     return r;
   }
 
   reset(): void {
+    this.viewFailed = false;
     this.match = null;
     this.forkCam = null;
     this.blackQueue = [];
@@ -258,11 +277,24 @@ export class Session {
     this.setUi({ speed: SPEEDS[(i + 1) % SPEEDS.length] });
   }
 
-  /** The camera button: Auto, Follow (the followed piece, or the King), Free. */
+  /** The camera button: Board, Auto, Follow (the followed piece, or the King), Free. */
   cycleCam(): void {
     const i = CAMS.indexOf(this.ui.cam);
     const cam = CAMS[(i + 1) % CAMS.length];
-    this.setUi({ cam, follow: cam === 'follow' ? this.ui.follow : null });
+    this.setUi({ cam, zoomLane: null, follow: cam === 'follow' ? this.ui.follow : null });
+  }
+
+  /**
+   * Board camera: leans in on a lane; the same lane again (or Escape, or a tap off the lanes) sits
+   * back. From another camera it switches to the board first.
+   */
+  zoomLane(lane: LaneId | null): void {
+    const same = lane === null || (this.ui.cam === 'board' && this.ui.zoomLane === lane);
+    this.setUi({
+      cam: 'board',
+      follow: null,
+      zoomLane: same ? null : lane,
+    });
   }
 
   /** Opens the piece card (any team); a second call for the same piece closes it. */
@@ -313,6 +345,7 @@ export class Session {
       if (u.piece && u.lane && (u.team === 'A' || u.team === 'B'))
         pieces.push({ id: u.id, team: u.team, piece: u.piece, lane: u.lane, x: u.x, y: u.y });
     this.introAt = performance.now();
+    this.introArmed = false;
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     this.ui = {
       ...this.ui,
@@ -324,16 +357,22 @@ export class Session {
   }
 
   /**
-   * Moves the intro to its next stage, or ends it. Called every frame. The first stage waits for
-   * the 3D view to exist (up to `VIEW_WAIT_MS`, for a device with no WebGL).
+   * Moves the intro to its next stage, or ends it. Called every frame. Its clock starts when the
+   * 3D view has drawn its first frame (the scene can take seconds to build on a slow phone), or
+   * after `VIEW_WAIT_MS`, or at once when the view cannot start.
    */
   syncIntro(): void {
     const intro = this.ui.intro;
     if (!intro) return;
     const now = performance.now();
-    if (!this.view && now - this.introAt < VIEW_WAIT_MS) {
+    if (!this.introArmed) {
+      const ready = this.viewFailed || (this.view?.framesDrawn ?? 0) > 0;
+      if (!ready && now - this.introAt < VIEW_WAIT_MS) {
+        intro.startedAt = now;
+        return;
+      }
+      this.introArmed = true;
       intro.startedAt = now;
-      return;
     }
     const stage = stageAt(now - intro.startedAt, intro.reduced);
     if (stage < 0) this.skipIntro();
@@ -562,6 +601,11 @@ export class Session {
     const prev = this.lastLeft;
     this.lastLeft = left;
     if (prev === null || left >= prev) return;
+    // a soft tick on each second of the last few, a little firmer as the bell nears
+    const last = t.bell.pulseLastSec;
+    const sec = Math.ceil(left - 1e-6);
+    if (sec >= 1 && sec <= last && sec < Math.ceil(prev - 1e-6))
+      play('tick', { k: (last + 1 - sec) / last });
     const hit = t.bell.alertsSec.find((a) => prev > a && left <= a);
     if (hit === undefined) return;
     const chip = this.chip(
@@ -597,6 +641,7 @@ export class Session {
     };
     for (let i = ev.length - 1; i >= 0 && ev[i].seq > this.seenSeq; i--) {
       const e = ev[i];
+      this.cue(m, e);
       if (e.type === 'phaseStart' && e.payload.kind === 'live') {
         fresh.unshift(
           this.chip(
@@ -748,6 +793,18 @@ export class Session {
         blackPlay: black === undefined ? this.ui.blackPlay : black,
       };
       this.notify();
+    }
+  }
+
+  /** The sound of a sim event: a bell toll, a piece falling, a fork chosen. */
+  private cue(m: Match, e: GameEvent): void {
+    if (e.type === 'bell') {
+      if (e.payload.stage === 'tolling') play('toll', { n: e.payload.toll ?? 1 });
+    } else if (e.type === 'death') {
+      const u = m.unitById(e.payload.id);
+      if (u?.hero && this.ui.speed < 4) play('clack', { team: u.team });
+    } else if (e.type === 'fork') {
+      if (m.unitById(e.payload.id)?.team === 'A') play('chime');
     }
   }
 

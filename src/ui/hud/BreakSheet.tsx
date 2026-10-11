@@ -16,7 +16,7 @@ import { PIECE_ORDER } from '../pieces';
 import { useSession } from '../session';
 import { LaneBars } from './LaneBars';
 import { RelicsTab } from './RelicsTab';
-import { RelicSeal, aimText } from '../relics';
+import { RelicSeal, aimText, relicText, shownRelics } from '../relics';
 
 type Tab = 'report' | 'orders' | 'relics';
 
@@ -139,8 +139,9 @@ function Cards(props: { report: ActReport }) {
 
 function BlackRelics(props: { snap: Snapshot }) {
   const s = useSession();
-  const held = props.snap.relics.held.B;
+  const held = shownRelics(props.snap, 'B');
   if (held.length === 0) return null;
+  const opening = s.match!.state.opening.B;
   return (
     <section class="bs-sec" data-testid="break-black-relics">
       <h3 class="bs-h">Black’s relics</h3>
@@ -154,7 +155,7 @@ function BlackRelics(props: { snap: Snapshot }) {
               <RelicSeal family={def.family} size={20} />
               <b>{def.name}</b>
               {where && <i>{where}</i>}
-              <span>{def.desc}</span>
+              <span>{relicText(s.content, def, 'B', opening)}</span>
             </li>
           );
         })}
@@ -265,7 +266,7 @@ export function BreakSheet(props: { snap: Snapshot }) {
         </header>
         <div class="bs-body scroll">
           {tab === 'report' && <Report report={act.report} snap={props.snap} />}
-          {tab === 'orders' && <Orders formation={props.snap.relics.formation} />}
+          {tab === 'orders' && <Orders formation={props.snap.relics.formation} snap={props.snap} />}
           {tab === 'relics' && <RelicsTab snap={props.snap} />}
         </div>
         <footer class="bs-foot">

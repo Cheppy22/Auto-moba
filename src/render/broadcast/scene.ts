@@ -43,6 +43,10 @@ const LOW_HP_RED = '#ff5a48';
 const SUN_OFFSET = new Vector3(-380, 760, 520);
 /** The dark behind the board: warm ebony rather than violet-black. */
 const VOID = '#16120e';
+/** On screen (CSS px): a piece shorter than the first shows no rank badge, shorter than the second no emblem. */
+const RANK_MIN_PX = 20;
+const EMBLEM_MIN_PX = 34;
+
 /** Seconds a Sanctuary zone ring lasts. */
 const SANCTUARY_SEC = 6;
 /** Taps within this many CSS pixels of a unit pick it. */
@@ -181,6 +185,8 @@ export class BroadcastView {
   private readonly camRight = new Vector3();
   /** Far shots enlarge heroes and minions a little so phones can still read them. */
   private boost = 1;
+  /** World size of one CSS pixel at the focus, this frame. */
+  private unitPx = 1;
   private readonly debug: BroadcastDebug = {};
   private readonly tmp = new Vector3();
   private readonly ray = new Vector3();
@@ -295,6 +301,11 @@ export class BroadcastView {
     }
   }
 
+  /** Frames drawn since the scene started or was last reset (the match intro waits for the first). */
+  get framesDrawn(): number {
+    return this.drawn;
+  }
+
   /** Draw calls, triangles and GPU objects in the last frame (for profiling). */
   stats(): { calls: number; triangles: number; geometries: number; textures: number } {
     const i = this.renderer.info;
@@ -343,13 +354,14 @@ export class BroadcastView {
     // piece bars and badges are sized in CSS pixels: a little smaller on far shots, never illegible
     const fov = (camera.fov * Math.PI) / 180;
     const unitPx = (2 * dist * Math.tan(fov / 2)) / Math.max(1, this.cssH);
+    this.unitPx = unitPx;
     const far = MathUtils.clamp((dist - 600) / 1400, 0, 1);
     this.badgeSize = lerp(16, 13, far) * unitPx;
     this.emblemSize = lerp(21, 17, far) * unitPx;
     this.pieceBarW = lerp(30, 22, far) * unitPx;
     this.pieceBarH = lerp(3, 2.4, far) * unitPx;
     this.camRight.set(1, 0, 0).applyQuaternion(camera.quaternion);
-    this.boost = MathUtils.clamp(dist / 1700, 1, 1.65);
+    this.boost = MathUtils.clamp(dist / 1200, 1, 2.5);
     this.aimSun();
 
     this.handleEvents(events);
@@ -714,26 +726,34 @@ export class BroadcastView {
             Math.min(1, u.shield / u.maxHp),
             SHIELD,
           );
-        // [emblem][rank]=====  left of the bar
-        const rs = this.badgeSize;
-        const es = this.emblemSize;
-        const r = this.camRight;
-        const dr = bw / 2 + bh * 0.4 + rs * 0.5;
-        const de = dr + rs * 0.42 + es * 0.5;
-        this.badges.piece(
-          x,
-          top,
-          z,
-          r,
-          dr,
-          de,
-          rs,
-          es,
-          u.rank ?? 1,
-          col,
-          u.forkPending === true,
-          v.style,
-        );
+        // [emblem][rank]=====  left of the bar; on far shots the badges would outsize the piece,
+        // so they shrink below it, the emblem goes first and the rank follows (a waiting fork stays)
+        const px = (m.height * PIECE_SCALE * this.boost) / this.unitPx;
+        const room = px * 0.5 * this.unitPx;
+        const pending = u.forkPending === true;
+        const showRank = px >= RANK_MIN_PX || pending;
+        const showEmblem = px >= EMBLEM_MIN_PX && !!v.style;
+        if (showRank || showEmblem) {
+          const rs = showRank ? Math.min(this.badgeSize, Math.max(room, this.badgeSize * 0.7)) : 0;
+          const es = showEmblem ? Math.min(this.emblemSize, room * 1.2) : 0;
+          const r = this.camRight;
+          const dr = bw / 2 + bh * 0.4 + rs * 0.5;
+          const de = dr + rs * 0.42 + es * 0.5;
+          this.badges.piece(
+            x,
+            top,
+            z,
+            r,
+            dr,
+            de,
+            rs,
+            es,
+            u.rank ?? 1,
+            col,
+            pending,
+            showEmblem ? v.style : null,
+          );
+        }
         break;
       }
       case 'minion': {

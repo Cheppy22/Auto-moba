@@ -13,6 +13,9 @@ test('3D view: camera modes, follow, caption and picking', async ({ page }) => {
   await page.waitForTimeout(1500);
   const lit = await page.getByTestId('stage').screenshot();
   expect(lit.byteLength).toBeGreaterThan(20_000);
+  // the camera starts on the fixed whole-board view; the director is one tap away
+  await expect(page.getByTestId('cam-btn')).toHaveAttribute('data-mode', 'board');
+  await setCam(page, 'auto');
 
   // the director names the big plays in the caption bar
   await expect(async () => {
@@ -136,8 +139,8 @@ test('a tap on a piece in the 3D view opens its card, a tap on bare ground close
   await page.mouse.move(at.w * 0.5 + 60, at.h * 0.5 + 30, { steps: 5 });
   await page.mouse.up();
   await expect(page.getByTestId('unit-card')).toBeVisible();
-  // bare ground in the far corner of the view closes the card
-  await page.mouse.click(at.w * 0.62, at.h * 0.12);
+  // bare ground at the edge of the view closes the card (clear of the lane chips under the clock)
+  await page.mouse.click(at.w * 0.7, at.h * 0.22);
   await expect(page.getByTestId('unit-card')).toHaveCount(0);
   expect(errors).toEqual([]);
 });

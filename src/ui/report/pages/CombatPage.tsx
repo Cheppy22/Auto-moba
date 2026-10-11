@@ -3,6 +3,7 @@ import type { Fight } from '../../../analysis';
 import type { PieceId } from '../../../sim';
 import {
   BarsH,
+  CAT,
   ChartBox,
   DAMAGE_COLOR,
   DAMAGE_LABEL,
@@ -19,9 +20,9 @@ import { GuideKey } from '../Guides';
 import { Portrait } from '../parts';
 
 const TYPES = ['blade', 'soul', 'true'] as const;
-const HEAL_COLOR = '#199e70';
-const TAKEN_COLOR = '#e66767';
-const MIT_COLOR = '#5b8fd6';
+const HEAL_COLOR = CAT.aqua;
+const TAKEN_COLOR = CAT.red;
+const MIT_COLOR = CAT.blue;
 
 function FightList(props: { data: ReportData }) {
   const { report, rowOf, tickRate } = props.data;
@@ -128,7 +129,7 @@ export function CombatPage(props: { data: ReportData }) {
       items: report.fights.map((f) => ({
         t0: f.startTick / tickRate,
         t1: f.endTick / tickRate,
-        color: '#c9a35a',
+        color: CAT.yellow,
         label: `Fight, ${f.sideA.length} v ${f.sideB.length}`,
       })),
     },

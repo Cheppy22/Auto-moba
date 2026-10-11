@@ -285,7 +285,10 @@ export class MinionKit {
 const pyramid = (rTop: number, rBottom: number, height: number): CylinderGeometry =>
   new CylinderGeometry(rTop, rBottom, height, 4).rotateY(Math.PI / 4);
 
-/** A Bastion: a squat battlemented tower in team stone, a banner and a lit arrow window. */
+/**
+ * A Bastion: a squat square keep with merlons, a big team banner and a team ring at its foot
+ * (nothing like the Rook's round tower), with a lit arrow window.
+ */
 export class BastionModel {
   readonly root = new Group();
   private readonly core: Mesh;
@@ -301,61 +304,54 @@ export class BastionModel {
     const stoneDark = white ? '#a99d82' : '#221f2b';
     const trim = white ? PALETTE.whiteTrim : PALETTE.blackTrim;
     const r = this.root;
-    r.add(kit.blob(22, 0.6));
+    r.add(kit.blob(24, 0.6));
+    const ring = kit.styleRing(trim, 36);
+    ring.position.y = 0.9;
+    r.add(ring);
     r.add(
       kit.solid(
-        `bastion:${side}`,
+        `bastion-keep:${side}`,
         () => {
           const bits: Bit[] = [
-            { geo: new CylinderGeometry(15.5, 17.5, 3.6, 8), color: stoneDark, at: [0, 1.8, 0] },
+            { geo: new BoxGeometry(25, 3.6, 25), color: stoneDark, at: [0, 1.8, 0] },
             {
-              geo: lathe(
-                [
-                  [0.01, 3.6],
-                  [14, 3.6],
-                  [12.4, 14],
-                  [11, 28],
-                  [11.6, 31],
-                  [13.6, 33],
-                  [0.01, 33],
-                ],
-                8,
+              geo: new CylinderGeometry(11.5, 15, 28, 4).rotateY(Math.PI / 4),
+              color: stone,
+              at: [0, 17.6, 0],
+            },
+            { geo: new BoxGeometry(22, 1.8, 22), color: trim, at: [0, 32.4, 0] },
+            { geo: new BoxGeometry(19, 3, 19), color: stoneDark, at: [0, 34.8, 0] },
+            // door and arrow window (the lit core shows through)
+            { geo: new BoxGeometry(5.2, 8, 1.4), color: INK, at: [0, 7.6, 10.4] },
+            { geo: new BoxGeometry(3.6, 8, 1.4), color: INK, at: [0, 23.5, 8.8] },
+          ];
+          // merlons at the four corners and the middle of each side
+          const spots: [number, number][] = [
+            [8.6, 8.6],
+            [-8.6, 8.6],
+            [8.6, -8.6],
+            [-8.6, -8.6],
+            [0, 8.4],
+            [0, -8.4],
+            [8.4, 0],
+            [-8.4, 0],
+          ];
+          for (const [x, z] of spots)
+            bits.push({
+              geo: new BoxGeometry(
+                x !== 0 && z !== 0 ? 5.6 : 4.6,
+                6,
+                x !== 0 && z !== 0 ? 5.6 : 4.6,
               ),
               color: stone,
-            },
-            { geo: new CylinderGeometry(13.9, 13.9, 1.6, 8), color: trim, at: [0, 32.2, 0] },
-            { geo: new CylinderGeometry(11.6, 11.6, 3, 8), color: stoneDark, at: [0, 34.5, 0] },
-            // brick bands
-            {
-              geo: new TorusGeometry(12.6, 0.5, 4, 8).rotateX(Math.PI / 2),
-              color: stoneDark,
-              at: [0, 11, 0],
-            },
-            {
-              geo: new TorusGeometry(11.8, 0.5, 4, 8).rotateX(Math.PI / 2),
-              color: stoneDark,
-              at: [0, 21, 0],
-            },
-            // door
-            { geo: new BoxGeometry(5.2, 8, 1.4), color: INK, at: [0, 8.2, 12.4] },
-            // arrow window (the lit core shows through)
-            { geo: new BoxGeometry(3.6, 8, 1.4), color: INK, at: [0, 23.5, 11.5] },
-          ];
-          for (let i = 0; i < 8; i++) {
-            const a = (i / 8) * TAU + Math.PI / 8;
-            bits.push({
-              geo: new BoxGeometry(5, 5.6, 3.6),
-              color: stone,
-              at: [Math.cos(a) * 11.6, 38.8, Math.sin(a) * 11.6],
-              rot: [0, -a + Math.PI / 2, 0],
+              at: [x, 39.3, z],
             });
-          }
           for (let i = 0; i < 4; i++) {
             const a = (i / 4) * TAU;
             bits.push({
               geo: new BoxGeometry(3.4, 14, 5).translate(0, 7, 0),
               color: stoneDark,
-              at: [Math.cos(a) * 14.4, 3.6, Math.sin(a) * 14.4],
+              at: [Math.cos(a) * 12.4, 3.6, Math.sin(a) * 12.4],
               rot: [0, -a + Math.PI / 2, 0],
             });
           }
@@ -365,11 +361,13 @@ export class BastionModel {
       ),
     );
     r.add(
-      kit.glowSolid(`bastion-trim:${side}:${team}`, () => [
-        { geo: new BoxGeometry(11, 15, 0.5), color: lit, at: [0, 18, 12.6] },
-        { geo: new BoxGeometry(1.6, 18, 1.6), color: trim, at: [0, 46, 0] },
-        { geo: new ConeGeometry(2.4, 5, 4).rotateY(Math.PI / 4), color: lit, at: [0, 57.5, 0] },
-        { geo: new BoxGeometry(0.6, 6.5, 9), color: lit, at: [0, 51, 5.2] },
+      kit.glowSolid(`bastion-banner:${side}:${team}`, () => [
+        { geo: new BoxGeometry(11, 15, 0.5), color: lit, at: [0, 18, 9.8] },
+        { geo: new BoxGeometry(1.6, 24, 1.6), color: trim, at: [0, 48, 0] },
+        { geo: new ConeGeometry(2.4, 5, 4).rotateY(Math.PI / 4), color: lit, at: [0, 62.5, 0] },
+        // the banner: a long team-coloured pennant
+        { geo: new BoxGeometry(0.8, 11, 16), color: lit, at: [0, 54, 8.8] },
+        { geo: new BoxGeometry(0.9, 1.6, 16.4), color: trim, at: [0, 59.6, 8.8] },
       ]),
     );
     this.coreMat = kit.own(new MeshBasicMaterial({ color: lit, fog: false }));
@@ -381,10 +379,10 @@ export class BastionModel {
       ),
       0,
       23.5,
-      10.4,
+      9.6,
     );
-    this.halo = put(r, kit.glowSprite(team, 34, 0.55), 0, 23.5, 11);
-    r.scale.setScalar(1.1);
+    this.halo = put(r, kit.glowSprite(team, 34, 0.55), 0, 23.5, 10.2);
+    r.scale.setScalar(1.25);
   }
 
   animate(time: number, flash: number, hpFrac: number): void {
