@@ -69,7 +69,7 @@ export function bodyRadius(ctx: Ctx, u: Unit): number {
 }
 
 /** Zero for bodies that never move. */
-export function bodyMass(ctx: Ctx, u: Unit): number {
+function bodyMass(ctx: Ctx, u: Unit): number {
   const m = ctx.t.collision.mass;
   if (isFixed(u)) return 0;
   if (u.kind === 'hero') return m.piece;

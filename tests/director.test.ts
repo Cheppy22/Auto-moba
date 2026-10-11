@@ -38,7 +38,6 @@ const unit = (id: number, team: 'A' | 'B', x: number, y: number, o: Partial<Snap
     range: 100,
     claim: 0,
     curse: false,
-    holy: false,
     target: null,
     flash: false,
     inCombat: false,

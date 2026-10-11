@@ -4,7 +4,7 @@ import { laneWaypoints } from './world/map';
 import { recompute } from './stats';
 import type { HeroState, PlayTeam, SetupEntry, Unit, UnitKind, TeamId } from './types';
 
-export const DISPOSITION_POSTURE: Record<Disposition, Posture> = {
+const DISPOSITION_POSTURE: Record<Disposition, Posture> = {
   farmer: 'farm',
   attacker: 'push',
   defender: 'defend',

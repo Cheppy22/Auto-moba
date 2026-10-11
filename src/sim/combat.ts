@@ -14,7 +14,7 @@ const HERO_ASSIST_WINDOW = 160;
 export const TPS = 20;
 
 /** A unit counts as in combat for 1.5 s after it deals or takes damage. */
-export const COMBAT_TICKS = Math.round(1.5 * TPS);
+const COMBAT_TICKS = Math.round(1.5 * TPS);
 
 export function inCombat(tick: number, u: Unit): boolean {
   return (
@@ -23,7 +23,7 @@ export function inCombat(tick: number, u: Unit): boolean {
   );
 }
 
-export function amountOf(
+function amountOf(
   e: { base: number; bladeScale: number; soulScale: number },
   caster: Unit | null,
   powerMul: number,
@@ -354,7 +354,7 @@ export function tauntTarget(ctx: Ctx, u: Unit): Unit | null {
   return by;
 }
 
-export interface AbilityMods {
+interface AbilityMods {
   cooldownMul: number;
   powerMul: number;
   rangeMul: number;
@@ -500,7 +500,7 @@ export function castAbilities(ctx: Ctx, u: Unit): void {
   }
 }
 
-export interface TriggerEvent {
+interface TriggerEvent {
   victim?: Unit;
   attacker?: Unit;
   damage?: number;
@@ -540,7 +540,7 @@ function resolveTrigTargets(ctx: Ctx, u: Unit, def: TriggerDef, ev: TriggerEvent
   }
 }
 
-export function runTrigger(
+function runTrigger(
   ctx: Ctx,
   u: Unit,
   src: string,

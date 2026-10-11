@@ -1,33 +1,29 @@
-import type {
-  ActCardStat,
-  ActReport,
-  CardMetrics,
-  DeathCause,
-  Fall,
-  FightRecord,
-  FightZone,
-  GameEvent,
-  LaneId,
-  PieceId,
-  PlayTeam,
+import {
+  LANES,
+  PIECE_NAME,
+  distToPolyline,
+  nearestBy,
+  type ActCardStat,
+  type ActReport,
+  type CardMetrics,
+  type DeathCause,
+  type Fall,
+  type FightRecord,
+  type FightZone,
+  type GameEvent,
+  type LaneId,
+  type PieceId,
+  type PlayTeam,
 } from '../sim';
 import { courtName, laneName } from './text';
 
-const PIECE: Record<PieceId, string> = {
-  king: 'King',
-  queen: 'Queen',
-  rook: 'Rook',
-  bishop: 'Bishop',
-  knight: 'Knight',
-};
-
-export const pieceWord = (p: PieceId): string => PIECE[p];
+export const pieceWord = (p: PieceId): string => PIECE_NAME[p];
 
 // ------------------------------------------------------------------ fights
 
-export type Verdict = 'won' | 'lost' | 'even';
+type Verdict = 'won' | 'lost' | 'even';
 
-export interface FightVerdict {
+interface FightVerdict {
   verdict: Verdict;
   /** Enemy pieces that fell. */
   won: number;
@@ -45,7 +41,7 @@ export const fightVerdict = (f: FightRecord, viewer: PlayTeam = 'A'): FightVerdi
 /** Whether a fight is worth a tag: at least one piece fell. */
 export const decisive = (f: FightRecord): boolean => f.lost.A + f.lost.B > 0;
 
-export function zoneName(zone: FightZone, viewer: PlayTeam = 'A'): string {
+function zoneName(zone: FightZone, viewer: PlayTeam = 'A'): string {
   switch (zone) {
     case 'top':
     case 'mid':
@@ -68,7 +64,7 @@ export function fightLine(f: FightRecord, viewer: PlayTeam = 'A'): string {
   return `${place} — ${v.verdict} ${v.won} for ${v.lost}`;
 }
 
-export interface FightSummary {
+interface FightSummary {
   won: number;
   lost: number;
   even: number;
@@ -233,24 +229,7 @@ export function laneNear(
   y: number,
   maxOff: number,
 ): LaneId | null {
-  let best: LaneId | null = null;
-  let bestD = maxOff;
-  for (const id of ['top', 'mid', 'bot'] as const) {
-    const line = lanes[id];
-    for (let i = 1; i < line.length; i++) {
-      const [ax, ay] = line[i - 1];
-      const dx = line[i][0] - ax;
-      const dy = line[i][1] - ay;
-      const len2 = dx * dx + dy * dy;
-      const t = len2 === 0 ? 0 : Math.min(1, Math.max(0, ((x - ax) * dx + (y - ay) * dy) / len2));
-      const d = Math.hypot(x - (ax + t * dx), y - (ay + t * dy));
-      if (d < bestD) {
-        bestD = d;
-        best = id;
-      }
-    }
-  }
-  return best;
+  return nearestBy(LANES, (id) => distToPolyline(x, y, lanes[id]), maxOff);
 }
 
 /**
@@ -266,7 +245,7 @@ export function blackPlayLine(
   const head = `${courtName('B')} played ${name}`;
   const lane = p.lane ?? where.lane;
   if ((target === 'lane' || target === 'point') && lane) return `${head} on ${laneName(lane)} lane`;
-  if (target === 'enemy' && where.piece) return `${head} on your ${PIECE[where.piece]}`;
+  if (target === 'enemy' && where.piece) return `${head} on your ${PIECE_NAME[where.piece]}`;
   if (target === 'enemy' && where.structure) return `${head} on your ${where.structure}`;
   return head;
 }

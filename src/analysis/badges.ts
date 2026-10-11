@@ -9,7 +9,7 @@ export interface BadgeAward {
   value: number;
 }
 
-export function metricValue(h: HeroModel, metric: string): number {
+function metricValue(h: HeroModel, metric: string): number {
   switch (metric) {
     case 'damageTaken':
       return h.damageTaken;

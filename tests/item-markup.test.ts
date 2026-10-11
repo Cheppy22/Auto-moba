@@ -9,7 +9,6 @@ describe('item description markup', () => {
     ...content.items.map((i): [string, string] => [i.id, i.desc]),
     ...content.cursed.map((c): [string, string] => [c.id, c.boonText]),
     ...content.cursed.flatMap((c) => c.flaws.map((f): [string, string] => [f.id, f.text])),
-    ...content.holy.map((h): [string, string] => [h.id, h.desc]),
   ];
 
   it('every description uses only well-formed tags', () => {

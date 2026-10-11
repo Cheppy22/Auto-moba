@@ -16,7 +16,3 @@ export function clamp(v: number, lo: number, hi: number): number {
 export function lerp(a: number, b: number, t: number): number {
   return a + (b - a) * t;
 }
-
-export function round1(v: number): number {
-  return Math.round(v * 10) / 10;
-}

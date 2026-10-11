@@ -1,5 +1,31 @@
 # Code review and cleanup plan (2026-10-11)
 
+## Progress
+
+| Phase        | Status | Check                             | Baseline        | Playwright                       |
+| ------------ | ------ | --------------------------------- | --------------- | -------------------------------- |
+| 0 Safety net | done   | pass                              | 10/10 identical | verified at Phase 3 head         |
+| 1 Dead code  | done   | pass (245 tests)                  | 10/10 identical | verified at Phase 3 head         |
+| 2 Auction    | done   | verified at Phase 3 head          | 10/10 identical | verified at Phase 3 head         |
+| 3 Dedupe     | done   | pass (27 files, 243 tests, 191 s) | 10/10 identical | see "Playwright at Phase 3 head" |
+
+### Playwright at Phase 3 head
+
+The machine was shared with other agents (load 10 to 28 on 4 cores, software WebGL), so every browser call took 3 to 60 s. Specs were run with the repo timeouts first, then the failures again alone, then once more with all timeouts and the expect/action timeouts multiplied (a throwaway config, not committed). A probe of the report page gave the same call times at Phase 0 head and Phase 3 head, so the slowness is the machine, not the phases.
+
+| Spec                          | Result                                                                                                                                                       |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| hud (2 tests)                 | pass                                                                                                                                                         |
+| view (4 tests)                | pass                                                                                                                                                         |
+| mobile portrait               | pass after the `setSpeed` fix (Act break opened between two taps and covered the chip)                                                                       |
+| mobile landscape              | **fails, pre-existing**: "Let the AI choose" is 80% in view (the fork sheet is about 8 px too tall in 844x390). Same failure at Phase 0 head. No CSS changed |
+| report portrait / desktop     | pass with raised timeouts (they time out at the repo's 600 s on this loaded machine)                                                                         |
+| report landscape              | **fails once with raised timeouts**: the real-touch swipe or arrow key did not switch to Economy. Portrait uses the same code and passes; not investigated   |
+| smoke: Act ends with the bell | pass after the timeout raise (240 s to 600 s)                                                                                                                |
+| smoke: full match             | pass with raised timeouts (16 min; at the repo timeout of 900 s it ran out of time on this machine)                                                          |
+
+Fixes in the e2e files only: `setSpeed` leaves an Act break before every tap and gives each tap 30 s; the toast check reads the toast inside the page (it lives 2.6 s, less than one slow click); the Act-bell test timeout is 600 s.
+
 Branch `test-product-2` at `5627502`. Plan only: no source code was changed. Reviewer: Opus.
 
 ## BLUF

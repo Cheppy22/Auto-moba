@@ -1,7 +1,8 @@
+import { PLAY_TEAMS, distToPolyline, nearestBy } from '../sim';
 import type { Content, GameEvent, PieceId, PlayTeam } from '../sim';
 import { buildReport, type AnalysisInput } from './index';
 import { PositionIndex } from './positions';
-import { courtName, laneName } from './text';
+import { cap, courtName, laneName } from './text';
 
 /** Match-summary numbers for the result splash and the swipeable report pages. Pure and deterministic. */
 
@@ -53,8 +54,6 @@ export interface PieceRow {
   /** Damage the piece did not take: armor, resist, damage-reduction effects and shields. */
   mitigated: number;
   healingDone: number;
-  /** Not recorded in the log (no shield events); always omitted for now. */
-  shielding?: number;
   /** Damage dealt to Bastions and Thrones. */
   objectiveDamage: number;
   /** Bastions and Thrones this piece landed the final blow on. */
@@ -74,7 +73,7 @@ export interface PieceRow {
   score: number;
 }
 
-export interface TeamSummary {
+interface TeamSummary {
   /** Enemy pieces killed by this team (pieces, Bastions and pawns count; jungle and unknown killers do not). */
   kills: number;
   deaths: number;
@@ -104,7 +103,7 @@ export interface TeamSummary {
   tempoOnPawns: number;
 }
 
-export interface MvpPick {
+interface MvpPick {
   row: PieceRow;
   /** Facts only, e.g. "Most damage, 3 Bastions, 4/1/6". */
   reason: string;
@@ -129,11 +128,11 @@ export interface Award {
   tick?: number;
 }
 
-export interface TickTotal {
+interface TickTotal {
   tick: number;
   total: number;
 }
-export interface TickCount {
+interface TickCount {
   tick: number;
   count: number;
 }
@@ -170,7 +169,7 @@ export interface TimelineEntry {
   label: string;
 }
 
-export interface SummaryObjectives {
+interface SummaryObjectives {
   /** Bastions that fell. `team` owns the Bastion; `by` is the team credited with the kill (null if unknown). */
   bastions: { team: PlayTeam; lane: string; index: number; tick: number; by: PlayTeam | null }[];
   /** Thrones that fell. `team` owns the Throne. */
@@ -206,7 +205,7 @@ export interface MatchSummary {
 }
 
 /** The MVP score of a row given match totals. Documented in docs by the weights above. */
-export function scoreRow(
+function scoreRow(
   r: Pick<
     PieceRow,
     'kills' | 'assists' | 'deaths' | 'damageDealt' | 'healingDone' | 'objectiveDamage'
@@ -243,8 +242,6 @@ const emptyTeam = (): TeamSummary => ({
   tempoOnPawns: 0,
 });
 
-const TEAMS: PlayTeam[] = ['A', 'B'];
-const cap = (t: string): string => t.charAt(0).toUpperCase() + t.slice(1);
 const other = (t: PlayTeam): PlayTeam => (t === 'A' ? 'B' : 'A');
 const isPlay = (t: string | undefined | null): t is PlayTeam => t === 'A' || t === 'B';
 
@@ -291,20 +288,6 @@ const counts = (ticks: number[], v: number[]): TickCount[] =>
 
 type LaneMap = Record<string, [number, number][]>;
 
-function distToPolyline(x: number, y: number, line: [number, number][]): number {
-  let best = Infinity;
-  for (let i = 1; i < line.length; i++) {
-    const [ax, ay] = line[i - 1];
-    const [bx, by] = line[i];
-    const dx = bx - ax;
-    const dy = by - ay;
-    const len2 = dx * dx + dy * dy;
-    const t = len2 > 0 ? Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / len2)) : 0;
-    best = Math.min(best, Math.hypot(x - (ax + t * dx), y - (ay + t * dy)));
-  }
-  return best;
-}
-
 /** The lane a piece walked first: nearest lane line over its early samples, away from the base. */
 function inferLane(
   pos: PositionIndex,
@@ -319,15 +302,7 @@ function inferLane(
     const votes: Record<string, number> = {};
     for (const s of pos.slice(id, 0, horizon * tickRate)) {
       if (Math.hypot(s.x - base[0], s.y - base[1]) < 180) continue;
-      let best = ids[0];
-      let bestD = Infinity;
-      for (const l of ids) {
-        const d = distToPolyline(s.x, s.y, lanes[l]);
-        if (d < bestD) {
-          bestD = d;
-          best = l;
-        }
-      }
+      const best = nearestBy(ids, (l) => distToPolyline(s.x, s.y, lanes[l])) ?? ids[0];
       votes[best] = (votes[best] ?? 0) + 1;
     }
     let top: string | null = null;
@@ -705,7 +680,7 @@ export function buildSummary(input: AnalysisInput): MatchSummary {
         break;
     }
   }
-  for (const t of TEAMS) {
+  for (const t of PLAY_TEAMS) {
     const from = openCheck[t];
     if (from !== null) objectives.checks.push({ team: t, fromTick: from, toTick: endTick });
   }
@@ -755,7 +730,7 @@ export function buildSummary(input: AnalysisInput): MatchSummary {
     };
   });
 
-  for (const t of TEAMS) {
+  for (const t of PLAY_TEAMS) {
     const tm = report.teams[t];
     const mine = rows.filter((r) => r.team === t);
     const ts = teams[t];

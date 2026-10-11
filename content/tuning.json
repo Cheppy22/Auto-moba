@@ -128,7 +128,6 @@
     "resist": 35,
     "gold": 200,
     "teamGold": 70,
-    "heroFocusSec": 3,
     "heroDamageMul": 0.5,
     "innerHpMul": 1.25,
     "maxHpPerSec": 0.09
@@ -357,14 +356,10 @@
     "fightRadius": 280,
     "allyRadius": 300,
     "shopAtBaseGold": 300,
-    "recallBelowHp": 0.35,
     "healBaseRadius": 195,
     "baseHealPerSec": 0.12,
-    "wanderJitter": 48,
     "pushWaveRadius": 507,
     "defendRadius": 624,
-    "bidFraction": [0.3, 0.5, 1],
-    "bidGoldFraction": 0.2,
     "curseAcceptBase": 0.55,
     "siegeStartHp": 0.55,
     "siegeKeepHp": 0.4,
@@ -376,10 +371,8 @@
     "siegeMidPenalty": 0.2,
     "siegeLaneStick": 0.6,
     "laneHugRadius": 292.5,
-    "joinFightRadius": 877.5,
     "defendOffLaneRadius": 1170,
     "guardianThreatRadius": 780,
-    "suggestScore": 1.2,
     "shopTripGold": 700,
     "shopTripRadius": 741,
     "shopTripScore": 0.9,
@@ -467,13 +460,7 @@
   },
   "curse": {
     "threshold": 0.75,
-    "maxPerPhase": 1,
     "minPhase": 2
-  },
-  "auction": {
-    "enabled": false,
-    "pointRate": 3,
-    "loserRefund": 0.5
   },
   "obelisk": {
     "spawnSec": [50, 150],

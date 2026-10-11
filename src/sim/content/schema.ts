@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const STAT_KEYS = [
+const STAT_KEYS = [
   'maxHp',
   'hpRegen',
   'armor',
@@ -16,15 +16,15 @@ export const STAT_KEYS = [
   'damageTakenMult',
 ] as const;
 
-export const StatKeySchema = z.enum(STAT_KEYS);
-export const DamageTypeSchema = z.enum(['blade', 'soul', 'true']);
+const StatKeySchema = z.enum(STAT_KEYS);
+const DamageTypeSchema = z.enum(['blade', 'soul', 'true']);
 export const RoleSchema = z.enum(['top', 'mid', 'bot']);
-export const DispositionSchema = z.enum(['farmer', 'attacker', 'defender']);
-export const LaneSchema = z.enum(['top', 'mid', 'bot']);
+const DispositionSchema = z.enum(['farmer', 'attacker', 'defender']);
+const LaneSchema = z.enum(['top', 'mid', 'bot']);
 export const PostureSchema = z.enum(['push', 'farm', 'defend', 'default']);
-export const CategorySchema = z.enum(['mind', 'body', 'soul']);
+const CategorySchema = z.enum(['mind', 'body', 'soul']);
 
-export const StatsSchema = z.object({
+const StatsSchema = z.object({
   maxHp: z.number(),
   hpRegen: z.number(),
   armor: z.number(),
@@ -40,7 +40,7 @@ export const StatsSchema = z.object({
   damageTakenMult: z.number().default(1),
 });
 
-export const ModSchema = z.object({
+const ModSchema = z.object({
   stat: StatKeySchema,
   kind: z.enum(['add', 'mul']),
   value: z.number(),
@@ -52,7 +52,7 @@ const amount = {
   soulScale: z.number().default(0),
 };
 
-export const EffectSchema = z.discriminatedUnion('type', [
+const EffectSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('damage'), dmgType: DamageTypeSchema, ...amount }),
   z.object({
     type: z.literal('heal'),
@@ -97,7 +97,7 @@ export const EffectSchema = z.discriminatedUnion('type', [
   }),
 ]);
 
-export const AbilityTargetSchema = z.enum([
+const AbilityTargetSchema = z.enum([
   'self',
   'enemy',
   'enemyArea',
@@ -106,7 +106,7 @@ export const AbilityTargetSchema = z.enum([
   'lowestAlly',
 ]);
 
-export const AbilitySchema = z.object({
+const AbilitySchema = z.object({
   id: z.string(),
   name: z.string(),
   cooldownSec: z.number(),
@@ -126,7 +126,7 @@ export const AbilitySchema = z.object({
   desc: z.string().default(''),
 });
 
-export const TriggerSchema = z.object({
+const TriggerSchema = z.object({
   on: z.enum(['hit', 'kill', 'damaged', 'periodic', 'lowHp']),
   everySec: z.number().optional(),
   hpBelow: z.number().optional(),
@@ -145,19 +145,19 @@ export const TriggerSchema = z.object({
   desc: z.string().optional(),
 });
 
-export const PersonalitySchema = z.enum(['reckless', 'cautious', 'opportunist', 'steadfast']);
+const PersonalitySchema = z.enum(['reckless', 'cautious', 'opportunist', 'steadfast']);
 
 export const PIECE_IDS = ['king', 'queen', 'rook', 'bishop', 'knight'] as const;
-export const PieceIdSchema = z.enum(PIECE_IDS);
+const PieceIdSchema = z.enum(PIECE_IDS);
 export const PATHS = ['offense', 'defense', 'utility'] as const;
-export const PathSchema = z.enum(PATHS);
+const PathSchema = z.enum(PATHS);
 
 /**
  * One automatic improvement: an optional ability tweak (same shape as the old upgrade cards) plus
  * optional stat mods and triggers. Used for style rank bonuses (Ranks 2, 3, 5, 6, 7) and fork
  * options (Ranks 4 and 8).
  */
-export const PerkSchema = z.object({
+const PerkSchema = z.object({
   name: z.string(),
   desc: z.string().default(''),
   /** 0-2 = the piece's base abilities, 3 = the style's signature ability. */
@@ -170,7 +170,7 @@ export const PerkSchema = z.object({
   triggers: z.array(TriggerSchema).default([]),
 });
 
-export const ForkOptionSchema = PerkSchema.extend({ id: z.string() });
+const ForkOptionSchema = PerkSchema.extend({ id: z.string() });
 
 const PathListsSchema = z.object({
   offense: z.array(z.string()),
@@ -179,9 +179,9 @@ const PathListsSchema = z.object({
 });
 
 /** The two generic rank bonuses a piece earns before it chooses its archetype (Ranks 2 and 3). */
-export const GenericRanksSchema = z.object({ '2': PerkSchema, '3': PerkSchema });
+const GenericRanksSchema = z.object({ '2': PerkSchema, '3': PerkSchema });
 
-export const StyleSchema = z.object({
+const StyleSchema = z.object({
   id: z.string(),
   name: z.string(),
   desc: z.string().default(''),
@@ -229,17 +229,10 @@ export const PieceSchema = z.object({
 });
 
 /** `ally` targets one of the team's own pieces. */
-export const GambitTargetSchema = z.enum(['lane', 'point', 'enemy', 'ally', 'none']);
+const GambitTargetSchema = z.enum(['lane', 'point', 'enemy', 'ally', 'none']);
 
-export const SCHOOLS = [
-  'march',
-  'initiative',
-  'fortress',
-  'sacrifice',
-  'position',
-  'clock',
-] as const;
-export const SchoolSchema = z.enum(SCHOOLS);
+const SCHOOLS = ['march', 'initiative', 'fortress', 'sacrifice', 'position', 'clock'] as const;
+const SchoolSchema = z.enum(SCHOOLS);
 
 /** Effect families the sim implements; a card's `effect` defaults to its id. */
 export const GAMBIT_EFFECTS = [
@@ -261,7 +254,7 @@ export const GAMBIT_EFFECTS = [
   'outpost',
 ] as const;
 
-export const GambitSchema = z.object({
+const GambitSchema = z.object({
   id: z.string(),
   name: z.string(),
   desc: z.string().default(''),
@@ -279,7 +272,7 @@ export const GambitSchema = z.object({
 export const GambitFileSchema = z.object({ gambits: z.array(GambitSchema).min(1) });
 
 /** An opening: the schools whose cards the hand draws twice as often. */
-export const OpeningSchema = z.object({
+const OpeningSchema = z.object({
   id: z.string(),
   name: z.string(),
   desc: z.string().default(''),
@@ -289,7 +282,7 @@ export const OpeningSchema = z.object({
 export const OpeningFileSchema = z.array(OpeningSchema).min(1);
 
 export const RELIC_FAMILIES = ['lane', 'carry', 'pawns', 'siege', 'orders'] as const;
-export const RelicFamilySchema = z.enum(RELIC_FAMILIES);
+const RelicFamilySchema = z.enum(RELIC_FAMILIES);
 
 /** Effect families the sim implements; a relic's `effect` defaults to its id. */
 export const RELIC_EFFECTS = [
@@ -327,7 +320,7 @@ export const SealedTriggerSchema = z.enum(SEALED_TRIGGERS);
  * it (a lane, a piece, or a lane and a lane card). `aim` is how the AI aims it: offence at the
  * best lane or defence at the worst one; the carry or the most beaten piece.
  */
-export const RelicSchema = z.object({
+const RelicSchema = z.object({
   id: z.string(),
   name: z.string(),
   family: RelicFamilySchema,
@@ -350,7 +343,7 @@ export const RelicSchema = z.object({
 
 export const RelicFileSchema = z.object({ relics: z.array(RelicSchema).min(1) });
 
-export const ItemSchema = z.object({
+const ItemSchema = z.object({
   id: z.string(),
   name: z.string(),
   category: CategorySchema,
@@ -362,14 +355,14 @@ export const ItemSchema = z.object({
   desc: z.string().default(''),
 });
 
-export const FlawSchema = z.object({
+const FlawSchema = z.object({
   id: z.string(),
   text: z.string(),
   mods: z.array(ModSchema).default([]),
   triggers: z.array(TriggerSchema).default([]),
 });
 
-export const CursedItemSchema = z.object({
+const CursedItemSchema = z.object({
   id: z.string(),
   name: z.string(),
   category: CategorySchema,
@@ -381,23 +374,12 @@ export const CursedItemSchema = z.object({
   boonText: z.string(),
 });
 
-export const HolyItemSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  category: CategorySchema,
-  mods: z.array(ModSchema).default([]),
-  triggers: z.array(TriggerSchema).default([]),
-  hint: z.string(),
-  desc: z.string().default(''),
-});
-
 export const ItemFileSchema = z.object({
   items: z.array(ItemSchema).default([]),
   cursed: z.array(CursedItemSchema).default([]),
-  holy: z.array(HolyItemSchema).default([]),
 });
 
-export const CampTypeSchema = z.object({
+const CampTypeSchema = z.object({
   id: z.string(),
   name: z.string(),
   hp: z.number(),
@@ -496,7 +478,7 @@ export const PressureSchema = z.object({
   ),
 });
 
-export const EventUnitSchema = z.object({
+const EventUnitSchema = z.object({
   id: z.string(),
   name: z.string(),
   count: z.number().int().min(1),
@@ -512,7 +494,7 @@ export const EventUnitSchema = z.object({
   points: z.number().default(0),
 });
 
-export const EventDefSchema = z.object({
+const EventDefSchema = z.object({
   id: z.string(),
   kind: z.enum(['procession', 'parade', 'well', 'oni']),
   name: z.string(),
@@ -736,7 +718,6 @@ export const TuningSchema = z.object({
     resist: z.number(),
     gold: z.number(),
     teamGold: z.number(),
-    heroFocusSec: z.number(),
     heroDamageMul: z.number(),
     innerHpMul: z.number(),
     maxHpPerSec: z.number(),
@@ -831,14 +812,10 @@ export const TuningSchema = z.object({
     fightRadius: z.number(),
     allyRadius: z.number(),
     shopAtBaseGold: z.number(),
-    recallBelowHp: z.number(),
     healBaseRadius: z.number(),
     baseHealPerSec: z.number(),
-    wanderJitter: z.number(),
     pushWaveRadius: z.number(),
     defendRadius: z.number(),
-    bidFraction: z.array(z.number()),
-    bidGoldFraction: z.number(),
     curseAcceptBase: z.number(),
     siegeStartHp: z.number(),
     siegeKeepHp: z.number(),
@@ -850,13 +827,11 @@ export const TuningSchema = z.object({
     siegeMidPenalty: z.number(),
     siegeLaneStick: z.number(),
     laneHugRadius: z.number(),
-    joinFightRadius: z.number(),
     defendOffLaneRadius: z.number(),
     holdPatience: z.number(),
     guardianThreatRadius: z.number(),
     huntRadius: z.number(),
     huntScore: z.number(),
-    suggestScore: z.number(),
     shopTripGold: z.number(),
     shopTripRadius: z.number(),
     shopTripScore: z.number(),
@@ -887,10 +862,8 @@ export const TuningSchema = z.object({
   posture: z.record(z.string(), z.record(z.string(), z.number())),
   curse: z.object({
     threshold: z.number(),
-    maxPerPhase: z.number().int(),
     minPhase: z.number().int(),
   }),
-  auction: z.object({ enabled: z.boolean(), pointRate: z.number(), loserRefund: z.number() }),
   obelisk: z.object({
     spawnSec: z.array(z.number()),
     claimSec: z.number(),
@@ -918,28 +891,12 @@ export const TuningSchema = z.object({
   }),
 });
 
-export const ContentSchema = z.object({
-  pieces: z.array(PieceSchema).length(5),
-  gambits: z.array(GambitSchema),
-  openings: z.array(OpeningSchema),
-  relics: z.array(RelicSchema),
-  items: z.array(ItemSchema),
-  cursed: z.array(CursedItemSchema),
-  holy: z.array(HolyItemSchema),
-  biomes: z.array(BiomeSchema),
-  pressure: PressureSchema,
-  badges: BadgesSchema,
-  map: MapSchema,
-  tuning: TuningSchema,
-});
-
 export type StatKey = (typeof STAT_KEYS)[number];
 export type DamageType = z.infer<typeof DamageTypeSchema>;
 export type Role = z.infer<typeof RoleSchema>;
 export type LaneId = z.infer<typeof LaneSchema>;
 export type Posture = z.infer<typeof PostureSchema>;
 export type Disposition = z.infer<typeof DispositionSchema>;
-export type Category = z.infer<typeof CategorySchema>;
 export type Stats = z.infer<typeof StatsSchema>;
 export type ModDef = z.infer<typeof ModSchema>;
 export type EffectDef = z.infer<typeof EffectSchema>;
@@ -959,12 +916,9 @@ export type RelicDef = z.infer<typeof RelicSchema>;
 export type RelicFamily = z.infer<typeof RelicFamilySchema>;
 export type RelicEffect = (typeof RELIC_EFFECTS)[number];
 export type SealedTrigger = z.infer<typeof SealedTriggerSchema>;
-export type GenericRanks = z.infer<typeof GenericRanksSchema>;
 export type GambitEffect = (typeof GAMBIT_EFFECTS)[number];
 export type ItemDef = z.infer<typeof ItemSchema>;
-export type FlawDef = z.infer<typeof FlawSchema>;
 export type CursedItemDef = z.infer<typeof CursedItemSchema>;
-export type HolyItemDef = z.infer<typeof HolyItemSchema>;
 export type CampTypeDef = z.infer<typeof CampTypeSchema>;
 export type BiomeDef = z.infer<typeof BiomeSchema>;
 export type MapDef = z.infer<typeof MapSchema>;
@@ -973,4 +927,3 @@ export type EventUnitDef = z.infer<typeof EventUnitSchema>;
 export type PressureDef = z.infer<typeof PressureSchema>['events'][number];
 export type BadgeDef = z.infer<typeof BadgesSchema>['badges'][number];
 export type Tuning = z.infer<typeof TuningSchema>;
-export type RawContent = z.input<typeof ContentSchema>;

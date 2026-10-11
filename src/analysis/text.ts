@@ -1,7 +1,7 @@
-import type { Content, PlayTeam } from '../sim';
+import { LANE_NAME, teamWord, type Content, type PlayTeam } from '../sim';
 import type { Report } from './index';
 
-const LANE_NAMES: Record<string, string> = { top: 'Left', mid: 'Mid', bot: 'Right' };
+const LANE_NAMES: Record<string, string | undefined> = LANE_NAME;
 
 /** top/mid/bot -> Left/Mid/Right (the names the map shows). */
 export function laneName(lane: string): string {
@@ -15,23 +15,21 @@ export function teamLabel(team: string, viewer: PlayTeam = 'A'): string {
 }
 
 /** The two sides of the board: Team A is White, Team B is Black. */
-export function courtName(team: string): string {
-  return team === 'A' ? 'White' : team === 'B' ? 'Black' : team;
-}
+export const courtName = teamWord;
 
 /** The base structure's display name: each side has a Throne. */
-export function throneName(team: string): string {
+function throneName(team: string): string {
   return team === 'A' ? 'White Throne' : team === 'B' ? 'Black Throne' : 'Throne';
 }
 
-const cap = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
+export const cap = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
 
 /** A piece's display name, e.g. "White Knight". */
 export function pieceName(team: string, piece: string): string {
   return `${courtName(team)} ${cap(piece)}`;
 }
 
-export function teamLabelCap(team: string, viewer: PlayTeam = 'A'): string {
+function teamLabelCap(team: string, viewer: PlayTeam = 'A'): string {
   return cap(teamLabel(team, viewer));
 }
 
@@ -99,7 +97,7 @@ export function structureText(
   return `${side} ${s.kind} fell`;
 }
 
-export function obeliskText(
+function obeliskText(
   o: Report['special']['obelisks'][number],
   c: Content,
   viewer: PlayTeam = 'A',
@@ -107,12 +105,12 @@ export function obeliskText(
   return `${teamLabelCap(o.team, viewer)} claimed the obelisk at ${slotName(o.node)}: ${obeliskRewardText(o.reward, o.value, c)}`;
 }
 
-export function biomeText(b: Report['special']['biomes'][number], c: Content): string {
+function biomeText(b: Report['special']['biomes'][number], c: Content): string {
   const name = c.biomeById.get(b.biome)?.name ?? b.biome.replace(/_/g, ' ');
   return `${name} opened in the ${slotName(b.slot)}`;
 }
 
-export interface EventLine {
+interface EventLine {
   tick: number;
   kind: 'structure' | 'biome' | 'pressure' | 'obelisk';
   text: string;

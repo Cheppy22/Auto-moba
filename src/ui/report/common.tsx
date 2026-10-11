@@ -6,7 +6,7 @@ export const heroName = (c: Content, def: string): string =>
   c.pieceById.get(def as PieceId)?.name ?? def;
 
 export const itemName = (c: Content, id: string): string =>
-  c.itemById.get(id)?.name ?? c.cursedById.get(id)?.name ?? c.holyById.get(id)?.name ?? id;
+  c.itemById.get(id)?.name ?? c.cursedById.get(id)?.name ?? id;
 
 export function Num(props: { value: number; skip: boolean }) {
   const [shown, setShown] = useState(props.skip ? props.value : 0);

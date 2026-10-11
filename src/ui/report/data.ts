@@ -49,7 +49,7 @@ export function useReportData(): ReportData {
     const report = buildReport(input, { kind: 'match' }, 'A');
     let sum = buildSummary(input);
     let mock = false;
-    if (wantsMock()) {
+    if (import.meta.env.DEV && wantsMock()) {
       sum = mockSummary(report.roster, content);
       mock = true;
     }

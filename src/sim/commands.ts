@@ -12,7 +12,7 @@ import { LANES } from './world/map';
 import type { Command, CommandResult, TeamSetup, Unit } from './types';
 
 /** Starts the match from the setup board (White's entries replace the pre-filled default). */
-export type StartMatchFn = (ctx: Ctx, white: TeamSetup) => void;
+type StartMatchFn = (ctx: Ctx, white: TeamSetup) => void;
 
 export function applyCommand(ctx: Ctx, cmd: Command, startMatch: StartMatchFn): CommandResult {
   const r = run(ctx, cmd, startMatch);

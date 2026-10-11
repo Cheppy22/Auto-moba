@@ -2,6 +2,7 @@ import { pick, rand } from './core/rng';
 import type { Ctx } from './ctx';
 import { netWorth } from './shop';
 import type { CurseOffer, PlayTeam, Unit } from './types';
+import { PLAY_TEAMS } from './names';
 
 function freeSlot(ctx: Ctx, u: Unit): void {
   const h = u.hero!;
@@ -24,7 +25,7 @@ function freeSlot(ctx: Ctx, u: Unit): void {
   ctx.emit('sell', { id: u.id, item: id, refund });
 }
 
-export function grantSpecial(ctx: Ctx, u: Unit, itemId: string): void {
+function grantSpecial(ctx: Ctx, u: Unit, itemId: string): void {
   freeSlot(ctx, u);
   u.hero!.items.push(itemId);
   u.dirty = true;
@@ -71,7 +72,7 @@ export function evaluateCurseOffers(ctx: Ctx): void {
   const loser: PlayTeam = a < b ? 'A' : 'B';
   let total = 0;
   let count = 0;
-  for (const t of ['A', 'B'] as PlayTeam[]) {
+  for (const t of PLAY_TEAMS) {
     for (const id of ctx.s.teams[t].heroIds) {
       const u = ctx.unit(id);
       if (u) {
@@ -114,11 +115,7 @@ export function evaluateCurseOffers(ctx: Ctx): void {
   resolveCurse(ctx, offer, rand(ctx.s.rng, 'ai') < p);
 }
 
-export function pendingOffer(ctx: Ctx, heroId: number): CurseOffer | null {
-  return ctx.s.curseOffers.find((o) => o.heroId === heroId && !o.resolved) ?? null;
-}
-
-export function resolveCurse(ctx: Ctx, offer: CurseOffer, accept: boolean): void {
+function resolveCurse(ctx: Ctx, offer: CurseOffer, accept: boolean): void {
   offer.resolved = true;
   offer.accepted = accept;
   const u = ctx.unit(offer.heroId);

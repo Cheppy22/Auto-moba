@@ -1,7 +1,7 @@
 import { inCombat, TPS } from './combat';
-import { dist } from './core/math';
+import { clamp, dist } from './core/math';
 import type { Ctx } from './ctx';
-import { LANES, lanePoint, laneT } from './world/map';
+import { LANES, laneDist, nearestBy } from './world/map';
 import type {
   DeathCause,
   Fall,
@@ -15,8 +15,8 @@ import type {
   Unit,
 } from './types';
 import { other } from './types';
+import { PLAY_TEAMS } from './names';
 
-const TEAMS: PlayTeam[] = ['A', 'B'];
 const HIT_MERGE_TICKS = 4;
 const HIT_CAP = 64;
 
@@ -32,23 +32,12 @@ const pair = (): Record<PlayTeam, number> => ({ A: 0, B: 0 });
 
 /** The lane whose centre line passes within `maxOff` of the point, or null. */
 export function laneAt(ctx: Ctx, x: number, y: number, maxOff: number): LaneId | null {
-  let best: LaneId | null = null;
-  let bestD = maxOff;
-  for (const lane of LANES) {
-    const geo = ctx.world.lanes[lane];
-    const p = lanePoint(geo, laneT(geo, x, y));
-    const d = dist(x, y, p.x, p.y);
-    if (d <= bestD) {
-      bestD = d;
-      best = lane;
-    }
-  }
-  return best;
+  return nearestBy(LANES, (lane) => laneDist(ctx.world.lanes[lane], x, y), maxOff, true);
 }
 
 function zoneAt(ctx: Ctx, x: number, y: number): FightZone {
   const f = ctx.t.feedback.fight;
-  for (const team of TEAMS) {
+  for (const team of PLAY_TEAMS) {
     const b = ctx.world.basePos[team];
     if (dist(x, y, b.x, b.y) <= f.baseRadius) return team === 'A' ? 'baseA' : 'baseB';
   }
@@ -147,9 +136,7 @@ export function classifyFall(ctx: Ctx, victim: Unit, killer: Unit | null): Fall 
   }
   let offLane = false;
   if (!backed && h.lane) {
-    const geo = ctx.world.lanes[h.lane];
-    const p = lanePoint(geo, laneT(geo, victim.x, victim.y));
-    offLane = dist(victim.x, victim.y, p.x, p.y) > cfg.laneOffMax;
+    offLane = laneDist(ctx.world.lanes[h.lane], victim.x, victim.y) > cfg.laneOffMax;
   }
   let cause: DeathCause;
   if (burst >= cfg.burstFrac * victim.stats.maxHp) cause = 'burst';
@@ -229,7 +216,7 @@ export function tickFights(ctx: Ctx): void {
   const tick = ctx.s.tick;
   const cfg = ctx.t.feedback.fight;
   const live: Unit[] = [];
-  for (const team of TEAMS) {
+  for (const team of PLAY_TEAMS) {
     for (const id of ctx.s.teams[team].heroIds) {
       const u = ctx.unit(id);
       if (u?.alive && inCombat(tick, u)) live.push(u);
@@ -324,8 +311,6 @@ export function noteMinionLoss(ctx: Ctx, u: Unit): void {
 }
 
 // ------------------------------------------------------------------ lane momentum
-
-const clamp = (v: number, lo: number, hi: number): number => Math.min(hi, Math.max(lo, v));
 
 /**
  * Who is pushing each lane, -1 (Black) to 1 (White): where the pawnling fronts meet, how much

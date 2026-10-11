@@ -12,7 +12,6 @@ import { computeBadges, type BadgeAward } from './badges';
 import { deriveFights, type Fight } from './fights';
 import { PositionIndex } from './positions';
 
-export type { BadgeAward } from './badges';
 export type { Fight } from './fights';
 export { PositionIndex } from './positions';
 export * from './text';
@@ -122,7 +121,6 @@ export interface TeamModel {
   campsCleared: number;
   obelisksClaimed: number;
   pointsEarned: number;
-  pointsSpent: number;
   heroDeathsByCause: Record<string, number>;
   gambitsPlayed: Record<string, number>;
   pawnsFielded: number;
@@ -135,16 +133,6 @@ export interface SpecialFacts {
   keeper: { tick: number; spot: string; stock: string[] }[];
   pressure: { tick: number; name: string }[];
   biomes: { tick: number; slot: string; biome: string }[];
-  bids: { tick: number; team: PlayTeam; points: number; gold: number; hero: number }[];
-  auction: {
-    holy: string;
-    winner: PlayTeam | null;
-    recipient: number;
-    pointsA: number;
-    pointsB: number;
-    goldA: number;
-    goldB: number;
-  } | null;
   structures: {
     tick: number;
     kind: string;
@@ -222,7 +210,6 @@ function newTeam(team: PlayTeam): TeamModel {
     campsCleared: 0,
     obelisksClaimed: 0,
     pointsEarned: 0,
-    pointsSpent: 0,
     heroDeathsByCause: {},
     gambitsPlayed: {},
     pawnsFielded: 0,
@@ -293,15 +280,12 @@ export function buildReport(input: AnalysisInput, scope: Scope, viewer?: PlayTea
   const teams: Record<PlayTeam, TeamModel> = { A: newTeam('A'), B: newTeam('B') };
   const teamOf = new Map<number, PlayTeam>(roster.map((r) => [r.id, r.team]));
   const w = windowFor(events, scope);
-  const auctionResolved = events.some((e) => e.type === 'auctionResolved' && e.seq <= w.seqTo);
   const special: SpecialFacts = {
     obelisks: [],
     curses: [],
     keeper: [],
     pressure: [],
     biomes: [],
-    bids: [],
-    auction: null,
     structures: [],
   };
   const recentTaken = new Map<
@@ -475,22 +459,6 @@ export function buildReport(input: AnalysisInput, scope: Scope, viewer?: PlayTea
         break;
       case 'teamPoints':
         if (e.payload.amount > 0) teams[e.payload.team].pointsEarned += e.payload.amount;
-        break;
-      case 'bid':
-        if (viewer && e.payload.team !== viewer && !auctionResolved) break;
-        teams[e.payload.team].pointsSpent += e.payload.points;
-        special.bids.push({ tick: e.tick, ...e.payload });
-        break;
-      case 'auctionResolved':
-        special.auction = {
-          holy: e.payload.holy,
-          winner: e.payload.winner,
-          recipient: e.payload.recipient,
-          pointsA: e.payload.pointsA,
-          pointsB: e.payload.pointsB,
-          goldA: e.payload.goldA,
-          goldB: e.payload.goldB,
-        };
         break;
       case 'curseOffered':
         special.curses.push({ tick: e.tick, hero: e.payload.hero, item: e.payload.item });

@@ -1,3 +1,4 @@
+import { PIECE_NAME } from '../src/sim';
 import type { MatchSummary } from './simulate';
 
 const pct = (n: number, d: number): string => (d === 0 ? 'n/a' : `${((100 * n) / d).toFixed(1)}%`);
@@ -12,14 +13,6 @@ const median = (xs: number[]): number => {
 const quant = (xs: number[], q: number): number => {
   const s = xs.slice().sort((a, b) => a - b);
   return s.length ? s[Math.min(s.length - 1, Math.floor(q * s.length))] : 0;
-};
-
-const PIECE_NAME: Record<string, string> = {
-  king: 'King',
-  queen: 'Queen',
-  rook: 'Rook',
-  bishop: 'Bishop',
-  knight: 'Knight',
 };
 
 export function report(
@@ -130,7 +123,7 @@ export function report(
   const row = (s: Agg): string =>
     `${pct(s.w, s.n)} | ${(s.k / s.n).toFixed(1)} | ${(s.d / s.n).toFixed(1)} | ${(s.a / s.n).toFixed(1)} | ${Math.round(s.g / s.n)}`;
   for (const [id, s] of Object.entries(pieceStats).sort())
-    lines.push(`| ${PIECE_NAME[id] ?? id} | ${row(s)} |`);
+    lines.push(`| ${(PIECE_NAME as Record<string, string | undefined>)[id] ?? id} | ${row(s)} |`);
   lines.push('');
   lines.push("## Styles (pick rate = share of that piece's appearances)");
   lines.push('');

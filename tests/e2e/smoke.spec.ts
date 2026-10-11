@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import {
   clearPawnPlan,
   eventCount,
@@ -14,6 +14,19 @@ import {
   type TestSession,
   watchErrors,
 } from './helpers';
+
+/**
+ * Taps `id` and returns the toast text that shows. A toast lasts 2.6 s and a loaded machine can take
+ * longer than that to answer one click, so the text is read inside the page the moment it appears.
+ */
+async function tapForToast(page: Page, id: string): Promise<string> {
+  await expect(page.getByTestId('toast')).toHaveCount(0, { timeout: 30_000 }); // an older toast must be gone
+  const shown = page.waitForFunction(
+    () => document.querySelector('[data-testid="toast"]')?.textContent || false,
+  );
+  await page.getByTestId(id).click({ force: true });
+  return String(await (await shown).jsonValue());
+}
 
 test('title, setup, gambits, pawn, fork, adjourn, checkmate and report', async ({ page }) => {
   // the 3D view is slow in headless software rendering, so every step takes longer than it used to
@@ -150,10 +163,8 @@ test('title, setup, gambits, pawn, fork, adjourn, checkmate and report', async (
   await expect(page.getByTestId(`gambit-${idle.slot}`)).toHaveAttribute('data-usable', 'false');
   await expect(page.getByTestId(`gambit-${idle.slot}`)).toContainText(/Tempo|down/);
   // a card that cannot be played is aria-disabled but still answers a tap with the reason
-  await page.getByTestId(`gambit-${idle.slot}`).click({ force: true });
-  await expect(page.getByTestId('toast')).toBeVisible();
-  await page.getByTestId('field-pawn').click({ force: true });
-  await expect(page.getByTestId('toast')).toContainText('Not enough Tempo');
+  expect(await tapForToast(page, `gambit-${idle.slot}`)).toMatch(/\S/);
+  expect(await tapForToast(page, 'field-pawn')).toContain('Not enough Tempo');
   await expect(page.getByTestId('aim')).toHaveCount(0);
 
   // ---- field a pawn: Field Pawn, then a lane
@@ -295,7 +306,7 @@ test('title, setup, gambits, pawn, fork, adjourn, checkmate and report', async (
 });
 
 test('an Act ends with the bell and a break sheet; Resume opens the next Act', async ({ page }) => {
-  test.setTimeout(240_000);
+  test.setTimeout(600_000);
   const errors = watchErrors(page);
   await startLive(page, '7');
   await step(page, 4799);

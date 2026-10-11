@@ -25,8 +25,7 @@ function Armory() {
   const s = useSession();
   const m = s.match!;
   const [sel, setSel] = useState<{ hero: number; item: string } | null>(null);
-  const def = (id: string) =>
-    s.content.itemById.get(id) ?? s.content.cursedById.get(id) ?? s.content.holyById.get(id);
+  const def = (id: string) => s.content.itemById.get(id) ?? s.content.cursedById.get(id);
   const desc = (id: string): string => {
     const it = def(id);
     return it && 'desc' in it ? (it as { desc: string }).desc : '';

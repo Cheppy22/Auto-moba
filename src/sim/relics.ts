@@ -1,13 +1,14 @@
 import { relicEffect } from './content/loader';
 import type { GambitDef, LaneId, ModDef, RelicDef, RelicEffect } from './content/schema';
 import type { Ctx } from './ctx';
+import { LANE_NAME } from './names';
 import { LANES } from './world/map';
 import type { HeldRelic, PlayTeam, Unit } from './types';
 
 /** Lane move-speed bonuses from relics and cards carry this tag; together they stop at the tuning cap. */
 export const LANE_SPEED_TAG = 'laneSpeed';
 
-export interface RelicMod extends ModDef {
+interface RelicMod extends ModDef {
   tags: string[];
 }
 
@@ -51,7 +52,6 @@ export function workingRelic(ctx: Ctx, team: PlayTeam, effect: RelicEffect): Hel
 export const param = (h: { def: RelicDef }, key: string, fallback: number): number =>
   p(h.def, key, fallback);
 
-export const LANE_NAME: Record<LaneId, string> = { top: 'Left', mid: 'Mid', bot: 'Right' };
 const STANDARD: Record<LaneId, number> = { top: 2, mid: 1, bot: 2 };
 
 export function laneCounts(ctx: Ctx, team: PlayTeam): Record<LaneId, number> {

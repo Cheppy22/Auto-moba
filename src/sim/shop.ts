@@ -3,7 +3,7 @@ import type { Ctx } from './ctx';
 import { checkRank } from './ranks';
 import type { CommandResult, Unit } from './types';
 
-export function itemCost(ctx: Ctx, id: string): number {
+function itemCost(ctx: Ctx, id: string): number {
   return ctx.c.itemById.get(id)?.cost ?? 0;
 }
 
@@ -25,11 +25,11 @@ export function giveGold(ctx: Ctx, u: Unit, amount: number, source: string, sile
   checkRank(ctx, u);
 }
 
-export function baseCatalog(ctx: Ctx): string[] {
+function baseCatalog(ctx: Ctx): string[] {
   return ctx.c.items.filter((it) => it.tier <= 2).map((it) => it.id);
 }
 
-export function jungleCatalog(ctx: Ctx): string[] {
+function jungleCatalog(ctx: Ctx): string[] {
   return ctx.c.items.filter((it) => it.tier === 3).map((it) => it.id);
 }
 
@@ -39,13 +39,13 @@ export function nearBase(ctx: Ctx, u: Unit): boolean {
   return dist(u.x, u.y, b.x, b.y) <= ctx.t.shop.baseRadius;
 }
 
-export function nearKeeper(ctx: Ctx, u: Unit): boolean {
+function nearKeeper(ctx: Ctx, u: Unit): boolean {
   const k = ctx.unit(ctx.s.keeper.unitId);
   if (!k || !k.alive) return false;
   return dist(u.x, u.y, k.x, k.y) <= ctx.t.shop.keeperRadius;
 }
 
-export function nearJungleShop(ctx: Ctx, u: Unit): boolean {
+function nearJungleShop(ctx: Ctx, u: Unit): boolean {
   for (const sh of ctx.world.map.shops) {
     if (dist(u.x, u.y, sh.x, sh.y) <= ctx.t.shop.jungleRadius) return true;
   }
@@ -59,7 +59,7 @@ export function shopAt(ctx: Ctx, u: Unit): string | null {
   return null;
 }
 
-export interface Access {
+interface Access {
   base: boolean;
   keeper: boolean;
   jungle: boolean;
@@ -67,14 +67,14 @@ export interface Access {
 
 export type Where = 'here' | 'base' | 'jungle';
 
-export function shopAccess(ctx: Ctx, u: Unit): Access {
+function shopAccess(ctx: Ctx, u: Unit): Access {
   if (ctx.s.phase.kind !== 'live') return { base: false, keeper: false, jungle: false };
   if (!u.alive) return { base: true, keeper: false, jungle: false };
   const jungle = nearJungleShop(ctx, u);
   return { base: nearBase(ctx, u) || jungle, keeper: nearKeeper(ctx, u), jungle };
 }
 
-export function itemPrice(
+function itemPrice(
   ctx: Ctx,
   u: Unit,
   itemId: string,
@@ -98,7 +98,7 @@ export function itemPrice(
   return { price: Math.max(0, gross - discount), consumed };
 }
 
-export interface Quote {
+interface Quote {
   price: number;
   consumed: string[];
 }
@@ -150,7 +150,7 @@ export function sellItem(ctx: Ctx, u: Unit, itemId: string): CommandResult {
   const i = h.items.indexOf(itemId);
   if (i < 0) return { ok: false, reason: 'item not owned' };
   const item = ctx.c.itemById.get(itemId);
-  if (!item) return { ok: false, reason: 'cursed and holy items cannot be sold' };
+  if (!item) return { ok: false, reason: 'cursed items cannot be sold' };
   const access = shopAccess(ctx, u);
   if (!access.base && !access.keeper) return { ok: false, reason: 'no shop in reach' };
   const refund = Math.round(item.cost * ctx.t.shop.sellRefund);
