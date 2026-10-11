@@ -4,7 +4,7 @@ Newest first. One entry per change: what changed, why, and any measured effect. 
 
 ## 2026-10-11
 
-- **Overnight QA playtest and small fixes** (branch `test-product-2`; findings, screenshots list and product review in [QA-2026-10-11.md](QA-2026-10-11.md)). Why: Cheppy asked for a full end-to-end playtest of the live build (8 matches, both looks, three viewports). No Blocker or High found; 9 small bugs fixed, 8 logged open. UI and content text only, no sim change.
+- **Overnight QA playtest and small fixes** (branch `test-product-2`; findings, screenshots list and product review in [QA-2026-10-11.md](QA-2026-10-11.md)). Why: Cheppy asked for a full end-to-end playtest of the live build (8 matches, both looks, three viewports). No Blocker or High found; 9 small bugs fixed, 9 logged open (one is the desktop `report.spec` hanging under load). UI and content text only, no sim change.
   - **Relic text:** a White side playing a non-Italian Opening no longer sees "Italian Game" lines on Sealed Move or Opening Theory; Black's relics (break sheet list and seal pop-over) read in the third person (`8d6ac18`).
   - **Break sheet:** a refused "Take this relic" (no card picked, or no replacement chosen) now shows its message above the sheet (`e1a3307`).
   - **Report Replay map** fits the whole 1950-unit board (it showed a crop of the middle) (`6798e27`).
