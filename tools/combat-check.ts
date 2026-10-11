@@ -46,6 +46,13 @@ const out = {
   minutes: 0,
   whiteWins: 0,
   medianMin: 0,
+  // mean minute of the first Throne kill, over the matches that had one
+  throneMin: 0,
+  thronesDown: 0,
+  bastionsDown: 0,
+  // [match minutes, minute of the first Throne kill]
+  perMatch: [] as [number, number | null][],
+  goals: {} as Record<string, number>,
   time: { all: 0, dead: 0, recall: 0, base: 0, flee: 0, retreat: 0, hold: 0 },
 };
 
@@ -71,11 +78,14 @@ for (let k = 0; k < matches; k++) {
   const lastEngage = new Map<number, { e: string; tick: number }>();
   let seen = 0;
   let evI = 0;
+  let throneAt = -1;
   while (m.state.phase.kind === 'live' && m.state.tick < maxTicks) {
     if (m.step(1) === 0) break;
     const s = m.state;
     for (; evI < m.events.length; evI++) {
       const e = m.events[evI];
+      if (e.type === 'throneDown' && throneAt < 0) throneAt = e.tick;
+      if (e.type === 'structureDown') out.bastionsDown++;
       if (e.type !== 'death') continue;
       const p = e.payload as {
         id: number;
@@ -188,6 +198,8 @@ for (let k = 0; k < matches; k++) {
       else if (u.hero.engage === 'flee') out.time.flee++;
       else if (u.hero.goal?.kind === 'retreat') out.time.retreat++;
       else if (u.hero.engage === 'hold') out.time.hold++;
+      const gk = u.hero.goal?.kind ?? 'none';
+      out.goals[gk] = (out.goals[gk] ?? 0) + 1;
       if (u.hp / u.stats.maxHp < 0.35 && u.hero.engage === 'fight' && enemyStructureNear(m, u, 0))
         out.lowHpTowerFightTicks += 5;
     }
@@ -195,6 +207,14 @@ for (let k = 0; k < matches; k++) {
   }
   out.minutes += seen / TPS / 60;
   lengths.push(seen / TPS / 60);
+  out.perMatch.push([
+    +(seen / TPS / 60).toFixed(1),
+    throneAt < 0 ? null : +(throneAt / TPS / 60).toFixed(1),
+  ]);
+  if (throneAt >= 0) {
+    out.throneMin += throneAt / TPS / 60;
+    out.thronesDown++;
+  }
   if (m.state.winner === 'A') out.whiteWins++;
   process.stderr.write(`${k + 1}/${matches}\r`);
 }
@@ -202,6 +222,7 @@ out.blobShare = +(blob / Math.max(1, out.combatSamples)).toFixed(3);
 out.nearestGap = +(gapSum / Math.max(1, out.combatSamples)).toFixed(2);
 out.ownSideShare = +(ownSide / Math.max(1, out.meleeSamples)).toFixed(3);
 out.minutes = +out.minutes.toFixed(1);
+out.throneMin = +(out.throneMin / Math.max(1, out.thronesDown)).toFixed(2);
 for (const k of Object.keys(out.time) as (keyof typeof out.time)[])
   if (k !== 'all') out.time[k] = +(out.time[k] / Math.max(1, out.time.all)).toFixed(3);
 lengths.sort((a, b) => a - b);

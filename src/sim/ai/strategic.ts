@@ -89,6 +89,13 @@ function alliedHeroesNear(
   return n;
 }
 
+/** Dead, or gone home to heal: a piece the other side can push past. */
+function outOfPlay(ctx: Ctx, u: Unit | undefined): boolean {
+  if (!u?.alive || !u.hero) return true;
+  const g = u.hero.goal?.kind;
+  return !!u.hero.recall || ((g === 'retreat' || g === 'base') && hpPct(u) < ctx.t.ai.healSafeHp);
+}
+
 function teamPlan(ctx: Ctx, team: PlayTeam): { siege: boolean; lane: LaneId } {
   const board = ctx.s.board[team];
   const plan = board.plan;
@@ -105,7 +112,7 @@ function teamPlan(ctx: Ctx, team: PlayTeam): { siege: boolean; lane: LaneId } {
       hpSum += hpPct(h);
     }
   }
-  for (const id of ctx.s.teams[foe].heroIds) if (ctx.unit(id)?.alive) aliveE++;
+  for (const id of ctx.s.teams[foe].heroIds) if (!outOfPlay(ctx, ctx.unit(id))) aliveE++;
   const avg = aliveA > 0 ? hpSum / aliveA : 0;
   const t = ctx.t.ai;
   const start = plan.siege
@@ -361,7 +368,8 @@ export function strategicUpdate(ctx: Ctx, u: Unit): void {
       const foes = enemiesNear(ctx, u, target.x, target.y, 260);
       if (foes >= 4 && mates < 2) support *= 0.5;
       let deadFoes = 0;
-      for (const id of ctx.s.teams[other(team)].heroIds) if (!ctx.unit(id)?.alive) deadFoes++;
+      for (const id of ctx.s.teams[other(team)].heroIds)
+        if (outOfPlay(ctx, ctx.unit(id))) deadFoes++;
       const score =
         (0.2 + 0.9 * support + (guardianOpen ? 0.4 : 0) + 0.3 * deadFoes) * (post.pushTower ?? 1);
       cands.push(cand('pushTower', px, py, goalKey('pushTower', target.id), score, target.id));

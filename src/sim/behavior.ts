@@ -273,7 +273,16 @@ function heroBehavior(ctx: Ctx, u: Unit): void {
     u.targetId = null;
     t = null;
   }
-  if (!t || (ctx.s.tick + u.id) % 6 === 0) {
+  // keep running down a hurt enemy piece (within the long leash) instead of re-picking
+  const pers = ctx.t.personalities[pieceDef(ctx.c, h).personality];
+  const hurtLeash = ctx.t.ai.aggroRadius * pers.chase * ctx.t.judgement.chaseHurt + u.stats.range;
+  const runDown =
+    !!t &&
+    t.kind === 'hero' &&
+    h.engage === 'fight' &&
+    hpPct(t) < ctx.t.judgement.chaseHurtHp &&
+    dist(u.x, u.y, t.x, t.y) <= hurtLeash;
+  if (!t || (!runDown && (ctx.s.tick + u.id) % 6 === 0)) {
     const goalPush = h.goal?.kind === 'pushTower' || h.goal?.kind === 'defendTower';
     const inDanger = underEnemyTower(ctx, team, u.x, u.y) && hpPct(u) >= ctx.t.judgement.diveHp;
     const radius = Math.max(ctx.t.ai.aggroRadius, u.stats.range + 20);
@@ -307,8 +316,9 @@ function heroBehavior(ctx: Ctx, u: Unit): void {
       h.distance += strike(ctx, u, t);
       return;
     }
-    const pers = ctx.t.personalities[pieceDef(ctx.c, h).personality];
-    const leash = ctx.t.ai.aggroRadius * pers.chase + u.stats.range;
+    // a hurt piece on the run is worth running down (the dive check above still applies)
+    const hurt = t.kind === 'hero' && hpPct(t) < ctx.t.judgement.chaseHurtHp;
+    const leash = hurt ? hurtLeash : ctx.t.ai.aggroRadius * pers.chase + u.stats.range;
     const allowChase = h.engage === 'fight' && dist(u.x, u.y, t.x, t.y) <= leash;
     if (allowChase) {
       h.distance += closeIn(ctx, u, t);

@@ -852,6 +852,11 @@ export const TuningSchema = z.object({
     diveHp: z.number(),
     /** Extra distance around a structure's reach that counts as its range for a dive. */
     diveMargin: z.number(),
+    /** Share of an enemy Bastion's or Throne's power counted while it shoots pawns, not pieces. */
+    busyStructure: z.number(),
+    /** Chase leash multiplier against an enemy piece below `chaseHurtHp` health. */
+    chaseHurtHp: z.number(),
+    chaseHurt: z.number(),
   }),
   ai: z.object({
     aggroRadius: z.number(),
