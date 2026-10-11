@@ -1,0 +1,741 @@
+/*
+ * The new HUD ("court bar"), drawn under the Tournament Table look (or `?hud=new`).
+ *   top:    Act clock and score, Pause / Camera / Adjourn, capture trays beside the lane strip,
+ *           Black's five tokens
+ *   bottom: the gambit drawer (slim bar, hand rises above it) over your five pieces in one row
+ * Shapes: `stack` (portrait and squarish windows) keeps everything on the top and bottom edges;
+ * `side` (wide windows) runs your row down the left edge and parks the drawer bottom-right, so the
+ * board keeps the full height. The JS writes `--hud-top`, `--hud-bottom`, `--hud-left`, `--hud-right`.
+ */
+.hud.v2 {
+  --u: 1;
+}
+html[data-layout='desktop'] .hud.v2 {
+  --u: 1.3;
+  /* the HUD scales up on desktop: type tokens first, then the fixed sizes below */
+  --fs-xs: calc(12px * var(--u));
+  --fs-sm: calc(13.5px * var(--u));
+  --fs-md: calc(15px * var(--u));
+  --fs-lg: calc(18px * var(--u));
+}
+
+/* ---------- top: clock, controls, trays and lanes, Black's court ---------- */
+.hud.v2 .v2-top {
+  position: absolute;
+  z-index: 6;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'time ctl'
+    'board board'
+    'black black';
+  gap: 4px 6px;
+  padding: calc(6px + env(safe-area-inset-top)) calc(6px + env(safe-area-inset-right)) 6px
+    calc(6px + env(safe-area-inset-left));
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    rgba(13, 11, 9, 0.84) 0%,
+    rgba(13, 11, 9, 0.62) 80%,
+    rgba(13, 11, 9, 0) 100%
+  );
+}
+.hud.v2 .v2-time {
+  grid-area: time;
+  display: flex;
+  align-items: center;
+  min-height: calc(44px * var(--u));
+}
+.hud.v2 .clock {
+  gap: 4px;
+}
+.hud.v2 .v2-ctl {
+  grid-area: ctl;
+}
+.hud.v2 .chip-ctl {
+  min-width: calc(44px * var(--u));
+  min-height: calc(44px * var(--u));
+}
+.hud.v2 .cam-btn {
+  min-width: calc(52px * var(--u));
+}
+.hud.v2 .adjourn {
+  min-height: calc(44px * var(--u));
+  padding: 4px 10px;
+  font-size: var(--fs-sm);
+}
+
+.hud.v2 .v2-board {
+  grid-area: board;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: calc(44px * var(--u));
+}
+.hud.v2 .v2-lanes {
+  flex: none;
+  width: calc(176px * var(--u));
+  pointer-events: none;
+}
+.hud.v2 .lanebars {
+  gap: 4px;
+}
+.hud.v2 .lanebar.pick {
+  min-height: calc(44px * var(--u));
+  padding: 2px 6px;
+  gap: 5px;
+  background: rgba(20, 17, 14, 0.78);
+}
+.hud.v2 .lane-letter {
+  font-size: 12px;
+}
+.hud.v2 .lane-track {
+  height: 10px;
+  border-radius: 5px;
+}
+
+/* capture trays: the pieces taken and not yet back, each with its respawn timer */
+.hud.v2 .tray {
+  flex: 1 1 0;
+  min-width: calc(44px * var(--u));
+  height: calc(44px * var(--u));
+  display: flex;
+  align-items: center;
+  padding: 0 6px;
+  overflow: hidden;
+  pointer-events: auto;
+  background: linear-gradient(180deg, rgba(20, 52, 39, 0.7), rgba(20, 17, 14, 0.6));
+  border: 1px solid rgba(201, 163, 90, 0.26);
+  border-radius: 8px;
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.5);
+}
+.hud.v2 .tray-B {
+  justify-content: flex-start;
+  --from: 34px;
+}
+.hud.v2 .tray-A {
+  justify-content: flex-end;
+  --from: -34px;
+}
+.tray-empty {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  margin: 0 auto;
+  border: 1.5px dashed rgba(201, 163, 90, 0.3);
+  border-radius: 50%;
+}
+.tray-item {
+  flex: none;
+  width: calc(26px * var(--u));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  line-height: 1;
+  animation: tray-in 0.45s var(--ease) both;
+}
+.tray-item > svg {
+  flex: none;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.7));
+}
+.tray-item + .tray-item {
+  margin-left: 2px;
+}
+.tray[data-count='3'] .tray-item + .tray-item {
+  margin-left: -3px;
+}
+.tray[data-count='4'] .tray-item + .tray-item {
+  margin-left: -6px;
+}
+.tray[data-count='5'] .tray-item + .tray-item {
+  margin-left: -9px;
+}
+.tray[data-count='4'] .tray-time,
+.tray[data-count='5'] .tray-time {
+  font-size: 9px;
+  letter-spacing: -0.02em;
+}
+.tray-item.leaving {
+  animation: tray-out 0.3s ease-in both;
+}
+.tray-time {
+  font-style: normal;
+  font-size: 10px;
+  font-weight: 700;
+  font-variant-numeric: lining-nums tabular-nums;
+  letter-spacing: 0;
+  color: var(--ivory);
+  text-shadow: 0 1px 2px #000;
+}
+@keyframes tray-in {
+  from {
+    opacity: 0;
+    transform: translate(var(--from, 30px), 16px) rotate(75deg) scale(1.25);
+  }
+  60% {
+    opacity: 1;
+  }
+}
+@keyframes tray-out {
+  to {
+    opacity: 0;
+    transform: translateY(-12px) scale(0.6);
+  }
+}
+
+/* Black's court: five tokens, tap for the piece card */
+.hud.v2 .v2-black {
+  grid-area: black;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: calc(44px * var(--u));
+  pointer-events: none;
+}
+.v2-label {
+  font-family: var(--font-display);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--b);
+}
+.hud.v2 .bcourt {
+  display: flex;
+  pointer-events: auto;
+}
+.btoken {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: calc(44px * var(--u));
+  height: calc(44px * var(--u));
+  padding: 0;
+  cursor: pointer;
+  background: none;
+  border: 0;
+}
+.btoken .hpring {
+  --sz: calc(34px * var(--u));
+}
+.btoken .hpring svg {
+  width: calc(20px * var(--u));
+  height: calc(20px * var(--u));
+}
+.btoken-rank {
+  position: absolute;
+  right: calc(3px * var(--u));
+  bottom: calc(3px * var(--u));
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  font-family: var(--font-body);
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 1;
+  color: #14110e;
+  background: var(--b-trim);
+  border: 1px solid #14110e;
+}
+.btoken.open .hpring {
+  box-shadow:
+    0 0 0 2px var(--brass-hi),
+    0 0 8px rgba(240, 213, 138, 0.55);
+}
+.btoken.down .btoken-rank {
+  opacity: 0.6;
+}
+.btoken-x {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-style: normal;
+  font-size: 22px;
+  line-height: 1;
+  color: #fff;
+  text-shadow:
+    0 0 3px #000,
+    0 0 3px #000,
+    0 0 6px #000;
+}
+.hud.v2 .v2-black .relic-row {
+  margin: 0 0 0 auto;
+}
+
+/* ---------- bottom: the gambit drawer over your row ---------- */
+.hud.v2 .v2-bottom {
+  position: absolute;
+  z-index: 2;
+  left: calc(6px + env(safe-area-inset-left));
+  right: calc(6px + env(safe-area-inset-right));
+  bottom: calc(6px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  pointer-events: none;
+}
+.v2-drawer {
+  position: relative;
+  pointer-events: none;
+}
+/* everything that opens upward is out of flow, so the bar (what the camera reserves) stays put */
+.dr-float {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + 4px);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  pointer-events: none;
+}
+.v2-drawer:has(.tempo-nudge) .dr-float {
+  bottom: calc(100% + 34px);
+}
+.dr-float .toast,
+.dr-float .notelane {
+  align-self: center;
+}
+.dr-hand {
+  display: grid;
+  grid-template-rows: 0fr;
+  visibility: hidden;
+  transition:
+    grid-template-rows var(--t-med) var(--ease),
+    visibility 0s linear var(--t-med);
+}
+.v2-drawer[data-open='true'] .dr-hand {
+  grid-template-rows: 1fr;
+  visibility: visible;
+  transition:
+    grid-template-rows var(--t-med) var(--ease),
+    visibility 0s;
+}
+.dr-hand-in {
+  min-height: 0;
+  overflow: hidden;
+  padding-top: 3px;
+}
+.dr-hand .gcard {
+  min-height: calc(58px * var(--u));
+}
+/* the name gets the whole top line (with the cost); the marks sit on the line below, so no name is cut */
+.dr-hand .ghead {
+  display: grid;
+  grid-template-columns: auto auto 1fr auto;
+  grid-template-areas:
+    'name name name cost'
+    'school sig . .';
+  align-items: center;
+  gap: 2px 4px;
+}
+.dr-hand .gname {
+  grid-area: name;
+  font-size: calc(13px * var(--u));
+  letter-spacing: 0.01em;
+  overflow-wrap: anywhere;
+}
+.dr-hand .gschool {
+  grid-area: school;
+}
+.dr-hand .gsig {
+  grid-area: sig;
+}
+.dr-hand .gcost {
+  grid-area: cost;
+  align-self: start;
+}
+.dr-bar {
+  position: relative;
+  padding: 4px;
+  pointer-events: auto;
+  touch-action: none;
+  border-color: rgba(201, 163, 90, 0.5);
+}
+.v2-drawer .cmd {
+  gap: 6px;
+  align-items: center;
+}
+.v2-drawer .tempo {
+  background: none;
+  border: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+  min-height: calc(40px * var(--u));
+  padding: 2px 4px;
+}
+.v2-drawer .pawnbtn {
+  min-height: calc(44px * var(--u));
+}
+.v2-drawer[data-open='true'] .tempo-nudge {
+  display: none;
+}
+.hud.v2 .tempo-nudge {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 6px);
+  translate: -50% 0;
+  white-space: nowrap;
+}
+.dr-toggle {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: calc(44px * var(--u));
+  padding: 0 10px 0 8px;
+  cursor: pointer;
+  font-family: var(--font-display);
+  font-size: var(--fs-md);
+  letter-spacing: 0.04em;
+  color: var(--brass-hi);
+  background: linear-gradient(180deg, #3d281c, #251b14);
+  border: 1px solid var(--brass-dim);
+  border-radius: var(--r-1);
+}
+.dr-toggle.open {
+  border-color: var(--brass-hi);
+}
+.dr-chev {
+  flex: none;
+  transition: transform var(--t-med) var(--ease);
+}
+.dr-toggle.open .dr-chev {
+  transform: rotate(180deg);
+}
+.dr-count {
+  display: grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 5px;
+  border-radius: 11px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-variant-numeric: lining-nums tabular-nums;
+  color: #1a1206;
+  background: linear-gradient(180deg, var(--brass-hi), var(--brass));
+}
+.dr-count.none {
+  color: var(--dim);
+  background: #4a3a2a;
+}
+
+/* your five pieces: one row of tiles */
+.v2-mine {
+  pointer-events: none;
+}
+.hud.v2 .roster.row {
+  position: static;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 4px;
+}
+.hud.v2 .roster.row .roster-cell {
+  width: auto;
+  min-width: 0;
+  min-height: calc(72px * var(--u));
+  justify-content: flex-start;
+  padding: 5px 2px 3px;
+}
+.hud.v2 .roster.row .hpring {
+  --sz: calc(42px * var(--u));
+}
+.hud.v2 .roster.row .hpring svg {
+  width: calc(26px * var(--u));
+  height: calc(26px * var(--u));
+}
+.hud.v2 .roster.row .rank-num {
+  width: 18px;
+  height: 18px;
+  font-size: 11.5px;
+}
+.hud.v2 .roster.row .lane-tag {
+  font-size: 11px;
+  line-height: 14px;
+}
+.roster.row .rname {
+  max-width: 100%;
+  margin-top: 3px;
+  overflow: hidden;
+  font-family: var(--font-display);
+  font-size: 10.5px;
+  line-height: 1.1;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--dim);
+}
+.hud.v2 .roster.row .roster-cell .fall {
+  margin-top: 3px;
+}
+.hud.v2 .roster.row .roster-cell .fall i {
+  font-size: 10px;
+}
+.hud.v2 .roster.row .relic-row {
+  grid-column: 1 / -1;
+  gap: 6px;
+  margin-top: 2px;
+}
+.hud.v2 .relic-icon {
+  position: relative;
+}
+/* the seals look small but their touch area is 44 px */
+.hud.v2 .relic-icon::before {
+  content: '';
+  position: absolute;
+  inset: -6px -4px;
+}
+.hud.v2 .relic-row.side-A .relic-pop {
+  top: auto;
+  bottom: calc(100% + 8px);
+}
+
+/* ---------- desktop scale for the fixed sizes ---------- */
+.hud.v2 .pts {
+  min-width: calc(32px * var(--u));
+  height: calc(32px * var(--u));
+}
+.hud.v2 .pts-label {
+  font-size: calc(9.5px * var(--u));
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+.hud.v2 .clockface b {
+  white-space: nowrap;
+}
+.hud.v2 .side {
+  min-width: calc(36px * var(--u));
+}
+.hud.v2 .lane-letter,
+.hud.v2 .v2-label {
+  font-size: calc(12px * var(--u));
+}
+.hud.v2 .tray-time {
+  font-size: calc(10px * var(--u));
+}
+.hud.v2 .btoken-rank,
+.roster.row .rname {
+  font-size: calc(10.5px * var(--u));
+}
+.hud.v2 .tray-item > svg {
+  width: calc(24px * var(--u));
+  height: calc(24px * var(--u));
+}
+.hud.v2 .btoken-rank {
+  width: calc(16px * var(--u));
+  height: calc(16px * var(--u));
+}
+.hud.v2 .roster.row .rank-num {
+  width: calc(18px * var(--u));
+  height: calc(18px * var(--u));
+  font-size: calc(11.5px * var(--u));
+}
+.hud.v2 .roster.row .lane-tag {
+  font-size: calc(11px * var(--u));
+  line-height: calc(14px * var(--u));
+}
+.hud.v2 .roster.row .roster-cell .fall i {
+  font-size: calc(10px * var(--u));
+}
+.hud.v2 .roster.row .style-badge {
+  width: calc(18px * var(--u));
+  height: calc(18px * var(--u));
+}
+.hud.v2 .dr-count {
+  min-width: calc(22px * var(--u));
+  height: calc(22px * var(--u));
+  font-size: calc(13px * var(--u));
+}
+.hud.v2 .pawnbtn svg {
+  width: calc(26px * var(--u));
+  height: calc(26px * var(--u));
+}
+.hud.v2 .pawn-text span {
+  font-size: calc(11.5px * var(--u));
+}
+.hud.v2 .gname {
+  font-size: calc(13px * var(--u));
+}
+.hud.v2 .gcost {
+  min-width: calc(20px * var(--u));
+  height: calc(20px * var(--u));
+  font-size: calc(12px * var(--u));
+}
+.hud.v2 .gstate {
+  font-size: calc(11px * var(--u));
+}
+.hud.v2 .relic-icon {
+  width: calc(36px * var(--u));
+  height: calc(32px * var(--u));
+}
+
+/* ---------- notices, piece card ---------- */
+.hud.v2 .notices {
+  top: calc(var(--hud-top, 150px) + 8px);
+  width: min(calc(100% - 24px), calc(400px * var(--u)));
+}
+.hud.v2 .ucard {
+  width: min(calc(340px * var(--u)), calc(100% - 12px));
+  max-height: calc(100% - var(--hud-top, 150px) - var(--hud-bottom, 150px) - 24px);
+}
+.hud.v2 .ucard.side-A,
+.hud.v2 .ucard.side-B {
+  left: 50%;
+  right: auto;
+  translate: -50% 0;
+}
+.hud.v2 .ucard.side-B {
+  top: calc(var(--hud-top, 150px) + 8px);
+}
+.hud.v2 .ucard.side-A {
+  top: auto;
+  bottom: calc(var(--hud-bottom, 150px) + 8px);
+}
+
+/* ---------- side shape: wide windows ---------- */
+.hud.v2[data-shape='side'] .v2-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  padding-bottom: 4px;
+}
+.hud.v2[data-shape='side'] .v2-time {
+  order: 1;
+}
+.hud.v2[data-shape='side'] .v2-board {
+  order: 2;
+}
+.hud.v2[data-shape='side'] .v2-black {
+  order: 3;
+}
+.hud.v2[data-shape='side'] .v2-ctl {
+  order: 4;
+  margin-left: auto;
+}
+.hud.v2[data-shape='side'] .tray {
+  flex: 0 1 auto;
+  max-width: calc(90px * var(--u));
+  padding: 0 4px;
+}
+.hud.v2[data-shape='side'] .cam-btn {
+  min-width: calc(50px * var(--u));
+  padding: 2px 6px;
+}
+.hud.v2[data-shape='side'] .v2-lanes {
+  width: calc(126px * var(--u));
+}
+.hud.v2[data-shape='side'] .side {
+  min-width: calc(30px * var(--u));
+}
+.hud.v2[data-shape='side'] .adjourn {
+  padding: 4px 6px;
+}
+/* Black's seals hang under the bar (out of its flow) so the bar stays one row */
+.hud.v2[data-shape='side'] .v2-black .relic-row {
+  position: absolute;
+  top: 100%;
+  right: calc(6px + env(safe-area-inset-right));
+  margin: 2px 0 0;
+}
+.hud.v2[data-shape='side'] .v2-label {
+  display: none;
+}
+.hud.v2[data-shape='side'] .btoken {
+  width: calc(38px * var(--u));
+}
+.hud.v2[data-shape='side'] .v2-bottom {
+  display: contents;
+}
+.hud.v2[data-shape='side'] .v2-mine {
+  position: absolute;
+  z-index: 2;
+  left: calc(6px + env(safe-area-inset-left));
+  top: calc(var(--hud-top, 54px) + 2px);
+  bottom: calc(6px + env(safe-area-inset-bottom));
+  width: calc(74px * var(--u));
+  display: flex;
+  flex-direction: column;
+}
+.hud.v2[data-shape='side'] .roster.row {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+}
+.hud.v2[data-shape='side'] .roster.row .roster-cell {
+  flex: 1 1 0;
+  min-height: 0;
+  max-height: calc(84px * var(--u));
+  padding: 3px 2px 2px;
+  justify-content: center;
+}
+.hud.v2[data-shape='side'] .roster.row .hpring {
+  --sz: calc(36px * var(--u));
+}
+.hud.v2[data-shape='side'] .roster.row .hpring svg {
+  width: calc(22px * var(--u));
+  height: calc(22px * var(--u));
+}
+/* your seals sit beside the column, bottom-left of the board */
+.hud.v2[data-shape='side'] .roster.row .relic-row {
+  position: absolute;
+  left: calc(100% + 6px);
+  bottom: 0;
+  margin: 0;
+}
+.hud.v2[data-shape='side'] .v2-drawer {
+  position: absolute;
+  z-index: 2;
+  right: calc(6px + env(safe-area-inset-right));
+  bottom: calc(6px + env(safe-area-inset-bottom));
+  width: calc(360px * var(--u));
+}
+.hud.v2[data-shape='side'] .ucard.side-A,
+.hud.v2[data-shape='side'] .ucard.side-B {
+  translate: none;
+  top: calc(var(--hud-top, 54px) + 8px);
+  bottom: auto;
+  max-height: calc(100% - var(--hud-top, 54px) - 16px);
+}
+.hud.v2[data-shape='side'] .ucard.side-A {
+  left: calc(var(--hud-left, 80px) + 8px);
+  right: auto;
+}
+.hud.v2[data-shape='side'] .ucard.side-B {
+  left: auto;
+  right: calc(6px + env(safe-area-inset-right));
+}
+
+/* the intro owns the screen: only the clock, trays and Black's court stay */
+.shell[data-intro] .hud.v2 .v2-ctl,
+.shell[data-intro] .hud.v2 .v2-lanes,
+.shell[data-intro] .hud.v2 .v2-drawer {
+  visibility: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tray-item,
+  .tray-item.leaving {
+    animation: none;
+  }
+  .tray-item.leaving {
+    opacity: 0;
+  }
+  .dr-hand,
+  .v2-drawer[data-open='true'] .dr-hand,
+  .dr-chev {
+    transition: none;
+  }
+}

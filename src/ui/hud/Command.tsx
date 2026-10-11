@@ -1,3 +1,4 @@
+import type { ComponentChildren } from 'preact';
 import { useRef } from 'preact/hooks';
 import type { Snapshot } from '../../sim';
 import { PieceGlyph } from '../pieces';
@@ -7,7 +8,7 @@ import { useSession } from '../session';
 const IDLE_FULL_TICKS = 5 * 20;
 
 /** The Tempo meter, the permanent Field Pawn button, and a nudge when Tempo sits full and unspent. */
-export function Command(props: { snap: Snapshot }) {
+export function Command(props: { snap: Snapshot; lead?: ComponentChildren }) {
   const s = useSession();
   const { snap } = props;
   const max = snap.tempoMax;
@@ -34,6 +35,7 @@ export function Command(props: { snap: Snapshot }) {
         </div>
       )}
       <div class="cmd">
+        {props.lead}
         <div
           class={`tempo glass ${full ? 'full' : ''} ${nudge ? 'nudge' : ''}`}
           data-testid="tempo"
