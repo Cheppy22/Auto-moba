@@ -694,6 +694,22 @@ export class Session {
           },
           NOTE_MS,
         );
+      } else if (e.type === 'sealedMove') {
+        // the player's own Sealed Move plays or lapses by itself: say so
+        const name = this.content.gambitById.get(e.payload.card)?.name;
+        if (e.payload.team !== 'A' || !name) continue;
+        note(
+          {
+            kind: 'card',
+            text:
+              e.payload.outcome === 'fired'
+                ? `Sealed Move played ${name}`
+                : `Sealed Move lapsed: not enough Tempo for ${name}`,
+            tone: e.payload.outcome === 'fired' ? 'good' : 'bad',
+            at: null,
+          },
+          NOTE_MS,
+        );
       } else if (e.type === 'gambit') {
         if (e.payload.team === 'B') {
           const play = this.blackPlay(m, e.payload);
