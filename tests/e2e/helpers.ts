@@ -110,13 +110,14 @@ export function step(page: Page, n: number): Promise<number> {
 
 /**
  * Taps the speed chip until it shows `speed` (0 is paused). A running match can reach the Act
- * break while a test works, and its sheet covers the chip, so a break is left first.
+ * break between two taps, and its sheet covers the chip, so a break is left before every tap.
  */
 export async function setSpeed(page: Page, speed: 0 | 1 | 2 | 4 | 8): Promise<void> {
-  if ((await snap(page)).act.bell === 'break') await leaveBreak(page);
   const chip = page.getByTestId('speed-chip');
-  for (let i = 0; i < 5 && (await chip.getAttribute('data-speed')) !== String(speed); i++)
-    await chip.click();
+  for (let i = 0; i < 8 && (await chip.getAttribute('data-speed')) !== String(speed); i++) {
+    if ((await snap(page)).act.bell === 'break') await leaveBreak(page);
+    await chip.click({ timeout: 30_000 }).catch(() => undefined);
+  }
   await expect(chip).toHaveAttribute('data-speed', String(speed));
 }
 
