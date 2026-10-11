@@ -10,7 +10,7 @@ async function begin(page: Page, query: string): Promise<void> {
   await page.getByTestId('start').click();
   await expect(page.getByTestId('setup')).toBeVisible();
   await pauseAtStart(page);
-  await page.getByTestId('begin').click();
+  await page.getByTestId('quick-start').click();
 }
 
 /** The intro's clock in the page: held where it is (so a slow machine cannot run it out mid-test) or released. */
