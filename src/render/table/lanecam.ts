@@ -44,6 +44,9 @@ export class LaneCam {
   private readonly lean = { x: 0, z: 0 };
   private readonly g0 = { x: 0, z: 0 };
   private readonly g1 = { x: 0, z: 0 };
+  /** Half the board's width and length (sim point to world point). */
+  private readonly hx: number;
+  private readonly hz: number;
 
   constructor(
     content: Content,
@@ -53,8 +56,12 @@ export class LaneCam {
     /** World units per CSS pixel right now. */
     private readonly pxNow: () => number,
   ) {
-    const half = content.map.size / 2;
-    for (const poly of Object.values(content.map.lanes)) {
+    const map = content.map;
+    const hx = map.size / 2;
+    const hz = (map.length ?? map.size) / 2;
+    this.hx = hx;
+    this.hz = hz;
+    for (const poly of Object.values(map.lanes)) {
       const n = poly.length;
       const p: Path = {
         x: new Float64Array(n),
@@ -65,8 +72,8 @@ export class LaneCam {
         midZ: 0,
       };
       for (let i = 0; i < n; i++) {
-        p.x[i] = poly[i][0] - half;
-        p.z[i] = poly[i][1] - half;
+        p.x[i] = poly[i][0] - hx;
+        p.z[i] = poly[i][1] - hz;
         if (i > 0) p.at[i] = p.at[i - 1] + Math.hypot(p.x[i] - p.x[i - 1], p.z[i] - p.z[i - 1]);
       }
       p.total = p.at[n - 1];
@@ -100,7 +107,7 @@ export class LaneCam {
    * The frame's lane focus (a sim point, the middle of the picked lane, or null): returns the
    * world point to lean in on, or null for the whole board.
    */
-  update(focus: { x: number; y: number } | null, half: number): { x: number; z: number } | null {
+  update(focus: { x: number; y: number } | null): { x: number; z: number } | null {
     if (!focus) {
       this.sel = -1;
       this.parked = false;
@@ -111,7 +118,7 @@ export class LaneCam {
     let bestD = Infinity;
     for (let i = 0; i < this.paths.length; i++) {
       const p = this.paths[i];
-      const d = Math.hypot(p.midX - (focus.x - half), p.midZ - (focus.y - half));
+      const d = Math.hypot(p.midX - (focus.x - this.hx), p.midZ - (focus.y - this.hz));
       if (d < bestD) {
         bestD = d;
         best = i;

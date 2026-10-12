@@ -202,7 +202,12 @@ export class ZoneFx {
   }
 
   /** A ribbon of two vertices per step along the lane, riding the ground. */
-  private buildStrip(lane: LaneId, half: number, ground: (x: number, z: number) => number): Strip {
+  private buildStrip(
+    lane: LaneId,
+    half: number,
+    ground: (x: number, z: number) => number,
+    halfZ = half,
+  ): Strip {
     const pts = this.lanes[lane] as readonly Pt[];
     const pos: number[] = [];
     const uv: number[] = [];
@@ -220,7 +225,7 @@ export class ZoneFx {
       for (let k = i === 0 ? 0 : 1; k <= steps; k++) {
         const f = k / steps;
         const x = ax + dx * f - half;
-        const z = ay + dy * f - half;
+        const z = ay + dy * f - halfZ;
         const nx = -dy / len;
         const nz = dx / len;
         for (const side of [-1, 1]) {
@@ -320,6 +325,8 @@ export class ZoneFx {
     ground: (x: number, z: number) => number,
     time: number,
     dt: number,
+    /** Half the board's length when it differs from its width (the Long Board). */
+    halfZ = half,
   ): void {
     this.frame++;
     for (const t of this.strips) if (t) t.on = false;
@@ -329,7 +336,7 @@ export class ZoneFx {
       if (kind === 'openFile') {
         const lane = z.lane ?? 'mid';
         const i = LANE_IDS.indexOf(lane);
-        this.strips[i] ??= this.buildStrip(lane, half, ground);
+        this.strips[i] ??= this.buildStrip(lane, half, ground, halfZ);
         this.strips[i].on = true;
         continue;
       }
@@ -350,7 +357,7 @@ export class ZoneFx {
     for (const s of this.sanct) {
       if (!this.fade(s, dt)) continue;
       const wx = s.x - half;
-      const wz = s.y - half;
+      const wz = s.y - halfZ;
       const y = ground(wx, wz);
       const r = s.radius;
       const k = ease(s.a);
@@ -368,7 +375,7 @@ export class ZoneFx {
     for (const s of this.walls) {
       if (!this.fade(s, dt)) continue;
       const wx = s.x - half;
-      const wz = s.y - half;
+      const wz = s.y - halfZ;
       const k = ease(s.a);
       s.group.position.set(wx, ground(wx, wz) - 1 - (1 - k) * 30, wz);
       s.group.rotation.y = s.yaw;
@@ -380,7 +387,7 @@ export class ZoneFx {
     for (const s of this.posts) {
       if (!this.fade(s, dt)) continue;
       const wx = s.x - half;
-      const wz = s.y - half;
+      const wz = s.y - halfZ;
       const k = ease(s.a);
       const y = ground(wx, wz);
       s.group.position.set(wx, y, wz);

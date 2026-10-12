@@ -22,6 +22,13 @@ const LEAN = 0.42;
 /** Lane lean-in: the starting distance (about 1.9× closer, like the default look) and the closest. */
 export const LANE_LEAN = 0.52;
 export const LANE_CLOSE = 0.24;
+/**
+ * The Long Board's whole-board view sits farther back (the board is twice as long), so its
+ * lean-ins scale by this to bring pieces to about the size they have on the square board.
+ */
+const LONG_LEAN = 0.9;
+/** Portrait tilt range on the Long Board (height-bound: the fit picks the tilt that frames it biggest). */
+const LONG_PORTRAIT: readonly [number, number] = [44, 54];
 
 /**
  * The war-table camera: one fixed three-quarter view of the whole board, fitted to the screen
@@ -57,18 +64,27 @@ export class TableCamera {
   private readonly tmp = new Vector3();
   private readonly right = new Vector3();
   private readonly fwd = new Vector3();
-  /** Half the board size (clamps for the lean-in). */
-  private readonly half: number;
+  /** Half the board's width and length (clamps for the lean-in). */
+  private readonly hx: number;
+  private readonly hz: number;
+  /** The Long Board: always framed straight (White at the bottom, or on the left when wide). */
+  private readonly long: boolean;
+  /** Lean-in distances are this fraction of the whole-board distance's usual share. */
+  private readonly leanK: number;
 
   constructor(content: Content, topY: number, throneTop: number) {
     const map = content.map;
-    const half = map.size / 2;
-    this.half = half;
+    const hx = map.size / 2;
+    const hz = (map.length ?? map.size) / 2;
+    this.hx = hx;
+    this.hz = hz;
+    this.long = !!map.terraces;
+    this.leanK = this.long ? LONG_LEAN : 1;
     const add = (x: number, y: number, r: number): void => {
       for (let i = 0; i < 8; i++) {
         const a = (i / 8) * Math.PI * 2;
-        const px = x - half + Math.cos(a) * r;
-        const pz = y - half + Math.sin(a) * r;
+        const px = x - hx + Math.cos(a) * r;
+        const pz = y - hz + Math.sin(a) * r;
         this.pts.push(new Vector3(px, 0, pz), new Vector3(px, topY, pz));
       }
     };
@@ -83,11 +99,11 @@ export class TableCamera {
     for (const [x, y] of Object.values(map.bases)) add(x, y, map.walk.base);
     // the Thrones are landmarks: their banners must fit too
     for (const [bx, by] of Object.values(map.bases)) {
-      const dx = half - bx;
-      const dy = half - by;
+      const dx = hx - bx;
+      const dy = hz - by;
       const len = Math.hypot(dx, dy) || 1;
-      const gx = bx + (dx / len) * map.guardianOffset - half;
-      const gz = by + (dy / len) * map.guardianOffset - half;
+      const gx = bx + (dx / len) * map.guardianOffset - hx;
+      const gz = by + (dy / len) * map.guardianOffset - hz;
       this.pts.push(new Vector3(gx, 0, gz), new Vector3(gx, throneTop, gz));
     }
   }
@@ -132,7 +148,10 @@ export class TableCamera {
     this.orient = h > w ? 'portrait' : 'landscape';
     // portrait: the camera sits behind White's corner; landscape: behind the Right lane's corner
     // square framing: the seat is White's rank-1 edge, the board fills its screen box
-    if (LOOK.cam.square) this.dir.set(0, 0, 1);
+    // the Long Board: White's end in portrait, the Right lane's long side on wide screens
+    if (this.long)
+      this.dir.set(this.orient === 'portrait' ? 0 : 1, 0, this.orient === 'portrait' ? 1 : 0);
+    else if (LOOK.cam.square) this.dir.set(0, 0, 1);
     else if (this.orient === 'portrait') this.dir.set(-Math.SQRT1_2, 0, Math.SQRT1_2);
     else this.dir.set(Math.SQRT1_2, 0, Math.SQRT1_2);
     const ins = this.insets(w, h);
@@ -143,7 +162,9 @@ export class TableCamera {
     // their range for the tilt that frames the board biggest (steeper wins ties)
     const range: readonly [number, number] =
       h > w
-        ? [LOOK.cam.portrait, LOOK.cam.portrait]
+        ? this.long
+          ? LONG_PORTRAIT
+          : [LOOK.cam.portrait, LOOK.cam.portrait]
         : h < 520
           ? LOOK.cam.landscape
           : LOOK.cam.desktop;
@@ -243,6 +264,11 @@ export class TableCamera {
     this.shake = Math.min(1, this.shake + k);
   }
 
+  /** Camera distance of the whole-board pose (world units). */
+  get wholeDist(): number {
+    return this.boardD;
+  }
+
   /** World units per CSS pixel right now (shrinks while leaning in). */
   pxNow(): number {
     return (2 * this.d * Math.tan(MathUtils.degToRad(FOV / 2))) / Math.max(1, this.cssH);
@@ -265,16 +291,17 @@ export class TableCamera {
     let tz = this.boardZ;
     let td = this.boardD;
     if (lean) {
-      const lim = free ? Infinity : this.half * 0.62;
-      td = this.boardD * amount;
+      const limX = free ? Infinity : this.hx * 0.62;
+      const limZ = free ? Infinity : this.hz * 0.62;
+      td = this.boardD * amount * this.leanK;
       // the lean point sits in the middle of the HUD-free band, not the canvas
       const tanV = Math.tan(MathUtils.degToRad(FOV / 2));
       const upx = (2 * td * tanV) / Math.max(1, this.cssH);
       const back = (this.freeShift * upx) / Math.sin(this.el);
       const side = this.freeShiftX * upx;
       // screen right on the ground is (dir.z, -dir.x)
-      tx = MathUtils.clamp(lean.x, -lim, lim) + this.dir.x * back - this.dir.z * side;
-      tz = MathUtils.clamp(lean.z, -lim, lim) + this.dir.z * back + this.dir.x * side;
+      tx = MathUtils.clamp(lean.x, -limX, limX) + this.dir.x * back - this.dir.z * side;
+      tz = MathUtils.clamp(lean.z, -limZ, limZ) + this.dir.z * back + this.dir.x * side;
     }
     const k = 1 - Math.exp(-dt * rate);
     this.x += (tx - this.x) * k;

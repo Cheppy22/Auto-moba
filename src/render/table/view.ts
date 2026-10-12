@@ -43,7 +43,6 @@ import {
 } from './models';
 import { CLAY, LOOK, TABLE, TEAM } from './palette';
 import { FIG_SCALE, FigureLib, PieceFigure, SIZE, sizeFor } from './piece';
-import { RELIEF } from './relief';
 
 const PIECES: readonly PieceId[] = ['king', 'queen', 'rook', 'bishop', 'knight'];
 const isPiece = (s: unknown): s is PieceId =>
@@ -177,11 +176,14 @@ function webgl(canvas: HTMLCanvasElement): WebGLRenderer {
   }
 }
 
-/** URL switch: the table view is the default; `?look=grand` picks the legacy Grand Board view. */
+/**
+ * URL switch: the table view is the default; `?look=grand` picks the legacy Grand Board view,
+ * except on the Long Board (`?map=long`), which only the table view draws.
+ */
 export function wantsTable(): boolean {
-  return (
-    typeof location === 'undefined' || new URLSearchParams(location.search).get('look') !== 'grand'
-  );
+  if (typeof location === 'undefined') return true;
+  const q = new URLSearchParams(location.search);
+  return q.get('look') !== 'grand' || q.get('map') === 'long';
 }
 
 /**
@@ -197,7 +199,11 @@ export class TableView {
   private readonly cam: TableCamera;
   private readonly lib = new FigureLib();
   private readonly facet = facetMaterial();
-  private readonly half: number;
+  /** Half the board's width (x) and length (z): sim point minus these is the world point. */
+  private readonly hx: number;
+  private readonly hz: number;
+  /** The Long Board (terraces): ground picking and labels follow the real heights. */
+  private readonly long: boolean;
   private readonly shadows: boolean;
   private readonly recs = new Map<number, Rec>();
   private readonly byId = new Map<number, SnapUnit>();
@@ -277,7 +283,9 @@ export class TableView {
     private readonly content: Content,
   ) {
     this.renderer = webgl(canvas);
-    this.half = content.map.size / 2;
+    this.hx = content.map.size / 2;
+    this.hz = (content.map.length ?? content.map.size) / 2;
+    this.long = !!content.map.terraces;
     const coarse = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
     this.shadows = !coarse && Math.min(window.innerWidth, window.innerHeight) >= 640;
     const r = this.renderer;
@@ -312,7 +320,7 @@ export class TableView {
     this.key.castShadow = this.shadows;
     if (this.shadows) {
       const sc = this.key.shadow.camera;
-      const w = this.half + FRAME;
+      const w = Math.max(this.hx, this.hz) + FRAME;
       sc.left = -w * 1.15;
       sc.right = w * 1.15;
       sc.top = w * 1.15;
@@ -326,10 +334,11 @@ export class TableView {
     this.scene.add(sky, this.key, this.key.target, this.back, this.back.target);
 
     this.board = new Board(content, coarse ? 2048 : 3072);
+    const ground = this.board.relief;
     this.cam = new TableCamera(
       content,
-      FIG_HEIGHT.king * FIG_SCALE * 1.1 + RELIEF.blockHigh,
-      THRONE_H * THRONE_S + RELIEF.baseInner,
+      FIG_HEIGHT.king * FIG_SCALE * 1.1 + ground.peak,
+      THRONE_H * THRONE_S + ground.dais,
     );
     this.scene.add(this.board.group);
 
@@ -434,6 +443,7 @@ export class TableView {
     this.scene.add(this.halos.mesh);
 
     this.chips = new Chips(this.facet);
+    if (this.long) this.chips.ground = (x, z) => this.board.relief.at(x, z);
     this.bolts = new Bolts(this.facet, this.chips);
     this.fx = new CombatFx(this.kit);
     this.bars = new BarBatch(this.kit);
@@ -535,6 +545,11 @@ export class TableView {
     this.renderer.setSize(w, h, false);
     this.cam.fit(w, h);
     SIZE.k = sizeFor(this.cam.tiltDeg, this.cam.protoTilt);
+    // the Long Board's camera sits farther back: the fog starts past its far end
+    if (this.long && this.scene.fog instanceof Fog) {
+      this.scene.fog.near = Math.max(9000, this.cam.wholeDist + this.hz);
+      this.scene.fog.far = this.scene.fog.near + 17000;
+    }
     this.board.setOrient(this.cam.orient);
     // key light from White's front-left, rim from behind the board (relative to the seat)
     const c = this.cam.camera.position;
@@ -587,8 +602,8 @@ export class TableView {
     let lean: { x: number; z: number } | null = null;
     const lane =
       frame.mode === 'board' && !this.lineup
-        ? this.laneCam.update(frame.laneFocus ?? null, this.half)
-        : this.laneCam.update(null, this.half);
+        ? this.laneCam.update(frame.laneFocus ?? null)
+        : this.laneCam.update(null);
     if (lane) lean = lane;
     else if (this.lineup === 'close' || this.lineup === 'closeb') {
       const k = this.lineup === 'close' ? 560 : -560;
@@ -627,7 +642,7 @@ export class TableView {
     if (!this.lineup) this.syncRings(snap);
     this.zonesFromSnap = Array.isArray(snap.zones);
     if (snap.zones && !this.lineup)
-      this.zones.setZones(snap.zones, this.half, this.ground, this.time, dt);
+      this.zones.setZones(snap.zones, this.hx, this.ground, this.time, dt, this.hz);
     this.gambits.update(dt, this.time, this.unitPos);
     this.bolts.update(dt);
     this.fx.update(dt);
@@ -636,7 +651,9 @@ export class TableView {
     this.drawn++;
   }
 
-  private readonly ground = (): number => 1;
+  /** Zone effects sit just above the floor (the square board keeps them on its lane level). */
+  private readonly ground = (x: number, z: number): number =>
+    this.long ? this.board.relief.at(x, z) + 1 : 1;
 
   private readonly unitPos = (id: number, out: Vector3): boolean => {
     const v = this.recs.get(id);
@@ -649,9 +666,10 @@ export class TableView {
   project(x: number, y: number, lift = 0): { x: number; y: number; visible: boolean } {
     const v = this.tmp
       .set(
-        x - this.half,
-        lift * ((FIG_HEIGHT.king * FIG_SCALE * SIZE.k) / OLD_PIECE_H),
-        y - this.half,
+        x - this.hx,
+        lift * ((FIG_HEIGHT.king * FIG_SCALE * SIZE.k) / OLD_PIECE_H) +
+          (this.long ? this.board.relief.atSim(x, y) : 0),
+        y - this.hz,
       )
       .project(this.cam.camera);
     const w = this.canvas.clientWidth;
@@ -698,10 +716,19 @@ export class TableView {
     if (nx < -1 || nx > 1 || ny < -1 || ny > 1) return null;
     const g = { x: 0, z: 0 };
     if (!this.groundAt(clientX, clientY, g)) return null;
-    const x = g.x + this.half;
-    const y = g.z + this.half;
-    const size = this.half * 2;
-    if (x < 0 || y < 0 || x > size || y > size) return null;
+    // the Long Board's terraces stand above y = 0: slide along the view ray onto the ground
+    if (this.long) {
+      const o = this.org;
+      const d = this.ray;
+      for (let i = 0; i < 4; i++) {
+        const t = (this.board.relief.at(g.x, g.z) - o.y) / d.y;
+        g.x = o.x + d.x * t;
+        g.z = o.z + d.z * t;
+      }
+    }
+    const x = g.x + this.hx;
+    const y = g.z + this.hz;
+    if (x < 0 || y < 0 || x > this.hx * 2 || y > this.hz * 2) return null;
     return { x, y };
   }
 
@@ -839,8 +866,8 @@ export class TableView {
 
   /** Position, heading, gait and attack timing from the snapshot (before decluttering). */
   private place(v: Rec, u: ChessUnit, alpha: number, dt: number, real: number): void {
-    let x = lerp(u.px, u.x, alpha) - this.half;
-    let z = lerp(u.py, u.y, alpha) - this.half;
+    let x = lerp(u.px, u.x, alpha) - this.hx;
+    let z = lerp(u.py, u.y, alpha) - this.hz;
     if (v.fig) {
       if (!u.alive) {
         if (v.alive) {
@@ -910,7 +937,7 @@ export class TableView {
       const foe = u.target !== null ? this.byId.get(u.target) : undefined;
       let want = v.yaw;
       if (foe && (u.flash || speed < 8))
-        want = Math.atan2(foe.x - this.half - x, foe.y - this.half - z);
+        want = Math.atan2(foe.x - this.hx - x, foe.y - this.hz - z);
       else if (speed > 8) want = Math.atan2(dx, dz);
       if (!this.lineup) v.yaw = turn(v.yaw, want, 1 - Math.exp(-12 * dt));
       v.move = lerp(v.move, MathUtils.clamp(speed / 30, 0, 1), 1 - Math.exp(-8 * dt));
@@ -1134,6 +1161,8 @@ export class TableView {
           Math.min(1, u.shield / u.maxHp),
           SHIELD,
         );
+      // the high-ground eye: this piece's target stands below it (Reach and Sight favour it)
+      if (u.highGround) this.tags.eye(v.x, top + (u.shield > 0 ? 9.5 : 7.5) * px, v.z, 11 * px);
       const ts = Math.min(8 * px, f.height * 0.3);
       const cam = this.cam.camera.position;
       const cx = cam.x - v.x;
@@ -1299,6 +1328,10 @@ export class TableView {
   }
 
   private readonly tmpCol = new Color();
+  /** Ground height under a world point for effects placed by position (0 on the square board). */
+  private up(x: number, z: number): number {
+    return this.long ? this.board.relief.at(x, z) : 0;
+  }
   private get camRight(): Vector3 {
     return this.ray.set(1, 0, 0).applyQuaternion(this.cam.camera.quaternion);
   }
@@ -1330,15 +1363,23 @@ export class TableView {
     v.fig?.transform();
     if (this.drawn === 0 || !u.style) return;
     const color = styleEmblem(u.style).color;
-    this.gambits.flare(from.x, 1, from.z, color, 70, 1.1, 160);
-    this.gambits.flare(from.x, 1, from.z, '#ffffff', 40, 0.6, 0);
-    this.chips.burst(from.x, 60, from.z, color, 10, 1.2, 5);
+    this.gambits.flare(from.x, 1 + this.up(from.x, from.z), from.z, color, 70, 1.1, 160);
+    this.gambits.flare(from.x, 1 + this.up(from.x, from.z), from.z, '#ffffff', 40, 0.6, 0);
+    this.chips.burst(from.x, 60 + this.up(from.x, from.z), from.z, color, 10, 1.2, 5);
   }
 
   private spawnFlare(u: SnapUnit): void {
-    const x = u.x - this.half;
-    const z = u.y - this.half;
-    this.gambits.flare(x, 1, z, u.team === 'B' ? TEAM.B.mark : TEAM.A.mark, 40, 1, 110);
+    const x = u.x - this.hx;
+    const z = u.y - this.hz;
+    this.gambits.flare(
+      x,
+      1 + this.up(x, z),
+      z,
+      u.team === 'B' ? TEAM.B.mark : TEAM.A.mark,
+      40,
+      1,
+      110,
+    );
   }
 
   /* ------------------------------ events ------------------------------ */
@@ -1555,7 +1596,8 @@ export class TableView {
   }
 
   private handleEvent(e: GameEvent): void {
-    const half = this.half;
+    const hx = this.hx;
+    const hz = this.hz;
     switch (e.type) {
       case 'damage': {
         const p = e.payload;
@@ -1595,8 +1637,8 @@ export class TableView {
       }
       case 'death': {
         const p = e.payload;
-        const x = p.x - half;
-        const z = p.y - half;
+        const x = p.x - hx;
+        const z = p.y - hz;
         if (p.kind === 'hero') {
           const v = this.recs.get(p.id);
           const color = v?.style
@@ -1604,10 +1646,18 @@ export class TableView {
             : p.team === 'B'
               ? TEAM.B.body
               : TEAM.A.body;
-          this.chips.burst(v?.x ?? x, 70, v?.z ?? z, color, 12, 1.3, 6);
+          this.chips.burst(
+            v?.x ?? x,
+            70 + this.up(v?.x ?? x, v?.z ?? z),
+            v?.z ?? z,
+            color,
+            12,
+            1.3,
+            6,
+          );
           this.gambits.flare(
             v?.x ?? x,
-            1,
+            1 + this.up(v?.x ?? x, v?.z ?? z),
             v?.z ?? z,
             p.team === 'B' ? TEAM.B.mark : TEAM.A.mark,
             60,
@@ -1618,7 +1668,7 @@ export class TableView {
         } else if (p.kind === 'minion') {
           this.chips.burst(
             x,
-            24,
+            24 + this.up(x, z),
             z,
             p.team === 'B' ? TEAM.B.body : p.team === 'A' ? TEAM.A.body : CLAY.body,
             5,
@@ -1626,26 +1676,34 @@ export class TableView {
             4,
           );
         } else if (p.kind === 'camp') {
-          this.chips.burst(x, 24, z, CLAY.body, 7, 0.9, 5);
+          this.chips.burst(x, 24 + this.up(x, z), z, CLAY.body, 7, 0.9, 5);
         }
         break;
       }
       case 'structureDown': {
         const p = e.payload;
-        const x = p.x - half;
-        const z = p.y - half;
+        const x = p.x - hx;
+        const z = p.y - hz;
         const guardian = p.kind === 'guardian';
         const stone = p.team === 'B' ? '#3a3b42' : '#d9cdb0';
         this.chips.burst(
           x,
-          80,
+          80 + this.up(x, z),
           z,
           stone,
           guardian ? 40 : 24,
           guardian ? 2.2 : 1.6,
           guardian ? 14 : 10,
         );
-        this.chips.burst(x, 120, z, p.team === 'B' ? '#56637e' : '#b58d47', 10, 1.6, 10);
+        this.chips.burst(
+          x,
+          120 + this.up(x, z),
+          z,
+          p.team === 'B' ? '#56637e' : '#b58d47',
+          10,
+          1.6,
+          10,
+        );
         this.cam.kick(guardian ? 0.9 : 0.5);
         break;
       }
@@ -1673,33 +1731,48 @@ export class TableView {
         const target = num('targetId');
         const tv = target !== undefined ? this.recs.get(target) : undefined;
         if (/sanct/i.test(card) && x !== undefined && y !== undefined && !this.zonesFromSnap) {
-          this.gambits.zone(x - this.half, 1, y - this.half, '#8ff0b4', 64, 6);
+          this.gambits.zone(
+            x - this.hx,
+            1 + this.up(x - this.hx, y - this.hz),
+            y - this.hz,
+            '#8ff0b4',
+            64,
+            6,
+          );
           break;
         }
         if (/fork/i.test(card) && tv) {
           for (const v of this.recs.values()) {
             if (v.pieceId !== 'knight' || v.team !== team || !v.live) continue;
-            this.from.set(v.x, 40, v.z);
-            this.to.set(tv.x, 50, tv.z);
+            this.from.set(v.x, 40 + v.gy, v.z);
+            this.to.set(tv.x, 50 + tv.gy, tv.z);
             this.gambits.arc(this.from, this.to, GOLD, 0.55);
             break;
           }
-          this.gambits.flare(tv.x, 1, tv.z, GOLD, 50, 0.9, 120);
+          this.gambits.flare(tv.x, 1 + this.up(tv.x, tv.z), tv.z, GOLD, 50, 0.9, 120);
           break;
         }
         if (tv) {
-          this.gambits.flare(tv.x, 1, tv.z, '#ff6a5a', 46, 0.9, 120);
+          this.gambits.flare(tv.x, 1 + this.up(tv.x, tv.z), tv.z, '#ff6a5a', 46, 0.9, 120);
           break;
         }
         if (x !== undefined && y !== undefined) {
-          this.gambits.flare(x - this.half, 1, y - this.half, col, 70, 1.1, 120);
+          this.gambits.flare(
+            x - this.hx,
+            1 + this.up(x - this.hx, y - this.hz),
+            y - this.hz,
+            col,
+            70,
+            1.1,
+            120,
+          );
           break;
         }
         for (const v of this.recs.values()) {
           if (!v.fig || !v.live || v.team !== team) continue;
           const u = this.byId.get(v.id) as ChessUnit | undefined;
           if (lane && u?.lane && u.lane !== lane) continue;
-          this.gambits.flare(v.x, 1, v.z, col, 44, 0.8);
+          this.gambits.flare(v.x, 1 + this.up(v.x, v.z), v.z, col, 44, 0.8);
         }
         break;
       }
@@ -1707,13 +1780,13 @@ export class TableView {
         for (const v of this.recs.values()) {
           if (v.pieceId !== 'king' || v.team !== team) continue;
           this.gambits.crown(v.id);
-          this.gambits.flare(v.x, 1, v.z, '#ffe08a', 60, 1.2, 160);
+          this.gambits.flare(v.x, 1 + this.up(v.x, v.z), v.z, '#ffe08a', 60, 1.2, 160);
         }
         break;
       case 'throneDown':
         for (const v of this.recs.values()) {
           if (v.kind !== 'guardian' || v.team !== team) continue;
-          this.gambits.flare(v.x, 1, v.z, '#ff6a5a', 160, 1.6, 300);
+          this.gambits.flare(v.x, 1 + this.up(v.x, v.z), v.z, '#ff6a5a', 160, 1.6, 300);
         }
         this.cam.kick(1);
         break;
@@ -1723,7 +1796,7 @@ export class TableView {
           if (v.team === winner || !v.live) continue;
           if (v.pieceId === 'king') this.gambits.crown(v.id, 3);
           if (v.pieceId === 'king' || v.kind === 'guardian')
-            this.gambits.flare(v.x, 1, v.z, GOLD, 190, 2.2, 360);
+            this.gambits.flare(v.x, 1 + this.up(v.x, v.z), v.z, GOLD, 190, 2.2, 360);
         }
         this.cam.kick(1);
         break;
@@ -1742,9 +1815,9 @@ export class TableView {
       if (!ring) {
         ring = new EventRing(this.kit, e.type, e.radius);
         ring.group.position.set(
-          e.x - this.half,
+          e.x - this.hx,
           1.5 + this.board.relief.atSim(e.x, e.y),
-          e.y - this.half,
+          e.y - this.hz,
         );
         this.rings.set(e.id, ring);
         this.scene.add(ring.group);
@@ -1752,9 +1825,9 @@ export class TableView {
       ring.update(this.time, e.phase === 'warning', e.progress, e.team);
       const t = e.telegraph;
       ring.setTelegraph(
-        t ? t.x - this.half : 0,
+        t ? t.x - this.hx : 0,
         0,
-        t ? t.y - this.half : 0,
+        t ? t.y - this.hz : 0,
         t?.radius ?? 0,
         this.time,
         !!t,
@@ -1795,8 +1868,8 @@ export class TableView {
           const cy = (ti === 0 ? -1 : 1) * ((3 - row) * 290 + 150);
           const wx = rX * cx + upX * cy;
           const wz = rZ * cx + upZ * cy;
-          const x = wx + this.half;
-          const y = wz + this.half;
+          const x = wx + this.hx;
+          const y = wz + this.hz;
           list.push({
             id: id++,
             kind: 'hero',

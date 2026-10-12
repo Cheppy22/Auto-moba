@@ -1,6 +1,7 @@
 import {
   BoxGeometry,
   BufferGeometry,
+  CircleGeometry,
   CanvasTexture,
   Float32BufferAttribute,
   Group,
@@ -15,7 +16,8 @@ import {
 import type { Content } from '../../sim';
 import { buildTerrain } from '../../sim';
 import { LOOK, TABLE } from './palette';
-import { bastionSites, Relief, RELIEF } from './relief';
+import { groveTrees, paintLong } from './longpaint';
+import { bastionSites, type Ground, LongRelief, Relief, RELIEF } from './relief';
 
 /** Walnut frame width around the board (world units). */
 export const FRAME = 130;
@@ -65,10 +67,15 @@ function along(pts: readonly (readonly number[])[], d: number): [number, number,
  */
 export class Board {
   readonly group = new Group();
-  readonly half: number;
-  readonly extent: number;
-  /** Ground heights (raised squares, daises, court pits, Bastion tiles). */
-  readonly relief: Relief;
+  /** Half the board's width (x) and length (z), and the half extents with the frame. */
+  readonly hx: number;
+  readonly hz: number;
+  readonly ex: number;
+  readonly ez: number;
+  /** The Long Board (terraces, rectangular): painted and raised by its own rules. */
+  readonly long: boolean;
+  /** Ground heights (raised squares, daises, court pits, Bastion tiles; terraces on the Long Board). */
+  readonly relief: Ground;
   private readonly top: Mesh;
   private readonly topMat: MeshLambertMaterial;
   private readonly owned: { dispose(): void }[] = [];
@@ -80,12 +87,18 @@ export class Board {
     private readonly content: Content,
     texSize: number,
   ) {
-    const half = content.map.size / 2;
-    this.half = half;
-    const E = half + FRAME;
-    this.extent = E;
+    const map = content.map;
+    const hx = map.size / 2;
+    const hz = (map.length ?? map.size) / 2;
+    this.hx = hx;
+    this.hz = hz;
+    this.long = !!map.terraces;
+    this.ex = hx + FRAME;
+    this.ez = hz + FRAME;
+    const E = Math.max(this.ex, this.ez);
     this.texSize = texSize;
-    this.relief = new Relief(content, E);
+    this.relief = this.long ? new LongRelief(map, FRAME) : new Relief(content, E);
+    const lift = this.relief.frameH;
 
     // table: a walnut plane with a pool of lamp light under the board
     const [tc, tg] = canvas(1024, 1024);
@@ -119,7 +132,10 @@ export class Board {
     // the slab under the frame; its top sits below the court pits (the relief's rim drops onto it)
     const slabMat = this.own(new MeshLambertMaterial({ color: TABLE.frameDark }));
     const slabTop = -24;
-    const slab = new Mesh(this.own(new BoxGeometry(E * 2, SLAB + slabTop, E * 2)), slabMat);
+    const slab = new Mesh(
+      this.own(new BoxGeometry(this.ex * 2, SLAB + slabTop, this.ez * 2)),
+      slabMat,
+    );
     slab.position.y = (-SLAB + slabTop) / 2;
     slab.receiveShadow = true;
 
@@ -136,16 +152,17 @@ export class Board {
       m: MeshLambertMaterial,
     ): void => {
       const mesh = new Mesh(this.own(new BoxGeometry(len, h, w)), m);
-      mesh.position.set(x, h / 2 - 0.5, z);
+      mesh.position.set(x, h / 2 - 0.5 + lift, z);
       if (rot) mesh.rotation.y = Math.PI / 2;
       this.group.add(mesh);
     };
-    const s = half + 5;
+    const sx = hx + 5;
+    const sz = hz + 5;
     for (const sign of [-1, 1]) {
-      bead(s * 2 + 10, 10, 4, 0, sign * s, false, brass);
-      bead(s * 2 + 10, 10, 4, sign * s, 0, true, brass);
-      bead(E * 2 + 8, 12, 7, 0, sign * (E - 2), false, dark);
-      bead(E * 2 + 8, 12, 7, sign * (E - 2), 0, true, dark);
+      bead(sx * 2 + 10, 10, 4, 0, sign * sz, false, brass);
+      bead(sz * 2 + 10, 10, 4, sign * sx, 0, true, brass);
+      bead(this.ex * 2 + 8, 12, 7, 0, sign * (this.ez - 2), false, dark);
+      bead(this.ez * 2 + 8, 12, 7, sign * (this.ex - 2), 0, true, dark);
     }
 
     // the painted top (board + frame), lifted into relief; flat shading gives the terraces crisp,
@@ -154,8 +171,13 @@ export class Board {
     this.top = new Mesh(this.own(this.reliefGeometry()), this.topMat);
     this.top.receiveShadow = true;
 
-    // iron gates over jungle courts that are not open yet
+    // iron gates over jungle courts that are not open yet (round over the Long Board's clearings)
     const [gc, gg] = canvas(256, 256);
+    if (this.long) {
+      gg.beginPath();
+      gg.arc(128, 128, 125, 0, Math.PI * 2);
+      gg.clip();
+    }
     gg.fillStyle = 'rgba(14,10,8,0.14)';
     gg.fillRect(0, 0, 256, 256);
     gg.strokeStyle = 'rgba(30,26,24,0.7)';
@@ -170,47 +192,71 @@ export class Board {
     }
     gg.strokeStyle = 'rgba(201,163,90,0.8)';
     gg.lineWidth = 6;
-    gg.strokeRect(6, 6, 244, 244);
+    if (this.long) {
+      gg.beginPath();
+      gg.arc(128, 128, 122, 0, Math.PI * 2);
+      gg.stroke();
+    } else gg.strokeRect(6, 6, 244, 244);
     const gateMat = this.own(
       new MeshBasicMaterial({ map: this.own(tex(gc, 4)), transparent: true, depthWrite: false }),
     );
     for (const slot of content.map.slots) {
       const side = slot.radius * 1.84;
-      const mesh = new Mesh(this.own(new PlaneGeometry(side, side).rotateX(-Math.PI / 2)), gateMat);
-      mesh.position.set(slot.x - half, 1.2, slot.y - half);
+      const mesh = new Mesh(
+        this.own(
+          this.long
+            ? new CircleGeometry(slot.radius * 0.96, 40).rotateX(-Math.PI / 2)
+            : new PlaneGeometry(side, side).rotateX(-Math.PI / 2),
+        ),
+        gateMat,
+      );
+      const y = this.long ? this.relief.atSim(slot.x, slot.y) : 0;
+      mesh.position.set(slot.x - hx, 1.2 + y, slot.y - hz);
       mesh.renderOrder = 2;
       this.gates.push({ mesh, id: slot.id });
       this.group.add(mesh);
     }
 
     this.group.add(table, slab, this.top);
+
+    // the Long Board's groves are ringed by low-poly pines (one static mesh)
+    const trees = this.long ? groveTrees(map, this.relief) : null;
+    if (trees) {
+      const mesh = new Mesh(
+        this.own(trees),
+        this.own(new MeshLambertMaterial({ vertexColors: true, flatShading: true })),
+      );
+      mesh.castShadow = true;
+      this.group.add(mesh);
+    }
   }
 
   /** One indexed grid over board and frame, heights from the relief, UVs onto the painted top. */
   private reliefGeometry(): BufferGeometry {
     const R = this.relief;
-    const n = R.n;
-    const w = n + 1;
-    const pos = new Float32Array(w * w * 3);
-    const uv = new Float32Array(w * w * 2);
-    for (let j = 0; j <= n; j++)
-      for (let i = 0; i <= n; i++) {
+    const nx = R.nx;
+    const nz = R.nz;
+    const w = nx + 1;
+    const pos = new Float32Array(w * (nz + 1) * 3);
+    const uv = new Float32Array(w * (nz + 1) * 2);
+    for (let j = 0; j <= nz; j++)
+      for (let i = 0; i <= nx; i++) {
         const k = j * w + i;
-        const x = -R.extent + i * R.cell;
-        const z = -R.extent + j * R.cell;
+        const x = -R.ex + i * R.cell;
+        const z = -R.ez + j * R.cell;
         pos[k * 3] = x;
         // the outermost ring drops to the slab: the board's side edge
-        const rim = i === 0 || j === 0 || i === n || j === n;
+        const rim = i === 0 || j === 0 || i === nx || j === nz;
         pos[k * 3 + 1] = rim ? -SLAB * 0.6 : R.h[k];
         pos[k * 3 + 2] = z;
-        uv[k * 2] = (x + this.extent) / (2 * this.extent);
-        uv[k * 2 + 1] = 1 - (z + this.extent) / (2 * this.extent);
+        uv[k * 2] = (x + R.ex) / (2 * R.ex);
+        uv[k * 2 + 1] = 1 - (z + R.ez) / (2 * R.ez);
       }
     // split each cell along its flatter diagonal, so 45° cliffs in either direction stay straight
     // (a fixed split saw-tooths every edge that runs the other way)
     const idx: number[] = [];
-    for (let j = 0; j < n; j++)
-      for (let i = 0; i < n; i++) {
+    for (let j = 0; j < nz; j++)
+      for (let i = 0; i < nx; i++) {
         const a = j * w + i;
         const b = a + 1;
         const c = a + w;
@@ -248,10 +294,17 @@ export class Board {
   }
 
   private paint(o: Orient): Texture {
+    if (this.long) {
+      // the long side gets a third more pixels than the square board's texture
+      const H = Math.round((this.texSize * 4) / 3);
+      const [c, g] = canvas(Math.round((H * this.ex) / this.ez), H);
+      paintLong(g, c.height / (2 * this.ez), this.content.map, FRAME, o);
+      return this.own(tex(c));
+    }
     const S = this.texSize;
-    const half = this.half;
+    const half = this.hx;
     const size = half * 2;
-    const E = this.extent;
+    const E = this.ex;
     const [c, g] = canvas(S, S);
     const k = S / (2 * E);
     // sim coordinates: (0,0) is the board's top-left corner, the frame sits outside [0, size]

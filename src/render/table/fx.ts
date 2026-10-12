@@ -117,6 +117,8 @@ export class Chips {
   private readonly live: Bit[] = [];
   private readonly pool: Bit[] = [];
   private seed = 1;
+  /** Floor height under a world point (chips bounce on it); flat by default. */
+  ground: ((x: number, z: number) => number) | null = null;
 
   constructor(mat: Material) {
     this.crowd = new Crowd(chip(), mat, 220, true);
@@ -245,8 +247,9 @@ export class Chips {
       }
       b.v.y -= 620 * dt * b.g;
       b.p.addScaledVector(b.v, dt);
-      if (b.g > 0 && b.p.y < 1) {
-        b.p.y = 1;
+      const floor = this.ground ? this.ground(b.p.x, b.p.z) + 1 : 1;
+      if (b.g > 0 && b.p.y < floor) {
+        b.p.y = floor;
         b.v.y *= -0.3;
         b.v.x *= 0.6;
         b.v.z *= 0.6;
@@ -265,10 +268,14 @@ export class Chips {
   }
 }
 
-/** Atlas: rows 0-2 numerals 1-8 on White, Black and fork-gold plates; rows 3-4 the 16 emblems. */
+/**
+ * Atlas: rows 0-2 numerals 1-8 on White, Black and fork-gold plates; rows 3-4 the 16 emblems;
+ * row 5 the high-ground eye.
+ */
 const CELL = 64;
 const COLS = 8;
-const ROWS = 5;
+const ROWS = 6;
+const EYE = 5 * COLS;
 
 function atlas(): CanvasTexture {
   const c = document.createElement('canvas');
@@ -311,9 +318,41 @@ function atlas(): CanvasTexture {
       y: row * CELL + CELL / 2,
     });
   }
+  eye(g, (EYE % COLS) * CELL + CELL / 2, Math.floor(EYE / COLS) * CELL + CELL / 2);
   const t = new CanvasTexture(c);
   t.colorSpace = SRGBColorSpace;
   return t;
+}
+
+/** A minimal eyeball: an ivory almond in a dark rim, a brass iris and a dark pupil. */
+function eye(g: CanvasRenderingContext2D, cx: number, cy: number): void {
+  const w = CELL * 0.44;
+  const h = CELL * 0.4;
+  const almond = (): void => {
+    g.beginPath();
+    g.moveTo(cx - w, cy);
+    g.quadraticCurveTo(cx, cy - h, cx + w, cy);
+    g.quadraticCurveTo(cx, cy + h, cx - w, cy);
+    g.closePath();
+  };
+  almond();
+  g.fillStyle = '#f6eedb';
+  g.fill();
+  g.lineWidth = CELL * 0.08;
+  g.strokeStyle = '#120d0a';
+  g.stroke();
+  g.save();
+  almond();
+  g.clip();
+  g.fillStyle = '#e0b860';
+  g.beginPath();
+  g.arc(cx, cy, CELL * 0.15, 0, Math.PI * 2);
+  g.fill();
+  g.fillStyle = '#120d0a';
+  g.beginPath();
+  g.arc(cx, cy, CELL * 0.075, 0, Math.PI * 2);
+  g.fill();
+  g.restore();
 }
 
 /** Camera-facing badges: at most a rank numeral on each piece's base, emblems only when leaning in. */
@@ -382,6 +421,11 @@ vMapUv = (uv + vec2(mod(aCell, ${COLS}.0), ${ROWS - 1}.0 - floor(aCell / ${COLS}
 
   emblem(x: number, y: number, z: number, size: number, style: string | null): void {
     this.put(x, y, z, size, 3 * COLS + styleEmblemIndex(style));
+  }
+
+  /** The high-ground eye above a piece's health bar. */
+  eye(x: number, y: number, z: number, size: number): void {
+    this.put(x, y, z, size, EYE);
   }
 
   end(): void {
