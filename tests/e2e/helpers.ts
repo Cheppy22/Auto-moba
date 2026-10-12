@@ -196,16 +196,62 @@ export async function openHand(page: Page): Promise<void> {
   await expect(page.getByTestId('hand')).toBeVisible();
 }
 
-/** Taps the camera button until it shows `mode`. */
-export async function setCam(
-  page: Page,
-  mode: 'board' | 'auto' | 'follow' | 'free',
-): Promise<void> {
-  const btn = page.getByTestId('cam-btn');
-  for (let i = 0; i < 5 && (await btn.getAttribute('data-mode')) !== mode; i++) await btn.click();
-  await expect(btn).toHaveAttribute('data-mode', mode);
+/** The camera mode the HUD shows: free (the default), auto, follow or lane. */
+export function camMode(page: Page): Promise<string | null> {
+  return page.getByTestId('hud').getAttribute('data-cam');
 }
 
+/** Turns the Auto camera on or off with its switch. */
+export async function setAuto(page: Page, on: boolean): Promise<void> {
+  const btn = page.getByTestId('auto-btn');
+  if ((await btn.getAttribute('aria-pressed')) !== String(on)) await btn.click();
+  await expect(btn).toHaveAttribute('aria-pressed', String(on));
+}
+
+/**
+ * A spot on the canvas over open ground: no unit near it, at least `clear` map units from every
+ * lane, and not under the HUD (null if the view shows none).
+ */
+export function bareGround(page: Page, clear = 220): Promise<{ x: number; y: number } | null> {
+  return page.evaluate((far) => {
+    interface Sess {
+      view: {
+        pickGround(x: number, y: number): { x: number; y: number } | null;
+        pickUnit(x: number, y: number): number | null;
+      } | null;
+      match: { content: { map: { lanes: Record<string, number[][]> } } };
+    }
+    const s = (window as unknown as { __session: Sess }).__session;
+    const view = s.view;
+    const canvas = document.querySelector('canvas');
+    if (!view || !canvas) return null;
+    const rect = canvas.getBoundingClientRect();
+    const segDist = (px: number, py: number, a: number[], b: number[]): number => {
+      const dx = b[0] - a[0];
+      const dy = b[1] - a[1];
+      const t = Math.max(
+        0,
+        Math.min(1, ((px - a[0]) * dx + (py - a[1]) * dy) / (dx * dx + dy * dy)),
+      );
+      return Math.hypot(px - a[0] - dx * t, py - a[1] - dy * t);
+    };
+    for (let j = 2; j < 18; j++)
+      for (let i = 1; i < 12; i++) {
+        const x = rect.left + (rect.width * i) / 12;
+        const y = rect.top + (rect.height * j) / 20;
+        const hit = document.elementFromPoint(x, y);
+        if (hit !== canvas) continue;
+        const g = view.pickGround(x, y);
+        if (!g || view.pickUnit(x, y) !== null) continue;
+        let d = Infinity;
+        for (const lane of Object.values(s.match.content.map.lanes))
+          for (let k = 1; k < lane.length; k++)
+            d = Math.min(d, segDist(g.x, g.y, lane[k - 1], lane[k]));
+        if (d >= far) return { x, y };
+      }
+    return null;
+  }, clear);
+}
 /** What to step the sim toward. */
 export type Until =
   | { kind: 'fork' }

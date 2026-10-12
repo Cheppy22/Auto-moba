@@ -253,6 +253,8 @@ export class TableView {
   private readonly controls: FreeControls;
   /** The camera mode of the last frame (gestures read it between frames). */
   private mode: CamMode = 'free';
+  /** A gesture took the camera back: free for a few frames, until the page's camera mode says so too. */
+  private manualPending = 0;
   /** Follow mode: the camera distance (pinch and wheel change it). */
   private followD = 0;
   /** Last compass state sent to the page (turned away from the default angle, yaw in degrees). */
@@ -470,6 +472,7 @@ export class TableView {
         // a drag (or, in Auto, any gesture) takes the camera back: free, from where it is
         this.cam.holdHere();
         this.mode = 'free';
+        this.manualPending = 3;
         this.canvas.dispatchEvent(new Event('cam-manual'));
       },
       followZoom: (f) => {
@@ -660,8 +663,13 @@ export class TableView {
   private steer(frame: BroadcastFrame, real: number): void {
     const cam = this.cam;
     const g = cam.goal;
+    this.controls.frame();
     const was = this.mode;
     let mode: CamMode = frame.mode;
+    if (this.manualPending > 0) {
+      this.manualPending = mode === 'free' ? 0 : this.manualPending - 1;
+      mode = 'free';
+    }
     if (this.lineup) mode = 'free';
     if (mode !== was) {
       if (mode === 'follow') this.followD = Math.min(cam.pose.d, cam.followDist);

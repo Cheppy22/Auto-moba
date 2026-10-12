@@ -70,7 +70,12 @@ export function Broadcast() {
         canvas.addEventListener('table-sitback', onFree);
         canvas.addEventListener('cam-manual', onFree);
         canvas.addEventListener('cam-angle', onAngle);
-        const offTheme = subscribeMapTheme(() => view.setTheme(mapTheme()));
+        // the board's theme (the Title and Adjourn switch it; the board repaints in place)
+        canvas.dataset.theme = mapTheme();
+        const offTheme = subscribeMapTheme(() => {
+          view.setTheme(mapTheme());
+          canvas.dataset.theme = mapTheme();
+        });
         canvas.dataset.ready = 'true';
         const director = new Director(board);
         // a tap (not a drag) on a unit follows it (a piece also opens its card); a tap on a lane
@@ -165,6 +170,7 @@ export function Broadcast() {
           watch.disconnect();
           if (s.view === view) s.view = null;
           delete canvas.dataset.ready;
+          delete canvas.dataset.theme;
           view.dispose();
         };
       })

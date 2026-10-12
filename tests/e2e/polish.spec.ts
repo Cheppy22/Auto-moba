@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { setCam, setTempo, snap, startLive, step, watchErrors } from './helpers';
+import { camMode, setAuto, setTempo, snap, startLive, step, watchErrors } from './helpers';
 
 test.use({ viewport: { width: 800, height: 520 } });
 
@@ -33,18 +33,19 @@ async function toBreak(page: Page): Promise<void> {
   await expect(page.getByTestId('break-sheet')).toBeVisible();
 }
 
-test('the board camera is the default; a lane chip leans in and sits back', async ({ page }) => {
+test('the free camera is the default; a lane chip leans in and lets go', async ({ page }) => {
   test.setTimeout(240_000);
   const errors = watchErrors(page);
   await startLive(page, '42');
   await step(page, 60);
-  await expect(page.getByTestId('cam-btn')).toHaveAttribute('data-mode', 'board');
+  expect(await camMode(page)).toBe('free');
   expect(await zoomLane(page)).toBeNull();
 
   await page.getByTestId('lane-bar-top').click();
   await expect(page.getByTestId('lane-bar-top')).toHaveAttribute('aria-pressed', 'true');
   expect(await zoomLane(page)).toBe('top');
-  // another lane switches; the same chip again, or Escape, sits back
+  expect(await camMode(page)).toBe('lane');
+  // another lane switches; the same chip again, or Escape, returns to the free camera
   await page.getByTestId('lane-bar-mid').click();
   expect(await zoomLane(page)).toBe('mid');
   await page.getByTestId('lane-bar-mid').click();
@@ -54,9 +55,12 @@ test('the board camera is the default; a lane chip leans in and sits back', asyn
   await page.keyboard.press('Escape');
   expect(await zoomLane(page)).toBeNull();
 
-  // the button still steps through the other cameras and comes back to the board
-  await setCam(page, 'auto');
-  await setCam(page, 'board');
+  expect(await camMode(page)).toBe('free');
+  // a lane chip from Auto leans in too (Auto goes off)
+  await setAuto(page, true);
+  await page.getByTestId('lane-bar-top').click();
+  expect(await camMode(page)).toBe('lane');
+  await expect(page.getByTestId('auto-btn')).toHaveAttribute('aria-pressed', 'false');
   expect(errors).toEqual([]);
 });
 

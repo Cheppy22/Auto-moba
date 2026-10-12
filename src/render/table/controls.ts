@@ -52,6 +52,8 @@ export class FreeControls {
   private lock: 'pinch' | 'tilt' | null = null;
   private last2 = { cx: 0, cy: 0, dist: 0, ang: 0, ay: 0, by: 0 };
   private acc = { dist: 0, ang: 0, tilt: 0 };
+  /** A finger of a two-finger gesture moved since the last frame. */
+  private moved2 = false;
   /** The last press sequence moved the camera (or used two fingers): not a tap. */
   gestured = false;
   private readonly vel = { x: 0, z: 0, yaw: 0 };
@@ -86,6 +88,12 @@ export class FreeControls {
   /** True while a finger or button is down and moving the camera (the camera eases faster). */
   get active(): boolean {
     return this.ptrs.size > 0 && this.gestured;
+  }
+
+  /** Applies the two-finger gesture's movement since the last frame; called every frame. */
+  frame(): void {
+    if (this.moved2 && this.ptrs.size >= 2 && !this.off) this.twoFinger();
+    this.moved2 = false;
   }
 
   /** Coasting after a fling; called every frame. */
@@ -159,8 +167,9 @@ export class FreeControls {
     p.x = e.clientX;
     p.y = e.clientY;
     if (this.off) return;
+    // two fingers are read once a frame (each finger's move arrives as its own event)
     if (this.ptrs.size >= 2) {
-      this.twoFinger();
+      this.moved2 = true;
       return;
     }
     if (p.moved < DRAG_PX) return;
