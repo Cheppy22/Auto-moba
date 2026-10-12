@@ -429,6 +429,9 @@
       "defendOffLaneRadius": 1400,
       "shopTripRadius": 1100,
       "tier3TripRadius": 3800
+    },
+    "height": {
+      "slopeDmg": 0.15
     }
   }
 }

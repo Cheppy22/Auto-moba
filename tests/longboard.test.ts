@@ -5,8 +5,10 @@ import { clearLine, walkable } from '../src/sim/world/terrain';
 import {
   attackRange,
   highGroundEdge,
+  lineOfSight,
   reachActive,
   sightRadius,
+  slopeMul,
   tierAt,
 } from '../src/sim/world/height';
 import { content, liveMatch, logHash, piece } from './helpers';
@@ -252,6 +254,24 @@ describe('Long Board high ground: Reach and Sight', () => {
     expect(sightRadius(m.ctx, queen, 1, 1, r)).toBe(r);
   });
 
+  it('Slope: a hit from a tier above deals more, from a tier below less; never structures', () => {
+    const { m, queen, king } = setup();
+    const ctx = m.ctx;
+    const s = ctx.t.height.slopeDmg;
+    expect(s).toBeGreaterThan(0);
+    queen.x = 1000;
+    queen.y = 2420; // tier 1
+    king.x = 1000;
+    king.y = 2330; // tier 0
+    expect(slopeMul(ctx, queen, king)).toBeCloseTo(1 + s, 9);
+    expect(slopeMul(ctx, king, queen)).toBeCloseTo(1 - s, 9);
+    king.y = 2450;
+    expect(slopeMul(ctx, queen, king)).toBe(1);
+    expect(slopeMul(ctx, ctx.towers.A.mid[0]!, king)).toBe(1);
+    const flat = liveMatch(5);
+    expect(slopeMul(flat.ctx, piece(flat, 'A', 'queen'), piece(flat, 'B', 'king'))).toBe(1);
+  });
+
   it('the eye-icon flag shows on a piece whose target stands below it', () => {
     const { m, queen, king } = setup();
     queen.x = 1000;
@@ -267,6 +287,86 @@ describe('Long Board high ground: Reach and Sight', () => {
     const flat = liveMatch(5);
     flat.step(2400);
     expect(flat.snapshot().units.some((u) => u.highGround)).toBe(false);
+  });
+});
+
+describe('Long Board line of sight: grove edges block it except at openings', () => {
+  const los = (a: Pt, b: Pt): boolean =>
+    lineOfSight(world.height, world.terrain, everywhere, a.x, a.y, b.x, b.y);
+  // East Grove: capsule (1285, 1820)–(1285, 2820), r 150, edge at x 1435 on the verge side
+  const inside = { x: 1300, y: 2600 };
+  const verge = { x: 1497, y: 2600 };
+
+  it('a unit on the verge and one in the grove cannot see each other', () => {
+    expect(walkable(world.terrain, everywhere, verge.x, verge.y)).toBe(true);
+    expect(los(verge, inside)).toBe(false);
+    expect(los(inside, verge)).toBe(false);
+    // the same lines on the turned board (Black's West Grove)
+    expect(los(turn(verge), turn(inside))).toBe(false);
+  });
+
+  it('inside the grove, and outside it, sight is unchanged', () => {
+    expect(los({ x: 1285, y: 2500 }, { x: 1200, y: 2750 })).toBe(true);
+    expect(los({ x: 1625, y: 2600 }, verge)).toBe(true);
+    expect(los({ x: 1000, y: 2600 }, { x: 1000, y: 2900 })).toBe(true);
+  });
+
+  it('sight passes through a gate, the River Road and the Sally spur, not the wall beside them', () => {
+    // E2's gate runs from the clearing (1285, 2400) to the Right lane at (1625, 2440)
+    expect(los({ x: 1500, y: 2425 }, { x: 1300, y: 2402 })).toBe(true);
+    expect(los({ x: 1497, y: 2520 }, { x: 1300, y: 2520 })).toBe(false);
+    // the River Road crosses the grove at y 2000; the E3 gate at y 1805
+    expect(los({ x: 1497, y: 2000 }, { x: 1300, y: 2000 })).toBe(true);
+    expect(los({ x: 1497, y: 1805 }, { x: 1300, y: 1805 })).toBe(true);
+    expect(los({ x: 1497, y: 1895 }, { x: 1300, y: 1895 })).toBe(false);
+    // Black's Sally spur ends at the East Grove's river tip (1285, 1670)
+    expect(los({ x: 1290, y: 1640 }, { x: 1285, y: 1740 })).toBe(true);
+  });
+
+  it('a line that only passes across a grove is blocked too', () => {
+    expect(los({ x: 1497, y: 2600 }, { x: 1000, y: 2600 })).toBe(false);
+  });
+
+  it('is always clear on the square map', () => {
+    const flat = buildWorld(content.map);
+    expect(flat.height).toBeNull();
+    expect(lineOfSight(flat.height, flat.terrain, everywhere, 0, 0, 1000, 1000)).toBe(true);
+  });
+
+  it('a Bishop on the verge cannot farm a grove camp in its reach, nor the camp hit it', () => {
+    const m = liveMatch(5, { map: 'long' });
+    const ctx = m.ctx;
+    const bishop = piece(m, 'A', 'bishop');
+    m.step(20);
+    const camp = m.state.units.find((u) => u.kind === 'camp' && u.camp?.slot === 'e1')!;
+    const hits = (): number =>
+      m.events.filter(
+        (e) =>
+          e.type === 'damage' &&
+          ((e.payload.src === bishop.id && e.payload.tgtKind === 'camp') ||
+            (e.payload.tgt === bishop.id && e.payload.srcKind === 'camp')),
+      ).length;
+    // across the grove's edge between the E1 and E2 gates: in reach, but no line of sight
+    const place = (bx: number): void => {
+      bishop.x = bx;
+      bishop.y = 2650;
+      camp.x = 1380;
+      camp.y = 2650;
+    };
+    place(1460);
+    expect(Math.hypot(bishop.x - camp.x, 0)).toBeLessThan(attackRange(ctx, bishop, camp));
+    const before = hits();
+    for (let i = 0; i < 100; i++) {
+      place(1460);
+      m.step(1);
+    }
+    expect(hits()).toBe(before);
+    // the same reach inside the grove: the Bishop shoots
+    for (let i = 0; i < 100; i++) {
+      place(1300);
+      m.step(1);
+    }
+    expect(hits()).toBeGreaterThan(before);
   });
 });
 

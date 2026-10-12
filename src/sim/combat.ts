@@ -9,6 +9,7 @@ import { campDamageMul, checkDamageMul, structureMul, throneDamageMul } from './
 import { addMod, recompute, triggersOf } from './stats';
 import type { Unit } from './types';
 import { clearLine, confine, walkable } from './world/terrain';
+import { lineOfSight, slopeMul } from './world/height';
 
 const HERO_ASSIST_WINDOW = 160;
 export const TPS = 20;
@@ -143,6 +144,7 @@ export function dealDamage(
   } else if (src && structure) raw *= structureMul(ctx, src);
   if (tgt.kind === 'guardian') raw *= throneDamageMul(ctx, tgt);
   raw *= campDamageMul(ctx, src, tgt);
+  if (src) raw *= slopeMul(ctx, src, tgt);
   if (src && src.team !== 'neutral' && ctx.s.check[src.team]) raw *= checkDamageMul(ctx, src.team);
   if (src && src.team !== 'neutral') {
     const td = ctx.s.teamDamage[src.team];
@@ -420,10 +422,14 @@ export function abilityMods(ctx: Ctx, hero: Unit, idx: number): AbilityMods {
 
 const ENEMY_KINDS = new Set(['hero', 'minion', 'camp']);
 
+/** Skill targets around (cx, cy): enemies in `radius` with a line of sight from that point. */
 function enemiesNear(ctx: Ctx, from: Unit, radius: number, cx = from.x, cy = from.y): Unit[] {
   const out: Unit[] = [];
+  const w = ctx.world;
   for (const u of ctx.grid.query(cx, cy, radius)) {
-    if (u.alive && isEnemy(from, u) && ENEMY_KINDS.has(u.kind) && isTargetable(ctx, u)) out.push(u);
+    if (!u.alive || !isEnemy(from, u) || !ENEMY_KINDS.has(u.kind) || !isTargetable(ctx, u))
+      continue;
+    if (lineOfSight(w.height, w.terrain, ctx.open, cx, cy, u.x, u.y)) out.push(u);
   }
   return out;
 }
