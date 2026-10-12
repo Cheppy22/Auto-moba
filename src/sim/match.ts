@@ -1,7 +1,7 @@
 import { stepUnits } from './behavior';
 import { resolveCollisions } from './collision';
 import { applyCommand } from './commands';
-import type { Content } from './content/loader';
+import { contentFor, type Content } from './content/loader';
 import type { LaneId } from './content/schema';
 import { inCombat, TPS } from './combat';
 import type { Ctx } from './ctx';
@@ -39,6 +39,7 @@ import {
 import { tickCampRespawns } from './camps';
 import { makeGuardian, makeTower } from './units';
 import { LANES, buildWorld } from './world/map';
+import { highGroundEdge } from './world/height';
 import type {
   Command,
   CommandResult,
@@ -168,7 +169,7 @@ function buildCtx(
     open: new Set(state.slots.filter((x) => x.open).map((x) => x.id)),
     rec,
     idx: new Map(),
-    grid: new Grid<Unit>(content.map.size, 100),
+    grid: new Grid<Unit>(world.width, world.length, 100),
     towers: {
       A: { top: [], mid: [], bot: [] },
       B: { top: [], mid: [], bot: [] },
@@ -263,11 +264,15 @@ function stepTick(ctx: Ctx): void {
 
 export class Match {
   readonly ctx: Ctx;
+  /** The content this match plays with: the loaded content, or its Long Board variant. */
+  readonly content: Content;
   private ops: ReplayOp[] = [];
   private constructor(
-    readonly content: Content,
+    loaded: Content,
     readonly config: MatchConfig,
   ) {
+    const content = contentFor(loaded, config.map);
+    this.content = content;
     this.ctx = buildCtx(
       content,
       initialState(content, config),
@@ -422,6 +427,7 @@ export class Match {
         target: u.targetId,
         inCombat: inCombat(s.tick, u),
         ...(h ? { inDuel: inDuel(this.ctx, u), laneNow: laneNow(this.ctx, u) } : {}),
+        ...(highGroundEdge(this.ctx, u) ? { highGround: true as const } : {}),
         flash: u.atkCd >= Math.max(1, Math.round(TPS / Math.max(0.2, u.stats.atkSpeed))) - 2,
       });
     }

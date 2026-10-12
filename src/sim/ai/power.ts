@@ -1,6 +1,7 @@
 import { dist } from '../core/math';
 import { isEnemy, type Ctx } from '../ctx';
 import type { PlayTeam, Unit } from '../types';
+import { tierAt } from '../world/height';
 
 export function unitDps(u: Unit): number {
   const atk = u.stats.bladeDmg * u.stats.atkSpeed;
@@ -41,15 +42,23 @@ export function matchupAt(
   let allyHeroes = 0;
   let enemyHeroes = 0;
   const near = ctx.grid.query(x, y, Math.max(ai.allyRadius, ai.fightRadius));
+  // Long Board: units standing above the fight centre's tier fight with the high ground
+  const hm = ctx.world.height;
+  const centre = tierAt(hm, x, y);
+  const upMul = 1 + ctx.t.height.oddsBonus;
   for (const u of near) {
     if (!u.alive) continue;
     const w = WEIGHT[u.kind] ?? 0;
     if (w === 0) continue;
     const d = dist(x, y, u.x, u.y);
+    const up =
+      hm && u.kind !== 'tower' && u.kind !== 'guardian' && tierAt(hm, u.x, u.y) > centre
+        ? upMul
+        : 1;
     if (u.team === team) {
       if (d > ai.allyRadius) continue;
       aEhp += unitEhp(u) * w;
-      aDps += unitDps(u) * (u.kind === 'tower' ? 0.8 : 1) * (u.kind === 'minion' ? 0.5 : 1);
+      aDps += unitDps(u) * (u.kind === 'tower' ? 0.8 : 1) * (u.kind === 'minion' ? 0.5 : 1) * up;
       if (u.kind === 'hero') allyHeroes++;
     } else if (u.team !== 'neutral' && (!self || isEnemy(self, u))) {
       if (d > ai.fightRadius) continue;
@@ -59,7 +68,7 @@ export function matchupAt(
       const busy = (u.kind === 'tower' || u.kind === 'guardian') && shootsPawns(ctx, u);
       const bw = busy ? ctx.t.judgement.busyStructure : 1;
       eEhp += unitEhp(u) * w * bw;
-      eDps += unitDps(u) * (u.kind === 'minion' ? 0.5 : 1) * bw;
+      eDps += unitDps(u) * (u.kind === 'minion' ? 0.5 : 1) * bw * up;
       if (u.kind === 'hero') enemyHeroes++;
     }
   }

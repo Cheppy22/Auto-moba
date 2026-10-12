@@ -915,6 +915,8 @@ export interface MatchConfig {
    * player when `pauseForBreak` is set, else by the AI rule. `manual` falls back to `ai` without a sheet.
    */
   relics?: { A?: RelicMode; B?: RelicMode };
+  /** `long`: play on the Long Board (`content/map-long.json`, its own tuning). Default: the square map. */
+  map?: 'default' | 'long';
 }
 
 export interface Replay {
@@ -973,6 +975,11 @@ export interface SnapUnit {
   inDuel?: boolean;
   /** Pieces only: the lane the piece is in or heading to, the jungle, or its base (home or recalling). */
   laneNow?: LaneNow;
+  /**
+   * Pieces on the Long Board only, display only: its current target stands on a lower tier, so
+   * Reach or Sight gives it the edge (the view's eye icon). Absent otherwise.
+   */
+  highGround?: true;
 }
 
 export interface Snapshot {

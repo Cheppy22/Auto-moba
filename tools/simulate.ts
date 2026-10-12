@@ -69,6 +69,8 @@ export interface SimOptions {
   setup?: { A?: TeamSetup; B?: TeamSetup };
   /** Who drafts each side's relics at the Act breaks (default: both by the AI rule). */
   relics?: { A?: RelicMode; B?: RelicMode };
+  /** `long`: play on the Long Board. */
+  map?: 'long';
   /** Force archetypes at Rank 4 (per team and piece). */
   forceStyles?: { A?: Partial<Record<PieceId, string>>; B?: Partial<Record<PieceId, string>> };
 }
@@ -81,6 +83,7 @@ export function simulateMatch(content: Content, seed: number, opts: SimOptions =
     setup: opts.setup,
     forceStyles: opts.forceStyles,
     relics: opts.relics,
+    map: opts.map,
     autoGambits: { A: !opts.noGambitsA, B: !opts.noGambitsB },
     // The baseline removes Tempo spending only; forks still pick at once as the AI does.
     autoForks: { A: true, B: true },

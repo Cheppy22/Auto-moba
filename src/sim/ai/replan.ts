@@ -3,8 +3,7 @@ import type { Ctx } from '../ctx';
 import type { ActPieceStat, ActReport, LaneId, PlayTeam } from '../types';
 import { other } from '../types';
 import { swapLanes } from './swap';
-
-const LANE_ORDER: LaneId[] = ['top', 'mid', 'bot'];
+import { seatLanes } from '../world/map';
 
 /** How a team did in a lane this Act: piece trades, pawnling trades and Bastions won or lost. */
 export function laneResult(report: ActReport, team: PlayTeam, lane: LaneId): number {
@@ -32,9 +31,9 @@ export function replanLanes(ctx: Ctx, team: PlayTeam, report: ActReport): void {
     .filter((p) => p.deaths >= cfg.minDeaths)
     .sort((a, b) => b.deaths - a.deaths || a.damage - b.damage || a.id - b.id)[0];
   if (!losing) return;
-  const target = LANE_ORDER.filter((l) => l !== losing.lane).sort(
-    (a, b) => laneResult(report, team, b) - laneResult(report, team, a),
-  )[0];
+  const target = seatLanes(ctx.world, team)
+    .filter((l) => l !== losing.lane)
+    .sort((a, b) => laneResult(report, team, b) - laneResult(report, team, a))[0];
   const partner = pieces
     .filter((p: ActPieceStat) => p.lane === target)
     .sort((a, b) => a.deaths - b.deaths || b.damage - a.damage || a.id - b.id)[0];

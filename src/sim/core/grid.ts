@@ -6,32 +6,35 @@ interface Positioned {
 export class Grid<T extends Positioned> {
   private cells: T[][];
   private readonly cols: number;
+  private readonly rows: number;
   constructor(
-    private readonly size: number,
+    width: number,
+    length: number,
     private readonly cell: number,
   ) {
-    this.cols = Math.ceil(size / cell);
-    this.cells = Array.from({ length: this.cols * this.cols }, () => []);
+    this.cols = Math.ceil(width / cell);
+    this.rows = Math.ceil(length / cell);
+    this.cells = Array.from({ length: this.cols * this.rows }, () => []);
   }
 
   clear(): void {
     for (const c of this.cells) c.length = 0;
   }
 
-  private idx(v: number): number {
+  private idx(v: number, n: number): number {
     const i = Math.floor(v / this.cell);
-    return i < 0 ? 0 : i >= this.cols ? this.cols - 1 : i;
+    return i < 0 ? 0 : i >= n ? n - 1 : i;
   }
 
   insert(item: T): void {
-    this.cells[this.idx(item.y) * this.cols + this.idx(item.x)].push(item);
+    this.cells[this.idx(item.y, this.rows) * this.cols + this.idx(item.x, this.cols)].push(item);
   }
 
   query(x: number, y: number, radius: number, out: T[] = []): T[] {
-    const x0 = this.idx(x - radius);
-    const x1 = this.idx(x + radius);
-    const y0 = this.idx(y - radius);
-    const y1 = this.idx(y + radius);
+    const x0 = this.idx(x - radius, this.cols);
+    const x1 = this.idx(x + radius, this.cols);
+    const y0 = this.idx(y - radius, this.rows);
+    const y1 = this.idx(y + radius, this.rows);
     const r2 = radius * radius;
     for (let cy = y0; cy <= y1; cy++) {
       for (let cx = x0; cx <= x1; cx++) {

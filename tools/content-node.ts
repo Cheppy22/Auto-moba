@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { loadContent, type Content, type RawContentFiles } from '../src/sim';
+import { deepMerge, loadContent, type Content, type RawContentFiles } from '../src/sim';
 
 const root =
   process.env.CONTENT_DIR ?? join(dirname(fileURLToPath(import.meta.url)), '..', 'content');
@@ -12,15 +12,6 @@ const readDir = (dir: string): unknown[] =>
     .filter((f) => f.endsWith('.json'))
     .sort()
     .map((f) => readJson(join(root, dir, f)));
-
-function deepMerge(base: unknown, patch: unknown): unknown {
-  if (typeof base !== 'object' || base === null || typeof patch !== 'object' || patch === null)
-    return patch;
-  const out: Record<string, unknown> = { ...(base as Record<string, unknown>) };
-  for (const [k, v] of Object.entries(patch as Record<string, unknown>))
-    out[k] = deepMerge(out[k], v);
-  return out;
-}
 
 // BALANCE_TUNING deep-merges a JSON patch into tuning.json; BALANCE_PATCH shallow-merges a patch per
 // piece id (e.g. {"knight":{"stats":{...}}}); BALANCE_SCALE scales a piece's health, Blade damage and
@@ -80,6 +71,7 @@ export function readRawContent(): RawContentFiles {
     pressure: readJson(join(root, 'pressure.json')),
     badges: readJson(join(root, 'badges.json')),
     map: readJson(join(root, 'map.json')),
+    mapLong: readJson(join(root, 'map-long.json')),
     tuning: readJson(join(root, 'tuning.json')),
   });
 }

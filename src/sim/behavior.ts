@@ -14,6 +14,7 @@ import {
 import { retreatLanePath } from './ai/strategic';
 import { isWary } from './ai/swap';
 import { findPath } from './world/map';
+import { attackRange, sightRadius, tierAt } from './world/height';
 import { clearLine, confine, walkable } from './world/terrain';
 import { pieceDef } from './pieces';
 import { tickRecall } from './recall';
@@ -143,8 +144,9 @@ function followPath(ctx: Ctx, u: Unit): boolean {
   return true;
 }
 
-function inAttackRange(u: Unit, t: Unit): boolean {
-  return dist(u.x, u.y, t.x, t.y) <= u.stats.range + reachPad(t);
+/** In reach of `t`; on the Long Board shooting down a tier reaches farther (Reach). */
+function inAttackRange(ctx: Ctx, u: Unit, t: Unit): boolean {
+  return dist(u.x, u.y, t.x, t.y) <= attackRange(ctx, u, t) + reachPad(t);
 }
 
 function tryAttack(ctx: Ctx, u: Unit, t: Unit): void {
@@ -263,14 +265,14 @@ function heroBehavior(ctx: Ctx, u: Unit): void {
   const retreating = h.goal?.kind === 'retreat' && hpPct(u) < retreatLine(ctx, u);
   if (h.engage === 'flee' || retreating) {
     const t = validTarget(ctx, u);
-    if (t && inAttackRange(u, t) && u.atkCd <= 0 && (t.kind === 'hero' || retreating))
+    if (t && inAttackRange(ctx, u, t) && u.atkCd <= 0 && (t.kind === 'hero' || retreating))
       tryAttack(ctx, u, t);
     followPath(ctx, u);
     return;
   }
 
   let t = validTarget(ctx, u);
-  if (t && !inAttackRange(u, t) && diveBlocked(ctx, u, t)) {
+  if (t && !inAttackRange(ctx, u, t) && diveBlocked(ctx, u, t)) {
     u.targetId = null;
     t = null;
   }
@@ -287,11 +289,16 @@ function heroBehavior(ctx: Ctx, u: Unit): void {
     const goalPush = h.goal?.kind === 'pushTower' || h.goal?.kind === 'defendTower';
     const inDanger = underEnemyTower(ctx, team, u.x, u.y) && hpPct(u) >= ctx.t.judgement.diveHp;
     const radius = Math.max(ctx.t.ai.aggroRadius, u.stats.range + 20);
+    // Sight (Long Board): looking down a tier spots targets farther, looking up only close by
+    const hm = ctx.world.height;
+    const myTier = tierAt(hm, u.x, u.y);
+    const scan = hm ? Math.max(radius, sightRadius(ctx, u, 1, 0, radius)) : radius;
     let best: Unit | null = null;
     let bestScore = Infinity;
-    for (const e of ctx.grid.query(u.x, u.y, radius)) {
+    for (const e of ctx.grid.query(u.x, u.y, scan)) {
       if (!e.alive || e.pendingKill || !isEnemy(u, e) || !isTargetable(ctx, e)) continue;
       const d = dist(u.x, u.y, e.x, e.y);
+      if (hm && d > sightRadius(ctx, u, myTier, tierAt(hm, e.x, e.y), radius)) continue;
       const inRange = d <= u.stats.range + 4;
       if (e.kind === 'hero' && h.engage === 'hold' && !inRange) continue;
       if (!inRange && !goalPush && !inDanger && underEnemyTower(ctx, team, e.x, e.y)) continue;
@@ -313,7 +320,7 @@ function heroBehavior(ctx: Ctx, u: Unit): void {
   }
 
   if (t) {
-    if (inAttackRange(u, t)) {
+    if (inAttackRange(ctx, u, t)) {
       h.distance += strike(ctx, u, t);
       return;
     }
@@ -339,7 +346,7 @@ function minionBehavior(ctx: Ctx, u: Unit): void {
     u.targetId = t ? t.id : null;
   }
   if (t) {
-    if (inAttackRange(u, t)) strike(ctx, u, t);
+    if (inAttackRange(ctx, u, t)) strike(ctx, u, t);
     else closeIn(ctx, u, t);
     return;
   }
@@ -363,7 +370,7 @@ function eventUnitBehavior(ctx: Ctx, u: Unit): void {
       t = nearestEnemy(ctx, u, u.stats.range + 40);
       u.targetId = t ? t.id : null;
     }
-    if (t && inAttackRange(u, t)) {
+    if (t && inAttackRange(ctx, u, t)) {
       tryAttack(ctx, u, t);
       return;
     }
@@ -383,7 +390,7 @@ function eventUnitBehavior(ctx: Ctx, u: Unit): void {
     u.targetId = t ? t.id : null;
   }
   if (t) {
-    if (inAttackRange(u, t)) strike(ctx, u, t);
+    if (inAttackRange(ctx, u, t)) strike(ctx, u, t);
     else closeIn(ctx, u, t);
     return;
   }
@@ -403,7 +410,7 @@ function campBehavior(ctx: Ctx, u: Unit): void {
     u.targetId = t ? t.id : null;
   }
   if (t) {
-    if (inAttackRange(u, t)) strike(ctx, u, t);
+    if (inAttackRange(ctx, u, t)) strike(ctx, u, t);
     else closeIn(ctx, u, t);
     return;
   }
@@ -425,7 +432,7 @@ function staticBehavior(ctx: Ctx, u: Unit): void {
     );
     u.targetId = t ? t.id : null;
   }
-  if (t && inAttackRange(u, t)) tryAttack(ctx, u, t);
+  if (t && inAttackRange(ctx, u, t)) tryAttack(ctx, u, t);
 }
 
 function guardianBehavior(ctx: Ctx, u: Unit): void {
@@ -461,7 +468,7 @@ export function stepUnits(ctx: Ctx): void {
       if (by) {
         if (u.hero) u.hero.recall = null;
         u.targetId = by.id;
-        if (inAttackRange(u, by)) strike(ctx, u, by);
+        if (inAttackRange(ctx, u, by)) strike(ctx, u, by);
         else closeIn(ctx, u, by);
         continue;
       }

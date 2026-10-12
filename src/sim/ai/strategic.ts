@@ -2,7 +2,7 @@ import { dist } from '../core/math';
 import { hpPct, isTargetable, type Ctx } from '../ctx';
 import type { LaneId } from '../content/schema';
 import { startRecall } from '../recall';
-import { findPath, LANES, laneDist, nearestBy } from '../world/map';
+import { findPath, LANES, laneDist, nearestBy, seatLanes } from '../world/map';
 import type { Goal, GoalKind, PlayTeam, Unit } from '../types';
 import { other } from '../types';
 import { closestLane, enemyTowerTarget, lanePath, pointAtProgress, progressAt } from './lanes';
@@ -143,7 +143,7 @@ function teamPlan(ctx: Ctx, team: PlayTeam): { siege: boolean; lane: LaneId } {
   };
   let bestLane: LaneId = plan.lane;
   let bestScore = Infinity;
-  for (const lane of LANES) {
+  for (const lane of seatLanes(ctx.world, team)) {
     const score = laneScore(lane);
     if (score < bestScore) {
       bestScore = score;
@@ -192,11 +192,37 @@ function setGoal(ctx: Ctx, u: Unit, g: Goal): void {
     const approach = lanePath(ctx, u, lane, fb.x, fb.y, ctx.t.ai.laneHugRadius, route);
     if (approach) lp = [...approach, [g.x, g.y]];
   } else {
-    const laneGoal = g.kind === 'pushTower' || g.kind === 'farmLane' ? laneOfGoal(ctx, g) : null;
+    const laneGoal =
+      g.kind === 'pushTower' || g.kind === 'farmLane'
+        ? laneOfGoal(ctx, u.team as PlayTeam, g)
+        : null;
     if (laneGoal) lp = lanePath(ctx, u, laneGoal, g.x, g.y, ctx.t.ai.laneHugRadius, route);
   }
   u.path = lp ?? route(g.x, g.y);
   u.pathI = 0;
+}
+
+/**
+ * Long Board: a defending piece (defend posture, or its lane's outer Bastion is down) with an
+ * enemy piece near its farm point stops just above the ramp top when the wave stands at the foot
+ * of that ramp (within `height.holdWindow`), instead of walking down to meet it. Flat maps: the
+ * progress is returned unchanged.
+ */
+function holdTheTop(ctx: Ctx, u: Unit, lane: LaneId, prog: number): number {
+  const team = u.team as PlayTeam;
+  const tops = ctx.world.rampTops[team][lane];
+  if (tops.length === 0) return prog;
+  const outer = ctx.towers[team][lane][0];
+  if (u.hero!.posture !== 'defend' && outer?.alive) return prog;
+  const fp = pointAtProgress(ctx, team, lane, prog);
+  if (threatNear(ctx, team, fp.x, fp.y, ctx.t.ai.fightRadius * 2, false) === 0) return prog;
+  const len = ctx.world.lanes[lane].length;
+  const { holdOffset, holdWindow } = ctx.t.height;
+  // only a wave at the foot of the ramp: a fight further down is not given up for the ramp
+  let hold = prog;
+  for (const top of tops)
+    if (top < prog && (prog - top) * len <= holdWindow) hold = top - holdOffset / len;
+  return hold;
 }
 
 /** Retreat home down the lane the hero is standing on instead of cutting across the middle. */
@@ -211,8 +237,8 @@ export function retreatLanePath(
   return lanePath(ctx, u, lane, x, y, ctx.t.ai.laneHugRadius, () => []);
 }
 
-function laneOfGoal(ctx: Ctx, g: Goal): LaneId | null {
-  const lane = nearestBy(LANES, (l) => laneDist(ctx.world.lanes[l], g.x, g.y));
+function laneOfGoal(ctx: Ctx, team: PlayTeam, g: Goal): LaneId | null {
+  const lane = nearestBy(seatLanes(ctx.world, team), (l) => laneDist(ctx.world.lanes[l], g.x, g.y));
   return lane && laneDist(ctx.world.lanes[lane], g.x, g.y) <= ctx.t.ai.laneHugRadius ? lane : null;
 }
 
@@ -274,13 +300,13 @@ export function strategicUpdate(ctx: Ctx, u: Unit): void {
     const laneHero = h.lane !== null;
     const prog = ctx.front[team][lane];
     const foeTower = enemyTowerTarget(ctx, team, lane);
-    const tf = ctx.world.map.towerFractions;
+    const tf = ctx.world.towerFrac[lane];
     let farmProg = prog - 0.02;
     if (foeTower) {
       const tp = progressAt(ctx, team, lane, foeTower.x, foeTower.y);
       farmProg = Math.min(farmProg, tp - 0.085);
     }
-    farmProg = Math.max(farmProg, tf.inner);
+    farmProg = holdTheTop(ctx, u, lane, Math.max(farmProg, tf.inner));
     const fp = pointAtProgress(ctx, team, lane, farmProg);
     cands.push(
       cand(

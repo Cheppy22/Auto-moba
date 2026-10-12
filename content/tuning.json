@@ -377,6 +377,15 @@
     "chaseHurtHp": 0.35,
     "chaseHurt": 1.8
   },
+  "height": {
+    "reachMul": 1.15,
+    "reachMinRange": 60,
+    "sightMul": 1.25,
+    "sightUpPad": 20,
+    "oddsBonus": 0.1,
+    "holdOffset": 60,
+    "holdWindow": 300
+  },
   "ai": {
     "aggroRadius": 150,
     "fightRadius": 280,

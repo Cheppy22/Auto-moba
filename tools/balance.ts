@@ -40,6 +40,10 @@ const poolIdx = process.argv.indexOf('--relic-pool');
 const relicPool = poolIdx >= 0 ? process.argv[poolIdx + 1] : '';
 if (relicPool) process.env.BALANCE_RELIC_POOL = relicPool;
 
+// --map long: play every match on the Long Board (output files get a -long suffix).
+const mapIdx = process.argv.indexOf('--map');
+const map = mapIdx >= 0 && process.argv[mapIdx + 1] === 'long' ? ('long' as const) : undefined;
+
 async function main(): Promise<void> {
   const seeds = Array.from({ length: total }, (_, i) => startSeed + i);
   const results: MatchSummary[] = [];
@@ -55,7 +59,7 @@ async function main(): Promise<void> {
             '--import',
             'tsx',
             workerPath,
-            JSON.stringify({ seeds: mine, noGambitsA, noGambitsB, relics }),
+            JSON.stringify({ seeds: mine, noGambitsA, noGambitsB, relics, map }),
           ],
           {
             stdio: ['ignore', 'pipe', 'inherit'],
@@ -89,9 +93,10 @@ async function main(): Promise<void> {
   const withRelics = relicsSpec
     ? `${withPool}-relics-${relicsSpec.replace(/[^A-Za-z]/g, '')}`
     : withPool;
+  const withMap = map ? `${withRelics}-long` : withRelics;
   // --tag NAME: appended to the output file name, so parallel runs do not overwrite each other.
   const tagIdx = process.argv.indexOf('--tag');
-  const name = tagIdx >= 0 ? `${withRelics}-${process.argv[tagIdx + 1]}` : withRelics;
+  const name = tagIdx >= 0 ? `${withMap}-${process.argv[tagIdx + 1]}` : withMap;
   writeFileSync(new URL(`${name}.json`, dir), JSON.stringify({ stats, results }, null, 1));
   writeFileSync(new URL(`${name}.md`, dir), md);
   process.stdout.write(md);

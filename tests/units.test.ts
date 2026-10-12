@@ -19,7 +19,7 @@ describe('rng', () => {
 
 describe('grid', () => {
   it('returns only items inside the radius', () => {
-    const g = new Grid<{ x: number; y: number }>(1000, 100);
+    const g = new Grid<{ x: number; y: number }>(1000, 1000, 100);
     g.insert({ x: 10, y: 10 });
     g.insert({ x: 500, y: 500 });
     expect(g.query(0, 0, 50)).toHaveLength(1);

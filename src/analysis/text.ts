@@ -45,6 +45,20 @@ const SLOT_NAMES: Record<string, string> = {
   ob_top_n: 'the upper Left lane',
   ob_bot_s: 'the lower Right lane',
   ob_bot_e: 'the upper Right lane',
+  // the Long Board (?map=long)
+  w1: "the West Grove's far end",
+  w2: 'the middle of the West Grove',
+  w3: "the West Grove's river tip",
+  e1: "the East Grove's near end",
+  e2: 'the middle of the East Grove',
+  e3: "the East Grove's river tip",
+  pit: 'the Pit',
+  pit_w: 'the Pit',
+  pit_e: 'the Pit',
+  ford_l: 'the Left ford',
+  ford_r: 'the Right ford',
+  way_w: "White's Sally Path",
+  way_b: "Black's Sally Path",
 };
 
 /** Slot or obelisk-node id -> a readable place name. */

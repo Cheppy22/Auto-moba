@@ -46,8 +46,10 @@ function spawnSpot(ctx: Ctx, slot: SlotState, spot: number): void {
   const pos = biome.camps[spot];
   const sdef = ctx.world.map.slots.find((s) => s.id === slot.id)!;
   if (!type || !pos) return;
-  const hx = sdef.x + (slot.mirrored ? pos.dy : pos.dx);
-  const hy = sdef.y + (slot.mirrored ? pos.dx : pos.dy);
+  // the twin of a pair is the first slot mirrored across y = x, or turned 180° on the Long Board
+  const turned = ctx.world.rotated;
+  const hx = sdef.x + (slot.mirrored ? (turned ? -pos.dx : pos.dy) : pos.dx);
+  const hy = sdef.y + (slot.mirrored ? (turned ? -pos.dy : pos.dx) : pos.dy);
   const ids: number[] = [];
   for (let i = 0; i < type.count; i++) {
     const ox = type.count > 1 ? (i - (type.count - 1) / 2) * 26 : 0;

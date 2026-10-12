@@ -9,7 +9,7 @@ import { dropBoundCards } from './gambits';
 import { pawnCap } from './pawns';
 import { assignJunglers } from './setup';
 import { batteryLane, formationTarget, laneCounts, param } from './relics';
-import { LANES } from './world/map';
+import { LANES, seatLanes } from './world/map';
 import type {
   ActReport,
   CommandResult,
@@ -68,13 +68,16 @@ function computeBehind(ctx: Ctx, report: ActReport): Record<PlayTeam, boolean> {
   return out;
 }
 
-function sortedLanes(report: ActReport, team: PlayTeam): LaneId[] {
-  return [...LANES].sort((a, b) => laneResult(report, team, b) - laneResult(report, team, a));
+function sortedLanes(ctx: Ctx, report: ActReport, team: PlayTeam): LaneId[] {
+  return [...seatLanes(ctx.world, team)].sort(
+    (a, b) => laneResult(report, team, b) - laneResult(report, team, a),
+  );
 }
 
-const bestLane = (report: ActReport, team: PlayTeam): LaneId => sortedLanes(report, team)[0];
-const worstLane = (report: ActReport, team: PlayTeam): LaneId =>
-  sortedLanes(report, team)[LANES.length - 1];
+const bestLane = (ctx: Ctx, report: ActReport, team: PlayTeam): LaneId =>
+  sortedLanes(ctx, report, team)[0];
+const worstLane = (ctx: Ctx, report: ActReport, team: PlayTeam): LaneId =>
+  sortedLanes(ctx, report, team)[LANES.length - 1];
 
 /** The piece that dealt the most damage this Act (ties by lower id). */
 function carryPiece(report: ActReport, team: PlayTeam): number {
@@ -172,7 +175,7 @@ export function aimFor(
       return NO_AIM;
     case 'lane': {
       const defensive = def.aim === 'defense';
-      const rule = defensive ? worstLane(report, team) : bestLane(report, team);
+      const rule = defensive ? worstLane(ctx, report, team) : bestLane(ctx, report, team);
       return { ...NO_AIM, lane: (hintFits(hint, defensive) ? hint.lane : null) ?? rule };
     }
     case 'piece': {
@@ -183,7 +186,7 @@ export function aimFor(
     case 'laneCard': {
       const card = keepCard ?? chooseCard(ctx, team, def);
       const defensive = ctx.c.gambitById.get(card)?.school === 'fortress';
-      const rule = defensive ? worstLane(report, team) : bestLane(report, team);
+      const rule = defensive ? worstLane(ctx, report, team) : bestLane(ctx, report, team);
       return { ...NO_AIM, card, lane: (hintFits(hint, defensive) ? hint.lane : null) ?? rule };
     }
     case 'sealed':
@@ -246,7 +249,7 @@ function quotaFor(
   report: ActReport,
 ): { quota: PawnQuota; reserve: number } {
   const total = Math.min(pawnCap(ctx, team, ctx.s.phase.n + 1), param({ def }, 'total', 6));
-  const [first, second, third] = sortedLanes(report, team);
+  const [first, second, third] = sortedLanes(ctx, report, team);
   const a = Math.ceil(total / 2);
   const b = Math.ceil((total - a) / 2);
   const quota = { top: 0, mid: 0, bot: 0 } as PawnQuota;
