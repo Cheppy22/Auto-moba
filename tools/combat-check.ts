@@ -1,5 +1,6 @@
 // Combat legibility, AI judgement and stuck check over many AI-vs-AI matches.
-// `npm run combat-check -- --matches 200 --seed 29000` prints one JSON line with:
+// `npm run combat-check -- --matches 200 --seed 29000` (add `--map long` for the Long Board)
+// prints one JSON line with:
 // - stuckUnits: units (pieces, pawns, pawnlings) that wanted to move but stood still for more than
 //   `--stuck-sec` (10) seconds, outside combat and away from their base; plus the worst run.
 // - spacing: in-combat units with a same-team body touching theirs (blob share), mean gap to the
@@ -24,10 +25,14 @@ const content = loadNodeContent();
 const TPS = 20;
 // --max-min M: stop each match after M minutes of play (a quick probe of the early game).
 const maxTicks = arg('max-min', 40) * 60 * TPS;
+// --map long: play on the Long Board.
+const mapIdx = process.argv.indexOf('--map');
+const map = mapIdx >= 0 && process.argv[mapIdx + 1] === 'long' ? ('long' as const) : undefined;
 // --low-hp F: health share counted as low for the tower-range fighting count (default 0.15).
 const lowHp = arg('low-hp', 0.15);
 
 const out = {
+  map: map ?? 'default',
   matches,
   seed: seed0,
   stuckUnits: 0,
@@ -74,7 +79,7 @@ const lengths: number[] = [];
 let blob = 0;
 let ownSide = 0;
 for (let k = 0; k < matches; k++) {
-  const m = Match.create(content, { seed: seed0 + k, autoGambits: { A: true, B: true } });
+  const m = Match.create(content, { seed: seed0 + k, autoGambits: { A: true, B: true }, map });
   m.issue({ type: 'setupTeam', ...m.defaultSetup() });
   const ctx = m.ctx;
   const still = new Map<number, number>();

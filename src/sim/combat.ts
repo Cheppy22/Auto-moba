@@ -248,9 +248,9 @@ function moveDash(
   if (e.toward === 'target')
     move = Math.max(0, Math.min(e.distance, d - Math.max(8, caster.atkRange * 0.6)));
   const sign = e.toward === 'target' ? 1 : -1;
-  const size = ctx.world.map.size;
-  const ex = clamp(caster.x + (dx / d) * move * sign, 0, size);
-  const ey = clamp(caster.y + (dy / d) * move * sign, 0, size);
+  const { width, length } = ctx.world;
+  const ex = clamp(caster.x + (dx / d) * move * sign, 0, width);
+  const ey = clamp(caster.y + (dy / d) * move * sign, 0, length);
   const terrain = ctx.world.terrain;
   const sx = caster.x;
   const sy = caster.y;

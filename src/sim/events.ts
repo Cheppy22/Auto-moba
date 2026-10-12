@@ -61,7 +61,13 @@ function beginWarning(ctx: Ctx, def: EventDef): void {
   let route: [number, number][] = [];
   let lane: LaneId | null = null;
   let target: PlayTeam | null = null;
-  if (def.kind === 'well' || def.kind === 'oni') {
+  const site = ctx.world.map.neutralSite;
+  if ((def.kind === 'well' || def.kind === 'oni') && def.siteMode === 'neutral' && site) {
+    // the Long Board's only self-twin site (the Pit)
+    slotId = site.id;
+    x = site.x;
+    y = site.y;
+  } else if (def.kind === 'well' || def.kind === 'oni') {
     let cands = open.filter((id) => (def.siteMode === 'neutral' ? onAxis(ctx, id) : true));
     const free = cands.filter((id) => !busy.has(id));
     if (free.length) cands = free;

@@ -1,7 +1,8 @@
 import { dist, sqrt } from '../core/math';
 import type { LaneId, MapDef } from '../content/schema';
 import type { PlayTeam } from '../types';
-import { buildTerrain, segmentBlocked, type Terrain } from './terrain';
+import { buildTerrain, clearLine, rampCuts, segmentBlocked, type Terrain } from './terrain';
+import { buildHeight, type Height } from './height';
 import { PLAY_TEAMS } from '../names';
 
 export interface Pt {
@@ -27,6 +28,17 @@ export interface World {
   map: MapDef;
   /** Map size over 1000, the size the AI's hard-coded distances were tuned on. */
   k: number;
+  /** Board width (x) and length (y). */
+  width: number;
+  length: number;
+  /** Fairness is a 180° turn (the Long Board): Black's own Left is the `bot` lane. */
+  rotated: boolean;
+  /** Lane progress (from White's base) of each lane's outer and inner Bastion. */
+  towerFrac: Record<LaneId, { outer: number; inner: number }>;
+  /** Terrace heights; null on a flat map. */
+  height: Height | null;
+  /** Own-seat progress of the top of each ramp in a team's own half, per lane (terraced maps). */
+  rampTops: Record<PlayTeam, Record<LaneId, number[]>>;
   lanes: Record<LaneId, LaneGeo>;
   nodes: NavNode[];
   slotNode: Record<string, number>;
@@ -41,6 +53,16 @@ export interface World {
 }
 
 export const LANES: LaneId[] = ['top', 'mid', 'bot'];
+const LANES_TURNED: LaneId[] = ['bot', 'mid', 'top'];
+
+/**
+ * The lanes in a team's own seat order (its Left, Mid, Right), for loops whose ties pick the
+ * first lane. Under the Long Board's 180° turn Black's Left is `bot`; on the mirrored map every
+ * team uses `LANES`.
+ */
+export function seatLanes(world: World, team: PlayTeam): readonly LaneId[] {
+  return world.rotated && team === 'B' ? LANES_TURNED : LANES;
+}
 
 function buildLane(id: LaneId, pts: [number, number][]): LaneGeo {
   const cum = [0];
@@ -158,15 +180,24 @@ export function buildWorld(map: MapDef): World {
     nodes[b].edges.push({ to: a, w });
   };
 
+  const k = map.unitScale ?? map.size / 1000;
+  const width = map.size;
+  const length = map.length ?? map.size;
   const portTs: Record<LaneId, number[]> = { top: [], mid: [], bot: [] };
   for (const s of map.slots) for (const p of s.ports) portTs[p.lane].push(p.t);
   for (const s of map.shops) for (const p of s.ports) portTs[p.lane].push(p.t);
+  // Long Board walkways that touch a lane (River Road fords, Sally Path ends) join it at a node.
+  const walkways = map.areas.filter((a) => NAV_AREAS.includes(a.kind));
+  for (const a of walkways)
+    for (const [x, y] of a.pts)
+      for (const id of LANES)
+        if (laneDist(lanes[id], x, y) < 0.5) portTs[id].push(laneT(lanes[id], x, y));
 
   for (const id of LANES) {
     const lane = lanes[id];
     const ts = new Set<number>([0, 1, ...portTs[id]]);
     for (let i = 1; i < lane.pts.length; i++) ts.add(lane.cum[i] / lane.length);
-    const steps = Math.ceil(lane.length / (110 * (map.size / 1000)));
+    const steps = Math.ceil(lane.length / (110 * k));
     for (let i = 1; i < steps; i++) ts.add(i / steps);
     const sorted = [...ts].sort((a, b) => a - b);
     let prev = -1;
@@ -201,16 +232,35 @@ export function buildWorld(map: MapDef): World {
     }
   }
 
+  // Walkway spines (River Road, Sally Paths, groves) as node chains, about 110k apart.
+  for (const a of walkways) {
+    let prev = -1;
+    for (let i = 0; i < a.pts.length; i++) {
+      const [x, y] = a.pts[i];
+      if (i > 0) {
+        const [px, py] = a.pts[i - 1];
+        const steps = Math.ceil(dist(px, py, x, y) / (110 * k));
+        for (let s = 1; s < steps; s++) {
+          const n = addNode(px + ((x - px) * s) / steps, py + ((y - py) * s) / steps, null);
+          link(prev, n);
+          prev = n;
+        }
+      }
+      const n = addNode(x, y, null);
+      if (prev >= 0) link(prev, n);
+      prev = n;
+    }
+  }
+
   const basePos = {
     A: { x: map.bases.A[0], y: map.bases.A[1] },
     B: { x: map.bases.B[0], y: map.bases.B[1] },
   };
-  const centre = map.size / 2;
   const guardianPos = {} as Record<PlayTeam, Pt>;
   for (const t of PLAY_TEAMS) {
     const b = basePos[t];
-    const dx = centre - b.x;
-    const dy = centre - b.y;
+    const dx = width / 2 - b.x;
+    const dy = length / 2 - b.y;
     const len = sqrt(dx * dx + dy * dy) || 1;
     guardianPos[t] = {
       x: b.x + (dx / len) * map.guardianOffset,
@@ -218,11 +268,22 @@ export function buildWorld(map: MapDef): World {
     };
   }
   const towerPos = { A: {}, B: {} } as World['towerPos'];
+  const towerFrac = {} as World['towerFrac'];
   for (const id of LANES) {
     const lane = lanes[id];
-    const { outer, inner } = map.towerFractions;
-    towerPos.A[id] = [lanePoint(lane, outer), lanePoint(lane, inner)];
-    towerPos.B[id] = [lanePoint(lane, 1 - outer), lanePoint(lane, 1 - inner)];
+    const b = map.bastions;
+    if (b) {
+      const pt = ([x, y]: readonly number[]): Pt => ({ x, y });
+      towerPos.A[id] = [pt(b.A[id][0]), pt(b.A[id][1])];
+      towerPos.B[id] = [pt(b.B[id][0]), pt(b.B[id][1])];
+      const [o, i] = towerPos.A[id];
+      towerFrac[id] = { outer: laneT(lane, o.x, o.y), inner: laneT(lane, i.x, i.y) };
+    } else {
+      const { outer, inner } = map.towerFractions;
+      towerPos.A[id] = [lanePoint(lane, outer), lanePoint(lane, inner)];
+      towerPos.B[id] = [lanePoint(lane, 1 - outer), lanePoint(lane, 1 - inner)];
+      towerFrac[id] = { outer, inner };
+    }
   }
   const slotPos: Record<string, Pt> = {};
   for (const s of map.slots) slotPos[s.id] = { x: s.x, y: s.y };
@@ -230,9 +291,17 @@ export function buildWorld(map: MapDef): World {
     A: addNode(basePos.A.x, basePos.A.y, null),
     B: addNode(basePos.B.x, basePos.B.y, null),
   };
+  const terrain = buildTerrain(map);
+  if (walkways.length) linkVisible(nodes, terrain, link);
   return {
     map,
-    k: map.size / 1000,
+    k,
+    width,
+    length,
+    rotated: map.symmetry === 'rotate',
+    towerFrac,
+    height: buildHeight(map, terrain.shapes),
+    rampTops: rampTops(map, lanes),
     lanes,
     nodes,
     slotNode,
@@ -243,8 +312,59 @@ export function buildWorld(map: MapDef): World {
     guardianPos,
     basePos,
     slotPos,
-    terrain: buildTerrain(map),
+    terrain,
   };
+}
+
+/** Area kinds whose spine is part of the nav graph. */
+const NAV_AREAS: readonly string[] = ['road', 'sally', 'grove'];
+/** Long Board nav: nodes this close with a straight walkable line between them are linked. */
+const LINK_RADIUS = 260;
+
+function linkVisible(
+  nodes: NavNode[],
+  terrain: Terrain,
+  link: (a: number, b: number) => void,
+): void {
+  const everywhere = { has: (): boolean => true };
+  for (let a = 0; a < nodes.length; a++) {
+    for (let b = a + 1; b < nodes.length; b++) {
+      const p = nodes[a];
+      const q = nodes[b];
+      if (dist(p.x, p.y, q.x, q.y) > LINK_RADIUS) continue;
+      if (p.edges.some((e) => e.to === b)) continue;
+      if (clearLine(terrain, everywhere, p.x, p.y, q.x, q.y)) link(a, b);
+    }
+  }
+}
+
+/** The top of each ramp in a team's own half, as that team's lane progress (terraced maps). */
+function rampTops(map: MapDef, lanes: Record<LaneId, LaneGeo>): World['rampTops'] {
+  const out: World['rampTops'] = {
+    A: { top: [], mid: [], bot: [] },
+    B: { top: [], mid: [], bot: [] },
+  };
+  const t = map.terraces;
+  if (!t) return out;
+  const mid = (map.length ?? map.size) / 2;
+  const tops = [t.river + t.rampLen, t.home + t.rampLen];
+  for (const id of LANES) {
+    const lane = lanes[id];
+    for (let i = 1; i < lane.pts.length; i++) {
+      const [ax, ay] = lane.pts[i - 1];
+      const [bx, by] = lane.pts[i];
+      for (const f of rampCuts(t, mid, ay, by)) {
+        const y = ay + (by - ay) * f;
+        if (f <= 0 || f >= 1 || !tops.some((e) => Math.abs(Math.abs(y - mid) - e) < 1e-6)) continue;
+        const along = (lane.cum[i - 1] + dist(ax, ay, ax + (bx - ax) * f, y)) / lane.length;
+        if (y > mid) out.A[id].push(along);
+        else out.B[id].push(1 - along);
+      }
+    }
+    out.A[id].sort((a, b) => a - b);
+    out.B[id].sort((a, b) => a - b);
+  }
+  return out;
 }
 
 const START_SLACK = 140;

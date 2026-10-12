@@ -20,7 +20,7 @@ import {
   tempoRate,
 } from './relics';
 import { addMod } from './stats';
-import { LANES, lanePoint } from './world/map';
+import { LANES, lanePoint, seatLanes } from './world/map';
 import { confine, shapeDist, walkable, type WalkShape } from './world/terrain';
 import type { CommandResult, GambitOrder, Modifier, PlayTeam, Unit, ZoneState } from './types';
 import { other } from './types';
@@ -205,6 +205,8 @@ function sacrificePlan(
   return { pawn, tower };
 }
 
+const WALLED: readonly WalkShape['kind'][] = ['lane', 'port', 'road', 'sally'];
+
 /** The wall a Barricade raises: across the gate path or lane corridor nearest to the point. */
 function wallFor(
   ctx: Ctx,
@@ -216,7 +218,8 @@ function wallFor(
   let best: WalkShape | null = null;
   let bestD = Infinity;
   for (const sh of ctx.world.terrain.shapes) {
-    if (sh.kind !== 'lane' && sh.kind !== 'port') continue;
+    // corridors a wall can seal: lanes (and the Long Board's ramps), gates, River Road, Sally Paths
+    if (!WALLED.includes(sh.kind) || (sh.ax === sh.bx && sh.ay === sh.by)) continue;
     if (sh.slot !== null && !ctx.open.has(sh.slot)) continue;
     const d = shapeDist(sh, x, y) + sh.r;
     if (d < bestD) {
@@ -273,10 +276,10 @@ function validTarget(
       return { lane: t.lane };
     }
     case 'point': {
-      const size = ctx.world.map.size;
+      const { width, length } = ctx.world;
       if (t.x === undefined || t.y === undefined || !Number.isFinite(t.x) || !Number.isFinite(t.y))
         return 'pick a point';
-      if (t.x < 0 || t.y < 0 || t.x > size || t.y > size) return 'point is off the map';
+      if (t.x < 0 || t.y < 0 || t.x > width || t.y > length) return 'point is off the map';
       const q = walkable(ctx.world.terrain, ctx.open, t.x, t.y)
         ? { x: t.x, y: t.y }
         : confine(ctx.world.terrain, ctx.open, t.x, t.y);
@@ -772,7 +775,7 @@ function plan(ctx: Ctx, team: PlayTeam, def: GambitDef): Plan | null {
   switch (gambitEffect(def)) {
     case 'advance': {
       let best: Plan | null = null;
-      for (const lane of LANES) {
+      for (const lane of seatLanes(ctx.world, team)) {
         const st = frontStructure(ctx, team, lane);
         if (!st) continue;
         const a = mine.filter((u) => u.hero!.lane === lane && hpPct(u) > 0.5).length;
@@ -785,7 +788,7 @@ function plan(ctx: Ctx, team: PlayTeam, def: GambitDef): Plan | null {
     }
     case 'hold_the_file': {
       let best: Plan | null = null;
-      for (const lane of LANES) {
+      for (const lane of seatLanes(ctx.world, team)) {
         const [o, i] = ctx.towers[team][lane];
         const st = o?.alive ? o : i?.alive ? i : ctx.guardians[team];
         if (!st || !st.alive) continue;
@@ -805,7 +808,7 @@ function plan(ctx: Ctx, team: PlayTeam, def: GambitDef): Plan | null {
       }
       if (deadFoes >= 2 && mine.length >= 4) {
         let st: Unit | null = null;
-        for (const lane of LANES) {
+        for (const lane of seatLanes(ctx.world, team)) {
           const c = frontStructure(ctx, team, lane);
           if (c && (!st || c.kind === 'guardian' || (c.tower && c.tower.index === 1))) st = c;
         }
@@ -824,7 +827,7 @@ function plan(ctx: Ctx, team: PlayTeam, def: GambitDef): Plan | null {
     }
     case 'pawn_storm': {
       let best: Plan | null = null;
-      for (const lane of LANES) {
+      for (const lane of seatLanes(ctx.world, team)) {
         const st = frontStructure(ctx, team, lane);
         if (!st) continue;
         const n = countNear(
@@ -872,7 +875,7 @@ function plan(ctx: Ctx, team: PlayTeam, def: GambitDef): Plan | null {
       const r = teamPiece(ctx, team, 'rook');
       if (!r?.alive || hpPct(r) < 0.45) return null;
       let best: Plan | null = null;
-      for (const lane of LANES) {
+      for (const lane of seatLanes(ctx.world, team)) {
         const st = frontStructure(ctx, team, lane);
         if (!st || !isTargetable(ctx, st)) continue;
         const d = dist(r.x, r.y, st.x, st.y);
@@ -919,7 +922,7 @@ function plan(ctx: Ctx, team: PlayTeam, def: GambitDef): Plan | null {
     }
     case 'pawn_sacrifice': {
       let best: Plan | null = null;
-      for (const lane of LANES) {
+      for (const lane of seatLanes(ctx.world, team)) {
         const sp = sacrificePlan(ctx, team, lane);
         if (typeof sp === 'string') continue;
         const hit = sp.pawn.stats.maxHp * p(def, 'hpMul', 2);
@@ -951,7 +954,7 @@ function plan(ctx: Ctx, team: PlayTeam, def: GambitDef): Plan | null {
     }
     case 'poisoned_pawn': {
       let best: Plan | null = null;
-      for (const lane of LANES) {
+      for (const lane of seatLanes(ctx.world, team)) {
         const pawn = frontPawn(ctx, team, lane);
         if (!pawn) continue;
         const e = countNear(ctx, foe, pawn.x, pawn.y, 400 * ctx.world.k, isPiece);
@@ -964,7 +967,7 @@ function plan(ctx: Ctx, team: PlayTeam, def: GambitDef): Plan | null {
     case 'barricade': {
       const k = ctx.world.k;
       let best: Plan | null = null;
-      for (const lane of LANES) {
+      for (const lane of seatLanes(ctx.world, team)) {
         const [o, i] = ctx.towers[team][lane];
         const st = o?.alive ? o : i?.alive ? i : ctx.guardians[team];
         if (!st || !st.alive) continue;
@@ -994,7 +997,7 @@ function plan(ctx: Ctx, team: PlayTeam, def: GambitDef): Plan | null {
     }
     case 'open_file': {
       let best: Plan | null = null;
-      for (const lane of LANES) {
+      for (const lane of seatLanes(ctx.world, team)) {
         if (!enemyTowerTarget(ctx, team, lane) && !ctx.guardians[foe]?.alive) continue;
         let n = 0;
         for (const u of ctx.s.units) {
@@ -1033,7 +1036,7 @@ function plan(ctx: Ctx, team: PlayTeam, def: GambitDef): Plan | null {
 function pawnLane(ctx: Ctx, team: PlayTeam): LaneId {
   let best: LaneId = 'mid';
   let bestScore = Infinity;
-  for (const lane of LANES) {
+  for (const lane of seatLanes(ctx.world, team)) {
     let n = 0;
     for (const u of ctx.s.units) if (u.alive && u.pawn && u.team === team && u.lane === lane) n++;
     const score = n * 10 + ctx.front[team][lane] - (lane === 'mid' ? 0 : 0.5);

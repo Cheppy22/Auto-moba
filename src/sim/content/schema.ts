@@ -422,12 +422,45 @@ export const BiomeSchema = z.object({
 
 const Pt = z.tuple([z.number(), z.number()]);
 
+const LanePair = z.tuple([Pt, Pt]);
+const BastionSide = z.object({ top: LanePair, mid: LanePair, bot: LanePair });
+
+/** A walkable area of the Long Board: a capsule chain, or a flat-ended box when `box` is set. */
+const AreaSchema = z.object({
+  id: z.string(),
+  kind: z.enum(['grove', 'pit', 'square', 'verge', 'road', 'sally']),
+  pts: z.array(Pt).min(1),
+  r: z.number(),
+  box: z.boolean().default(false),
+});
+
 export const MapSchema = z.object({
+  /** Board width (x). Also its length (y) unless `length` is set. */
   size: z.number(),
+  length: z.number().optional(),
+  /** Map scale over 1000 that the AI's hard-coded distances use; default `size` / 1000. */
+  unitScale: z.number().optional(),
+  /** Fairness: `mirror` across y = x (the square map) or a 180° `rotate` about the centre. */
+  symmetry: z.enum(['mirror', 'rotate']).default('mirror'),
   lanes: z.object({ top: z.array(Pt), mid: z.array(Pt), bot: z.array(Pt) }),
   bases: z.object({ A: Pt, B: Pt }),
   guardianOffset: z.number(),
   towerFractions: z.object({ outer: z.number(), inner: z.number() }),
+  /** Explicit Bastion positions per team and lane, [outer, inner]; overrides `towerFractions`. */
+  bastions: z.object({ A: BastionSide, B: BastionSide }).optional(),
+  /**
+   * Heights (the Long Board): low river, terrace, high home terrace, by distance from the river
+   * line y = length / 2. Lanes narrow to `rampHalf` on the ramps between them.
+   */
+  terraces: z
+    .object({ river: z.number(), rampLen: z.number(), home: z.number(), rampHalf: z.number() })
+    .optional(),
+  /** Extra walkable areas (groves, the Pit, Squares, verges, the River Road, Sally Paths). */
+  areas: z.array(AreaSchema).default([]),
+  /** Jungle clearings and their gates are walkable all match (not only once the slot opens). */
+  openJungle: z.boolean().default(false),
+  /** The site of `siteMode: neutral` events, when no slot sits on the mirror axis. */
+  neutralSite: z.object({ id: z.string(), x: z.number(), y: z.number() }).optional(),
   shops: z.array(
     z.object({
       id: z.string(),
@@ -857,6 +890,21 @@ export const TuningSchema = z.object({
     /** Chase leash multiplier against an enemy piece below `chaseHurtHp` health. */
     chaseHurtHp: z.number(),
     chaseHurt: z.number(),
+  }),
+  /** High-ground rules (maps with `terraces` only). */
+  height: z.object({
+    /** Attack range multiplier when the attacker stands on a higher tier than its target. */
+    reachMul: z.number(),
+    /** Reach applies only to attackers with at least this base range (not structures). */
+    reachMinRange: z.number(),
+    /** Target scan radius multiplier when looking down. */
+    sightMul: z.number(),
+    /** Looking up, a unit only picks targets within its attack range plus this. */
+    sightUpPad: z.number(),
+    /** Fight odds: units above the fight centre's tier count this much more power. */
+    oddsBonus: z.number(),
+    /** A defending piece holds this far above the nearest ramp top of its lane. */
+    holdOffset: z.number(),
   }),
   ai: z.object({
     aggroRadius: z.number(),

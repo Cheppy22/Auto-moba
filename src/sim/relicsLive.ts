@@ -10,7 +10,7 @@ import { addTempo, playSealed, setOrder, syncHands } from './gambits';
 import { fieldPawn, pawnCap, pawnsAlive } from './pawns';
 import { actStartTempo, cardCost, param, pawnCost, tempoCap, workingRelic } from './relics';
 import { addMod } from './stats';
-import { LANES, lanePoint } from './world/map';
+import { LANES, lanePoint, seatLanes } from './world/map';
 import type { LaneId, Modifier, PawnQuota, PlayTeam, RelicRun, SnapZone, Unit } from './types';
 import { other } from './types';
 import { PLAY_TEAMS } from './names';
@@ -226,7 +226,7 @@ export function fieldTowardQuota(
   for (const u of ctx.s.units) if (u.alive && u.pawn && u.team === team && u.lane) have[u.lane]++;
   let lane: LaneId | null = null;
   let most = 0;
-  for (const l of LANES) {
+  for (const l of seatLanes(ctx.world, team)) {
     const gap = quota[l] - have[l];
     if (gap > most) {
       most = gap;

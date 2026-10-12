@@ -2,9 +2,13 @@ import { loadNodeContent } from './content-node';
 import { Match } from '../src/sim';
 
 const seed = Number(process.argv[2] ?? 1);
+// --map long: play on the Long Board
+const map = process.argv.includes('--map')
+  ? (process.argv[process.argv.indexOf('--map') + 1] as 'long')
+  : undefined;
 const content = loadNodeContent();
 const t0 = process.hrtime.bigint();
-const m = Match.create(content, { seed, autoGambits: { A: true, B: true } });
+const m = Match.create(content, { seed, autoGambits: { A: true, B: true }, map });
 m.runToEnd();
 const ms = Number(process.hrtime.bigint() - t0) / 1e6;
 const s = m.state;

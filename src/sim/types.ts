@@ -915,6 +915,8 @@ export interface MatchConfig {
    * player when `pauseForBreak` is set, else by the AI rule. `manual` falls back to `ai` without a sheet.
    */
   relics?: { A?: RelicMode; B?: RelicMode };
+  /** `long`: play on the Long Board (`content/map-long.json`, its own tuning). Default: the square map. */
+  map?: 'default' | 'long';
 }
 
 export interface Replay {

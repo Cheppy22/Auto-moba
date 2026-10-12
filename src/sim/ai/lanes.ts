@@ -1,7 +1,7 @@
 import { dist } from '../core/math';
 import type { Ctx } from '../ctx';
 import type { LaneId } from '../content/schema';
-import { LANES, laneDist, lanePoint, laneT, nearestBy, type Pt } from '../world/map';
+import { LANES, laneDist, lanePoint, laneT, nearestBy, seatLanes, type Pt } from '../world/map';
 import type { PlayTeam, Unit } from '../types';
 import { other } from '../types';
 import { PLAY_TEAMS } from '../names';
@@ -17,7 +17,6 @@ export function pointAtProgress(ctx: Ctx, team: PlayTeam, lane: LaneId, p: numbe
 }
 
 export function updateFronts(ctx: Ctx): void {
-  const tf = ctx.world.map.towerFractions;
   const best: Record<PlayTeam, Record<LaneId, number>> = {
     A: { top: -1, mid: -1, bot: -1 },
     B: { top: -1, mid: -1, bot: -1 },
@@ -30,6 +29,7 @@ export function updateFronts(ctx: Ctx): void {
   for (const team of PLAY_TEAMS) {
     for (const lane of LANES) {
       const [outer, inner] = ctx.towers[team][lane];
+      const tf = ctx.world.towerFrac[lane];
       const fallback = outer?.alive ? tf.outer + 0.03 : inner?.alive ? tf.inner + 0.03 : tf.inner;
       ctx.front[team][lane] = best[team][lane] >= 0 ? best[team][lane] : fallback;
     }
@@ -45,7 +45,8 @@ export function enemyTowerTarget(ctx: Ctx, team: PlayTeam, lane: LaneId): Unit |
 }
 
 export function closestLane(ctx: Ctx, u: Unit): LaneId {
-  return nearestBy(LANES, (lane) => laneDist(ctx.world.lanes[lane], u.x, u.y)) ?? 'mid';
+  const lanes = u.team === 'neutral' ? LANES : seatLanes(ctx.world, u.team);
+  return nearestBy(lanes, (lane) => laneDist(ctx.world.lanes[lane], u.x, u.y)) ?? 'mid';
 }
 
 /**

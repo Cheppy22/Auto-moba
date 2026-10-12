@@ -43,7 +43,15 @@ export interface RawContentFiles {
   pressure: unknown;
   badges: unknown;
   map: unknown;
+  /** The Long Board (`content/map-long.json`): a map plus a `tuning` patch it plays with. */
+  mapLong?: unknown;
   tuning: unknown;
+}
+
+/** A map and the tuning it is played with. */
+export interface MapVariant {
+  map: MapDef;
+  tuning: Tuning;
 }
 
 export interface Content {
@@ -72,6 +80,25 @@ export interface Content {
   badges: BadgeDef[];
   map: MapDef;
   tuning: Tuning;
+  /** The Long Board, played with `MatchConfig.map: 'long'`; null when its file is missing. */
+  longBoard: MapVariant | null;
+}
+
+/** Deep-merges a JSON patch into a copy of `base` (objects merge, everything else is replaced). */
+export function deepMerge(base: unknown, patch: unknown): unknown {
+  if (typeof base !== 'object' || base === null || typeof patch !== 'object' || patch === null)
+    return patch;
+  const out: Record<string, unknown> = { ...(base as Record<string, unknown>) };
+  for (const [k, v] of Object.entries(patch as Record<string, unknown>))
+    out[k] = deepMerge(out[k], v);
+  return out;
+}
+
+/** The content a match plays with: the default map, or the Long Board with its tuning. */
+export function contentFor(c: Content, map: 'default' | 'long' | undefined): Content {
+  if (map !== 'long') return c;
+  if (!c.longBoard) throw new Error('The Long Board map is not loaded');
+  return { ...c, map: c.longBoard.map, tuning: c.longBoard.tuning };
 }
 
 function byId<T extends { id: string }>(list: T[], label: string): Map<string, T> {
@@ -185,6 +212,13 @@ export function loadContent(raw: RawContentFiles): Content {
   const badges = BadgesSchema.parse(raw.badges).badges;
   const map = MapSchema.parse(raw.map);
   const tuning = TuningSchema.parse(raw.tuning);
+  const longRaw = raw.mapLong as { tuning?: unknown } | undefined;
+  const longBoard: MapVariant | null = longRaw
+    ? {
+        map: MapSchema.parse(longRaw),
+        tuning: TuningSchema.parse(deepMerge(raw.tuning, longRaw.tuning ?? {})),
+      }
+    : null;
 
   const styleByKey = new Map<string, StyleDef>();
   const kitByKey = new Map<string, AbilityDef[]>();
@@ -218,8 +252,14 @@ export function loadContent(raw: RawContentFiles): Content {
     badges,
     map,
     tuning,
+    longBoard,
   };
   const errs = validateRefs(content);
+  if (longBoard) {
+    const ids = new Set(longBoard.map.slots.map((s) => s.id));
+    for (const n of longBoard.map.obeliskNodes)
+      if (n.slot && !ids.has(n.slot)) errs.push(`long board node ${n.id}: unknown slot ${n.slot}`);
+  }
   if (errs.length) throw new Error(`Content invalid:\n${errs.join('\n')}`);
   return content;
 }

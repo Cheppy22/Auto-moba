@@ -7,6 +7,7 @@ import type { PlayTeam, SetupEntry, TeamSetup } from './types';
 
 const LANE_COUNT: Record<LaneId, number> = { top: 2, bot: 2, mid: 1 };
 const LANE_ORDER: LaneId[] = ['top', 'bot', 'mid'];
+const LANE_ORDER_TURNED: LaneId[] = ['bot', 'top', 'mid'];
 
 export function naturalPath(p: PieceDef): Path {
   if (p.defaultPath) return p.defaultPath;
@@ -87,9 +88,11 @@ export function assignJunglers(ctx: Ctx, team: PlayTeam): void {
 }
 
 export function placeTeam(ctx: Ctx, team: PlayTeam, entries: SetupEntry[]): void {
+  // slots run Left, Right, Mid in the team's own seat (Black's Left is `bot` on the Long Board)
+  const order = ctx.world.rotated && team === 'B' ? LANE_ORDER_TURNED : LANE_ORDER;
   const sorted = entries
     .map((e, i) => ({ e, i }))
-    .sort((a, b) => LANE_ORDER.indexOf(a.e.lane) - LANE_ORDER.indexOf(b.e.lane) || a.i - b.i)
+    .sort((a, b) => order.indexOf(a.e.lane) - order.indexOf(b.e.lane) || a.i - b.i)
     .map((x) => x.e);
   sorted.forEach((e, slot) => makeHero(ctx, team, slot, { ...e }));
   assignJunglers(ctx, team);

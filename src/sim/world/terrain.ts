@@ -4,11 +4,25 @@ import type { Pt } from './map';
 
 /**
  * Walkable space. The map is solid terrain except inside these capsules: lane corridors, the
- * two bases, jungle clearings and their gate paths (only while the clearing is open), the jungle
- * shops and their paths, and the Keeper's spots. The sim keeps every unit inside them; the 3D
- * view builds its cliffs and walls from the same shapes.
+ * two bases, jungle clearings and their gate paths (only while the clearing is open, unless the
+ * map has `openJungle`), the jungle shops and their paths, and the Keeper's spots. The Long Board
+ * adds its areas (groves, the Pit, Squares, verges, the River Road, Sally Paths); its lanes are
+ * flat-ended boxes that narrow on the ramps. The sim keeps every unit inside them; the 3D view
+ * builds its cliffs and walls from the same shapes.
  */
-type WalkKind = 'lane' | 'base' | 'slot' | 'port' | 'shop' | 'spot';
+type WalkKind =
+  | 'lane'
+  | 'base'
+  | 'slot'
+  | 'port'
+  | 'shop'
+  | 'spot'
+  | 'grove'
+  | 'pit'
+  | 'square'
+  | 'verge'
+  | 'road'
+  | 'sally';
 
 export interface WalkShape {
   kind: WalkKind;
@@ -21,6 +35,8 @@ export interface WalkShape {
   slot: string | null;
   /** Lane this shape belongs to (lane corridors and gate paths). */
   lane: LaneId | null;
+  /** A flat-ended box of half-width `r` along a-b instead of a capsule. */
+  box?: true;
 }
 
 /** A capsule that units cannot enter: a Barricade wall (set by the sim while a gambit lasts). */
@@ -36,12 +52,16 @@ export interface Terrain {
   shapes: WalkShape[];
   /** Temporary walls; empty unless a Barricade stands. */
   blocks: BlockShape[];
+  /** Board width (x). */
   size: number;
   cell: number;
   cols: number;
+  rows: number;
   /** Shape indices near each grid cell, row-major. */
   cells: number[][];
 }
+
+type Terraces = NonNullable<MapDef['terraces']>;
 
 /** Which jungle slots are open. A Set, or any object with `has`. */
 interface OpenSlots {
@@ -73,8 +93,23 @@ function lanePt(pts: readonly (readonly number[])[], t: number): Pt {
   return { x: pts[0][0], y: pts[0][1] };
 }
 
+/** Signed distance from (x, y) to a flat-ended box of half-width `r` along a-b: negative inside. */
+function boxDist(s: BlockShape, x: number, y: number): number {
+  const dx = s.bx - s.ax;
+  const dy = s.by - s.ay;
+  const len = sqrt(dx * dx + dy * dy) || 1;
+  const u = ((x - s.ax) * dx + (y - s.ay) * dy) / len;
+  const v = ((x - s.ax) * -dy + (y - s.ay) * dx) / len;
+  const qx = Math.abs(u - len / 2) - len / 2;
+  const qy = Math.abs(v) - s.r;
+  const ox = qx > 0 ? qx : 0;
+  const oy = qy > 0 ? qy : 0;
+  return sqrt(ox * ox + oy * oy) + Math.min(Math.max(qx, qy), 0);
+}
+
 /** Signed distance from (x, y) to the shape's edge: negative inside. */
-export function shapeDist(s: BlockShape, x: number, y: number): number {
+export function shapeDist(s: BlockShape & { box?: true }, x: number, y: number): number {
+  if (s.box) return boxDist(s, x, y);
   const dx = s.bx - s.ax;
   const dy = s.by - s.ay;
   const l2 = dx * dx + dy * dy;
@@ -85,6 +120,69 @@ export function shapeDist(s: BlockShape, x: number, y: number): number {
   return sqrt(px * px + py * py) - s.r;
 }
 
+/**
+ * Where a lane segment from y = ay to y = by crosses the terrace edges and ramp ends, as sorted
+ * fractions of the segment (0 and 1 included). `mid` is the river line, y = length / 2.
+ */
+export function rampCuts(terraces: Terraces, mid: number, ay: number, by: number): number[] {
+  const cuts = [0, 1];
+  const { river, rampLen, home } = terraces;
+  for (const e of [river, river + rampLen, home, home + rampLen]) {
+    for (const yy of [mid - e, mid + e]) {
+      if ((ay - yy) * (by - yy) < 0) cuts.push((yy - ay) / (by - ay));
+    }
+  }
+  return cuts.sort((a, b) => a - b);
+}
+
+/** True when a lane point `e` from the river line lies on a ramp. */
+export function onRamp(terraces: Terraces, e: number): boolean {
+  const { river, rampLen, home } = terraces;
+  return (e > river && e < river + rampLen) || (e > home && e < home + rampLen);
+}
+
+/** Lane corridors of a terraced map: boxes, narrowed on the ramps, with a disc at each bend. */
+function terracedLanes(map: MapDef, terraces: Terraces, shapes: WalkShape[]): void {
+  const mid = (map.length ?? map.size) / 2;
+  const ids: LaneId[] = ['top', 'mid', 'bot'];
+  for (const id of ids) {
+    const p = map.lanes[id];
+    for (let i = 1; i < p.length; i++) {
+      const [ax, ay] = p[i - 1];
+      const [bx, by] = p[i];
+      const cuts = rampCuts(terraces, mid, ay, by);
+      for (let k = 1; k < cuts.length; k++) {
+        const f0 = cuts[k - 1];
+        const f1 = cuts[k];
+        if (f1 - f0 < 1e-9) continue;
+        const e = Math.abs(ay + (by - ay) * ((f0 + f1) / 2) - mid);
+        shapes.push({
+          kind: 'lane',
+          ax: ax + (bx - ax) * f0,
+          ay: ay + (by - ay) * f0,
+          bx: ax + (bx - ax) * f1,
+          by: ay + (by - ay) * f1,
+          r: onRamp(terraces, e) ? terraces.rampHalf : map.walk.lane,
+          slot: null,
+          lane: id,
+          box: true,
+        });
+      }
+      if (i < p.length - 1)
+        shapes.push({
+          kind: 'lane',
+          ax: bx,
+          ay: by,
+          bx,
+          by,
+          r: map.walk.lane,
+          slot: null,
+          lane: id,
+        });
+    }
+  }
+}
+
 export function buildTerrain(map: MapDef): Terrain {
   const w = map.walk;
   const shapes: WalkShape[] = [];
@@ -92,19 +190,22 @@ export function buildTerrain(map: MapDef): Terrain {
     shapes.push({ kind, ax: x, ay: y, bx: x, by: y, r, slot, lane: null });
   };
   const ids: LaneId[] = ['top', 'mid', 'bot'];
-  for (const id of ids) {
-    const p = map.lanes[id];
-    for (let i = 1; i < p.length; i++) {
-      shapes.push({
-        kind: 'lane',
-        ax: p[i - 1][0],
-        ay: p[i - 1][1],
-        bx: p[i][0],
-        by: p[i][1],
-        r: w.lane,
-        slot: null,
-        lane: id,
-      });
+  if (map.terraces) terracedLanes(map, map.terraces, shapes);
+  else {
+    for (const id of ids) {
+      const p = map.lanes[id];
+      for (let i = 1; i < p.length; i++) {
+        shapes.push({
+          kind: 'lane',
+          ax: p[i - 1][0],
+          ay: p[i - 1][1],
+          bx: p[i][0],
+          by: p[i][1],
+          r: w.lane,
+          slot: null,
+          lane: id,
+        });
+      }
     }
   }
   disc('base', map.bases.A[0], map.bases.A[1], w.base, null);
@@ -121,19 +222,31 @@ export function buildTerrain(map: MapDef): Terrain {
     }
   };
   for (const s of map.slots) {
-    disc('slot', s.x, s.y, s.radius + w.slotPad, s.id);
-    ports(s.x, s.y, s.ports, s.id);
+    const gate = map.openJungle ? null : s.id;
+    disc('slot', s.x, s.y, s.radius + w.slotPad, gate);
+    ports(s.x, s.y, s.ports, gate);
   }
   for (const s of map.shops) {
     disc('shop', s.x, s.y, s.radius + w.shopPad, null);
     ports(s.x, s.y, s.ports, null);
   }
   for (const k of map.keeperSpots) disc('spot', k.x, k.y, w.spot, null);
+  for (const a of map.areas) {
+    const pts = a.pts.length === 1 ? [a.pts[0], a.pts[0]] : a.pts;
+    for (let i = 1; i < pts.length; i++) {
+      const [ax, ay] = pts[i - 1];
+      const [bx, by] = pts[i];
+      const shape: WalkShape = { kind: a.kind, ax, ay, bx, by, r: a.r, slot: null, lane: null };
+      if (a.box) shape.box = true;
+      shapes.push(shape);
+    }
+  }
 
   const cols = Math.ceil(map.size / CELL);
+  const rows = Math.ceil((map.length ?? map.size) / CELL);
   const cells: number[][] = [];
   const half = CELL * 0.71 + REACH;
-  for (let r = 0; r < cols; r++) {
+  for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
       const cx = (c + 0.5) * CELL;
       const cy = (r + 0.5) * CELL;
@@ -143,13 +256,13 @@ export function buildTerrain(map: MapDef): Terrain {
       cells.push(near);
     }
   }
-  return { shapes, blocks: [], size: map.size, cell: CELL, cols, cells };
+  return { shapes, blocks: [], size: map.size, cell: CELL, cols, rows, cells };
 }
 
 function near(t: Terrain, x: number, y: number): number[] | null {
   const c = Math.floor(x / t.cell);
   const r = Math.floor(y / t.cell);
-  if (c < 0 || r < 0 || c >= t.cols || r >= t.cols) return null;
+  if (c < 0 || r < 0 || c >= t.cols || r >= t.rows) return null;
   const list = t.cells[r * t.cols + c];
   return list.length ? list : null;
 }
@@ -222,6 +335,7 @@ function confineShapes(t: Terrain, open: OpenSlots, x: number, y: number): Pt {
   if (!best) for (const s of t.shapes) scan(s);
   const s = best as WalkShape | null;
   if (!s || bestD <= 0) return { x, y };
+  if (s.box) return boxInside(s, x, y);
   const dx = s.bx - s.ax;
   const dy = s.by - s.ay;
   const l2 = dx * dx + dy * dy;
@@ -234,6 +348,18 @@ function confineShapes(t: Terrain, open: OpenSlots, x: number, y: number): Pt {
   const len = sqrt(ox * ox + oy * oy) || 1;
   const r = s.r - 0.01;
   return { x: cx + (ox / len) * r, y: cy + (oy / len) * r };
+}
+
+/** The point of a box nearest to (x, y), just inside its edges. */
+function boxInside(s: WalkShape, x: number, y: number): Pt {
+  const dx = s.bx - s.ax;
+  const dy = s.by - s.ay;
+  const len = sqrt(dx * dx + dy * dy) || 1;
+  const ux = dx / len;
+  const uy = dy / len;
+  const u = clamp((x - s.ax) * ux + (y - s.ay) * uy, 0.01, len - 0.01);
+  const v = clamp((x - s.ax) * -uy + (y - s.ay) * ux, 0.01 - s.r, s.r - 0.01);
+  return { x: s.ax + ux * u - uy * v, y: s.ay + uy * u + ux * v };
 }
 
 /** True when a straight walk from a to b never leaves walkable space. */
