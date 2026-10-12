@@ -1284,6 +1284,11 @@ html:not([data-layout='desktop']) .rp-page-scroll {
   background: #0d0b09;
   border: 1px solid var(--rule);
 }
+.rp-replay-canvas.long {
+  /* the Long Board lies on its side: White on the left, Black on the right */
+  width: min(100%, 140dvh);
+  aspect-ratio: 2;
+}
 .rp-replay-side {
   display: flex;
   flex-direction: column;
@@ -1312,6 +1317,9 @@ html:not([data-layout='desktop']) .rp-page-scroll {
 }
 html[data-layout='landscape'] .rp-replay-canvas {
   width: min(100%, 62dvh);
+}
+html[data-layout='landscape'] .rp-replay-canvas.long {
+  width: min(100%, 124dvh);
 }
 html[data-layout='landscape'] .rp-chips {
   grid-template-columns: repeat(10, minmax(0, 1fr));

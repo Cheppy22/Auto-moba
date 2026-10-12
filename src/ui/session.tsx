@@ -1,6 +1,7 @@
 import { createContext } from 'preact';
 import { useContext, useEffect, useRef, useState } from 'preact/hooks';
 import {
+  contentFor,
   Match,
   type Command,
   type CommandResult,
@@ -177,7 +178,17 @@ export class Session {
   private listeners = new Set<() => void>();
   private frameListeners = new Set<(alpha: number) => void>();
 
+  /** `?map=long` plays the Long Board (for the sim, the 3D view, the report and the replay map). */
+  private readonly longMap =
+    typeof window !== 'undefined' &&
+    new URLSearchParams(window.location.search).get('map') === 'long';
+
   constructor(readonly content: Content) {}
+
+  /** The content the board is drawn from: the match's own (its map), or the one the next match plays. */
+  get board(): Content {
+    return this.match?.content ?? (this.longMap ? contentFor(this.content, 'long') : this.content);
+  }
 
   subscribe(fn: () => void): () => void {
     this.listeners.add(fn);
@@ -227,13 +238,12 @@ export class Session {
   newMatch(config?: Partial<MatchConfig>): void {
     const seed = config?.seed ?? Math.floor(Math.random() * 1e9);
     // the browser game stops for White's forks and for the Act break sheet; `?map=long` plays the
-    // Long Board (sim only for now: the view still draws the square board)
-    const long = new URLSearchParams(window.location.search).get('map') === 'long';
+    // Long Board
     this.match = Match.create(this.content, {
       seed,
       pauseForForks: true,
       pauseForBreak: true,
-      ...(long ? { map: 'long' as const } : {}),
+      ...(this.longMap ? { map: 'long' as const } : {}),
       ...config,
     });
     this.seenSeq = -1;
@@ -900,7 +910,7 @@ export class Session {
     const lane =
       p.x === undefined || p.y === undefined
         ? null
-        : laneNear(this.content.map.lanes, p.x, p.y, this.content.tuning.feedback.fight.laneRadius);
+        : laneNear(m.content.map.lanes, p.x, p.y, this.content.tuning.feedback.fight.laneRadius);
     const structure =
       target?.kind === 'guardian' ? 'Throne' : target?.kind === 'tower' ? 'Bastion' : null;
     const text = blackPlayLine(def.name, def.target, p, {

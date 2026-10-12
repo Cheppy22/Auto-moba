@@ -9,6 +9,49 @@ function replayView(w: number, h: number, mapSize: number, dpr: number): View {
   return makeView(w, h, mapSize, mapSize * 0.54, NO_INSETS, 1, dpr);
 }
 
+/** Map to canvas pixels and back, with the scale (pixels per map unit) along each screen axis. */
+interface Proj {
+  xy(x: number, y: number): [number, number];
+  inv(X: number, Y: number): { x: number; y: number };
+  sx: number;
+  sy: number;
+  p: number;
+}
+
+/**
+ * The square map is drawn as a diamond (White's base at the bottom); the Long Board lies on its
+ * side, White on the left and Black on the right, like the 3D view on a wide screen.
+ */
+function projFor(w: number, h: number, content: Content, dpr: number): Proj {
+  const map = content.map;
+  if (map.length === undefined) {
+    const v = replayView(w, h, map.size, dpr);
+    return {
+      xy: (x, y) => {
+        const c = toScreen(v, x, y);
+        return [c.x, c.y];
+      },
+      inv: (X, Y) => toWorld(v, X, Y),
+      sx: v.sx,
+      sy: v.sy,
+      p: v.p,
+    };
+  }
+  const L = map.length;
+  const W = map.size;
+  const pad = 6 * dpr;
+  const k = Math.min((w - pad * 2) / L, (h - pad * 2) / W);
+  const left = (w - L * k) / 2;
+  const top = (h - W * k) / 2;
+  return {
+    xy: (x, y) => [left + (L - y) * k, top + x * k],
+    inv: (X, Y) => ({ x: (Y - top) / k, y: L - (X - left) / k }),
+    sx: k,
+    sy: k,
+    p: k,
+  };
+}
+
 export interface ReplayPoint {
   tick: number;
   x: number;
@@ -54,8 +97,10 @@ export function replayHit(
   clientY: number,
 ): number | null {
   const rect = canvas.getBoundingClientRect();
-  const v = replayView(rect.width, rect.height, content.map.size, 1);
-  const w = toWorld(v, clientX - rect.left, clientY - rect.top);
+  const w = projFor(rect.width, rect.height, content, 1).inv(
+    clientX - rect.left,
+    clientY - rect.top,
+  );
   const wx = w.x;
   const wy = w.y;
   let best: number | null = null;
@@ -68,6 +113,62 @@ export function replayHit(
     }
   }
   return best;
+}
+
+/**
+ * The Long Board's ground for the replay map: the board, the river band, the two terrace edges,
+ * and the zones (groves, the Pit, Squares, verges, the River Road, Sally Paths).
+ */
+function drawLongGround(
+  g: CanvasRenderingContext2D,
+  content: Content,
+  xy: (x: number, y: number) => [number, number],
+  p: number,
+): void {
+  const map = content.map;
+  const W = map.size;
+  const L = map.length ?? W;
+  const mid = L / 2;
+  const box = (x0: number, y0: number, x1: number, y1: number): void => {
+    const [ax, ay] = xy(x0, y0);
+    const [bx, by] = xy(x1, y1);
+    g.fillRect(Math.min(ax, bx), Math.min(ay, by), Math.abs(bx - ax), Math.abs(by - ay));
+  };
+  g.fillStyle = '#14110e';
+  box(0, 0, W, L);
+  // home terraces a shade lighter, the river band blue
+  g.fillStyle = '#1d1913';
+  const t = map.terraces;
+  if (t) {
+    box(0, 0, W, mid - t.home);
+    box(0, mid + t.home, W, L);
+    g.fillStyle = '#132631';
+    box(0, mid - t.river, W, mid + t.river);
+  }
+  const AREA: Record<string, string> = {
+    grove: 'rgba(48,72,58,0.85)',
+    pit: 'rgba(30,32,38,0.95)',
+    square: 'rgba(120,110,90,0.55)',
+    verge: 'rgba(90,82,70,0.5)',
+    road: 'rgba(110,104,92,0.6)',
+    sally: 'rgba(110,90,66,0.6)',
+  };
+  for (const a of map.areas) {
+    g.strokeStyle = AREA[a.kind] ?? 'rgba(90,82,70,0.5)';
+    g.lineWidth = a.r * 2 * p;
+    g.lineCap = a.box ? 'butt' : 'round';
+    g.lineJoin = 'round';
+    g.beginPath();
+    const pts = a.pts.length === 1 ? [a.pts[0], a.pts[0]] : a.pts;
+    pts.forEach(([x, y], i) => (i === 0 ? g.moveTo(...xy(x, y)) : g.lineTo(...xy(x, y))));
+    g.stroke();
+  }
+  g.lineCap = 'butt';
+  g.strokeStyle = 'rgba(201,163,90,0.35)';
+  g.lineWidth = 1;
+  const [ax, ay] = xy(0, 0);
+  const [bx, by] = xy(W, L);
+  g.strokeRect(Math.min(ax, bx), Math.min(ay, by), Math.abs(bx - ax), Math.abs(by - ay));
 }
 
 export function drawReplay(
@@ -85,32 +186,32 @@ export function drawReplay(
   }
   const g = canvas.getContext('2d');
   if (!g) return;
-  const v = replayView(canvas.width, canvas.height, content.map.size, dpr);
+  const v = projFor(canvas.width, canvas.height, content, dpr);
   const p = v.p;
-  const xy = (x: number, y: number): [number, number] => {
-    const c = toScreen(v, x, y);
-    return [c.x, c.y];
-  };
+  const xy = v.xy;
   g.setTransform(1, 0, 0, 1, 0, 0);
   g.fillStyle = PALETTE.bg;
   g.fillRect(0, 0, canvas.width, canvas.height);
-  const mid = content.map.size / 2;
-  const [gcx, gcy] = xy(mid, mid);
-  g.beginPath();
-  g.ellipse(
-    gcx,
-    gcy,
-    0.612 * content.map.size * v.sx,
-    0.612 * content.map.size * v.sy,
-    0,
-    0,
-    Math.PI * 2,
-  );
-  g.fillStyle = '#14110e';
-  g.fill();
-  g.strokeStyle = 'rgba(201,163,90,0.35)';
-  g.lineWidth = 1;
-  g.stroke();
+  if (content.map.length !== undefined) drawLongGround(g, content, xy, p);
+  else {
+    const mid = content.map.size / 2;
+    const [gcx, gcy] = xy(mid, mid);
+    g.beginPath();
+    g.ellipse(
+      gcx,
+      gcy,
+      0.612 * content.map.size * v.sx,
+      0.612 * content.map.size * v.sy,
+      0,
+      0,
+      Math.PI * 2,
+    );
+    g.fillStyle = '#14110e';
+    g.fill();
+    g.strokeStyle = 'rgba(201,163,90,0.35)';
+    g.lineWidth = 1;
+    g.stroke();
+  }
 
   for (const s of content.map.slots) {
     const state = data.slots.find((x) => x.id === s.id);
@@ -129,16 +230,18 @@ export function drawReplay(
     g.lineWidth = 1;
     g.stroke();
   }
+  // the Long Board's lanes are drawn near their real width (its zones are drawn to scale)
+  const lw = content.map.length !== undefined ? content.map.walk.lane * 1.2 : 21;
   for (const lane of [content.map.lanes.top, content.map.lanes.mid, content.map.lanes.bot]) {
     g.beginPath();
     lane.forEach(([x, y], i) => (i === 0 ? g.moveTo(...xy(x, y)) : g.lineTo(...xy(x, y))));
     g.lineCap = 'round';
     g.lineJoin = 'round';
     g.strokeStyle = 'rgba(201,163,90,0.3)';
-    g.lineWidth = 26 * p;
+    g.lineWidth = (lw + 5) * p;
     g.stroke();
     g.strokeStyle = '#4a3a2a';
-    g.lineWidth = 21 * p;
+    g.lineWidth = lw * p;
     g.stroke();
   }
   for (const t of ['A', 'B'] as const) {

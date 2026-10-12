@@ -42,6 +42,8 @@ export function Broadcast() {
   const s = useSession();
   const ref = useRef<HTMLCanvasElement>(null);
   const [failed, setFailed] = useState<'webgl' | 'error' | null>(null);
+  // the board the view draws: the match's map (the view is rebuilt if a match on another map starts)
+  const board = s.board;
   useEffect(() => {
     const canvas = ref.current;
     if (!canvas) return;
@@ -53,7 +55,7 @@ export function Broadcast() {
         if (dead) return;
         let view: InstanceType<typeof BroadcastView>;
         try {
-          view = new BroadcastView(canvas, s.content);
+          view = new BroadcastView(canvas, board);
         } catch (err) {
           const noGl = err instanceof Error && err.message === 'WebGL is not available';
           if (!noGl) console.error('The 3D view failed to start', err);
@@ -63,7 +65,7 @@ export function Broadcast() {
         s.view = view;
         canvas.addEventListener('table-sitback', () => s.zoomLane(null)); // table look: zoomed out of a lane
         canvas.dataset.ready = 'true';
-        const director = new Director(s.content);
+        const director = new Director(board);
         // a tap (not a drag) on a piece opens its card; a tap on empty ground closes the card
         let down: { x: number; y: number; t: number } | null = null;
         const onDown = (e: PointerEvent): void => {
@@ -91,7 +93,7 @@ export function Broadcast() {
             // the board camera: a tap on a lane leans in on it, a tap off the lanes (or on the same lane) sits back
             if (!covered && s.ui.cam === 'board') {
               const g = view.pickGround(e.clientX, e.clientY);
-              s.zoomLane(g ? laneNear(s.content.map.lanes, g.x, g.y, LANE_TAP) : null);
+              s.zoomLane(g ? laneNear(board.map.lanes, g.x, g.y, LANE_TAP) : null);
             }
           }
         };
@@ -130,7 +132,7 @@ export function Broadcast() {
             followId: s.ui.follow ?? kingId(m),
             laneFocus:
               s.ui.cam === 'board' && s.ui.zoomLane
-                ? laneMid(s.content.map.lanes[s.ui.zoomLane])
+                ? laneMid(board.map.lanes[s.ui.zoomLane])
                 : null,
             dtMs: Math.min(100, now - last),
             timeScale: s.timeScale,
@@ -158,7 +160,7 @@ export function Broadcast() {
       dispose();
       if (s.ui.caption) s.setUi({ caption: null });
     };
-  }, [s]);
+  }, [s, board.map]);
   return (
     <>
       <canvas ref={ref} class="game-canvas" data-testid="stage" hidden={!!failed} />
