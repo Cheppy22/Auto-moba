@@ -431,7 +431,9 @@
       "tier3TripRadius": 3800
     },
     "height": {
-      "slopeDmg": 0.15
+      "slopeDmg": 0.2,
+      "oddsBonus": 0.2,
+      "reachMul": 1.3
     }
   }
 }

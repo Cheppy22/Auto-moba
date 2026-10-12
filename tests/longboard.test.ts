@@ -224,7 +224,7 @@ describe('Long Board high ground: Reach and Sight', () => {
     return { m, queen: piece(m, 'A', 'queen'), king: piece(m, 'B', 'king') };
   };
 
-  it('Reach: a ranged piece shooting down a tier reaches 15% farther; melee and same tier do not', () => {
+  it('Reach: a ranged piece shooting down a tier reaches farther; melee and same tier do not', () => {
     const { m, queen, king } = setup();
     const ctx = m.ctx;
     queen.x = 1000;
@@ -233,7 +233,8 @@ describe('Long Board high ground: Reach and Sight', () => {
     king.y = 2330; // river ramp, tier 0
     expect(queen.atkRange).toBeGreaterThanOrEqual(60);
     expect(reachActive(ctx, queen, king)).toBe(true);
-    expect(attackRange(ctx, queen, king)).toBeCloseTo(queen.stats.range * 1.15, 6);
+    expect(attackRange(ctx, queen, king)).toBeCloseTo(queen.stats.range * ctx.t.height.reachMul, 6);
+    expect(ctx.t.height.reachMul).toBeGreaterThan(1);
     expect(reachActive(ctx, king, queen)).toBe(false);
     king.y = 2450; // same tier
     expect(attackRange(ctx, queen, king)).toBe(queen.stats.range);
