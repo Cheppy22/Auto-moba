@@ -291,8 +291,9 @@ export class TableCamera {
     let tz = this.boardZ;
     let td = this.boardD;
     if (lean) {
+      // the lean point stays the same margin inside the board's edges (on the Long Board too)
       const limX = free ? Infinity : this.hx * 0.62;
-      const limZ = free ? Infinity : this.hz * 0.62;
+      const limZ = free ? Infinity : this.hz - this.hx * 0.38;
       td = this.boardD * amount * this.leanK;
       // the lean point sits in the middle of the HUD-free band, not the canvas
       const tanV = Math.tan(MathUtils.degToRad(FOV / 2));

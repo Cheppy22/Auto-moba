@@ -69,8 +69,10 @@ export async function startLive(
   seed = '42',
   pause = true,
   plan = false,
+  /** Extra address parameters, e.g. `&map=long`. */
+  query = '',
 ): Promise<void> {
-  await page.goto('/?intro=off');
+  await page.goto(`/?intro=off${query}`);
   await expect(page.getByTestId('title')).toBeVisible();
   await page.getByTestId('seed').fill(seed);
   await page.getByTestId('start').click();
