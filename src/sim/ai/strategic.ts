@@ -6,6 +6,7 @@ import { findPath, LANES, laneDist, nearestBy } from '../world/map';
 import type { Goal, GoalKind, PlayTeam, Unit } from '../types';
 import { other } from '../types';
 import { closestLane, enemyTowerTarget, lanePath, pointAtProgress, progressAt } from './lanes';
+import { enemyCover, fallbackPoint, retreatLine } from './judgement';
 import { matchupAt } from './power';
 import { aiShop, nextPurchase } from './shopping';
 import { shopAt } from '../shop';
@@ -18,6 +19,8 @@ interface Cand {
 }
 
 const goalKey = (kind: GoalKind, id: string | number): string => `${kind}:${id}`;
+/** Falling back to the nearest own structure: walked down the piece's lane, like a retreat. */
+const FALLBACK_KEY = goalKey('regroup', 'fallback');
 
 function cand(
   kind: GoalKind,
@@ -88,6 +91,13 @@ function alliedHeroesNear(
   return n;
 }
 
+/** Dead, or gone home to heal: a piece the other side can push past. */
+function outOfPlay(ctx: Ctx, u: Unit | undefined): boolean {
+  if (!u?.alive || !u.hero) return true;
+  const g = u.hero.goal?.kind;
+  return !!u.hero.recall || ((g === 'retreat' || g === 'base') && hpPct(u) < ctx.t.ai.healSafeHp);
+}
+
 function teamPlan(ctx: Ctx, team: PlayTeam): { siege: boolean; lane: LaneId } {
   const board = ctx.s.board[team];
   const plan = board.plan;
@@ -104,7 +114,7 @@ function teamPlan(ctx: Ctx, team: PlayTeam): { siege: boolean; lane: LaneId } {
       hpSum += hpPct(h);
     }
   }
-  for (const id of ctx.s.teams[foe].heroIds) if (ctx.unit(id)?.alive) aliveE++;
+  for (const id of ctx.s.teams[foe].heroIds) if (!outOfPlay(ctx, ctx.unit(id))) aliveE++;
   const avg = aliveA > 0 ? hpSum / aliveA : 0;
   const t = ctx.t.ai;
   const start = plan.siege
@@ -167,7 +177,9 @@ function setGoal(ctx: Ctx, u: Unit, g: Goal): void {
   const route = (x: number, y: number): [number, number][] =>
     findPath(ctx.world, { x: u.x, y: u.y }, { x, y }, ctx.open);
   let lp: [number, number][] | null =
-    g.kind === 'retreat' || g.kind === 'base' ? retreatLanePath(ctx, u, g.x, g.y) : null;
+    g.kind === 'retreat' || g.kind === 'base' || g.key === FALLBACK_KEY
+      ? retreatLanePath(ctx, u, g.x, g.y)
+      : null;
   const tgt = g.kind === 'pushTower' && g.targetId !== null ? ctx.unit(g.targetId) : null;
   if (lp) {
     // retreat: already routed down the hero's own lane
@@ -230,9 +242,9 @@ export function strategicUpdate(ctx: Ctx, u: Unit): void {
   const healing = cur !== null && (cur.kind === 'retreat' || cur.kind === 'base');
   const foesClose = enemiesNear(ctx, u, u.x, u.y, 600 * ctx.world.k) > 0;
   const needHeal =
-    hp < pers.retreatHp + (wary ? 0.12 : 0) ||
+    hp < retreatLine(ctx, u) ||
     (healing && hp < 0.78) ||
-    h.engage === 'flee' ||
+    (h.engage === 'flee' && hp < ai.ai.healSafeHp) ||
     (hp < ai.ai.healSafeHp && !foesClose);
   if (needHeal) {
     const threatened = enemiesNear(ctx, u, u.x, u.y, 220) > 0;
@@ -360,7 +372,8 @@ export function strategicUpdate(ctx: Ctx, u: Unit): void {
       const foes = enemiesNear(ctx, u, target.x, target.y, 260);
       if (foes >= 4 && mates < 2) support *= 0.5;
       let deadFoes = 0;
-      for (const id of ctx.s.teams[other(team)].heroIds) if (!ctx.unit(id)?.alive) deadFoes++;
+      for (const id of ctx.s.teams[other(team)].heroIds)
+        if (outOfPlay(ctx, ctx.unit(id))) deadFoes++;
       const score =
         (0.2 + 0.9 * support + (guardianOpen ? 0.4 : 0) + 0.3 * deadFoes) * (post.pushTower ?? 1);
       cands.push(cand('pushTower', px, py, goalKey('pushTower', target.id), score, target.id));
@@ -483,6 +496,8 @@ export function strategicUpdate(ctx: Ctx, u: Unit): void {
         const d = dist(u.x, u.y, foe.x, foe.y);
         if (d > ai.ai.huntRadius || d < 70) continue;
         if (h.lane !== 'mid' && closestLane(ctx, foe) === 'mid') continue;
+        // never hunt a piece sheltering under its own Bastion or Throne
+        if (enemyCover(ctx, team, foe.x, foe.y, ctx.t.judgement.diveMargin)) continue;
         const weak = hpPct(foe) < ai.ai.easyKillHp;
         const weight = Math.max(post.hunt ?? 1, weak ? 1.2 : 0);
         if (weight <= 0.5) continue;
@@ -570,6 +585,12 @@ export function strategicUpdate(ctx: Ctx, u: Unit): void {
 
   if (!needHeal) orderCandidate(ctx, u, cands);
   if (!needHeal) kingHunt(ctx, u, cands);
+  // Outmatched but not hurt: fall back to the nearest own structure until the odds turn.
+  if (!needHeal && h.engage === 'flee') {
+    const f = fallbackPoint(ctx, u);
+    cands.length = 0;
+    cands.push(cand('regroup', f.x, f.y, FALLBACK_KEY, 10));
+  }
   if (wary) {
     for (const c of cands) {
       if (c.goal.kind === 'pushTower') c.score *= 0.45;

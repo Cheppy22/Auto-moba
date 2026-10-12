@@ -133,7 +133,7 @@
     "maxHpPerSec": 0.09
   },
   "guardian": {
-    "hp": 6800,
+    "hp": 3800,
     "damage": 90,
     "range": 140,
     "atkSpeed": 0.9,
@@ -152,10 +152,10 @@
     "comebackBounty": 40
   },
   "respawn": {
-    "baseSec": 10,
-    "basePerPhase": 4,
-    "growthPerSec": 0.1,
-    "maxSec": 60
+    "baseSec": 18,
+    "basePerPhase": 6,
+    "growthPerSec": 0.12,
+    "maxSec": 70
   },
   "attunement": {
     "mind": [
@@ -351,6 +351,32 @@
     "spawnGap": 14,
     "spawnStagger": 9
   },
+  "spacing": {
+    "meleeMaxRange": 50,
+    "meleeInset": 5,
+    "meleeGap": 3,
+    "rangedGap": 10,
+    "rangedFrac": 0.85,
+    "sideBias": 0.6,
+    "approach": 90,
+    "driftSpeed": 0.6,
+    "driftMin": 3,
+    "combatSpace": { "piece": 3, "pawn": 2, "pawnling": 1.5 },
+    "knockback": { "minFrac": 0.08, "perFrac": 30, "max": 6 }
+  },
+  "judgement": {
+    "badOdds": 0.45,
+    "finishSec": 1.5,
+    "retreatHp": { "king": 0.15, "queen": 0.12, "rook": 0.1, "bishop": 0.18, "knight": 0.12 },
+    "retreatExitHp": 0.12,
+    "fleeExit": 1.3,
+    "fleeMinSec": 2,
+    "diveHp": 0.6,
+    "diveMargin": 30,
+    "busyStructure": 0.35,
+    "chaseHurtHp": 0.35,
+    "chaseHurt": 1.8
+  },
   "ai": {
     "aggroRadius": 150,
     "fightRadius": 280,
@@ -396,25 +422,21 @@
   },
   "personalities": {
     "reckless": {
-      "retreatHp": 0.15,
       "engageRatio": 0.55,
       "chase": 1.5,
       "riskTaking": 1.3
     },
     "cautious": {
-      "retreatHp": 0.4,
       "engageRatio": 1.25,
       "chase": 0.8,
       "riskTaking": 0.7
     },
     "opportunist": {
-      "retreatHp": 0.28,
       "engageRatio": 0.9,
       "chase": 1.3,
       "riskTaking": 1
     },
     "steadfast": {
-      "retreatHp": 0.3,
       "engageRatio": 1,
       "chase": 1,
       "riskTaking": 1

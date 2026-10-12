@@ -414,6 +414,7 @@ export class Match {
         attackKind: h ? attackKindOf(c, h) : null,
         recalling: !!h?.recall,
         goal: h?.goal ? h.goal.kind : null,
+        ...(h ? { engage: h.engage } : {}),
         slot: h ? h.slot : 0,
         range: u.stats.range,
         claim: u.obelisk ? Math.max(u.obelisk.claim.A, u.obelisk.claim.B) / need : 0,

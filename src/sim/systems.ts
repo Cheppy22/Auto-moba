@@ -14,7 +14,7 @@ import {
 } from './combat';
 import { dist } from './core/math';
 import type { Ctx } from './ctx';
-import { hpPct } from './ctx';
+import { hpPct, turnIndex } from './ctx';
 import { bountyMul, wingMelee } from './relics';
 import { onPieceDown } from './relicsLive';
 import { giveGold } from './shop';
@@ -66,9 +66,8 @@ export function tickUnitState(ctx: Ctx): void {
   const units = ctx.s.units;
   const tick = ctx.s.tick;
   const n = units.length;
-  const start = n > 0 ? tick % n : 0;
   for (let k = 0; k < n; k++) {
-    const u = units[(start + k) % n];
+    const u = units[turnIndex(tick, n, k)];
     if (!u.alive) continue;
     cleanExpired(ctx, u);
     if (u.stats.hpRegen > 0 && u.hp < u.stats.maxHp)

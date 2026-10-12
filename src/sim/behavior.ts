@@ -1,14 +1,23 @@
 import { TPS, performAttack, tauntTarget } from './combat';
 import { dist } from './core/math';
 import { touchesFixedBody } from './collision';
-import { hpPct, isEnemy, isTargetable, type Ctx } from './ctx';
+import { hpPct, isEnemy, isTargetable, turnIndex, type Ctx } from './ctx';
 import { matchupAt } from './ai/power';
+import {
+  diveBlocked,
+  fallbackPoint,
+  retreatLine,
+  sureKill,
+  threatened,
+  underEnemyTower,
+} from './ai/judgement';
 import { retreatLanePath } from './ai/strategic';
 import { isWary } from './ai/swap';
-import { findPath, LANES } from './world/map';
+import { findPath } from './world/map';
 import { clearLine, confine, walkable } from './world/terrain';
 import { pieceDef } from './pieces';
 import { tickRecall } from './recall';
+import { planSlots, reachPad, slotFor } from './spacing';
 import type { PlayTeam, Unit } from './types';
 
 /** How long a cached detour waypoint is followed before the route is planned again. */
@@ -127,32 +136,37 @@ function followPath(ctx: Ctx, u: Unit): boolean {
     u.pathI++;
     return true;
   }
-  const moved = stepToward(ctx, u, wp[0], wp[1]);
+  // routed: a unit pulled off its path (a chase into the jungle) walks around walls back to it
+  const moved = stepToward(ctx, u, wp[0], wp[1], 1, true);
   if (u.hero) u.hero.distance += moved;
   if (dist(u.x, u.y, wp[0], wp[1]) <= 1 && u.pathI < u.path.length - 1) u.pathI++;
   return true;
 }
 
-function underEnemyTower(ctx: Ctx, team: PlayTeam, x: number, y: number): boolean {
-  const foe: PlayTeam = team === 'A' ? 'B' : 'A';
-  for (const lane of LANES) {
-    for (const t of ctx.towers[foe][lane]) {
-      if (t?.alive && dist(x, y, t.x, t.y) <= t.stats.range + 12) return true;
-    }
-  }
-  const g = ctx.guardians[foe];
-  return !!g && g.alive && dist(x, y, g.x, g.y) <= g.stats.range + 12;
-}
-
 function inAttackRange(u: Unit, t: Unit): boolean {
-  const pad = t.kind === 'tower' || t.kind === 'guardian' ? 16 : 4;
-  return dist(u.x, u.y, t.x, t.y) <= u.stats.range + pad;
+  return dist(u.x, u.y, t.x, t.y) <= u.stats.range + reachPad(t);
 }
 
 function tryAttack(ctx: Ctx, u: Unit, t: Unit): void {
   if (u.atkCd > 0) return;
   performAttack(ctx, u, t);
   u.atkCd = Math.max(1, Math.round(TPS / Math.max(0.2, u.stats.atkSpeed)));
+}
+
+/** Closes on `t`: straight at it from afar, then into this unit's slot around it. */
+function closeIn(ctx: Ctx, u: Unit, t: Unit): number {
+  const s = slotFor(u, t);
+  return s ? stepToward(ctx, u, s.x, s.y, 1, true) : stepToward(ctx, u, t.x, t.y, 1, true);
+}
+
+/** Attacks `t` (in reach); between blows eases into this unit's slot, which is in reach too. */
+function strike(ctx: Ctx, u: Unit, t: Unit): number {
+  tryAttack(ctx, u, t);
+  if (u.atkCd <= 1) return 0;
+  const s = slotFor(u, t);
+  const sp = ctx.t.spacing;
+  if (!s || dist(u.x, u.y, s.x, s.y) < sp.driftMin) return 0;
+  return stepToward(ctx, u, s.x, s.y, sp.driftSpeed);
 }
 
 function validTarget(ctx: Ctx, u: Unit): Unit | null {
@@ -185,26 +199,53 @@ function nearestEnemy(
   return best;
 }
 
-function updateEngage(ctx: Ctx, u: Unit): void {
+export function updateEngage(ctx: Ctx, u: Unit): void {
   const h = u.hero!;
   h.engageTick = ctx.s.tick;
   const pers = ctx.t.personalities[pieceDef(ctx.c, h).personality];
+  const j = ctx.t.judgement;
   const m = matchupAt(ctx, u.team as PlayTeam, u.x, u.y, u);
   const prev = h.engage;
-  if (m.enemyHeroes === 0) h.engage = 'fight';
+  const hp = hpPct(u);
+  const target = u.targetId !== null ? ctx.unit(u.targetId) : undefined;
+  const finishing = !!target && sureKill(ctx, u, target);
+  const fleeing = prev === 'flee';
+  // Low health: break off while anything threatens, unless a kill is sure. Coming back needs a
+  // margin above the line, and a fleeing piece keeps going while any enemy is near (hysteresis).
+  const line = retreatLine(ctx, u) + (fleeing ? j.retreatExitHp : 0);
+  const pressed = fleeing
+    ? m.ratio < 9 || m.enemyHeroes > 0
+    : threatened(ctx, u, m.ratio, m.enemyHeroes);
+  if (hp < line && !finishing && pressed) h.engage = 'flee';
+  else if (m.enemyHeroes === 0) h.engage = 'fight';
   else {
-    const hpFactor = Math.min(1, 0.35 + (u.hp / u.stats.maxHp) * 1.3);
+    const hpFactor = Math.min(1, 0.35 + hp * 1.3);
     const wary = isWary(ctx, h) ? 0.8 : 1;
     const patience = Math.min(ctx.t.ai.holdBraveCap, 1 + h.holdTicks / ctx.t.ai.holdPatience);
     const committed = h.goal?.kind === 'joinFight' ? ctx.t.ai.commitBonus : 1;
     const eff = m.ratio * pers.riskTaking * patience * hpFactor * wary * committed;
-    if (eff >= pers.engageRatio) h.engage = 'fight';
-    else if (eff >= pers.engageRatio * 0.5) h.engage = 'hold';
+    const holdLine = pers.engageRatio * 0.5;
+    // Clearly bad odds (a 2v1 at even strength) are never taken, whatever the temperament.
+    if (m.ratio < j.badOdds && !finishing) h.engage = 'flee';
+    // A flight lasts a moment and ends only once the odds are clearly better (hysteresis).
+    else if (
+      fleeing &&
+      !finishing &&
+      (ctx.s.tick - h.fleeSince < j.fleeMinSec * TPS ||
+        m.ratio < j.badOdds * j.fleeExit ||
+        eff < holdLine * j.fleeExit)
+    )
+      h.engage = 'flee';
+    else if (eff >= pers.engageRatio) h.engage = 'fight';
+    else if (eff >= holdLine) h.engage = 'hold';
     else h.engage = 'flee';
   }
   h.holdTicks = h.engage === 'hold' ? h.holdTicks + 10 : 0;
   if (h.engage === 'flee' && prev !== 'flee') {
-    const b = ctx.world.basePos[u.team as PlayTeam];
+    h.fleeSince = ctx.s.tick;
+    // hurt: home to heal; merely outmatched: back to the nearest own structure behind it
+    const b =
+      hp < ctx.t.ai.healSafeHp ? ctx.world.basePos[u.team as PlayTeam] : fallbackPoint(ctx, u);
     u.path =
       retreatLanePath(ctx, u, b.x, b.y) ?? findPath(ctx.world, { x: u.x, y: u.y }, b, ctx.open);
     u.pathI = 0;
@@ -217,17 +258,34 @@ function heroBehavior(ctx: Ctx, u: Unit): void {
   const team = u.team as PlayTeam;
   if (ctx.s.tick - h.engageTick >= 10) updateEngage(ctx, u);
 
-  if (h.engage === 'flee') {
+  // Fleeing, or walking home to heal: keep moving, only hit back at what is already in reach
+  // (a ranged piece kites).
+  const retreating = h.goal?.kind === 'retreat' && hpPct(u) < retreatLine(ctx, u);
+  if (h.engage === 'flee' || retreating) {
     const t = validTarget(ctx, u);
-    if (t && inAttackRange(u, t) && u.atkCd <= 0 && t.kind === 'hero') tryAttack(ctx, u, t);
+    if (t && inAttackRange(u, t) && u.atkCd <= 0 && (t.kind === 'hero' || retreating))
+      tryAttack(ctx, u, t);
     followPath(ctx, u);
     return;
   }
 
   let t = validTarget(ctx, u);
-  if (!t || (ctx.s.tick + u.id) % 6 === 0) {
+  if (t && !inAttackRange(u, t) && diveBlocked(ctx, u, t)) {
+    u.targetId = null;
+    t = null;
+  }
+  // keep running down a hurt enemy piece (within the long leash) instead of re-picking
+  const pers = ctx.t.personalities[pieceDef(ctx.c, h).personality];
+  const hurtLeash = ctx.t.ai.aggroRadius * pers.chase * ctx.t.judgement.chaseHurt + u.stats.range;
+  const runDown =
+    !!t &&
+    t.kind === 'hero' &&
+    h.engage === 'fight' &&
+    hpPct(t) < ctx.t.judgement.chaseHurtHp &&
+    dist(u.x, u.y, t.x, t.y) <= hurtLeash;
+  if (!t || (!runDown && (ctx.s.tick + u.id) % 6 === 0)) {
     const goalPush = h.goal?.kind === 'pushTower' || h.goal?.kind === 'defendTower';
-    const inDanger = underEnemyTower(ctx, team, u.x, u.y);
+    const inDanger = underEnemyTower(ctx, team, u.x, u.y) && hpPct(u) >= ctx.t.judgement.diveHp;
     const radius = Math.max(ctx.t.ai.aggroRadius, u.stats.range + 20);
     let best: Unit | null = null;
     let bestScore = Infinity;
@@ -237,6 +295,7 @@ function heroBehavior(ctx: Ctx, u: Unit): void {
       const inRange = d <= u.stats.range + 4;
       if (e.kind === 'hero' && h.engage === 'hold' && !inRange) continue;
       if (!inRange && !goalPush && !inDanger && underEnemyTower(ctx, team, e.x, e.y)) continue;
+      if (!inRange && diveBlocked(ctx, u, e)) continue;
       let score = d * 0.5;
       if (h.goal?.kind === 'pushTower' && h.goal.targetId === e.id && h.engage === 'fight')
         score -= 130;
@@ -255,15 +314,15 @@ function heroBehavior(ctx: Ctx, u: Unit): void {
 
   if (t) {
     if (inAttackRange(u, t)) {
-      tryAttack(ctx, u, t);
+      h.distance += strike(ctx, u, t);
       return;
     }
-    const pers = ctx.t.personalities[pieceDef(ctx.c, h).personality];
-    const leash = ctx.t.ai.aggroRadius * pers.chase + u.stats.range;
+    // a hurt piece on the run is worth running down (the dive check above still applies)
+    const hurt = t.kind === 'hero' && hpPct(t) < ctx.t.judgement.chaseHurtHp;
+    const leash = hurt ? hurtLeash : ctx.t.ai.aggroRadius * pers.chase + u.stats.range;
     const allowChase = h.engage === 'fight' && dist(u.x, u.y, t.x, t.y) <= leash;
     if (allowChase) {
-      const moved = stepToward(ctx, u, t.x, t.y, 1, true);
-      h.distance += moved;
+      h.distance += closeIn(ctx, u, t);
       return;
     }
   }
@@ -280,8 +339,8 @@ function minionBehavior(ctx: Ctx, u: Unit): void {
     u.targetId = t ? t.id : null;
   }
   if (t) {
-    if (inAttackRange(u, t)) tryAttack(ctx, u, t);
-    else stepToward(ctx, u, t.x, t.y, 1, true);
+    if (inAttackRange(u, t)) strike(ctx, u, t);
+    else closeIn(ctx, u, t);
     return;
   }
   followPath(ctx, u);
@@ -324,8 +383,8 @@ function eventUnitBehavior(ctx: Ctx, u: Unit): void {
     u.targetId = t ? t.id : null;
   }
   if (t) {
-    if (inAttackRange(u, t)) tryAttack(ctx, u, t);
-    else stepToward(ctx, u, t.x, t.y, 1, true);
+    if (inAttackRange(u, t)) strike(ctx, u, t);
+    else closeIn(ctx, u, t);
     return;
   }
   if (away > 6) stepToward(ctx, u, ev.homeX, ev.homeY, 1.4, true);
@@ -344,8 +403,8 @@ function campBehavior(ctx: Ctx, u: Unit): void {
     u.targetId = t ? t.id : null;
   }
   if (t) {
-    if (inAttackRange(u, t)) tryAttack(ctx, u, t);
-    else stepToward(ctx, u, t.x, t.y, 1, true);
+    if (inAttackRange(u, t)) strike(ctx, u, t);
+    else closeIn(ctx, u, t);
     return;
   }
   if (away > 6) {
@@ -389,11 +448,11 @@ function guardianBehavior(ctx: Ctx, u: Unit): void {
 }
 
 export function stepUnits(ctx: Ctx): void {
+  planSlots(ctx);
   const units = ctx.s.units;
   const n = units.length;
-  const start = n > 0 ? ctx.s.tick % n : 0;
   for (let k = 0; k < n; k++) {
-    const u = units[(start + k) % n];
+    const u = units[turnIndex(ctx.s.tick, n, k)];
     if (!u.alive) continue;
     if (u.atkCd > 0) u.atkCd--;
     if (u.stunUntil !== undefined && u.stunUntil > ctx.s.tick) continue;
@@ -402,8 +461,8 @@ export function stepUnits(ctx: Ctx): void {
       if (by) {
         if (u.hero) u.hero.recall = null;
         u.targetId = by.id;
-        if (inAttackRange(u, by)) tryAttack(ctx, u, by);
-        else stepToward(ctx, u, by.x, by.y, 1, true);
+        if (inAttackRange(u, by)) strike(ctx, u, by);
+        else closeIn(ctx, u, by);
         continue;
       }
     }

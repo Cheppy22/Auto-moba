@@ -144,6 +144,8 @@ export interface HeroState {
   engage: 'fight' | 'hold' | 'flee';
   engageTick: number;
   holdTicks: number;
+  /** Tick the current flee began (for the minimum flee time). */
+  fleeSince: number;
   lastRecallTick: number;
   lossStreak: number;
   lastDeathTick: number;
@@ -279,6 +281,8 @@ export interface Unit {
   /** Taunted: must attack unit `by` until the tick. */
   taunt?: { by: number; untilTick: number };
   lastDamagedTick: number;
+  /** Knockback queued by heavy hits this tick, applied with the body collisions. */
+  knock?: { x: number; y: number };
   /** Waypoint around solid terrain while the unit walks a detour; null when it walks straight. */
   detour: { x: number; y: number; untilTick: number } | null;
 }
@@ -694,6 +698,8 @@ export interface EventPayloads {
     lethal: boolean;
     /** Damage the target did not take (armor, resist, reductions, shields); pieces only. */
     mitigated?: number;
+    /** Heavy hit: the target was knocked this far straight away from the attacker. */
+    kb?: number;
   };
   damageBucket: {
     srcTeam: TeamId | 'none';
@@ -950,6 +956,8 @@ export interface SnapUnit {
   attackKind: 'melee' | 'ranged' | null;
   recalling: boolean;
   goal: GoalKind | null;
+  /** Pieces: fighting, holding its ground, or fleeing (breaking off to retreat or fall back). */
+  engage?: 'fight' | 'hold' | 'flee';
   slot: number;
   range: number;
   claim: number;
