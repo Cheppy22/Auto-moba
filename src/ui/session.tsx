@@ -69,10 +69,14 @@ export interface BlackPlay {
 
 export interface UiState {
   speed: Speed;
+  /** Camera: free (the default), auto (the director), follow (a unit) or lane (a lane leaned in on). */
   cam: CamMode;
-  /** Board camera: the lane the view leans in on (null: the whole board). */
+  /** Lane camera: the lane the view leans in on (only while `cam` is 'lane'). */
   zoomLane: LaneId | null;
+  /** The unit the camera follows (only while `cam` is 'follow'; the fork camera uses it too). */
   follow: number | null;
+  /** The camera is turned or tilted away from its default angle (the compass shows). */
+  camTurned: boolean;
   caption: string | null;
   toast: string | null;
   aim: Aim | null;
@@ -97,9 +101,10 @@ export interface UiState {
 
 const freshUi = (): UiState => ({
   speed: 1,
-  cam: 'board',
+  cam: 'free',
   zoomLane: null,
   follow: null,
+  camTurned: false,
   caption: null,
   toast: null,
   aim: null,
@@ -121,6 +126,8 @@ export interface PickView {
   pickUnit(clientX: number, clientY: number): number | null;
   /** Where a map point lands on the canvas (CSS pixels from its top-left). */
   project(x: number, y: number, lift?: number): { x: number; y: number; visible: boolean };
+  /** Eases the camera back to its default angle (the compass). */
+  resetAngle(): void;
 }
 
 /** White's pawn plan at the start of a match (Orders changes it at each Act break). */
@@ -140,7 +147,6 @@ const MAX_BLACK_QUEUE = 3;
 const PORTRAIT_PX = 192;
 /** The run speeds the chip cycles through; 0 is paused. */
 const SPEEDS: Speed[] = [1, 2, 4, 8, 0];
-const CAMS: CamMode[] = ['board', 'auto', 'follow', 'free'];
 /** How far (map units) a tap may miss a unit and still count when it picks the ground. */
 const NEAR_PICK = 90;
 const same = (a: Chip, b: Chip): boolean => a.kind === b.kind && a.title === b.title;
@@ -251,7 +257,7 @@ export class Session {
     this.lastLeft = null;
     this.forkCam = null;
     this.blackQueue = [];
-    this.ui = { ...freshUi(), cam: this.ui.cam };
+    this.ui = { ...freshUi(), cam: this.ui.cam === 'auto' ? 'auto' : 'free' };
     this.notify();
   }
 
@@ -299,24 +305,37 @@ export class Session {
     } else this.setUi({ speed: this.runSpeed });
   }
 
-  /** The camera button: Board, Auto, Follow (the followed piece, or the King), Free. */
-  cycleCam(): void {
-    const i = CAMS.indexOf(this.ui.cam);
-    const cam = CAMS[(i + 1) % CAMS.length];
-    this.setUi({ cam, zoomLane: null, follow: cam === 'follow' ? this.ui.follow : null });
+  /** The Auto switch: the director camera follows the big plays; off returns to the free camera. */
+  setAuto(on: boolean): void {
+    this.setUi({ cam: on ? 'auto' : 'free', zoomLane: null, follow: null });
+  }
+
+  /** The free camera, from wherever the camera is now (a drag, a tap on empty ground). */
+  freeCam(): void {
+    if (this.ui.cam !== 'free') this.setUi({ cam: 'free', zoomLane: null, follow: null });
+  }
+
+  /** The camera follows a unit (a piece or a pawn). */
+  followUnit(id: number): void {
+    this.setUi({ cam: 'follow', follow: id, zoomLane: null });
   }
 
   /**
-   * Board camera: leans in on a lane; the same lane again (or Escape, or a tap off the lanes) sits
-   * back. From another camera it switches to the board first.
+   * The lane camera: leans in on a lane; the same lane again (or Escape, or null) returns to the
+   * free camera.
    */
   zoomLane(lane: LaneId | null): void {
-    const same = lane === null || (this.ui.cam === 'board' && this.ui.zoomLane === lane);
-    this.setUi({
-      cam: 'board',
-      follow: null,
-      zoomLane: same ? null : lane,
-    });
+    const same = lane === null || (this.ui.cam === 'lane' && this.ui.zoomLane === lane);
+    this.setUi(
+      same
+        ? { cam: 'free', follow: null, zoomLane: null }
+        : { cam: 'lane', follow: null, zoomLane: lane },
+    );
+  }
+
+  /** The compass: the camera eases back to its default angle. */
+  resetAngle(): void {
+    this.view?.resetAngle();
   }
 
   /** Opens the piece card (any team); a second call for the same piece closes it. */

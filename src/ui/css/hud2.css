@@ -59,8 +59,8 @@ html[data-layout='desktop'] .hud.v2 {
   min-width: calc(44px * var(--u));
   min-height: calc(44px * var(--u));
 }
-.hud.v2 .cam-btn {
-  min-width: calc(52px * var(--u));
+.hud.v2 .auto-btn {
+  min-width: calc(60px * var(--u));
 }
 .hud.v2 .adjourn {
   min-height: calc(44px * var(--u));
@@ -627,8 +627,8 @@ html[data-layout='desktop'] .hud.v2 {
   max-width: calc(90px * var(--u));
   padding: 0 4px;
 }
-.hud.v2[data-shape='side'] .cam-btn {
-  min-width: calc(50px * var(--u));
+.hud.v2[data-shape='side'] .auto-btn {
+  min-width: calc(56px * var(--u));
   padding: 2px 6px;
 }
 .hud.v2[data-shape='side'] .v2-lanes {
@@ -817,4 +817,105 @@ html[data-layout='desktop'] .hud.v2 {
 }
 .lane-home {
   display: block;
+}
+
+/* ---------- full-screen map: the HUD floats over it ----------
+ * The 3D view fills the whole screen; the HUD is a set of smoked-glass panels over it, so the map
+ * shows through and between them. Panels share one glass (ebony at ~56%, a brass hairline); text
+ * on glass carries a dark shadow so it stays readable over bright felt and stone.
+ */
+.hud.v2 {
+  --glass: rgba(15, 13, 11, 0.56);
+  --glass-hi: rgba(15, 13, 11, 0.68);
+  --glass-line: rgba(201, 163, 90, 0.3);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
+}
+/* no band across the top: only a faint shade where the status bar sits */
+.hud.v2 .v2-top {
+  background: linear-gradient(180deg, rgba(10, 9, 8, 0.42), rgba(10, 9, 8, 0) 70%);
+}
+/* the clock case: both scores and the Act clock in one glass panel */
+.hud.v2 .v2-time .clock {
+  padding: 3px 6px 2px;
+  background: var(--glass);
+  border: 1px solid var(--glass-line);
+  border-radius: 10px;
+  backdrop-filter: blur(6px);
+  pointer-events: auto;
+}
+.hud.v2 .pts-label {
+  color: var(--bone);
+}
+.hud.v2 .glass,
+.hud.v2 .btn {
+  background: var(--glass);
+  border-color: var(--glass-line);
+}
+.hud.v2 .btn.adjourn {
+  background: var(--glass-hi);
+}
+.hud.v2 .lanebar.pick {
+  background: var(--glass);
+  border-color: var(--glass-line);
+  backdrop-filter: blur(6px);
+}
+.hud.v2 .tray {
+  background: linear-gradient(180deg, rgba(20, 52, 39, 0.5), rgba(15, 13, 11, 0.45));
+  border-color: var(--glass-line);
+}
+/* Black's court rides on a slim glass rail */
+.hud.v2 .v2-black {
+  justify-self: start;
+  padding: 0 6px 0 8px;
+  background: var(--glass);
+  border: 1px solid var(--glass-line);
+  border-radius: 999px;
+  backdrop-filter: blur(6px);
+  pointer-events: auto;
+}
+.hud.v2 .v2-black .v2-label {
+  color: var(--b);
+}
+/* the drawer bar and your five pieces */
+.hud.v2 .dr-bar {
+  background: var(--glass-hi);
+  border-color: rgba(201, 163, 90, 0.42);
+}
+.hud.v2 .dr-toggle {
+  background: rgba(61, 40, 28, 0.72);
+}
+.hud.v2 .roster.row .roster-cell,
+.hud.v2[data-shape='side'] .roster-cell {
+  background: var(--glass);
+  border-color: var(--glass-line);
+}
+.hud.v2 .roster.row .roster-cell.open,
+.hud.v2[data-shape='side'] .roster-cell.open {
+  background: rgba(40, 32, 18, 0.72);
+  border-color: var(--brass-hi);
+}
+.hud.v2 .roster-cell.followed {
+  border-color: var(--brass-hi);
+}
+.hud.v2 .roster.row .rname {
+  color: var(--bone);
+}
+/* the side shape keeps its one slim top row: tighter glass, the Auto switch drops its icon */
+.hud.v2[data-shape='side'] .v2-time .clock {
+  padding: 1px 3px;
+}
+.hud.v2[data-shape='side'] .v2-black {
+  padding: 0 2px;
+}
+.hud.v2[data-shape='side'] .auto-btn svg {
+  display: none;
+}
+/* narrow phones: the clock case hugs its contents and the Auto switch drops its icon */
+@media (max-width: 420px) {
+  .hud.v2 .v2-time .clock {
+    padding: 2px 3px 1px;
+  }
+  .hud.v2 .auto-btn svg {
+    display: none;
+  }
 }

@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import type { CamMode } from '../../render/broadcast/types';
 import type { Snapshot } from '../../sim';
 import { courtName } from '../../analysis/text';
 import { clockSec } from '../format';
@@ -34,33 +33,68 @@ export function SpeedChip(props: { held: boolean }) {
   );
 }
 
-const CAM_LABEL: Record<CamMode, string> = {
-  board: 'Board',
-  auto: 'Auto',
-  follow: 'Follow',
-  free: 'Free',
-};
-const CAM_TIP: Record<CamMode, string> = {
-  board: 'The whole board, fixed (tap a lane to lean in)',
-  auto: 'The camera follows the big plays',
-  follow: 'Tracking one piece (tap a portrait to switch)',
-  free: 'Drag to pan, scroll or pinch to zoom, right-drag to turn',
-};
-
-/** One button for the camera: Board, Auto, Follow, Free; tap to step to the next. */
-export function CamButton() {
+/**
+ * The Auto switch: on, the director camera follows the big plays; off (the default) the camera is
+ * the player's own. Any drag, pinch or twist on the board turns it off.
+ */
+export function AutoToggle() {
   const s = useSession();
-  const mode = s.ui.cam;
+  const on = s.ui.cam === 'auto';
   return (
     <button
-      class="btn small chip-ctl cam-btn glass"
-      data-testid="cam-btn"
-      data-mode={mode}
-      aria-label={`Camera: ${CAM_LABEL[mode]}. Tap to change.`}
-      title={`${CAM_TIP[mode]} (tap to change)`}
-      onClick={() => s.cycleCam()}
+      class={`btn small chip-ctl auto-btn glass ${on ? 'on' : ''}`}
+      data-testid="auto-btn"
+      aria-pressed={on}
+      aria-label={
+        on ? 'Auto camera is on. Tap to turn it off.' : 'Auto camera is off. Tap to turn it on.'
+      }
+      title={
+        on
+          ? 'Auto camera: following the big plays (tap to stop)'
+          : 'Auto camera: follow the big plays'
+      }
+      onClick={() => s.setAuto(!on)}
     >
-      {CAM_LABEL[mode]}
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <rect
+          x="1.5"
+          y="4"
+          width="9"
+          height="8"
+          rx="1.5"
+          stroke="currentColor"
+          stroke-width="1.4"
+        />
+        <path d="M10.5 7.2 14.5 5v6l-4-2.2z" fill="currentColor" />
+      </svg>
+      <span>Auto</span>
+    </button>
+  );
+}
+
+/**
+ * The compass: shows while the camera is turned or tilted away from its default angle; its needle
+ * points to White's end of the board. Tap to ease back to the default angle.
+ */
+export function Compass() {
+  const s = useSession();
+  if (!s.ui.camTurned || s.ui.cam === 'lane') return null;
+  return (
+    <button
+      class="compass glass"
+      data-testid="compass"
+      aria-label="Camera turned. Tap to face the board again."
+      title="Face the board again"
+      onClick={() => s.resetAngle()}
+    >
+      <svg viewBox="0 0 40 40" width="40" height="40" aria-hidden="true">
+        <circle cx="20" cy="20" r="17" class="compass-ring" />
+        <g class="compass-needle">
+          <path d="M20 5 24.5 20h-9z" class="needle-home" />
+          <path d="M20 35 15.5 20h9z" class="needle-far" />
+          <circle cx="20" cy="20" r="2.2" class="needle-pin" />
+        </g>
+      </svg>
     </button>
   );
 }
@@ -160,13 +194,13 @@ export function ClockBlock(props: { snap: Snapshot; held: boolean; counts?: bool
   );
 }
 
-/** Speed (and pause), camera and Adjourn. */
+/** Speed (and pause), the Auto camera switch and Adjourn. */
 export function TopControls(props: { held: boolean }) {
   const s = useSession();
   return (
     <div class="top-ctl v2-ctl">
       <SpeedChip held={props.held} />
-      <CamButton />
+      <AutoToggle />
       <button class="btn adjourn" data-testid="adjourn" onClick={() => s.adjourn()}>
         Adjourn
       </button>

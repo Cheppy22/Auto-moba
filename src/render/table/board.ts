@@ -21,14 +21,21 @@ import {
   groveProps,
   LIP,
   mapStyle,
+  type MapStyle,
   type MapStyleId,
   paintCover,
+  paintLake,
   paintLongStyled,
+  woods,
 } from './longlook';
-import { bastionSites, type Ground, LongRelief, Relief, RELIEF } from './relief';
+import { bastionSites, type Ground, LongRelief, Relief, RELIEF, TERRACE } from './relief';
 
-/** Walnut frame width around the board (world units). */
+/** Walnut frame width around the square board (world units). */
 export const FRAME = 130;
+/** The Long Board's apron: ground past the board's edge, out to the lake (world units). */
+export const APRON = 340;
+/** Side of the lake plane round the Long Board (it reaches past the fog). */
+const LAKE_SIZE = 40000;
 /** Board top is y = 0; the slab and frame sit just under it. */
 const SLAB = 46;
 
@@ -69,17 +76,22 @@ function along(pts: readonly (readonly number[])[], d: number): [number, number,
 }
 
 /**
- * The Tournament Table: a walnut table in a dark hall, a thick board slab with a walnut notation
- * frame and brass bead, an 8×8 chessboard in mid tones, felt lane runners edged in brass, recessed
- * jungle courts, and the two base medallions. The whole top is one painted texture (one draw).
+ * The board. Square map: the Tournament Table, a walnut table in a dark hall, a thick board slab
+ * with a walnut notation frame and brass bead, an 8×8 chessboard in mid tones, felt lane runners
+ * edged in brass, recessed jungle courts and the two base medallions. Long Board: the garden in its
+ * theme, filling the screen; past its edge the dead-space floor and the river run on across an
+ * apron ringed by woods, down to a lake that fades into the haze (no table, no frame). The whole
+ * top is one painted texture (one draw).
  */
 export class Board {
   readonly group = new Group();
-  /** Half the board's width (x) and length (z), and the half extents with the frame. */
+  /** Half the board's width (x) and length (z), and the half extents with the frame or apron. */
   readonly hx: number;
   readonly hz: number;
   readonly ex: number;
   readonly ez: number;
+  /** Ground drawn past the board's edge: the square board's frame, the Long Board's apron. */
+  readonly margin: number;
   /** The Long Board (terraces, rectangular): painted and raised by its own rules. */
   readonly long: boolean;
   /** Ground heights (raised squares, daises, court pits, Bastion tiles; terraces on the Long Board). */
@@ -91,7 +103,14 @@ export class Board {
   private readonly gates: { mesh: Mesh; id: string }[] = [];
   private readonly texSize: number;
   /** The Long Board's theme; null on the square board. */
-  private readonly style: ReturnType<typeof mapStyle> | null;
+  private style: MapStyle | null;
+  /** Long Board: the closed-clearing cover (repainted with the theme), the props and the lake. */
+  private cover: { canvas: HTMLCanvasElement; tex: CanvasTexture; r: number } | null = null;
+  private props: Mesh[] = [];
+  private readonly propsMat = this.own(
+    new MeshLambertMaterial({ vertexColors: true, flatShading: true }),
+  );
+  private lake: { canvas: HTMLCanvasElement; tex: CanvasTexture } | null = null;
 
   constructor(
     private readonly content: Content,
@@ -104,15 +123,74 @@ export class Board {
     this.hx = hx;
     this.hz = hz;
     this.long = !!map.terraces;
-    this.ex = hx + FRAME;
-    this.ez = hz + FRAME;
+    this.margin = this.long ? APRON : FRAME;
+    this.ex = hx + this.margin;
+    this.ez = hz + this.margin;
     const E = Math.max(this.ex, this.ez);
     this.texSize = texSize;
     this.style = this.long ? mapStyle(theme) : null;
-    this.relief = this.long ? new LongRelief(map, FRAME, 20, LIP) : new Relief(content, E);
-    const lift = this.relief.frameH;
+    this.relief = this.long ? new LongRelief(map, APRON, 20, LIP) : new Relief(content, E);
 
-    // table: a walnut plane with a pool of lamp light under the board
+    // the painted top (board + frame or apron), lifted into relief; flat shading gives the
+    // terraces crisp, faceted sides (low poly) while the flat tops stay one tone
+    this.topMat = this.own(new MeshLambertMaterial({ color: '#ffffff', flatShading: true }));
+    this.top = new Mesh(this.own(this.reliefGeometry()), this.topMat);
+    this.top.receiveShadow = true;
+    this.group.add(this.top);
+    if (this.long) this.buildLake();
+    else this.buildTable(E);
+
+    // covers over jungle courts that are not open yet: the Long Board's dark cover with a
+    // keyhole, notched round the camp's badge; the square board's iron grate
+    const [gc, gg] = canvas(256, 256);
+    const coverR = (content.map.slots[0]?.radius ?? 0) * 0.92 + 8;
+    if (!this.style) {
+      gg.fillStyle = 'rgba(14,10,8,0.14)';
+      gg.fillRect(0, 0, 256, 256);
+      gg.strokeStyle = 'rgba(30,26,24,0.7)';
+      gg.lineWidth = 7;
+      for (let i = -256; i < 512; i += 42) {
+        gg.beginPath();
+        gg.moveTo(i, 0);
+        gg.lineTo(i + 256, 256);
+        gg.moveTo(i + 256, 0);
+        gg.lineTo(i, 256);
+        gg.stroke();
+      }
+      gg.strokeStyle = 'rgba(201,163,90,0.8)';
+      gg.lineWidth = 6;
+      gg.strokeRect(6, 6, 244, 244);
+    }
+    const coverTex = this.own(tex(gc, 4));
+    if (this.style) {
+      this.cover = { canvas: gc, tex: coverTex, r: coverR };
+      this.paintCover();
+    }
+    const gateMat = this.own(
+      new MeshBasicMaterial({ map: coverTex, transparent: true, depthWrite: false }),
+    );
+    for (const slot of content.map.slots) {
+      const side = slot.radius * 1.84;
+      const mesh = new Mesh(
+        this.own(
+          this.style
+            ? new CircleGeometry(coverR, 40).rotateX(-Math.PI / 2)
+            : new PlaneGeometry(side, side).rotateX(-Math.PI / 2),
+        ),
+        gateMat,
+      );
+      const y = this.long ? this.relief.atSim(slot.x, slot.y) : 0;
+      mesh.position.set(slot.x - hx, 1.2 + y, slot.y - hz);
+      mesh.renderOrder = 2;
+      this.gates.push({ mesh, id: slot.id });
+      this.group.add(mesh);
+    }
+    this.buildProps();
+  }
+
+  /** The square board's table: a walnut plane with a pool of lamp light, the slab and the beads. */
+  private buildTable(E: number): void {
+    const lift = this.relief.frameH;
     const [tc, tg] = canvas(1024, 1024);
     const r = tg.createRadialGradient(512, 512, 40, 512, 512, 512);
     const tg4 = TABLE.tableGrad;
@@ -150,6 +228,7 @@ export class Board {
     );
     slab.position.y = (-SLAB + slabTop) / 2;
     slab.receiveShadow = true;
+    this.group.add(table, slab);
 
     // brass bead around the playing field, dark bead at the outer edge
     const brass = this.own(new MeshLambertMaterial({ color: TABLE.brass, emissive: '#2a1d08' }));
@@ -168,87 +247,82 @@ export class Board {
       if (rot) mesh.rotation.y = Math.PI / 2;
       this.group.add(mesh);
     };
-    const sx = hx + 5;
-    const sz = hz + 5;
+    const sx = this.hx + 5;
+    const sz = this.hz + 5;
     for (const sign of [-1, 1]) {
       bead(sx * 2 + 10, 10, 4, 0, sign * sz, false, brass);
       bead(sz * 2 + 10, 10, 4, sign * sx, 0, true, brass);
       bead(this.ex * 2 + 8, 12, 7, 0, sign * (this.ez - 2), false, dark);
       bead(this.ez * 2 + 8, 12, 7, sign * (this.ex - 2), 0, true, dark);
     }
+  }
 
-    // the painted top (board + frame), lifted into relief; flat shading gives the terraces crisp,
-    // faceted sides (low poly) while the flat tops stay one tone
-    this.topMat = this.own(new MeshLambertMaterial({ color: '#ffffff', flatShading: true }));
-    this.top = new Mesh(this.own(this.reliefGeometry()), this.topMat);
-    this.top.receiveShadow = true;
-
-    // iron gates over jungle courts that are not open yet (round over the Long Board's clearings)
-    const [gc, gg] = canvas(256, 256);
-    // the Long Board's styles: a dark cover with a keyhole, notched round the camp's badge
-    const coverR = (content.map.slots[0]?.radius ?? 0) * 0.92 + 8;
-    if (this.style)
-      paintCover(gg, 256, this.style, (coverR - 8) / coverR, (CAMP_BADGE + 5) / coverR);
-    else if (this.long) {
-      gg.beginPath();
-      gg.arc(128, 128, 125, 0, Math.PI * 2);
-      gg.clip();
-    }
-    if (!this.style) {
-      gg.fillStyle = 'rgba(14,10,8,0.14)';
-      gg.fillRect(0, 0, 256, 256);
-      gg.strokeStyle = 'rgba(30,26,24,0.7)';
-      gg.lineWidth = 7;
-      for (let i = -256; i < 512; i += 42) {
-        gg.beginPath();
-        gg.moveTo(i, 0);
-        gg.lineTo(i + 256, 256);
-        gg.moveTo(i + 256, 0);
-        gg.lineTo(i, 256);
-        gg.stroke();
-      }
-      gg.strokeStyle = 'rgba(201,163,90,0.8)';
-      gg.lineWidth = 6;
-      if (this.long) {
-        gg.beginPath();
-        gg.arc(128, 128, 122, 0, Math.PI * 2);
-        gg.stroke();
-      } else gg.strokeRect(6, 6, 244, 244);
-    }
-    const gateMat = this.own(
-      new MeshBasicMaterial({ map: this.own(tex(gc, 4)), transparent: true, depthWrite: false }),
+  /** The Long Board's lake: one wide plane round the island, fading into the haze. */
+  private buildLake(): void {
+    const [c] = canvas(1024, 1024);
+    const t = this.own(tex(c, 4));
+    this.lake = { canvas: c, tex: t };
+    this.paintLake();
+    const lake = new Mesh(
+      this.own(new PlaneGeometry(LAKE_SIZE, LAKE_SIZE).rotateX(-Math.PI / 2)),
+      this.own(new MeshLambertMaterial({ map: t })),
     );
-    for (const slot of content.map.slots) {
-      const side = slot.radius * 1.84;
-      const mesh = new Mesh(
-        this.own(
-          this.style
-            ? new CircleGeometry(coverR, 40).rotateX(-Math.PI / 2)
-            : this.long
-              ? new CircleGeometry(slot.radius * 0.96, 40).rotateX(-Math.PI / 2)
-              : new PlaneGeometry(side, side).rotateX(-Math.PI / 2),
-        ),
-        gateMat,
-      );
-      const y = this.long ? this.relief.atSim(slot.x, slot.y) : 0;
-      mesh.position.set(slot.x - hx, 1.2 + y, slot.y - hz);
-      mesh.renderOrder = 2;
-      this.gates.push({ mesh, id: slot.id });
-      this.group.add(mesh);
-    }
+    lake.position.y = TERRACE.lake + 8;
+    this.group.add(lake);
+  }
 
-    this.group.add(table, slab, this.top);
+  private paintLake(): void {
+    if (!this.lake || !this.style) return;
+    const c = this.lake.canvas;
+    paintLake(c.getContext('2d')!, c.width, LAKE_SIZE, this.content.map, this.style);
+    this.lake.tex.needsUpdate = true;
+  }
 
-    // the Long Board's groves are ringed by low-poly pines (one static mesh)
-    const trees = this.style ? groveProps(map, this.relief, this.style) : null;
-    if (trees) {
-      const mesh = new Mesh(
-        this.own(trees),
-        this.own(new MeshLambertMaterial({ vertexColors: true, flatShading: true })),
-      );
-      mesh.castShadow = true;
-      this.group.add(mesh);
+  /** The Long Board's grove pines, hedges and gate arches (they cast shadows) and the woods round the garden. */
+  private buildProps(): void {
+    for (const m of this.props) {
+      this.group.remove(m);
+      m.geometry.dispose();
     }
+    this.props = [];
+    if (!this.style) return;
+    const grove = groveProps(this.content.map, this.relief, this.style);
+    if (grove) {
+      const m = new Mesh(grove, this.propsMat);
+      m.castShadow = true;
+      this.props.push(m);
+    }
+    this.props.push(
+      new Mesh(woods(this.content.map, this.relief, this.style, APRON), this.propsMat),
+    );
+    this.group.add(...this.props);
+  }
+
+  private paintCover(): void {
+    const c = this.cover;
+    if (!c || !this.style) return;
+    const g = c.canvas.getContext('2d')!;
+    paintCover(g, c.canvas.width, this.style, (c.r - 8) / c.r, (CAMP_BADGE + 5) / c.r);
+    c.tex.needsUpdate = true;
+  }
+
+  /** The Long Board's theme (repaints the ground, the covers, the props and the lake). */
+  setTheme(theme: MapStyleId): void {
+    if (!this.long || this.style?.id === theme) return;
+    this.style = mapStyle(theme);
+    this.paintCover();
+    this.buildProps();
+    this.paintLake();
+    if (this.orient) {
+      const o = this.orient;
+      this.orient = null;
+      this.setOrient(o);
+    }
+  }
+
+  /** The haze colour the distance fades into (the Long Board's theme), or null for the hall. */
+  get haze(): string | null {
+    return this.style?.haze ?? null;
   }
 
   /** One indexed grid over board and frame, heights from the relief, UVs onto the painted top. */
@@ -265,9 +339,9 @@ export class Board {
         const x = -R.ex + i * R.cell;
         const z = -R.ez + j * R.cell;
         pos[k * 3] = x;
-        // the outermost ring drops to the slab: the board's side edge
+        // the outermost ring drops to the slab (the square board's side edge) or into the lake
         const rim = i === 0 || j === 0 || i === nx || j === nz;
-        pos[k * 3 + 1] = rim ? -SLAB * 0.6 : R.h[k];
+        pos[k * 3 + 1] = rim ? (this.long ? TERRACE.lake : -SLAB * 0.6) : R.h[k];
         pos[k * 3 + 2] = z;
         uv[k * 2] = (x + R.ex) / (2 * R.ex);
         uv[k * 2 + 1] = 1 - (z + R.ez) / (2 * R.ez);
@@ -321,7 +395,7 @@ export class Board {
       // the long side gets a third more pixels than the square board's texture
       const H = Math.round((this.texSize * 4) / 3);
       const [c, g] = canvas(Math.round((H * this.ex) / this.ez), H);
-      paintLongStyled(g, c.height / (2 * this.ez), this.content.map, FRAME, o, this.style);
+      paintLongStyled(g, c.height / (2 * this.ez), this.content.map, APRON, o, this.style);
       return this.own(tex(c));
     }
     const S = this.texSize;

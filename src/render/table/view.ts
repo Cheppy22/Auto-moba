@@ -19,10 +19,12 @@ import { styleEmblem } from '../emblems';
 import { BarBatch, EventRing } from '../broadcast/fx';
 import { GambitFx } from '../broadcast/gambit';
 import { Kit } from '../broadcast/kit';
-import type { BroadcastFrame, NewEvents } from '../broadcast/types';
+import type { BroadcastFrame, CamMode, NewEvents } from '../broadcast/types';
 import { ZoneFx } from '../broadcast/zones';
-import { Board, FRAME } from './board';
+import { Board } from './board';
+import type { MapStyleId } from './longlook';
 import { TableCamera } from './camera';
+import { FreeControls } from './controls';
 import { LaneCam } from './lanecam';
 import { Crowd, crowdInk, facetMaterial, hullOf } from './crowd';
 import { FIG_HEIGHT, type PieceId } from './figures';
@@ -248,6 +250,13 @@ export class TableView {
   private readonly col = new Color();
   private readonly lean = { x: 0, z: 0 };
   private readonly laneCam: LaneCam;
+  private readonly controls: FreeControls;
+  /** The camera mode of the last frame (gestures read it between frames). */
+  private mode: CamMode = 'free';
+  /** Follow mode: the camera distance (pinch and wheel change it). */
+  private followD = 0;
+  /** Last compass state sent to the page (turned away from the default angle, yaw in degrees). */
+  private angleSent = { turned: false, yaw: NaN };
   private readonly lineup: 'board' | 'close' | 'closeb' | null;
   private lineupUnits: ChessUnit[] | null = null;
   private time = 0;
@@ -271,6 +280,8 @@ export class TableView {
   constructor(
     private readonly canvas: HTMLCanvasElement,
     private readonly content: Content,
+    /** The Long Board's theme (`a` Slate garden, `b` Lamplit parterre). */
+    theme: MapStyleId = 'a',
   ) {
     this.renderer = webgl(canvas);
     this.hx = content.map.size / 2;
@@ -286,7 +297,8 @@ export class TableView {
     const p = new URLSearchParams(location.search).get('lineup');
     this.lineup = p === 'close' || p === 'closeb' ? p : p !== null ? 'board' : null;
 
-    // the hall: a dark warm gradient behind the table, fog that swallows the table's edge
+    // the square board's hall: a dark warm gradient behind the table, fog that swallows the
+    // table's edge (the Long Board replaces both with its theme's haze, below)
     const bg = document.createElement('canvas');
     bg.width = 4;
     bg.height = 256;
@@ -310,7 +322,7 @@ export class TableView {
     this.key.castShadow = this.shadows;
     if (this.shadows) {
       const sc = this.key.shadow.camera;
-      const w = Math.max(this.hx, this.hz) + FRAME;
+      const w = Math.max(this.hx, this.hz) + (this.long ? 340 : 130);
       sc.left = -w * 1.15;
       sc.right = w * 1.15;
       sc.top = w * 1.15;
@@ -323,7 +335,8 @@ export class TableView {
     }
     this.scene.add(sky, this.key, this.key.target, this.back, this.back.target);
 
-    this.board = new Board(content, coarse ? 2048 : 3072);
+    this.board = new Board(content, coarse ? 2048 : 3072, theme);
+    this.applyHaze();
     const ground = this.board.relief;
     this.cam = new TableCamera(
       content,
@@ -449,6 +462,20 @@ export class TableView {
       this.tags.mesh,
     );
     this.laneCam = new LaneCam(content, canvas, this.groundAt, () => this.cam.pxNow());
+    this.controls = new FreeControls(canvas, {
+      cam: this.cam,
+      ground: this.groundAt,
+      mode: () => this.mode,
+      manual: () => {
+        // a drag (or, in Auto, any gesture) takes the camera back: free, from where it is
+        this.cam.holdHere();
+        this.mode = 'free';
+        this.canvas.dispatchEvent(new Event('cam-manual'));
+      },
+      followZoom: (f) => {
+        this.followD = MathUtils.clamp(this.followD * f, this.cam.minD, this.cam.maxD);
+      },
+    });
     this.resize();
     if (import.meta.env.DEV) {
       const w = window as unknown as Record<string, unknown>;
@@ -459,6 +486,16 @@ export class TableView {
         const a = this.recs.get(aid);
         const v = this.recs.get(vid);
         if (a && v) this.queueHit(a, v, a.team, 0, frac, lethal, melee);
+      };
+      // dev: set the free camera (zoom: a factor of the distance, 99 = all the way out; yaw: radians
+      // added; tilt: degrees; home: back to the default pose), for screenshots
+      w.__tvCam = (o: { zoom?: number; yaw?: number; tilt?: number; home?: boolean }) => {
+        const g = this.cam.goal;
+        if (o.home) this.cam.goHome();
+        if (o.zoom !== undefined) g.d = o.zoom >= 99 ? this.cam.maxD : g.d * o.zoom;
+        if (o.yaw !== undefined) g.yaw += o.yaw;
+        if (o.tilt !== undefined) g.tilt = MathUtils.degToRad(o.tilt);
+        return { ...this.cam.pose, min: this.cam.minD, max: this.cam.maxD };
       };
       w.__tvBoard = () => {
         const [x0, y0, x1, y1] = this.cam.boardBox(this.cssW, this.cssH);
@@ -535,11 +572,6 @@ export class TableView {
     this.renderer.setSize(w, h, false);
     this.cam.fit(w, h);
     SIZE.k = sizeFor(this.cam.tiltDeg, this.cam.protoTilt);
-    // the Long Board's camera sits farther back: the fog starts past its far end
-    if (this.long && this.scene.fog instanceof Fog) {
-      this.scene.fog.near = Math.max(9000, this.cam.wholeDist + this.hz);
-      this.scene.fog.far = this.scene.fog.near + 17000;
-    }
     this.board.setOrient(this.cam.orient);
     // key light from White's front-left, rim from behind the board (relative to the seat)
     const c = this.cam.camera.position;
@@ -588,29 +620,7 @@ export class TableView {
     for (const sl of snap.slots) if (sl.open || this.lineup) this.open.add(sl.id);
     this.board.sync(this.isOpen);
 
-    // camera: whole board; Follow leans in on the followed piece
-    let lean: { x: number; z: number } | null = null;
-    const lane =
-      frame.mode === 'board' && !this.lineup
-        ? this.laneCam.update(frame.laneFocus ?? null)
-        : this.laneCam.update(null);
-    if (lane) lean = lane;
-    else if (this.lineup === 'close' || this.lineup === 'closeb') {
-      const k = this.lineup === 'close' ? 560 : -560;
-      this.lean.x = this.cam.dir.x * k;
-      this.lean.z = this.cam.dir.z * k;
-      lean = this.lean;
-    } else if (frame.mode === 'follow' && frame.followId !== null) {
-      const f = this.recs.get(frame.followId);
-      if (f?.live) {
-        this.lean.x = f.x;
-        this.lean.z = f.z;
-        lean = this.lean;
-      }
-    }
-    this.leaning = lean !== null;
-    if (lane) this.cam.update(real, lane, this.laneCam.zoom, true, this.laneCam.active ? 10 : 4);
-    else this.cam.update(real, lean, this.lineup ? 0.62 : undefined);
+    this.steer(frame, real);
     const camera = this.cam.camera;
     const px = this.cam.pxNow();
     this.lib.ink.A.value = px * TEAM.A.inkPx;
@@ -639,6 +649,106 @@ export class TableView {
     this.chips.update(dt);
     this.renderer.render(this.scene, camera);
     this.drawn++;
+  }
+
+  /**
+   * The camera for this frame. Free: the gestures drive it (a fling coasts). Follow: the followed
+   * unit in the middle of the HUD-free band. Lane: the lane camera's point along the lane. Auto:
+   * the director's shot (the wide shot is the whole board). Switching back to Free starts from
+   * where the camera is.
+   */
+  private steer(frame: BroadcastFrame, real: number): void {
+    const cam = this.cam;
+    const g = cam.goal;
+    const was = this.mode;
+    let mode: CamMode = frame.mode;
+    if (this.lineup) mode = 'free';
+    if (mode !== was) {
+      if (mode === 'follow') this.followD = Math.min(cam.pose.d, cam.followDist);
+      else if (mode === 'free') cam.holdHere();
+    }
+    this.mode = mode;
+    if (this.long) this.planeY = this.board.relief.at(cam.pose.x, cam.pose.z);
+    let rate: number;
+    const lane = mode === 'lane' ? this.laneCam.update(frame.laneFocus ?? null) : null;
+    if (mode !== 'lane') this.laneCam.update(null);
+    if (mode === 'lane' && lane) {
+      g.d = cam.laneDist(this.laneCam.zoom);
+      cam.centred(lane, g.d, g);
+      rate = this.laneCam.active ? 10 : 4;
+    } else if (mode === 'follow' && frame.followId !== null) {
+      const f = this.recs.get(frame.followId);
+      if (f?.live) {
+        g.d = this.followD;
+        cam.centred(f, g.d, g);
+      }
+      rate = 5;
+    } else if (mode === 'auto') {
+      const shot = frame.shot;
+      const tanV = Math.tan(MathUtils.degToRad(cam.camera.fov / 2));
+      if (shot.kind === 'wide') {
+        g.x = 0;
+        g.z = 0;
+        g.d = cam.wholeDist;
+      } else {
+        this.lean.x = shot.x - this.hx;
+        this.lean.z = shot.y - this.hz;
+        g.d = MathUtils.clamp(
+          (shot.radius * 1.5 * Math.sin(g.tilt)) / tanV,
+          cam.minD * 1.4,
+          cam.wholeDist,
+        );
+        cam.centred(this.lean, g.d, g);
+      }
+      if (shot.cut) Object.assign(cam.pose, g);
+      rate = 2.2;
+    } else {
+      this.controls.tick(real);
+      rate = this.controls.active ? 18 : 8;
+    }
+    this.leaning = mode === 'lane' || mode === 'follow' || g.d < cam.wholeDist * 0.6;
+    cam.update(real, rate);
+    this.sendAngle();
+    // the Long Board: the board stays clear, the lake and the woods past it fade into the haze
+    if (this.long && this.scene.fog instanceof Fog) {
+      this.scene.fog.near = cam.pose.d + 1800;
+      this.scene.fog.far = cam.pose.d + 9000;
+    }
+  }
+
+  /** The Long Board's haze: the background and the fog take the theme's colour. */
+  private applyHaze(): void {
+    const haze = this.board.haze;
+    if (!haze) return;
+    this.scene.background = new Color(haze);
+    if (this.scene.fog instanceof Fog) this.scene.fog.color.set(haze);
+  }
+
+  /** Switches the Long Board's theme in place (the camera keeps its pose). */
+  setTheme(theme: MapStyleId): void {
+    this.board.setTheme(theme);
+    this.applyHaze();
+  }
+
+  /** The last press on the board was a drag or a pinch (the tap handlers ignore it). */
+  get gestured(): boolean {
+    return this.controls.gestured || this.laneCam.active;
+  }
+
+  /** Tells the page when the compass should show and where it points (on change only). */
+  private sendAngle(): void {
+    const turned = this.cam.turned;
+    const yaw = Math.round(MathUtils.radToDeg(this.cam.pose.yaw - this.cam.home.yaw));
+    if (yaw !== this.angleSent.yaw && typeof document !== 'undefined')
+      document.documentElement.style.setProperty('--cam-yaw', `${yaw}deg`);
+    if (turned !== this.angleSent.turned)
+      this.canvas.dispatchEvent(new CustomEvent('cam-angle', { detail: { turned } }));
+    this.angleSent = { turned, yaw };
+  }
+
+  /** Eases back to the default camera angle (the compass button). */
+  resetAngle(): void {
+    this.cam.resetAngle();
   }
 
   /** Zone effects sit just above the floor (the square board keeps them on its lane level). */
@@ -673,7 +783,10 @@ export class TableView {
     };
   }
 
-  /** The world point (x, z on the lane floor, y = 0) under a client position. */
+  /** Height of the plane gestures grab (the ground under the camera's target on the Long Board). */
+  private planeY = 0;
+
+  /** The world point (x, z on the plane at `planeY`) under a client position. */
   private readonly groundAt = (
     clientX: number,
     clientY: number,
@@ -689,7 +802,7 @@ export class TableView {
     const o = this.org.setFromMatrixPosition(cam.matrixWorld);
     const d = this.ray.set(nx, ny, 0.5).unproject(cam).sub(o).normalize();
     if (d.y > -1e-4) return false;
-    const t = -o.y / d.y;
+    const t = (this.planeY - o.y) / d.y;
     out.x = o.x + d.x * t;
     out.z = o.z + d.z * t;
     return true;
@@ -1924,6 +2037,8 @@ export class TableView {
 
   dispose(): void {
     this.laneCam.dispose();
+    this.controls.dispose();
+    document.documentElement.style.removeProperty('--cam-yaw');
     this.canvas.removeEventListener('webglcontextlost', this.onLost);
     this.canvas.removeEventListener('webglcontextrestored', this.onRestored);
     this.reset();

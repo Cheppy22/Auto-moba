@@ -47,6 +47,9 @@ export interface MapStyle {
   /** Clipped hedge round the groves (b only), and the pine rows' offsets from the grove edge. */
   hedge: readonly [string, string] | null;
   pineRows: readonly number[];
+  /** The surroundings: the lake round the garden, and the haze the far distance fades into. */
+  lake: string;
+  haze: string;
 }
 
 const STYLES: Record<'a' | 'b', MapStyle> = {
@@ -76,6 +79,8 @@ const STYLES: Record<'a' | 'b', MapStyle> = {
     trunk: '#3a2a1c',
     hedge: null,
     pineRows: [22, 58],
+    lake: '#0b1e29',
+    haze: '#17232a',
   },
   // b · Lamplit parterre: warm umber tiles, bottle-green felt, honey sandstone, hedged groves
   b: {
@@ -103,14 +108,22 @@ const STYLES: Record<'a' | 'b', MapStyle> = {
     trunk: '#3f2c1b',
     hedge: ['#2b4a2b', '#38603a'],
     pineRows: [44, 76],
+    lake: '#0c1828',
+    haze: '#241c16',
   },
 };
 
-/** Mixes two #rrggbb colours. */
+/** Mixes two #rrggbb colours (the result is #rrggbb too). */
 export function mix(a: string, b: string, t: number): string {
   const p = (h: string, i: number): number => parseInt(h.slice(1 + i * 2, 3 + i * 2), 16);
   const c = [0, 1, 2].map((i) => Math.round(p(a, i) + (p(b, i) - p(a, i)) * t));
-  return `rgb(${c[0]},${c[1]},${c[2]})`;
+  return `#${c.map((v) => v.toString(16).padStart(2, '0')).join('')}`;
+}
+
+/** A #rrggbb colour with an alpha. */
+export function rgba(c: string, a: number): string {
+  const p = (i: number): number => parseInt(c.slice(1 + i * 2, 3 + i * 2), 16);
+  return `rgba(${p(0)},${p(1)},${p(2)},${a})`;
 }
 
 /** A small deterministic hash in [0, 1) (the paint is the same every load). */
@@ -444,13 +457,14 @@ function ringBand(g: CanvasRenderingContext2D, x: number, y: number, R: number, 
 
 /**
  * Paints the Long Board's top in a style of the visual language (sim coordinates; `k` texture
- * pixels per sim unit; text and badges face the player).
+ * pixels per sim unit; text and badges face the player). The dead-space floor and the river run
+ * on past the board's edge across the `apron` round it, darkening toward the woods and the lake.
  */
 export function paintLongStyled(
   g: CanvasRenderingContext2D,
   k: number,
   map: MapDef,
-  frame: number,
+  apron: number,
   o: Orient,
   st: MapStyle,
 ): void {
@@ -458,7 +472,7 @@ export function paintLongStyled(
   const L = map.length ?? map.size;
   const mid = L / 2;
   const t = map.terraces!;
-  const F = frame;
+  const F = apron;
   g.setTransform(k, 0, 0, k, F * k, F * k);
   const upright = o === 'portrait' ? 0 : -Math.PI / 2;
   // the player's near side on the board: down the screen
@@ -472,59 +486,37 @@ export function paintLongStyled(
     g.restore();
   };
 
-  // frame: walnut with a brass inlay; notation faces the player
-  const fg = g.createLinearGradient(-F, -F, W + F, L + F);
-  fg.addColorStop(0, TABLE.frameGrad[0]);
-  fg.addColorStop(0.5, TABLE.frameGrad[1]);
-  fg.addColorStop(1, TABLE.frameGrad[2]);
-  g.fillStyle = fg;
-  g.fillRect(-F, -F, W + F * 2, L + F * 2);
-  g.strokeStyle = TABLE.brassDark;
-  g.lineWidth = 4;
-  g.strokeRect(-F * 0.72, -F * 0.72, W + F * 1.44, L + F * 1.44);
-  const sq = W / 8;
-  const rows = Math.round(L / sq);
-  g.fillStyle = TABLE.notation;
-  g.font = `${Math.round(F * 0.5)}px 'IM Fell English SC', Georgia, serif`;
-  g.textAlign = 'center';
-  g.textBaseline = 'middle';
-  const FILES = 'abcdefgh';
-  for (let i = 0; i < 8; i++) {
-    glyph(FILES[i], sq * (i + 0.5), L + F * 0.42);
-    glyph(FILES[i], sq * (i + 0.5), -F * 0.42);
-  }
-  for (let j = 0; j < rows; j++) {
-    glyph(String(j + 1), -F * 0.42, L - sq * (j + 0.5));
-    glyph(String(j + 1), W + F * 0.42, L - sq * (j + 0.5));
-  }
-
-  // dead space: calm floor tiles, one shade per terrace (home a little lighter)
+  // dead space: calm floor tiles, one shade per terrace (home a little lighter), on past the edge
   const T = st.tile;
+  const i0 = -Math.ceil(F / T);
+  const i1 = Math.ceil((W + F) / T);
+  const j0 = -Math.ceil(F / T);
+  const j1 = Math.ceil((L + F) / T);
   let n = 0;
-  for (let i = 0; i < W / T; i++)
-    for (let j = 0; j < L / T; j++) {
+  for (let i = i0; i < i1; i++)
+    for (let j = j0; j < j1; j++) {
       const e = Math.abs((j + 0.5) * T - mid);
       const base = e >= t.home ? st.floorHome : st.floor;
-      g.fillStyle = mix(base, '#000000', hash(n++) * 0.08);
+      g.fillStyle = mix(base, '#000000', hash(n++ + 4000) * 0.08);
       g.fillRect(i * T, j * T, T + 0.5, T + 0.5);
     }
   g.strokeStyle = st.floorJoint;
   g.lineWidth = 3;
   g.beginPath();
-  for (let x = T; x < W; x += T) {
-    g.moveTo(x, 0);
-    g.lineTo(x, L);
+  for (let i = i0 + 1; i < i1; i++) {
+    g.moveTo(i * T, -F);
+    g.lineTo(i * T, L + F);
   }
-  for (let y = T; y < L; y += T) {
-    g.moveTo(0, y);
-    g.lineTo(W, y);
+  for (let j = j0 + 1; j < j1; j++) {
+    g.moveTo(-F, j * T);
+    g.lineTo(W + F, j * T);
   }
   g.stroke();
   if (st.floorStud) {
     // b: small inset stones where four tiles meet
     g.fillStyle = st.floorStud;
-    for (let x = T; x < W; x += T)
-      for (let y = T; y < L; y += T) {
+    for (let x = i0 * T; x < W + F; x += T)
+      for (let y = j0 * T; y < L + F; y += T) {
         g.beginPath();
         g.moveTo(x, y - 11);
         g.lineTo(x + 11, y);
@@ -546,19 +538,19 @@ export function paintLongStyled(
   g.fillRect(-W / 2, -W / 2, W, W);
   g.restore();
 
-  // the river: open water, a few soft ripples
+  // the river: open water running out to the lake either side, a few soft ripples
   const r0 = mid - t.river;
   const wg = g.createLinearGradient(0, r0, 0, mid + t.river);
   wg.addColorStop(0, st.water);
   wg.addColorStop(0.5, mix(st.water, st.waterLight, 0.3));
   wg.addColorStop(1, st.water);
   g.fillStyle = wg;
-  g.fillRect(0, r0, W, t.river * 2);
+  g.fillRect(-F, r0, W + F * 2, t.river * 2);
   g.strokeStyle = mix(st.water, st.waterLight, 0.7);
   g.lineWidth = 3;
-  for (let i = 0; i < 22; i++) {
+  for (let i = 0; i < 30; i++) {
     const y = r0 + 20 + hash(i) * (t.river * 2 - 40);
-    const x = hash(i + 50) * W;
+    const x = -F + hash(i + 50) * (W + F * 2);
     const len = 40 + hash(i + 90) * 60;
     g.beginPath();
     g.moveTo(x, y);
@@ -571,9 +563,9 @@ export function paintLongStyled(
     for (const s of [-1, 1]) {
       const y = mid + s * e;
       g.fillStyle = 'rgba(6,5,4,0.6)';
-      g.fillRect(0, s < 0 ? y : y - 6, W, 6);
+      g.fillRect(-F, s < 0 ? y : y - 6, W + F * 2, 6);
       g.fillStyle = st.coping;
-      g.fillRect(0, s < 0 ? y - 9 : y, W, 9);
+      g.fillRect(-F, s < 0 ? y - 9 : y, W + F * 2, 9);
     }
 
   const shapes = buildTerrain(map).shapes;
@@ -821,6 +813,81 @@ export function paintLongStyled(
     g.fillStyle = TABLE.laneName;
     glyph(name, x, y);
   }
+
+  // past the board's edge the floor gives way to the woods' dark earth, then the bank to the lake
+  const earth = mix(st.pine[0], st.floor, 0.45);
+  const bankAt = (F - BANK) / F;
+  const fade = (x0: number, y0: number, x1: number, y1: number): CanvasGradient => {
+    const fg = g.createLinearGradient(x0, y0, x1, y1);
+    fg.addColorStop(0, rgba(earth, 0));
+    fg.addColorStop(0.18, rgba(earth, 0.35));
+    fg.addColorStop(bankAt * 0.8, rgba(earth, 0.92));
+    fg.addColorStop(bankAt + (1 - bankAt) * 0.55, mix(earth, '#000000', 0.25));
+    fg.addColorStop(1, st.lake);
+    return fg;
+  };
+  g.fillStyle = fade(0, 0, -F, 0);
+  g.fillRect(-F, -F, F, L + F * 2);
+  g.fillStyle = fade(W, 0, W + F, 0);
+  g.fillRect(W, -F, F, L + F * 2);
+  g.fillStyle = fade(0, 0, 0, -F);
+  g.fillRect(0, -F, W, F);
+  g.fillStyle = fade(0, L, 0, L + F);
+  g.fillRect(0, L, W, F);
+}
+
+/** How far in from the apron's outer edge its bank starts down to the lake (sim units). */
+export const BANK = 150;
+
+/**
+ * The lake round the garden, painted into a square canvas of side `S` that covers `size` world
+ * units centred on the board: lighter shallows round the island with a few ripples, darkening
+ * outward into the haze (so the plane's edge never shows).
+ */
+export function paintLake(
+  g: CanvasRenderingContext2D,
+  S: number,
+  size: number,
+  map: MapDef,
+  st: MapStyle,
+): void {
+  const k = S / size;
+  const c = S / 2;
+  g.fillStyle = st.haze;
+  g.fillRect(0, 0, S, S);
+  const W = map.size * k;
+  const L = (map.length ?? map.size) * k;
+  // the deep water: a wide soft glow round the island, fading into the haze
+  g.save();
+  g.translate(c, c);
+  g.scale(1, L / W);
+  const deep = g.createRadialGradient(0, 0, W * 0.4, 0, 0, W * 4.2);
+  deep.addColorStop(0, st.lake);
+  deep.addColorStop(0.45, mix(st.lake, st.haze, 0.45));
+  deep.addColorStop(1, st.haze);
+  g.fillStyle = deep;
+  g.fillRect(-c, -c * (W / L), S, S * (W / L));
+  // the shallows: lamplight on the water close to the island
+  const shallow = g.createRadialGradient(0, 0, W * 0.5, 0, 0, W * 1.5);
+  shallow.addColorStop(0, rgba(st.waterLight, 0.28));
+  shallow.addColorStop(1, rgba(st.waterLight, 0));
+  g.fillStyle = shallow;
+  g.fillRect(-W * 1.6, -W * 1.6, W * 3.2, W * 3.2);
+  g.restore();
+  // ripples near the island
+  g.strokeStyle = rgba(st.waterLight, 0.22);
+  g.lineWidth = Math.max(1, 5 * k);
+  for (let i = 0; i < 160; i++) {
+    const a = hash(i + 7000) * Math.PI * 2;
+    const r = 0.62 + hash(i + 7100) * 0.9;
+    const x = c + Math.cos(a) * W * r * 1.05;
+    const y = c + Math.sin(a) * L * r * 0.62;
+    const len = (60 + hash(i + 7200) * 120) * k;
+    g.beginPath();
+    g.moveTo(x - len / 2, y);
+    g.quadraticCurveTo(x, y - 6 * k, x + len / 2, y);
+    g.stroke();
+  }
 }
 
 /**
@@ -978,4 +1045,56 @@ export function groveProps(map: MapDef, ground: Ground, st: MapStyle): BufferGeo
     );
   }
   return parts.length ? merge(parts) : null;
+}
+
+/**
+ * The woods round the garden: pines in loose rows on the apron past the board's edge, out onto
+ * the bank (two cones each, no trunk), darker toward the haze; never on the river's water, which
+ * runs on out to the lake. One static mesh (it casts no shadow: nothing walks out there).
+ */
+export function woods(map: MapDef, ground: Ground, st: MapStyle, apron: number): BufferGeometry {
+  const parts: Part[] = [];
+  const W = map.size;
+  const L = map.length ?? map.size;
+  const river = map.terraces?.river ?? 0;
+  const rows = [62, 104, 146, 188, 232, 272].filter((off) => off < apron - 40);
+  let n = 9000;
+  rows.forEach((off, row) => {
+    // the rectangle grown by `off`: walk its perimeter
+    const w = W + off * 2;
+    const l = L + off * 2;
+    const perim = 2 * (w + l);
+    for (let d = hash(n++) * 30; d < perim; d += 34 + hash(n++) * 14) {
+      let x: number;
+      let y: number;
+      if (d < w) [x, y] = [-off + d, -off];
+      else if (d < w + l) [x, y] = [W + off, -off + (d - w)];
+      else if (d < 2 * w + l) [x, y] = [W + off - (d - w - l), L + off];
+      else [x, y] = [-off, L + off - (d - 2 * w - l)];
+      x += (hash(n++) - 0.5) * 26;
+      y += (hash(n++) - 0.5) * 26;
+      // the river runs out through the woods to the lake
+      if ((x < 0 || x > W) && Math.abs(y - L / 2) < river + 30) continue;
+      // the corners are rounded off by the bank: no trees out in the water
+      const ox = Math.max(-x, x - W, 0);
+      const oy = Math.max(-y, y - L, 0);
+      if (Math.hypot(ox, oy) > apron - 40) continue;
+      const k = (1 + hash(n++) * 0.55) * 1.15 * (1 + row * 0.06);
+      const at: [number, number, number] = [x - W / 2, ground.atSim(x, y) - 3, y - L / 2];
+      const turn: [number, number, number] = [0, hash(n++) * Math.PI, 0];
+      const dim = 0.12 + row * 0.1;
+      const v = hash(n++) < 0.5 ? 0 : 1;
+      parts.push(
+        { g: cone(19, 34, 6), c: mix(st.pine[v], st.haze, dim), p: at, r: turn, s: k },
+        {
+          g: cone(13, 27, 6),
+          c: mix(st.pine[v + 2], st.haze, dim),
+          p: [at[0], at[1] + 19 * k, at[2]],
+          r: turn,
+          s: k,
+        },
+      );
+    }
+  });
+  return merge(parts);
 }

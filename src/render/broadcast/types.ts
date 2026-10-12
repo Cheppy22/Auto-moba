@@ -1,10 +1,11 @@
 import type { GameEvent, Snapshot } from '../../sim';
 
 /**
- * board: the fixed war-table view of the whole board (the default; a lane focus leans in).
- * auto: the director picks plays. follow: track one hero. free: drag/zoom by hand.
+ * free: the player's camera (the default: pan, zoom, turn and tilt by hand).
+ * auto: the director follows the big plays. follow: track one unit. lane: lean in on one lane
+ * (drag along it, pinch to zoom).
  */
-export type CamMode = 'board' | 'auto' | 'follow' | 'free';
+export type CamMode = 'free' | 'auto' | 'follow' | 'lane';
 
 export type PlayKind =
   | 'wide'
@@ -39,9 +40,9 @@ export interface BroadcastFrame {
   alpha: number;
   shot: Shot;
   mode: CamMode;
-  /** Hero to track in follow mode. */
+  /** Unit to track in follow mode. */
   followId: number | null;
-  /** Board mode: a sim point (a lane's middle) to lean in on; null keeps the whole board in view. */
+  /** Lane mode: a sim point (the lane's middle) to lean in on. */
   laneFocus?: { x: number; y: number } | null;
   /** Real milliseconds since the previous frame, for camera easing and visual physics. */
   dtMs: number;
