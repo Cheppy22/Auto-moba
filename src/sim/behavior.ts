@@ -260,6 +260,13 @@ export function updateEngage(ctx: Ctx, u: Unit): void {
   }
 }
 
+/** How far a piece chases `t`: further after a hurt enemy piece (`hurtLeash`). */
+function chaseLeash(ctx: Ctx, u: Unit, t: Unit, hurtLeash: number): number {
+  const hurt = t.kind === 'hero' && hpPct(t) < ctx.t.judgement.chaseHurtHp;
+  const pers = ctx.t.personalities[pieceDef(ctx.c, u.hero!).personality];
+  return hurt ? hurtLeash : ctx.t.ai.aggroRadius * pers.chase + u.stats.range;
+}
+
 function heroBehavior(ctx: Ctx, u: Unit): void {
   const h = u.hero!;
   if (tickRecall(ctx, u)) return;
@@ -306,6 +313,9 @@ function heroBehavior(ctx: Ctx, u: Unit): void {
       const d = dist(u.x, u.y, e.x, e.y);
       if (hm && d > sightRadius(ctx, u, myTier, tierAt(hm, e.x, e.y), radius)) continue;
       const inRange = d <= u.stats.range + 4;
+      // Long Board: Sight spots farther than a piece chases; a target it will neither hit nor
+      // chase would only stop it where it stands
+      if (hm && !inRange && d > chaseLeash(ctx, u, e, hurtLeash)) continue;
       if (e.kind === 'hero' && h.engage === 'hold' && !inRange) continue;
       if (!inRange && !goalPush && !inDanger && underEnemyTower(ctx, team, e.x, e.y)) continue;
       if (!inRange && diveBlocked(ctx, u, e)) continue;
@@ -332,9 +342,8 @@ function heroBehavior(ctx: Ctx, u: Unit): void {
       return;
     }
     // a hurt piece on the run is worth running down (the dive check above still applies)
-    const hurt = t.kind === 'hero' && hpPct(t) < ctx.t.judgement.chaseHurtHp;
-    const leash = hurt ? hurtLeash : ctx.t.ai.aggroRadius * pers.chase + u.stats.range;
-    const allowChase = h.engage === 'fight' && dist(u.x, u.y, t.x, t.y) <= leash;
+    const allowChase =
+      h.engage === 'fight' && dist(u.x, u.y, t.x, t.y) <= chaseLeash(ctx, u, t, hurtLeash);
     if (allowChase) {
       h.distance += closeIn(ctx, u, t);
       return;
