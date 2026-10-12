@@ -226,11 +226,14 @@ export class Session {
 
   newMatch(config?: Partial<MatchConfig>): void {
     const seed = config?.seed ?? Math.floor(Math.random() * 1e9);
-    // the browser game stops for White's forks and for the Act break sheet
+    // the browser game stops for White's forks and for the Act break sheet; `?map=long` plays the
+    // Long Board (sim only for now: the view still draws the square board)
+    const long = new URLSearchParams(window.location.search).get('map') === 'long';
     this.match = Match.create(this.content, {
       seed,
       pauseForForks: true,
       pauseForBreak: true,
+      ...(long ? { map: 'long' as const } : {}),
       ...config,
     });
     this.seenSeq = -1;

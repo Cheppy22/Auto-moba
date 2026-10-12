@@ -6,7 +6,13 @@ import { loadNodeContent } from './content-node';
 import { Match, hashContent } from '../src/sim';
 import type { MatchConfig } from '../src/sim';
 
-const EXPECTED = new URL('../tests/baseline.expected.json', import.meta.url);
+// --map long: the Long Board's own record (tests/baseline-long.expected.json).
+const long =
+  process.argv.includes('--map') && process.argv[process.argv.indexOf('--map') + 1] === 'long';
+const EXPECTED = new URL(
+  long ? '../tests/baseline-long.expected.json' : '../tests/baseline.expected.json',
+  import.meta.url,
+);
 
 interface Row {
   variant: string;
@@ -30,7 +36,7 @@ const VARIANTS: { name: string; cfg: Partial<MatchConfig> }[] = [
 /**
  * The state and snapshot hashes ignore `auction` (state) and `holy` (snapshot units): both are
  * removed in cleanup Phase 2, and nothing else may change. The snapshot hash also skips the
- * pieces' `inDuel` and `laneNow` read-outs, which are new and change nothing. The log hash covers every event.
+ * pieces' `inDuel`, `laneNow` and `highGround` read-outs, which change nothing. The log hash covers every event.
  */
 function withoutKeys(value: unknown, drop: (copy: Record<string, unknown>) => void): unknown {
   const copy = JSON.parse(JSON.stringify(value)) as Record<string, unknown>;
@@ -48,6 +54,8 @@ const coreSnapshot = (snap: unknown): unknown =>
       // read-outs added for the HUD (2026-10-11): they only read position and combat data
       delete u.inDuel;
       delete u.laneNow;
+      // Long Board eye-icon read-out (2026-10-12), display only
+      delete u.highGround;
     }
   });
 
@@ -57,7 +65,12 @@ const msPerTick: number[] = [];
 for (const v of VARIANTS) {
   for (const seed of SEEDS) {
     const t0 = process.hrtime.bigint();
-    const m = Match.create(content, { seed, autoGambits: { A: true, B: true }, ...v.cfg });
+    const m = Match.create(content, {
+      seed,
+      autoGambits: { A: true, B: true },
+      ...v.cfg,
+      ...(long ? { map: 'long' as const } : {}),
+    });
     if (m.state.phase.kind === 'setup') m.issue({ type: 'setupTeam', ...m.defaultSetup() });
     m.runToEnd(12);
     msPerTick.push(Number(process.hrtime.bigint() - t0) / 1e6 / m.state.tick);
@@ -78,7 +91,7 @@ for (const v of VARIANTS) {
 
 if (process.argv.includes('--write')) {
   writeFileSync(EXPECTED, JSON.stringify(rows, null, 2) + '\n');
-  console.log(`wrote ${rows.length} rows to tests/baseline.expected.json`);
+  console.log(`wrote ${rows.length} rows to ${EXPECTED.pathname.split('/').pop()}`);
   process.exit(0);
 }
 

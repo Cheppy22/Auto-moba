@@ -39,6 +39,7 @@ import {
 import { tickCampRespawns } from './camps';
 import { makeGuardian, makeTower } from './units';
 import { LANES, buildWorld } from './world/map';
+import { highGroundEdge } from './world/height';
 import type {
   Command,
   CommandResult,
@@ -426,6 +427,7 @@ export class Match {
         target: u.targetId,
         inCombat: inCombat(s.tick, u),
         ...(h ? { inDuel: inDuel(this.ctx, u), laneNow: laneNow(this.ctx, u) } : {}),
+        ...(highGroundEdge(this.ctx, u) ? { highGround: true as const } : {}),
         flash: u.atkCd >= Math.max(1, Math.round(TPS / Math.max(0.2, u.stats.atkSpeed))) - 2,
       });
     }

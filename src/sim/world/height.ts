@@ -1,4 +1,6 @@
 import type { MapDef } from '../content/schema';
+import type { Ctx } from '../ctx';
+import type { Unit } from '../types';
 import { shapeDist, type WalkShape } from './terrain';
 
 /**
@@ -59,4 +61,45 @@ export function tierAt(h: Height | null, x: number, y: number): Tier {
   if (c >= 0 && r >= 0 && c < h.cols && r < h.rows && h.sunk[r * h.cols + c]) return 0;
   const e = Math.abs(y - h.mid);
   return e < h.low ? 0 : e < h.high ? 1 : 2;
+}
+
+// ------------------------------------------------------------------ high-ground rules
+
+/**
+ * Reach: an attacker on a higher tier than its target shoots `height.reachMul` farther. Only
+ * attackers with a base range of at least `height.reachMinRange`; never structures.
+ */
+export function reachActive(ctx: Ctx, u: Unit, t: Unit): boolean {
+  const h = ctx.world.height;
+  if (!h || u.kind === 'tower' || u.kind === 'guardian') return false;
+  if (u.atkRange < ctx.t.height.reachMinRange) return false;
+  return tierAt(h, u.x, u.y) > tierAt(h, t.x, t.y);
+}
+
+/** The attack range of `u` against `t`, with Reach. */
+export function attackRange(ctx: Ctx, u: Unit, t: Unit): number {
+  return reachActive(ctx, u, t) ? u.stats.range * ctx.t.height.reachMul : u.stats.range;
+}
+
+/**
+ * Sight: how far a unit on tier `from` picks targets on tier `to`. Looking down it sees
+ * `height.sightMul` farther than the flat aggro radius, looking up only within its attack range
+ * plus `height.sightUpPad`; on the same tier the flat scan `radius`.
+ */
+export function sightRadius(ctx: Ctx, u: Unit, from: Tier, to: Tier, radius: number): number {
+  const ht = ctx.t.height;
+  if (from > to) return Math.max(ctx.t.ai.aggroRadius * ht.sightMul, u.stats.range + 20);
+  if (from < to) return u.stats.range + ht.sightUpPad;
+  return radius;
+}
+
+/**
+ * The eye icon (display only): a piece whose current target stands below it, so Reach or Sight
+ * gives it the edge.
+ */
+export function highGroundEdge(ctx: Ctx, u: Unit): boolean {
+  const h = ctx.world.height;
+  if (!h || !u.hero || !u.alive || u.targetId === null) return false;
+  const t = ctx.unit(u.targetId);
+  return !!t && t.alive && tierAt(h, u.x, u.y) > tierAt(h, t.x, t.y);
 }
