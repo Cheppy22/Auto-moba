@@ -14,7 +14,7 @@ import {
 import { retreatLanePath } from './ai/strategic';
 import { isWary } from './ai/swap';
 import { findPath } from './world/map';
-import { attackRange, sightRadius, tierAt } from './world/height';
+import { attackRange, sees, sightRadius, tierAt } from './world/height';
 import { clearLine, confine, walkable } from './world/terrain';
 import { pieceDef } from './pieces';
 import { tickRecall } from './recall';
@@ -144,9 +144,12 @@ function followPath(ctx: Ctx, u: Unit): boolean {
   return true;
 }
 
-/** In reach of `t`; on the Long Board shooting down a tier reaches farther (Reach). */
+/**
+ * In reach of `t`; on the Long Board shooting down a tier reaches farther (Reach) and a grove's
+ * edge blocks the line except at its openings (line of sight).
+ */
 function inAttackRange(ctx: Ctx, u: Unit, t: Unit): boolean {
-  return dist(u.x, u.y, t.x, t.y) <= attackRange(ctx, u, t) + reachPad(t);
+  return dist(u.x, u.y, t.x, t.y) <= attackRange(ctx, u, t) + reachPad(t) && sees(ctx, u, t);
 }
 
 function tryAttack(ctx: Ctx, u: Unit, t: Unit): void {
@@ -155,9 +158,12 @@ function tryAttack(ctx: Ctx, u: Unit, t: Unit): void {
   u.atkCd = Math.max(1, Math.round(TPS / Math.max(0.2, u.stats.atkSpeed)));
 }
 
-/** Closes on `t`: straight at it from afar, then into this unit's slot around it. */
+/**
+ * Closes on `t`: straight at it from afar, then into this unit's slot around it. Without a line
+ * of sight it walks at `t` itself (around the grove's edge to an opening), not to its slot.
+ */
 function closeIn(ctx: Ctx, u: Unit, t: Unit): number {
-  const s = slotFor(u, t);
+  const s = sees(ctx, u, t) ? slotFor(u, t) : null;
   return s ? stepToward(ctx, u, s.x, s.y, 1, true) : stepToward(ctx, u, t.x, t.y, 1, true);
 }
 
@@ -193,7 +199,7 @@ function nearestEnemy(
     if (!e.alive || e.pendingKill || !isEnemy(u, e) || !isTargetable(ctx, e)) continue;
     if (e.ev?.ghost && !u.hero) continue;
     const s = dist(u.x, u.y, e.x, e.y) + (prefer ? prefer(e) : 0);
-    if (s < bestScore) {
+    if (s < bestScore && sees(ctx, u, e)) {
       bestScore = s;
       best = e;
     }
@@ -254,6 +260,13 @@ export function updateEngage(ctx: Ctx, u: Unit): void {
   }
 }
 
+/** How far a piece chases `t`: further after a hurt enemy piece (`hurtLeash`). */
+function chaseLeash(ctx: Ctx, u: Unit, t: Unit, hurtLeash: number): number {
+  const hurt = t.kind === 'hero' && hpPct(t) < ctx.t.judgement.chaseHurtHp;
+  const pers = ctx.t.personalities[pieceDef(ctx.c, u.hero!).personality];
+  return hurt ? hurtLeash : ctx.t.ai.aggroRadius * pers.chase + u.stats.range;
+}
+
 function heroBehavior(ctx: Ctx, u: Unit): void {
   const h = u.hero!;
   if (tickRecall(ctx, u)) return;
@@ -300,6 +313,9 @@ function heroBehavior(ctx: Ctx, u: Unit): void {
       const d = dist(u.x, u.y, e.x, e.y);
       if (hm && d > sightRadius(ctx, u, myTier, tierAt(hm, e.x, e.y), radius)) continue;
       const inRange = d <= u.stats.range + 4;
+      // Long Board: Sight spots farther than a piece chases; a target it will neither hit nor
+      // chase would only stop it where it stands
+      if (hm && !inRange && d > chaseLeash(ctx, u, e, hurtLeash)) continue;
       if (e.kind === 'hero' && h.engage === 'hold' && !inRange) continue;
       if (!inRange && !goalPush && !inDanger && underEnemyTower(ctx, team, e.x, e.y)) continue;
       if (!inRange && diveBlocked(ctx, u, e)) continue;
@@ -310,7 +326,8 @@ function heroBehavior(ctx: Ctx, u: Unit): void {
       else if (e.kind === 'minion') score += 20;
       else if (e.kind === 'camp') score += 15;
       else score += 100;
-      if (score < bestScore) {
+      // line of sight last: it is the dearest check
+      if (score < bestScore && sees(ctx, u, e)) {
         bestScore = score;
         best = e;
       }
@@ -325,9 +342,8 @@ function heroBehavior(ctx: Ctx, u: Unit): void {
       return;
     }
     // a hurt piece on the run is worth running down (the dive check above still applies)
-    const hurt = t.kind === 'hero' && hpPct(t) < ctx.t.judgement.chaseHurtHp;
-    const leash = hurt ? hurtLeash : ctx.t.ai.aggroRadius * pers.chase + u.stats.range;
-    const allowChase = h.engage === 'fight' && dist(u.x, u.y, t.x, t.y) <= leash;
+    const allowChase =
+      h.engage === 'fight' && dist(u.x, u.y, t.x, t.y) <= chaseLeash(ctx, u, t, hurtLeash);
     if (allowChase) {
       h.distance += closeIn(ctx, u, t);
       return;

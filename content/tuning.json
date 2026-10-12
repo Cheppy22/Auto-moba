@@ -383,6 +383,7 @@
     "sightMul": 1.25,
     "sightUpPad": 20,
     "oddsBonus": 0.1,
+    "slopeDmg": 0,
     "holdOffset": 60,
     "holdWindow": 300
   },

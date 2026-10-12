@@ -2,6 +2,7 @@ import { TPS } from '../combat';
 import { dist } from '../core/math';
 import { hpPct, type Ctx } from '../ctx';
 import { LANES } from '../world/map';
+import { sees } from '../world/height';
 import type { PlayTeam, Unit } from '../types';
 import { closestLane } from './lanes';
 import { unitDps, unitEhp } from './power';
@@ -51,14 +52,14 @@ export function retreatLine(ctx: Ctx, u: Unit): number {
 
 /**
  * True when enemy piece `t` is sure to fall within `judgement.finishSec` to the damage of `u`'s
- * side that can reach it now (pieces, pawns, pawnlings and structures in reach).
+ * side that can reach it now (pieces, pawns, pawnlings and structures in reach and in sight).
  */
 export function sureKill(ctx: Ctx, u: Unit, t: Unit): boolean {
   if (t.kind !== 'hero' || !t.alive || dist(u.x, u.y, t.x, t.y) > u.stats.range + 40) return false;
   let dps = 0;
   for (const a of ctx.grid.query(t.x, t.y, 220)) {
     if (!a.alive || a.team !== u.team) continue;
-    if (dist(a.x, a.y, t.x, t.y) > a.stats.range + 40) continue;
+    if (dist(a.x, a.y, t.x, t.y) > a.stats.range + 40 || !sees(ctx, a, t)) continue;
     if (a.kind === 'hero') dps += unitDps(a);
     else if (a.kind === 'minion') dps += unitDps(a) * 0.5;
     else if (a.kind === 'tower' || a.kind === 'guardian') dps += unitDps(a) * 0.8;

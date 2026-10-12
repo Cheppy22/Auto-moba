@@ -1,7 +1,7 @@
 import type { MapDef } from '../content/schema';
 import type { Ctx } from '../ctx';
 import type { Unit } from '../types';
-import { shapeDist, type WalkShape } from './terrain';
+import { shapeDist, walkable, type Terrain, type WalkShape } from './terrain';
 
 /**
  * Heights of a terraced map (the Long Board): 0 is the river and the sunken groves and Pit, 1 the
@@ -23,6 +23,16 @@ export interface Height {
   rows: number;
   /** 1 where the cell centre lies on a grove or Pit floor. */
   sunk: Uint8Array;
+  /** The groves (their pines block sight), each with its bounding box. */
+  groves: Grove[];
+}
+
+interface Grove {
+  shape: WalkShape;
+  x0: number;
+  x1: number;
+  y0: number;
+  y1: number;
 }
 
 const CELL = 25;
@@ -42,6 +52,15 @@ export function buildHeight(map: MapDef, shapes: readonly WalkShape[]): Height |
       if (floors.some((s) => shapeDist(s, x, y) <= 0)) sunk[r * cols + c] = 1;
     }
   }
+  const groves = shapes
+    .filter((s) => s.kind === 'grove')
+    .map((shape) => ({
+      shape,
+      x0: Math.min(shape.ax, shape.bx) - shape.r,
+      x1: Math.max(shape.ax, shape.bx) + shape.r,
+      y0: Math.min(shape.ay, shape.by) - shape.r,
+      y1: Math.max(shape.ay, shape.by) + shape.r,
+    }));
   return {
     mid: length / 2,
     low: t.river + t.rampLen,
@@ -50,6 +69,7 @@ export function buildHeight(map: MapDef, shapes: readonly WalkShape[]): Height |
     cols,
     rows,
     sunk,
+    groves,
   };
 }
 
@@ -94,6 +114,19 @@ export function sightRadius(ctx: Ctx, u: Unit, from: Tier, to: Tier, radius: num
 }
 
 /**
+ * Slope: a hit from a unit on a higher tier than its target deals `height.slopeDmg` more, from a
+ * lower tier that much less. Never for structures.
+ */
+export function slopeMul(ctx: Ctx, src: Unit, tgt: Unit): number {
+  const h = ctx.world.height;
+  const s = ctx.t.height.slopeDmg;
+  if (!h || s === 0 || src.kind === 'tower' || src.kind === 'guardian') return 1;
+  const a = tierAt(h, src.x, src.y);
+  const b = tierAt(h, tgt.x, tgt.y);
+  return a > b ? 1 + s : a < b ? 1 - s : 1;
+}
+
+/**
  * The eye icon (display only): a piece whose current target stands below it, so Reach or Sight
  * gives it the edge.
  */
@@ -102,4 +135,61 @@ export function highGroundEdge(ctx: Ctx, u: Unit): boolean {
   if (!h || !u.hero || !u.alive || u.targetId === null) return false;
   const t = ctx.unit(u.targetId);
   return !!t && t.alive && tierAt(h, u.x, u.y) > tierAt(h, t.x, t.y);
+}
+
+// ------------------------------------------------------------------ line of sight
+
+const LOS_STEP = 10;
+
+/**
+ * Line of sight: a grove's pines block sight across its edge, except where walkable ground
+ * carries on outside it (its gates, the River Road, the Sally spur and the seam with the Pit).
+ * So a unit outside a grove cannot see or hit a unit inside it, nor the other way round, unless
+ * the line between them crosses the edge in an opening. Always true on maps without heights.
+ */
+export function lineOfSight(
+  h: Height | null,
+  terrain: Terrain,
+  open: { has(id: string): boolean },
+  ax: number,
+  ay: number,
+  bx: number,
+  by: number,
+): boolean {
+  if (!h) return true;
+  for (const g of h.groves) {
+    if (Math.max(ax, bx) < g.x0 || Math.min(ax, bx) > g.x1) continue;
+    if (Math.max(ay, by) < g.y0 || Math.min(ay, by) > g.y1) continue;
+    const s = g.shape;
+    let prevIn = shapeDist(s, ax, ay) <= 0;
+    // a grove is convex: a line between two points inside it stays inside
+    if (prevIn && shapeDist(s, bx, by) <= 0) continue;
+    const dx = bx - ax;
+    const dy = by - ay;
+    const n = Math.max(1, Math.ceil(Math.sqrt(dx * dx + dy * dy) / LOS_STEP));
+    let prevF = 0;
+    for (let i = 1; i <= n; i++) {
+      const f = i / n;
+      const isIn = shapeDist(s, ax + dx * f, ay + dy * f) <= 0;
+      if (isIn !== prevIn) {
+        // the edge lies between the two samples: find it, then look just outside it
+        let fin = isIn ? f : prevF;
+        let fout = isIn ? prevF : f;
+        for (let k = 0; k < 6; k++) {
+          const fm = (fin + fout) / 2;
+          if (shapeDist(s, ax + dx * fm, ay + dy * fm) <= 0) fin = fm;
+          else fout = fm;
+        }
+        if (!walkable(terrain, open, ax + dx * fout, ay + dy * fout)) return false;
+      }
+      prevIn = isIn;
+      prevF = f;
+    }
+  }
+  return true;
+}
+
+/** True when `u` has a line of sight to `t` (see `lineOfSight`). */
+export function sees(ctx: Ctx, u: Unit, t: Unit): boolean {
+  return lineOfSight(ctx.world.height, ctx.world.terrain, ctx.open, u.x, u.y, t.x, t.y);
 }
