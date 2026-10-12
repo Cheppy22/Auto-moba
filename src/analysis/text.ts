@@ -45,7 +45,7 @@ const SLOT_NAMES: Record<string, string> = {
   ob_top_n: 'the upper Left lane',
   ob_bot_s: 'the lower Right lane',
   ob_bot_e: 'the upper Right lane',
-  // the Long Board (?map=long)
+  // the Long Board (the default map)
   w1: "the West Grove's far end",
   w2: 'the middle of the West Grove',
   w3: "the West Grove's river tip",

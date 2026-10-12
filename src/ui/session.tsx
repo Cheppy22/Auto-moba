@@ -176,10 +176,13 @@ export class Session {
   private listeners = new Set<() => void>();
   private frameListeners = new Set<(alpha: number) => void>();
 
-  /** `?map=long` plays the Long Board (for the sim, the 3D view, the report and the replay map). */
+  /**
+   * The Long Board is the game's map (the sim, the 3D view, the report and the replay map);
+   * `?map=square` plays the old square map.
+   */
   private readonly longMap =
-    typeof window !== 'undefined' &&
-    new URLSearchParams(window.location.search).get('map') === 'long';
+    typeof window === 'undefined' ||
+    new URLSearchParams(window.location.search).get('map') !== 'square';
 
   constructor(readonly content: Content) {}
 
@@ -235,8 +238,8 @@ export class Session {
 
   newMatch(config?: Partial<MatchConfig>): void {
     const seed = config?.seed ?? Math.floor(Math.random() * 1e9);
-    // the browser game stops for White's forks and for the Act break sheet; `?map=long` plays the
-    // Long Board
+    // the browser game stops for White's forks and for the Act break sheet, on the Long Board
+    // unless `?map=square`
     this.match = Match.create(this.content, {
       seed,
       pauseForForks: true,
