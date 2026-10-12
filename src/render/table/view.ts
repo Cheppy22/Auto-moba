@@ -1162,7 +1162,11 @@ export class TableView {
           SHIELD,
         );
       // the high-ground eye: this piece's target stands below it (Reach and Sight favour it)
-      if (u.highGround) this.tags.eye(v.x, top + (u.shield > 0 ? 9.5 : 7.5) * px, v.z, 11 * px);
+      // (a 17 px medallion-style badge that breathes gently, still when motion is reduced)
+      if (u.highGround) {
+        const breathe = reduced ? 1 : 1 + 0.08 * Math.sin(this.time * 4);
+        this.tags.eye(v.x, top + (u.shield > 0 ? 13 : 11) * px, v.z, 17 * px * breathe);
+      }
       const ts = Math.min(8 * px, f.height * 0.3);
       const cam = this.cam.camera.position;
       const cx = cam.x - v.x;

@@ -4,6 +4,7 @@ import { buildWorld } from '../src/sim/world/map';
 import { tierAt } from '../src/sim/world/height';
 import { LANE_CLOSE, LANE_LEAN, TableCamera } from '../src/render/table/camera';
 import { LaneCam } from '../src/render/table/lanecam';
+import { groveGates, LIP } from '../src/render/table/longlook';
 import { LongRelief, Relief, TERRACE } from '../src/render/table/relief';
 import { content } from './helpers';
 
@@ -182,6 +183,40 @@ describe('the Long Board in the table view', () => {
     expect(r.atSim(810, L / 2 + 450)).toBeGreaterThan(T + TERRACE.blockLow - 2);
     expect(r.atSim(60, L / 2)).toBeLessThan(0);
     expect(r.atSim(-50, 100)).toBe(r.frameH);
+  });
+
+  it('the map styles raise all dead space by one flat lip over its terrace', () => {
+    const flat = new LongRelief(map, 130, 20, LIP);
+    expect(flat.atSim(810, L / 2 + 450)).toBeCloseTo(T + LIP.h, 0);
+    expect(flat.atSim(200, L / 2 + 1600)).toBeCloseTo(2 * T + LIP.h, 0);
+    // walkable ground is where the phase-3 relief puts it
+    const [lx] = map.lanes.top[1];
+    expect(flat.atSim(lx, L / 2 + 600)).toBeCloseTo(r.atSim(lx, L / 2 + 600), 3);
+  });
+
+  it('a gate arch stands wherever a path crosses a grove edge, matching the sim', () => {
+    const gates = groveGates(map);
+    // each grove: the five clearing gate paths, a Sally spur, the River Road on its outer side
+    expect(gates.filter((g) => g.kind === 'sally')).toHaveLength(2);
+    expect(gates.filter((g) => g.kind === 'port')).toHaveLength(10);
+    expect(gates.filter((g) => g.kind === 'road')).toHaveLength(2);
+    expect(gates).toHaveLength(14);
+    const groves = shapes.filter((s) => s.kind === 'grove');
+    for (const g of gates) {
+      // on a grove's edge, as wide as the path through it, and the path really is walkable there
+      expect(Math.min(...groves.map((s) => Math.abs(shapeDist(s, g.x, g.y))))).toBeLessThan(2);
+      expect(g.half).toBeGreaterThan(30);
+      expect(g.half).toBeLessThan(110);
+      expect(
+        shapes.some((s) => s.kind === g.kind && shapeDist(s, g.x + g.nx * 6, g.y + g.ny * 6) < 0),
+      ).toBe(true);
+    }
+    // the spurs end in the river-tip clearings (W3, E3): their gates are on those clearings
+    for (const id of ['w3', 'e3']) {
+      const sl = map.slots.find((s) => s.id === id)!;
+      const g = gates.find((x) => x.kind === 'sally' && Math.hypot(x.x - sl.x, x.y - sl.y) < 160);
+      expect(g, id).toBeDefined();
+    }
   });
 
   it('the lane camera leans in on the long lanes and drags to their ends', () => {

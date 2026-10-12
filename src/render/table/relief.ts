@@ -315,9 +315,17 @@ export class LongRelief implements Ground {
   private readonly bases: number[][];
   private readonly R: number;
   private readonly tiles: [number, number][];
+  /** One flat lip for all dead space (the visual-language styles), or null for the checker blocks. */
+  private readonly lip: { h: number; bevel: number } | null;
 
-  constructor(map: MapDef, frame: number, cell = 20) {
+  constructor(
+    map: MapDef,
+    frame: number,
+    cell = 20,
+    lip: { h: number; bevel: number } | null = null,
+  ) {
     const t = map.terraces!;
+    this.lip = lip;
     this.w = map.size;
     this.l = map.length ?? map.size;
     this.mid = this.l / 2;
@@ -416,6 +424,11 @@ export class LongRelief implements Ground {
     if (d <= 0) return floor;
     // off the walkable shapes: water in the river band, chess-square blocks on the terraces
     if (e < this.river) return floor + (TERRACE.water - floor) * smooth(0, 12, d);
+    if (this.lip)
+      return Math.max(
+        floor,
+        floor + (this.terrace(e) + this.lip.h - floor) * smooth(0, this.lip.bevel, d),
+      );
     const sq = this.w / 8;
     const top =
       this.terrace(e) +
