@@ -1,6 +1,6 @@
 # Look: the Long Board's visual language (2026-10-12)
 
-Status: built behind `?map=long`. `?mapstyle=a` (the default) and `?mapstyle=b` both follow the rules below; `?mapstyle=old` shows the phase-3 look for comparison. The square board is unchanged. Code: `src/render/table/longlook.ts` (styles, painter, gate arches and hedges), `relief.ts` (`LongRelief` with a style), `board.ts`, `fx.ts` (eye badge).
+Status: built behind `?map=long`. `?mapstyle=a` (the default) and `?mapstyle=b` both follow the rules below; `?mapstyle=old` shows the phase-3 look for comparison. The square board is unchanged. Code: `src/render/table/longlook.ts` (styles, painter, gate arches and hedges), `relief.ts` (`LongRelief` with one flat lip), `board.ts`, `fx.ts` (eye badge).
 
 Owner feedback it answers: "Map size is good, but the visual flair lacks polish. There isn't a lot of visual cohesion or design logic around the symbols and places on the map. Side Roads fail to mesh with farms."
 
@@ -28,6 +28,6 @@ Owner feedback it answers: "Map size is good, but the visual flair lacks polish.
 | Mood          | Cool night, quiet; the lanes and roads glow | Warm lamplight, a formal garden                         |
 | Floor tiles   | Blue-grey slate, square, hairline joints    | Dark umber tiles with small inset stones at the corners |
 | Lanes         | Teal felt (the table look's)                | Bottle-green card-table felt                            |
-| Roads / yards | Pale limestone; yards in moss-green setts   | Honey sandstone; yards in a darker raked sandstone      |
-| Grove ring    | Two rows of pines                           | A clipped hedge with pines behind it                    |
+| Roads / yards | Pale limestone; yards in moss-green setts   | Honey sandstone; yards in terracotta brick              |
+| Grove ring    | Pines (two rows where there is room)        | A clipped hedge with pines behind it                    |
 | Water         | Deep blue-teal                              | Ink blue                                                |
