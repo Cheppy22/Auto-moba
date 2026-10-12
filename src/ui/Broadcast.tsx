@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { GameEvent, Match } from '../sim';
 import { laneNear } from '../analysis/feedback';
+import { mapTheme, subscribeMapTheme } from './mapTheme';
 import { useSession } from './session';
 
-/** The point halfway along a lane's centre line (where the board camera leans in). */
+/** The point halfway along a lane's centre line (where the lane camera leans in). */
 function laneMid(poly: readonly (readonly number[])[]): { x: number; y: number } {
   let total = 0;
   for (let i = 1; i < poly.length; i++)
@@ -24,18 +25,15 @@ function laneMid(poly: readonly (readonly number[])[]): { x: number; y: number }
   return { x: last[0], y: last[1] };
 }
 
-/** The camera follows White's King until a portrait is tapped. */
-function kingId(m: Match): number | null {
-  const ids = m.state.teams.A.heroIds;
-  return ids.find((id) => m.unitById(id)?.hero?.defId === 'king') ?? ids[0] ?? null;
-}
-
 /** While the Adjourn panel covers the game, the 3D view only needs an occasional refresh. */
 const IDLE_FRAME_MS = 1000;
 /** How far (CSS pixels) a pointer may travel and still count as a tap on the board. */
 const TAP_PX = 8;
-/** How far (map units) a tap may be from a lane's centre line and still pick that lane. */
-const LANE_TAP = 260;
+/**
+ * How far (map units) a tap may be from a lane's centre line and still pick that lane: the
+ * lane's half-width and a little more (the square map's lanes are wider and farther apart).
+ */
+const laneTap = (m: Match['content']['map']): number => m.walk.lane + 40;
 
 /** The game view: a three.js scene. Picking calls are handed to the session for gambit aiming. */
 export function Broadcast() {
@@ -55,7 +53,7 @@ export function Broadcast() {
         if (dead) return;
         let view: InstanceType<typeof BroadcastView>;
         try {
-          view = new BroadcastView(canvas, board);
+          view = new BroadcastView(canvas, board, mapTheme());
         } catch (err) {
           const noGl = err instanceof Error && err.message === 'WebGL is not available';
           if (!noGl) console.error('The 3D view failed to start', err);
@@ -63,10 +61,25 @@ export function Broadcast() {
           return;
         }
         s.view = view;
-        canvas.addEventListener('table-sitback', () => s.zoomLane(null)); // table look: zoomed out of a lane
+        // zoomed out of a lane, or a drag (in Auto: any gesture) took the camera: back to free
+        const onFree = (): void => s.freeCam();
+        const onAngle = (e: Event): void => {
+          const turned = !!(e as CustomEvent<{ turned: boolean }>).detail?.turned;
+          if (turned !== s.ui.camTurned) s.setUi({ camTurned: turned });
+        };
+        canvas.addEventListener('table-sitback', onFree);
+        canvas.addEventListener('cam-manual', onFree);
+        canvas.addEventListener('cam-angle', onAngle);
+        // the board's theme (the Title and Adjourn switch it; the board repaints in place)
+        canvas.dataset.theme = mapTheme();
+        const offTheme = subscribeMapTheme(() => {
+          view.setTheme(mapTheme());
+          canvas.dataset.theme = mapTheme();
+        });
         canvas.dataset.ready = 'true';
         const director = new Director(board);
-        // a tap (not a drag) on a piece opens its card; a tap on empty ground closes the card
+        // a tap (not a drag) on a unit follows it (a piece also opens its card); a tap on a lane
+        // leans in on it; a tap on empty ground closes the card and frees the camera
         let down: { x: number; y: number; t: number } | null = null;
         const onDown = (e: PointerEvent): void => {
           down = e.isPrimary ? { x: e.clientX, y: e.clientY, t: performance.now() } : null;
@@ -77,6 +90,7 @@ export function Broadcast() {
           const m = s.match;
           if (!d || !e.isPrimary || !m) return;
           if (
+            view.gestured ||
             Math.hypot(e.clientX - d.x, e.clientY - d.y) > TAP_PX ||
             performance.now() - d.t > 450
           )
@@ -85,17 +99,19 @@ export function Broadcast() {
           if (m.state.bell.stage === 'break') return;
           const id = view.pickUnit(e.clientX, e.clientY);
           const u = id === null ? undefined : m.unitById(id);
-          if (u?.hero) s.openCard(u.id);
-          else {
-            const covered = s.ui.card !== null || s.ui.info !== null;
-            s.closeCard();
-            s.closeInfo();
-            // the board camera: a tap on a lane leans in on it, a tap off the lanes (or on the same lane) sits back
-            if (!covered && s.ui.cam === 'board') {
-              const g = view.pickGround(e.clientX, e.clientY);
-              s.zoomLane(g ? laneNear(board.map.lanes, g.x, g.y, LANE_TAP) : null);
-            }
+          // pieces and pawns (both sides) can be followed; pawnlings, camps and Bastions cannot
+          if (u && u.alive && (u.hero || u.pawn)) {
+            s.followUnit(u.id);
+            if (u.hero) s.openCard(u.id);
+            else s.closeCard();
+            return;
           }
+          s.closeCard();
+          s.closeInfo();
+          const g = view.pickGround(e.clientX, e.clientY);
+          const lane = g ? laneNear(board.map.lanes, g.x, g.y, laneTap(board.map)) : null;
+          if (lane) s.zoomLane(lane);
+          else s.freeCam();
         };
         canvas.addEventListener('pointerdown', onDown);
         canvas.addEventListener('pointerup', onUp);
@@ -127,26 +143,34 @@ export function Broadcast() {
           view.draw(snap, fresh, {
             alpha,
             shot,
-            // behind the versus card the board sits in its whole-board frame
-            mode: intro ? 'board' : s.ui.cam,
-            followId: s.ui.follow ?? kingId(m),
+            // behind the versus card the camera holds its default view
+            mode: intro ? 'free' : s.ui.cam,
+            followId: s.ui.follow,
             laneFocus:
-              s.ui.cam === 'board' && s.ui.zoomLane
-                ? laneMid(board.map.lanes[s.ui.zoomLane])
-                : null,
+              s.ui.cam === 'lane' && s.ui.zoomLane ? laneMid(board.map.lanes[s.ui.zoomLane]) : null,
             dtMs: Math.min(100, now - last),
             timeScale: s.timeScale,
           });
           last = now;
           const caption = s.ui.cam === 'auto' && live && !intro ? shot.caption : null;
           if (caption !== s.ui.caption) s.setUi({ caption });
+          // a followed pawn that fell (or a unit that is gone) leaves the camera free where it is
+          if (s.ui.cam === 'follow' && s.ui.follow !== null && m.state.forks.length === 0) {
+            const f = m.unitById(s.ui.follow);
+            if (!f || (!f.hero && !f.alive)) s.freeCam();
+          }
         });
         dispose = () => {
           canvas.removeEventListener('pointerdown', onDown);
           canvas.removeEventListener('pointerup', onUp);
+          canvas.removeEventListener('table-sitback', onFree);
+          canvas.removeEventListener('cam-manual', onFree);
+          canvas.removeEventListener('cam-angle', onAngle);
+          offTheme();
           watch.disconnect();
           if (s.view === view) s.view = null;
           delete canvas.dataset.ready;
+          delete canvas.dataset.theme;
           view.dispose();
         };
       })
@@ -158,7 +182,7 @@ export function Broadcast() {
       dead = true;
       off();
       dispose();
-      if (s.ui.caption) s.setUi({ caption: null });
+      if (s.ui.caption || s.ui.camTurned) s.setUi({ caption: null, camTurned: false });
     };
   }, [s, board.map]);
   return (

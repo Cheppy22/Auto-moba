@@ -8,6 +8,7 @@ import { PATH_LABEL, PieceGlyph, pieceLabel } from './pieces';
 import { n0 } from './format';
 import { SchoolChip } from './schools';
 import { SoundToggle } from './SoundToggle';
+import { ThemePicker } from './ThemePicker';
 import { useEscape, useSession } from './session';
 
 /** Black's Opening stays hidden for the first minute of play (20 ticks a second). */
@@ -143,6 +144,7 @@ export function Adjourn() {
             Resume
           </button>
         </div>
+        <ThemePicker />
         <Mini />
         <div class="tabs" role="tablist">
           {TABS.map((t) => (

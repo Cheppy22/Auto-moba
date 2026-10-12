@@ -1,7 +1,7 @@
 import type { Snapshot } from '../sim';
 import { Aim } from './hud/Aim';
 import { Command } from './hud/Command';
-import { ClockBlock, TopControls } from './hud/Controls';
+import { ClockBlock, Compass, TopControls } from './hud/Controls';
 import { CourtLayout } from './hud/CourtLayout';
 import { ForkSheet } from './hud/ForkSheet';
 import { GambitSheet, Hand } from './hud/Hand';
@@ -39,7 +39,7 @@ export function Hud() {
   const forkIds = snap.forks.map((f) => f.heroId);
   const held = snap.forks.length > 0;
   const stopped = snap.act.bell === 'break' && !held;
-  const zoom = s.ui.cam === 'board' ? s.ui.zoomLane : null;
+  const zoom = s.ui.cam === 'lane' ? s.ui.zoomLane : null;
   useEscape(zoom !== null, () => s.zoomLane(null));
   const v2 = wantsNewHud();
   const shape = useHudShape();
@@ -51,7 +51,9 @@ export function Hud() {
       data-shape={v2 ? shape : undefined}
       data-held={held}
       data-bell={snap.act.bell}
+      data-cam={s.ui.cam}
     >
+      <Compass />
       {snap.act.bell === 'tolling' && (
         <div
           class="toll-ring"

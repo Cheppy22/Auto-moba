@@ -146,14 +146,71 @@
   border-color: var(--brass-hi);
   color: var(--brass-hi);
 }
-.cam-btn {
+/* the Auto camera switch: lit baize while the director has the camera */
+.auto-btn {
+  grid-auto-flow: column;
+  gap: 5px;
   min-width: 54px;
   font-size: var(--fs-xs);
+  color: var(--bone);
 }
-.cam-btn[data-mode='follow'],
-.cam-btn[data-mode='free'] {
+.auto-btn.on {
+  color: var(--ivory);
   border-color: var(--brass-hi);
-  color: var(--brass-hi);
+  background: linear-gradient(180deg, rgba(35, 80, 60, 0.92), rgba(23, 56, 42, 0.92));
+  box-shadow:
+    inset 0 0 0 1px rgba(240, 213, 138, 0.25),
+    0 0 12px rgba(35, 80, 60, 0.55);
+}
+
+/* the compass: a brass ring whose needle points to White's end; shows while the camera is turned */
+.compass {
+  position: absolute;
+  z-index: 7;
+  top: calc(var(--hud-top, 60px) + 10px);
+  right: calc(10px + env(safe-area-inset-right));
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  pointer-events: auto;
+  animation: compass-in 0.25s var(--ease) both;
+}
+.compass svg {
+  display: block;
+}
+.compass-ring {
+  fill: rgba(14, 12, 10, 0.4);
+  stroke: var(--brass);
+  stroke-width: 1.5;
+}
+.compass-needle {
+  transform: rotate(var(--cam-yaw, 0deg));
+  transform-origin: 20px 20px;
+}
+.needle-home {
+  fill: var(--ivory);
+}
+.needle-far {
+  fill: var(--slate);
+  opacity: 0.75;
+}
+.needle-pin {
+  fill: var(--brass-hi);
+}
+@keyframes compass-in {
+  from {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .compass {
+    animation: none;
+  }
 }
 
 /* ---------- rosters ---------- */

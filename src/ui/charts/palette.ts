@@ -2,7 +2,7 @@ import { PALETTE } from '../../render/theme';
 
 /**
  * Chart colours. Teams keep the game's identity colours (ivory White, silver-violet Black).
- * Everything else takes slots drawn from the Grand Board palette in fixed order (slate, copper,
+ * Everything else takes slots drawn from the interface palette in fixed order (slate, copper,
  * baize, brass, bone, periwinkle, clock red), so a series keeps its colour across charts.
  */
 export const TEAM_COLOR = { A: PALETTE.teamA, B: PALETTE.teamB } as const;

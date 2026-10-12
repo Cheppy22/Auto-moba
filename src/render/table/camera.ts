@@ -3,7 +3,7 @@ import type { Content } from '../../sim';
 import type { Orient } from './board';
 import { LOOK } from './palette';
 
-/** Screen space the HUD covers, in CSS pixels; the board is fitted inside the rest. */
+/** Screen space the HUD covers, in CSS pixels (the default framing keeps the board clear of it). */
 interface Insets {
   top: number;
   bottom: number;
@@ -11,15 +11,31 @@ interface Insets {
   right: number;
 }
 
+/**
+ * Where the camera looks and from where: the target point on the ground (world x, z), the distance
+ * to it, the yaw (radians; 0 puts the camera on the +z side, behind White on the Long Board) and the
+ * tilt (radians above the ground).
+ */
+export interface Pose {
+  x: number;
+  z: number;
+  d: number;
+  yaw: number;
+  tilt: number;
+}
+
 const FOV = LOOK.cam.fov;
+/** Tilt range of the free camera (degrees above the ground). */
+export const TILT_MIN = 25;
+export const TILT_MAX = 80;
 /**
  * Lanes are fitted to their centre line plus a piece's width (not the felt's full width): the
  * two outer lane corners may lose a sliver of felt at the screen edge, the board gets ~7% bigger.
  */
 const LANE_FIT = 36;
-/** How much closer the camera sits when it leans in on a piece. */
+/** How much closer than the whole-board distance the camera sits when it follows a piece. */
 const LEAN = 0.42;
-/** Lane lean-in: the starting distance (about 1.9× closer, like the default look) and the closest. */
+/** Lane lean-in: the starting distance (about 1.9× closer than the whole board) and the closest. */
 export const LANE_LEAN = 0.52;
 export const LANE_CLOSE = 0.24;
 /**
@@ -27,50 +43,66 @@ export const LANE_CLOSE = 0.24;
  * lean-ins scale by this to bring pieces to about the size they have on the square board.
  */
 const LONG_LEAN = 0.9;
-/** Portrait tilt range on the Long Board (height-bound: the fit picks the tilt that frames it biggest). */
-const LONG_PORTRAIT: readonly [number, number] = [44, 54];
+/**
+ * Long Board default framing: the span across (the three lanes and a margin), and the scale it
+ * never zooms in past (world units per CSS pixel at the target: pieces about 26 px tall on a phone,
+ * about 38 px on a desktop), so a short landscape phone still sees White's home terrace.
+ */
+const LONG_WIDTH = 1560;
+const LONG_UPX = { phone: 3.3, desktop: 2.3 } as const;
+/** Long Board default tilt (degrees): portrait, landscape phone, desktop. */
+const LONG_TILT = { portrait: 52, landscape: 44, desktop: 48 } as const;
+/** The closest the camera may come (world units of distance). */
+const MIN_DIST = 1300;
+/** A yaw or tilt this far (degrees) from the default shows the compass. */
+const TURNED_DEG = 2.5;
+
+const wrap = (a: number): number => Math.atan2(Math.sin(a), Math.cos(a));
 
 /**
- * The war-table camera: one fixed three-quarter view of the whole board, fitted to the screen
- * (portrait: White at the bottom; landscape and desktop: White on the left). "Follow" leans in
- * on the followed piece; everything else sits back at the whole-board view.
+ * The free camera of the table view. `home` is the default pose for this screen (Long Board: the
+ * full width of the board with White nearest the camera; square board: the whole board, as the
+ * war table had it); `goal` is where the camera is heading (gestures, follow, lane and the director
+ * write it) and `pose` eases toward it. The target is kept on the map, the distance between a close
+ * limit and the whole-board view, the tilt between `TILT_MIN` and `TILT_MAX`.
  */
 export class TableCamera {
-  readonly camera = new PerspectiveCamera(FOV, 1, 20, 30000);
+  readonly camera = new PerspectiveCamera(FOV, 1, 20, 60000);
   orient: Orient = 'portrait';
-  /** World units per CSS pixel at the board centre (whole-board pose). */
+  /** World units per CSS pixel at the board centre (default pose). */
   unitPx = 5;
   private readonly pts: Vector3[] = [];
-  /** Horizontal direction from the board centre toward the player's seat. */
-  readonly dir = new Vector3();
-  private el = 0.6;
-  /** Tilt of the whole-board pose (degrees), and the prototype's tilt for this screen shape. */
+  /** Tilt of the default pose (degrees), and the prototype's tilt for this screen shape. */
   tiltDeg = 34;
   protoTilt = 30;
-  private boardX = 0;
-  private boardZ = 0;
+  readonly home: Pose = { x: 0, z: 0, d: 6000, yaw: 0, tilt: 0.6 };
+  readonly pose: Pose = { x: 0, z: 0, d: 6000, yaw: 0, tilt: 0.6 };
+  readonly goal: Pose = { x: 0, z: 0, d: 6000, yaw: 0, tilt: 0.6 };
+  /** Distance range: the closest, and the whole board in view. */
+  minD = MIN_DIST;
+  maxD = 9000;
+  /** Distance that frames the whole board at the default angle (lean-ins are shares of it). */
   private boardD = 6000;
-  private x = 0;
-  private z = 0;
-  private d = 6000;
   private shake = 0;
   private time = 0;
   private settled = false;
   private cssH = 1;
+  private cssW = 1;
   /** Half the HUD's vertical imbalance (bottom − top, CSS px): lean-ins centre in the free band. */
   private freeShift = 0;
   /** Half the HUD's horizontal imbalance (left − right, CSS px). */
   private freeShiftX = 0;
   private readonly tmp = new Vector3();
-  private readonly right = new Vector3();
-  private readonly fwd = new Vector3();
-  /** Half the board's width and length (clamps for the lean-in). */
-  private readonly hx: number;
-  private readonly hz: number;
-  /** The Long Board: always framed straight (White at the bottom, or on the left when wide). */
+  /** Half the board's width and length (target clamp). */
+  readonly hx: number;
+  readonly hz: number;
+  /** The Long Board: framed from White's end, the board's width across the screen. */
   private readonly long: boolean;
   /** Lean-in distances are this fraction of the whole-board distance's usual share. */
   private readonly leanK: number;
+  /** The square board's seat direction (its default yaw), from the look's framing. */
+  private readonly baseDir = new Vector3();
+  private readonly whiteZ: number;
 
   constructor(content: Content, topY: number, throneTop: number) {
     const map = content.map;
@@ -80,6 +112,7 @@ export class TableCamera {
     this.hz = hz;
     this.long = !!map.terraces;
     this.leanK = this.long ? LONG_LEAN : 1;
+    this.whiteZ = map.bases.A[1] - hz + map.walk.base;
     const add = (x: number, y: number, r: number): void => {
       for (let i = 0; i < 8; i++) {
         const a = (i / 8) * Math.PI * 2;
@@ -109,10 +142,10 @@ export class TableCamera {
   }
 
   /**
-   * Screen space the HUD covers. The HUD may publish `--hud-top` / `--hud-bottom` (and
-   * `--hud-left` / `--hud-right`) in CSS px on the root element (the court-bar HUD does); until
-   * it does, that HUD's usual bands are assumed (portrait 155 top / 136 bottom, full width; wide
-   * screens a slim top bar and White's column on the left).
+   * Screen space the HUD covers. The HUD publishes `--hud-top` / `--hud-bottom` (and
+   * `--hud-left` / `--hud-right`) in CSS px on the root element; until it does, its usual bands are
+   * assumed (portrait 155 top / 136 bottom, full width; wide screens a slim top bar and White's
+   * column on the left).
    */
   insets(w: number, h: number): Insets {
     const def: Insets =
@@ -138,65 +171,117 @@ export class TableCamera {
   /** The insets the last fit used (so the view can refit when the HUD changes them). */
   fitted = '';
 
-  /** Re-fits the whole-board pose for a canvas of w×h CSS pixels. */
+  /** Re-fits the default pose and the zoom range for a canvas of w×h CSS pixels. */
   fit(w: number, h: number): void {
     const cam = this.camera;
     cam.aspect = w / h;
     cam.fov = FOV;
     cam.updateProjectionMatrix();
     this.cssH = h;
-    this.orient = h > w ? 'portrait' : 'landscape';
-    // portrait: the camera sits behind White's corner; landscape: behind the Right lane's corner
-    // square framing: the seat is White's rank-1 edge, the board fills its screen box
-    // the Long Board: White's end in portrait, the Right lane's long side on wide screens
-    if (this.long)
-      this.dir.set(this.orient === 'portrait' ? 0 : 1, 0, this.orient === 'portrait' ? 1 : 0);
-    else if (LOOK.cam.square) this.dir.set(0, 0, 1);
-    else if (this.orient === 'portrait') this.dir.set(-Math.SQRT1_2, 0, Math.SQRT1_2);
-    else this.dir.set(Math.SQRT1_2, 0, Math.SQRT1_2);
+    this.cssW = w;
+    // the Long Board's paint faces White's end (the camera's default seat) on every screen
+    this.orient = this.long || h > w ? 'portrait' : 'landscape';
     const ins = this.insets(w, h);
     this.fitted = `${ins.top},${ins.bottom},${ins.left},${ins.right}`;
     this.freeShift = (ins.bottom - ins.top) / 2;
     this.freeShiftX = (ins.left - ins.right) / 2;
-    // tilt: portrait is width-bound, so it takes the variant's tilt; landscape and desktop search
-    // their range for the tilt that frames the board biggest (steeper wins ties)
+    this.protoTilt = h > w ? 30 : h < 520 ? 31 : 38;
+    // a camera still at its default angle (or pose) follows the new default (a phone turned)
+    const g = this.goal;
+    const h0 = this.home;
+    const atHome = Math.hypot(g.x - h0.x, g.z - h0.z) < 1 && Math.abs(g.d - h0.d) < h0.d * 0.01;
+    const straight = !this.turned;
+    if (this.long) this.fitLong(w, h, ins);
+    else this.fitSquare(w, h, ins);
+    const tanV = Math.tan(MathUtils.degToRad(FOV / 2));
+    this.unitPx = (2 * this.home.d * tanV) / Math.max(1, h);
+    if (!this.settled || (straight && atHome)) {
+      Object.assign(this.pose, this.home);
+      Object.assign(this.goal, this.home);
+      this.settled = true;
+    } else if (straight) {
+      g.yaw = this.home.yaw;
+      g.tilt = this.home.tilt;
+    }
+    this.clamp(this.goal);
+    this.clamp(this.pose);
+    this.place(this.pose);
+  }
+
+  /**
+   * The square board: the war table's whole-board view (portrait: the camera behind White's
+   * corner; landscape: behind the Right lane's corner; square framing: White's rank-1 edge).
+   */
+  private fitSquare(w: number, h: number, ins: Insets): void {
+    if (LOOK.cam.square) this.baseDir.set(0, 0, 1);
+    else if (h > w) this.baseDir.set(-Math.SQRT1_2, 0, Math.SQRT1_2);
+    else this.baseDir.set(Math.SQRT1_2, 0, Math.SQRT1_2);
+    const yaw = Math.atan2(this.baseDir.x, this.baseDir.z);
+    // portrait takes the variant's tilt; landscape and desktop search their range for the tilt
+    // that frames the board biggest (steeper wins ties)
     const range: readonly [number, number] =
       h > w
-        ? this.long
-          ? LONG_PORTRAIT
-          : [LOOK.cam.portrait, LOOK.cam.portrait]
+        ? [LOOK.cam.portrait, LOOK.cam.portrait]
         : h < 520
           ? LOOK.cam.landscape
           : LOOK.cam.desktop;
-    let best = { el: range[1], x: 0, z: 0, d: Infinity };
+    let best = { deg: range[1], d: Infinity };
     for (let deg = range[1]; deg >= range[0] - 1e-6; deg -= 2) {
-      this.el = MathUtils.degToRad(deg);
-      const f = this.solve(ins, w, h, 28);
-      if (f.d < best.d * 0.985) best = { el: deg, ...f };
+      const f = this.solve(ins, w, h, yaw, MathUtils.degToRad(deg), 28);
+      if (f.d < best.d * 0.985) best = { deg, d: f.d };
     }
-    this.el = MathUtils.degToRad(best.el);
-    this.tiltDeg = best.el;
-    this.protoTilt = h > w ? 30 : h < 520 ? 31 : 38;
-    const { x, z, d } = this.solve(ins, w, h, 48);
-    const tanV = Math.tan(MathUtils.degToRad(FOV / 2));
-    this.boardX = x;
-    this.boardZ = z;
-    this.boardD = d;
-    this.unitPx = (2 * d * tanV) / Math.max(1, h);
-    if (!this.settled) {
-      this.x = x;
-      this.z = z;
-      this.d = d;
-      this.settled = true;
-    }
-    this.pose(this.x, this.z, this.d);
+    this.tiltDeg = best.deg;
+    const tilt = MathUtils.degToRad(best.deg);
+    const f = this.solve(ins, w, h, yaw, tilt, 48);
+    Object.assign(this.home, { x: f.x, z: f.z, d: f.d, yaw, tilt });
+    this.boardD = f.d;
+    this.minD = Math.min(MIN_DIST, f.d * 0.3);
+    this.maxD = f.d * 1.25;
   }
 
-  /** Camera target and distance that fit the board inside the insets at the current tilt. */
+  /**
+   * The Long Board: the camera behind White's base, the board's full width (the three lanes and a
+   * margin) across the screen (never closer than `LONG_UPX`), White's base just above the
+   * bottom HUD. Pinching out reaches the whole board.
+   */
+  private fitLong(w: number, h: number, ins: Insets): void {
+    const deg = h > w ? LONG_TILT.portrait : h < 520 ? LONG_TILT.landscape : LONG_TILT.desktop;
+    this.tiltDeg = deg;
+    const tilt = MathUtils.degToRad(deg);
+    const tanV = Math.tan(MathUtils.degToRad(FOV / 2));
+    const tanH = tanV * (w / h);
+    const freeW = Math.max(0.3, (w - ins.left - ins.right) / w);
+    const dWidth = LONG_WIDTH / 2 / (tanH * freeW);
+    const scale = Math.min(w, h) < 600 ? LONG_UPX.phone : LONG_UPX.desktop;
+    const d = Math.max(dWidth, (scale * h) / (2 * tanV));
+    // slide the target until White's base edge sits at the bottom of the free band (centred across it)
+    const pose: Pose = { x: 0, z: 0, d, yaw: 0, tilt };
+    const want = 1 - (2 * (h - ins.bottom - 10)) / h; // NDC y of the free band's bottom
+    const upx = (2 * d * tanV) / h;
+    pose.x = -this.freeShiftX * upx;
+    for (let i = 0; i < 24; i++) {
+      this.place(pose);
+      const q = this.tmp.set(0, 0, this.whiteZ).project(this.camera);
+      const err = q.y - want;
+      if (Math.abs(err) < 1e-4) break;
+      // one NDC unit of screen height is about d·tanV / sin(tilt) of ground depth
+      pose.z -= (err * d * tanV) / Math.sin(tilt);
+    }
+    pose.z = Math.min(pose.z, this.hz);
+    Object.assign(this.home, pose);
+    const whole = this.solve(ins, w, h, 0, tilt, 48);
+    this.boardD = whole.d;
+    this.minD = MIN_DIST;
+    this.maxD = Math.max(whole.d * 1.12, d * 1.2);
+  }
+
+  /** Camera target and distance that fit the board inside the insets at a yaw and tilt. */
   private solve(
     ins: Insets,
     w: number,
     h: number,
+    yaw: number,
+    tilt: number,
     iters: number,
   ): { x: number; z: number; d: number } {
     const cam = this.camera;
@@ -206,11 +291,11 @@ export class TableCamera {
     const sy1 = 1 - (2 * ins.top) / h;
     const tanV = Math.tan(MathUtils.degToRad(FOV / 2));
     const tanH = tanV * cam.aspect;
-    let x = 0;
-    let z = 0;
-    let d = 7000;
+    const pose: Pose = { x: 0, z: 0, d: 7000, yaw, tilt };
+    const rx = Math.cos(yaw);
+    const rz = -Math.sin(yaw);
     for (let it = 0; it < iters; it++) {
-      this.pose(x, z, d);
+      this.place(pose);
       let bx0 = Infinity;
       let bx1 = -Infinity;
       let by0 = Infinity;
@@ -225,18 +310,17 @@ export class TableCamera {
       const k = Math.max((bx1 - bx0) / (sx1 - sx0), (by1 - by0) / (sy1 - sy0));
       const dx = (bx0 + bx1) / 2 - (sx0 + sx1) / 2;
       const dy = (by0 + by1) / 2 - (sy0 + sy1) / 2;
-      this.right.set(1, 0, 0).applyQuaternion(cam.quaternion).setY(0).normalize();
-      this.fwd.copy(this.dir).multiplyScalar(-1);
-      const sh = dx * d * tanH * 0.8;
-      const sv = (dy * d * tanV * 0.8) / Math.sin(this.el);
-      x += this.right.x * sh + this.fwd.x * sv;
-      z += this.right.z * sh + this.fwd.z * sv;
-      d *= Math.pow(k, 0.85);
+      const sh = dx * pose.d * tanH * 0.8;
+      const sv = (dy * pose.d * tanV * 0.8) / Math.sin(tilt);
+      // screen right on the ground is (cos yaw, −sin yaw); screen up is away from the camera
+      pose.x += rx * sh - Math.sin(yaw) * sv;
+      pose.z += rz * sh - Math.cos(yaw) * sv;
+      pose.d *= Math.pow(k, 0.85);
     }
-    return { x, z, d };
+    return { x: pose.x, z: pose.z, d: pose.d };
   }
 
-  /** The board's on-screen box (CSS px) at the whole-board pose: [x0, y0, x1, y1]. */
+  /** The board's on-screen box (CSS px) right now: [x0, y0, x1, y1]. */
   boardBox(w: number, h: number): [number, number, number, number] {
     let bx0 = Infinity;
     let bx1 = -Infinity;
@@ -252,64 +336,124 @@ export class TableCamera {
     return [((bx0 + 1) / 2) * w, ((1 - by1) / 2) * h, ((bx1 + 1) / 2) * w, ((1 - by0) / 2) * h];
   }
 
-  private pose(x: number, z: number, d: number): void {
-    const c = Math.cos(this.el);
+  /** Puts the three.js camera at a pose. */
+  private place(p: Pose, ox = 0, oz = 0): void {
+    const c = Math.cos(p.tilt) * p.d;
     const cam = this.camera;
-    cam.position.set(x + this.dir.x * c * d, Math.sin(this.el) * d, z + this.dir.z * c * d);
-    cam.lookAt(x, 0, z);
+    cam.position.set(
+      p.x + ox + Math.sin(p.yaw) * c,
+      Math.sin(p.tilt) * p.d,
+      p.z + oz + Math.cos(p.yaw) * c,
+    );
+    cam.lookAt(p.x + ox, 0, p.z + oz);
     cam.updateMatrixWorld();
+  }
+
+  /** Keeps a pose on the map, inside the zoom range and the tilt range. */
+  clamp(p: Pose): void {
+    p.x = MathUtils.clamp(p.x, -this.hx, this.hx);
+    p.z = MathUtils.clamp(p.z, -this.hz, this.hz);
+    p.d = MathUtils.clamp(p.d, this.minD, this.maxD);
+    p.tilt = MathUtils.clamp(p.tilt, MathUtils.degToRad(TILT_MIN), MathUtils.degToRad(TILT_MAX));
   }
 
   kick(k: number): void {
     this.shake = Math.min(1, this.shake + k);
   }
 
-  /** Camera distance of the whole-board pose (world units). */
+  /** Camera distance that frames the whole board (lean-ins are shares of it). */
   get wholeDist(): number {
     return this.boardD;
   }
 
-  /** World units per CSS pixel right now (shrinks while leaning in). */
-  pxNow(): number {
-    return (2 * this.d * Math.tan(MathUtils.degToRad(FOV / 2))) / Math.max(1, this.cssH);
+  /** Follow distance: about the old lean-in on a piece. */
+  get followDist(): number {
+    return this.boardD * LEAN * this.leanK;
+  }
+
+  /** Lane lean-in distance for a lane camera zoom (a share of the whole-board distance). */
+  laneDist(zoom: number): number {
+    return this.boardD * zoom * this.leanK;
   }
 
   /**
-   * Eases toward the whole-board pose, or the lean-in pose on `lean` (world x, z) at `amount` of
-   * the whole-board distance. `free` skips the clamp toward the centre (lane pans reach the bases);
-   * `rate` is the easing speed (faster while a finger drags the view).
+   * The ground point to aim at so that `at` (world x, z) sits in the middle of the HUD-free band
+   * at distance `d` (the HUD covers more at the bottom than the top on a phone).
    */
-  update(
-    dt: number,
-    lean: { x: number; z: number } | null,
-    amount = LEAN,
-    free = false,
-    rate = 3.2,
-  ): void {
+  centred(at: { x: number; z: number }, d: number, out: { x: number; z: number }): void {
+    const tanV = Math.tan(MathUtils.degToRad(FOV / 2));
+    const upx = (2 * d * tanV) / Math.max(1, this.cssH);
+    const back = (this.freeShift * upx) / Math.sin(this.goal.tilt);
+    const side = this.freeShiftX * upx;
+    const sy = Math.sin(this.goal.yaw);
+    const cy = Math.cos(this.goal.yaw);
+    // toward the camera on the ground is (sin yaw, cos yaw); screen right is (cos yaw, −sin yaw)
+    out.x = at.x + sy * back - cy * side;
+    out.z = at.z + cy * back + sy * side;
+  }
+
+  /** World units per CSS pixel right now (at the target point). */
+  pxNow(): number {
+    return (2 * this.pose.d * Math.tan(MathUtils.degToRad(FOV / 2))) / Math.max(1, this.cssH);
+  }
+
+  /** True when the goal's yaw or tilt is away from the default angle (the compass shows). */
+  get turned(): boolean {
+    const t = MathUtils.degToRad(TURNED_DEG);
+    return (
+      Math.abs(wrap(this.goal.yaw - this.home.yaw)) > t ||
+      Math.abs(this.goal.tilt - this.home.tilt) > t
+    );
+  }
+
+  /** Eases back to the default yaw and tilt (the compass button). */
+  resetAngle(): void {
+    this.goal.yaw = this.pose.yaw + wrap(this.home.yaw - this.pose.yaw);
+    this.goal.tilt = this.home.tilt;
+  }
+
+  /** Back to the default pose. */
+  goHome(): void {
+    Object.assign(this.goal, this.home);
+    this.goal.yaw = this.pose.yaw + wrap(this.home.yaw - this.pose.yaw);
+  }
+
+  /** The goal takes over the current pose (a gesture or mode change starts from where we are). */
+  holdHere(): void {
+    Object.assign(this.goal, this.pose);
+  }
+
+  /** Moves pose and goal together (a grab-pan: the ground under the finger stays under it). */
+  shift(dx: number, dz: number): void {
+    this.pose.x += dx;
+    this.pose.z += dz;
+    this.goal.x += dx;
+    this.goal.z += dz;
+    this.clamp(this.goal);
+    this.clamp(this.pose);
+    this.place(this.pose);
+  }
+
+  /** Eases the pose toward the goal (`rate` per second) and places the camera, with any shake. */
+  update(dt: number, rate = 4): void {
     this.time += dt;
-    let tx = this.boardX;
-    let tz = this.boardZ;
-    let td = this.boardD;
-    if (lean) {
-      // the lean point stays the same margin inside the board's edges (on the Long Board too)
-      const limX = free ? Infinity : this.hx * 0.62;
-      const limZ = free ? Infinity : this.hz - this.hx * 0.38;
-      td = this.boardD * amount * this.leanK;
-      // the lean point sits in the middle of the HUD-free band, not the canvas
-      const tanV = Math.tan(MathUtils.degToRad(FOV / 2));
-      const upx = (2 * td * tanV) / Math.max(1, this.cssH);
-      const back = (this.freeShift * upx) / Math.sin(this.el);
-      const side = this.freeShiftX * upx;
-      // screen right on the ground is (dir.z, -dir.x)
-      tx = MathUtils.clamp(lean.x, -limX, limX) + this.dir.x * back - this.dir.z * side;
-      tz = MathUtils.clamp(lean.z, -limZ, limZ) + this.dir.z * back + this.dir.x * side;
-    }
+    this.clamp(this.goal);
     const k = 1 - Math.exp(-dt * rate);
-    this.x += (tx - this.x) * k;
-    this.z += (tz - this.z) * k;
-    this.d += (td - this.d) * k;
+    const p = this.pose;
+    const g = this.goal;
+    p.x += (g.x - p.x) * k;
+    p.z += (g.z - p.z) * k;
+    // zoom eases in log space so it feels the same at every distance
+    p.d = Math.exp(Math.log(p.d) + (Math.log(g.d) - Math.log(p.d)) * k);
+    p.yaw += wrap(g.yaw - p.yaw) * k;
+    p.tilt += (g.tilt - p.tilt) * k;
     this.shake = Math.max(0, this.shake - dt * 2.2);
     const s = this.shake * this.shake * 9;
-    this.pose(this.x + Math.sin(this.time * 61) * s, this.z + Math.cos(this.time * 47) * s, this.d);
+    this.place(p, Math.sin(this.time * 61) * s, Math.cos(this.time * 47) * s);
+  }
+
+  /** CSS size the camera was last fitted for. */
+  get size(): { w: number; h: number } {
+    return { w: this.cssW, h: this.cssH };
   }
 }

@@ -7,7 +7,6 @@ import {
   overflow,
   pauseAtStart,
   playPast,
-  setCam,
   setSpeed,
   setTempo,
   snap,
@@ -123,7 +122,7 @@ for (const v of views) {
         'tempo',
         'adjourn',
         'speed-chip',
-        'cam-btn',
+        'auto-btn',
         'roster-A-king',
         'roster-A-knight',
         'roster-B-king',
@@ -134,7 +133,7 @@ for (const v of views) {
       for (const id of ['gambit-0', 'gambit-1', 'gambit-2', 'field-pawn', 'adjourn']) {
         await bigEnough(page, id);
       }
-      for (const id of ['speed-chip', 'cam-btn']) await bigEnough(page, id);
+      for (const id of ['speed-chip', 'auto-btn']) await bigEnough(page, id);
       for (const piece of ['king', 'queen', 'rook', 'bishop', 'knight']) {
         await bigEnough(page, `roster-A-${piece}`);
         if (oldHud) await bigEnough(page, `roster-B-${piece}`);
@@ -220,7 +219,6 @@ for (const v of views) {
       await centreIsMap(page);
       await page.getByTestId('unit-card-close').tap();
       await expect(page.getByTestId('unit-card')).toHaveCount(0);
-      await setCam(page, 'board');
 
       // ---- a fork pauses the match and opens a sheet that fits and can be tapped
       await stepUntil(page, { kind: 'fork' });

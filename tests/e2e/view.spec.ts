@@ -2,7 +2,9 @@ import { expect, test } from '@playwright/test';
 import {
   eventCount,
   openHand,
-  setCam,
+  bareGround,
+  camMode,
+  setAuto,
   startLive,
   step,
   stepUntil,
@@ -12,7 +14,7 @@ import {
 
 test.use({ viewport: { width: 800, height: 520 } });
 
-test('3D view: camera modes, follow, caption and picking', async ({ page }) => {
+test('3D view: Auto caption, free camera, follow and picking', async ({ page }) => {
   test.setTimeout(300_000);
   const errors = watchErrors(page);
 
@@ -22,9 +24,9 @@ test('3D view: camera modes, follow, caption and picking', async ({ page }) => {
   await page.waitForTimeout(1500);
   const lit = await page.getByTestId('stage').screenshot();
   expect(lit.byteLength).toBeGreaterThan(20_000);
-  // the camera starts on the fixed whole-board view; the director is one tap away
-  await expect(page.getByTestId('cam-btn')).toHaveAttribute('data-mode', 'board');
-  await setCam(page, 'auto');
+  // the camera starts free; the director is one switch away
+  expect(await camMode(page)).toBe('free');
+  await setAuto(page, true);
 
   // the director names the big plays in the caption bar
   await expect(async () => {
@@ -32,21 +34,21 @@ test('3D view: camera modes, follow, caption and picking', async ({ page }) => {
     await expect(page.getByTestId('caption')).toBeVisible({ timeout: 400 });
   }).toPass({ timeout: 60_000 });
 
-  // free camera: caption goes, drag and zoom work
-  await setCam(page, 'free');
-  await expect(page.getByTestId('caption')).toHaveCount(0);
+  // a drag takes the camera back (free): the caption goes, and the wheel zooms
   const box = (await page.getByTestId('stage').boundingBox())!;
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   await page.mouse.down();
   await page.mouse.move(box.x + box.width / 2 + 120, box.y + box.height / 2 + 40, { steps: 6 });
   await page.mouse.up();
+  expect(await camMode(page)).toBe('free');
+  await expect(page.getByTestId('caption')).toHaveCount(0);
   await page.mouse.wheel(0, -400);
 
   // tap one of your portraits: the camera follows that piece (a Black token opens its card instead under the court bar)
   await page.getByTestId('roster-A-queen').click();
-  await expect(page.getByTestId('cam-btn')).toHaveAttribute('data-mode', 'follow');
+  expect(await camMode(page)).toBe('follow');
   await page.getByTestId('roster-A-king').click();
-  await expect(page.getByTestId('cam-btn')).toHaveAttribute('data-mode', 'follow');
+  expect(await camMode(page)).toBe('follow');
   await page.waitForTimeout(800);
 
   // picking: the ground under the middle of the screen, and a piece under its own projection
@@ -89,7 +91,7 @@ test('3D view: camera modes, follow, caption and picking', async ({ page }) => {
     )
     .toBe('ok');
 
-  await setCam(page, 'auto');
+  await setAuto(page, true);
   await page.waitForTimeout(500);
   expect(errors).toEqual([]);
 });
@@ -104,7 +106,7 @@ test('a tap on a piece in the 3D view opens its card, a tap on bare ground close
   await step(page, 200);
   // follow the King so he is in the middle of the screen
   await page.getByTestId('roster-A-king').click();
-  await expect(page.getByTestId('cam-btn')).toHaveAttribute('data-mode', 'follow');
+  expect(await camMode(page)).toBe('follow');
   // the table camera eases in over a couple of seconds: let it settle before reading the piece's spot
   await page.waitForTimeout(3000);
   const handle = await page.waitForFunction(
@@ -150,8 +152,10 @@ test('a tap on a piece in the 3D view opens its card, a tap on bare ground close
   await page.mouse.move(at.w * 0.5 + 60, at.h * 0.5 + 30, { steps: 5 });
   await page.mouse.up();
   await expect(page.getByTestId('unit-card')).toBeVisible();
-  // bare table beside the board closes the card (clear of the HUD and of the larger table-look board)
-  await page.mouse.click(at.w * 0.97, at.h * 0.4);
+  // bare ground (no unit, no lane) closes the card
+  const bare = await bareGround(page);
+  expect(bare).not.toBeNull();
+  await page.mouse.click(bare!.x, bare!.y);
   await expect(page.getByTestId('unit-card')).toHaveCount(0);
   expect(errors).toEqual([]);
 });

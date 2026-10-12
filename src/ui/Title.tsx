@@ -1,6 +1,7 @@
 import { useState } from 'preact/hooks';
 import { PieceGlyph, PIECE_ORDER } from './pieces';
 import { SoundToggle } from './SoundToggle';
+import { ThemePicker } from './ThemePicker';
 import { useSession } from './session';
 
 export function Title() {
@@ -37,6 +38,7 @@ export function Title() {
           </button>
         </div>
         <SoundToggle />
+        <ThemePicker />
         <label class="seed">
           Seed
           <input

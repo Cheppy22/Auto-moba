@@ -1,1 +1,1 @@
-export { TableView, wantsTable } from './view';
+export { TableView } from './view';

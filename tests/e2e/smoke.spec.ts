@@ -5,7 +5,8 @@ import {
   isOldHud,
   openHand,
   pauseAtStart,
-  setCam,
+  camMode,
+  setAuto,
   setSpeed,
   playPast,
   setTempo,
@@ -135,7 +136,7 @@ test('title, setup, gambits, pawn, fork, adjourn, checkmate and report', async (
   await expect(page.getByTestId('unit-card')).toHaveAttribute('data-piece', 'rook');
   await page.keyboard.press('Escape');
   await expect(page.getByTestId('unit-card')).toHaveCount(0);
-  await setCam(page, 'auto');
+  await setAuto(page, true);
 
   // ---- a lane gambit: tap the card, then a lane
   let s = await stepUntil(page, { kind: 'card', target: 'lane' });
@@ -215,7 +216,7 @@ test('title, setup, gambits, pawn, fork, adjourn, checkmate and report', async (
     await expect(page.getByTestId(`fork-opt-${fork.heroId}-${o.id}`)).toContainText(o.name);
   await expect(page.getByTestId('fork-auto')).toBeVisible();
   // the camera frames the piece that is choosing
-  await expect(page.getByTestId('cam-btn')).toHaveAttribute('data-mode', 'follow');
+  expect(await camMode(page)).toBe('follow');
   // at 2x the clock still stays frozen while the sheet is open
   await setSpeed(page, 2);
   const held = (await snap(page)).tick;
@@ -252,7 +253,7 @@ test('title, setup, gambits, pawn, fork, adjourn, checkmate and report', async (
   expect((await snap(page)).forks).toHaveLength(0);
   await expect.poll(async () => (await snap(page)).tick, { timeout: 30_000 }).toBeGreaterThan(held);
   // the camera goes back to what it was before the sheet
-  await expect(page.getByTestId('cam-btn')).toHaveAttribute('data-mode', 'auto');
+  expect(await camMode(page)).toBe('auto');
 
   // ---- "Let the AI choose" on its own
   await setSpeed(page, 0);
@@ -281,8 +282,8 @@ test('title, setup, gambits, pawn, fork, adjourn, checkmate and report', async (
 
   // ---- camera: tap a portrait to follow that piece
   await page.getByTestId('roster-A-queen').click();
-  await expect(page.getByTestId('cam-btn')).toHaveAttribute('data-mode', 'follow');
-  await setCam(page, 'auto');
+  expect(await camMode(page)).toBe('follow');
+  await setAuto(page, true);
 
   // ---- Adjourn: the clock stops, lanes and paths change, the Armory is readable, Resume goes on
   s = await snap(page);

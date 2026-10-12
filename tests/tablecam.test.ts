@@ -2,8 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { contentFor, shapeDist } from '../src/sim';
 import { buildWorld } from '../src/sim/world/map';
 import { tierAt } from '../src/sim/world/height';
-import { LANE_CLOSE, LANE_LEAN, TableCamera } from '../src/render/table/camera';
+import { LANE_CLOSE, LANE_LEAN, TableCamera, TILT_MAX, TILT_MIN } from '../src/render/table/camera';
 import { LaneCam } from '../src/render/table/lanecam';
+import { APRON } from '../src/render/table/board';
 import { groveGates, LIP } from '../src/render/table/longlook';
 import { LongRelief, Relief, TERRACE } from '../src/render/table/relief';
 import { content } from './helpers';
@@ -132,7 +133,7 @@ describe('the Long Board in the table view', () => {
   const W = map.size;
   const L = map.length!;
   const t = map.terraces!;
-  const r = new LongRelief(map, 130);
+  const r = new LongRelief(map, APRON, 20, LIP);
   const T = TERRACE.step;
   const world = buildWorld(map);
   const shapes = world.terrain.shapes;
@@ -179,19 +180,17 @@ describe('the Long Board in the table view', () => {
     expect(ramp(t.river + t.rampLen / 2)).toBeGreaterThan(T * 0.3);
     expect(ramp(t.river + t.rampLen / 2)).toBeLessThan(T * 0.7);
     expect(ramp(t.home + t.rampLen + 30)).toBeCloseTo(2 * T, 0);
-    // a block between the Sally spur and the Mid lane on the midfield terrace, and open water
-    expect(r.atSim(810, L / 2 + 450)).toBeGreaterThan(T + TERRACE.blockLow - 2);
+    // dead space between the Sally spur and the Mid lane on the midfield terrace, and open water
+    expect(r.atSim(810, L / 2 + 450)).toBeGreaterThan(T + LIP.h - 2);
     expect(r.atSim(60, L / 2)).toBeLessThan(0);
-    expect(r.atSim(-50, 100)).toBe(r.frameH);
+    // past the edge the apron carries on the home terrace's floor and the river's water
+    expect(r.atSim(-50, 100)).toBeCloseTo(2 * T + LIP.h, 3);
+    expect(r.atSim(-50, L / 2)).toBe(TERRACE.water);
   });
 
-  it('the map styles raise all dead space by one flat lip over its terrace', () => {
-    const flat = new LongRelief(map, 130, 20, LIP);
-    expect(flat.atSim(810, L / 2 + 450)).toBeCloseTo(T + LIP.h, 0);
-    expect(flat.atSim(200, L / 2 + 1600)).toBeCloseTo(2 * T + LIP.h, 0);
-    // walkable ground is where the phase-3 relief puts it
-    const [lx] = map.lanes.top[1];
-    expect(flat.atSim(lx, L / 2 + 600)).toBeCloseTo(r.atSim(lx, L / 2 + 600), 3);
+  it('all dead space stands one flat lip over its terrace', () => {
+    expect(r.atSim(810, L / 2 + 450)).toBeCloseTo(T + LIP.h, 0);
+    expect(r.atSim(200, L / 2 + 1600)).toBeCloseTo(2 * T + LIP.h, 0);
   });
 
   it('a gate arch stands wherever a path crosses a grove edge, matching the sim', () => {
@@ -243,7 +242,7 @@ describe('the Long Board in the table view', () => {
     ).toBeLessThan(1);
   });
 
-  it('frames the whole board straight: long axis up the screen in portrait, across when wide', () => {
+  it('starts behind White, the full width across the screen; zooming out frames the whole board', () => {
     const cam = new TableCamera(long, 200, 400);
     const toScreen = (x: number, y: number, w: number, h: number): [number, number] => {
       const v = cam.camera.position
@@ -252,19 +251,56 @@ describe('the Long Board in the table view', () => {
         .project(cam.camera);
       return [((v.x + 1) / 2) * w, ((1 - v.y) / 2) * h];
     };
+    for (const [w, h, bottom] of [
+      [390, 844, 136],
+      [844, 390, 0],
+      [1280, 800, 0],
+    ] as const) {
+      cam.fit(w, h);
+      // White's base low on the screen, above the bottom HUD; Black's base farther up the screen
+      const [, ay] = toScreen(...(map.bases.A as [number, number]), w, h);
+      const [, by] = toScreen(...(map.bases.B as [number, number]), w, h);
+      expect(ay, `${w}x${h}`).toBeLessThan(h - bottom);
+      expect(ay, `${w}x${h}`).toBeGreaterThan(h * 0.45);
+      expect(by, `${w}x${h}`).toBeLessThan(ay - 100);
+      // both outer lanes, where they turn up the board, are on screen
+      for (const x of [375 - 90, 1625 + 90]) {
+        const [sx] = toScreen(x, 3150, w, h);
+        expect(sx, `${w}x${h} lane at ${x}`).toBeGreaterThan(0);
+        expect(sx, `${w}x${h} lane at ${x}`).toBeLessThan(w);
+      }
+      expect(cam.turned).toBe(false);
+      // pinched all the way out over the middle, both bases are in view
+      Object.assign(cam.goal, { x: 0, z: 0, d: 1e9 });
+      cam.update(10, 100);
+      for (const [bx, bz] of [map.bases.A, map.bases.B]) {
+        const [sx, sy] = toScreen(bx, bz, w, h);
+        expect(sx).toBeGreaterThan(0);
+        expect(sx).toBeLessThan(w);
+        expect(sy).toBeGreaterThan(0);
+        expect(sy).toBeLessThan(h);
+      }
+      cam.goHome();
+      cam.update(10, 100);
+    }
+  });
+
+  it('the camera stays on the map and in its tilt range; the compass resets the angle', () => {
+    const cam = new TableCamera(long, 200, 400);
     cam.fit(390, 844);
-    const [ax, ay] = toScreen(...(map.bases.A as [number, number]), 390, 844);
-    const [bx, by] = toScreen(...(map.bases.B as [number, number]), 390, 844);
-    expect(ay).toBeGreaterThan(by + 300);
-    expect(Math.abs(ax - bx)).toBeLessThan(2);
-    const [x0, y0, x1, y1] = cam.boardBox(390, 844);
-    expect(x0).toBeGreaterThan(-1);
-    expect(x1).toBeLessThan(391);
-    expect(y0).toBeGreaterThan(155 - 1);
-    expect(y1).toBeLessThan(844 - 136 + 1);
-    cam.fit(1280, 800);
-    const [wx] = toScreen(...(map.bases.A as [number, number]), 1280, 800);
-    const [kx] = toScreen(...(map.bases.B as [number, number]), 1280, 800);
-    expect(kx).toBeGreaterThan(wx + 600);
+    Object.assign(cam.goal, { x: 99999, z: -99999, d: 1, tilt: 0 });
+    cam.update(10, 100);
+    expect(cam.pose.x).toBeCloseTo(W / 2, 3);
+    expect(cam.pose.z).toBeCloseTo(-L / 2, 3);
+    expect(cam.pose.d).toBe(cam.minD);
+    expect(cam.pose.tilt).toBeCloseTo((TILT_MIN * Math.PI) / 180, 5);
+    cam.goal.tilt = 3;
+    cam.update(10, 100);
+    expect(cam.pose.tilt).toBeCloseTo((TILT_MAX * Math.PI) / 180, 5);
+    cam.goal.yaw += 1;
+    expect(cam.turned).toBe(true);
+    cam.resetAngle();
+    cam.update(10, 100);
+    expect(cam.turned).toBe(false);
   });
 });

@@ -1,18 +1,27 @@
 // Determinism baseline: fixed seeds, AI vs AI, default White setup, relics on and off.
-// `npm run baseline` compares against tests/baseline.expected.json and exits 1 on any difference.
-// `npm run baseline -- --write` rewrites the expected file (only for an intentional behaviour change).
+// `npm run baseline` checks both maps, each against its own record: the Long Board (the game's
+// default map) against tests/baseline-long.expected.json and the square map against
+// tests/baseline.expected.json; it exits 1 on any difference. `--map long` or `--map square`
+// checks one. `--write` rewrites the record(s) checked (only for an intentional behaviour change).
 import { readFileSync, writeFileSync } from 'node:fs';
 import { loadNodeContent } from './content-node';
 import { Match, hashContent } from '../src/sim';
 import type { MatchConfig } from '../src/sim';
 
-// --map long: the Long Board's own record (tests/baseline-long.expected.json).
-const long =
-  process.argv.includes('--map') && process.argv[process.argv.indexOf('--map') + 1] === 'long';
-const EXPECTED = new URL(
-  long ? '../tests/baseline-long.expected.json' : '../tests/baseline.expected.json',
-  import.meta.url,
-);
+type MapName = 'long' | 'square';
+const mapArg = process.argv.includes('--map')
+  ? process.argv[process.argv.indexOf('--map') + 1]
+  : null;
+if (mapArg !== null && mapArg !== 'long' && mapArg !== 'square') {
+  console.error(`--map takes long or square, not ${mapArg}`);
+  process.exit(2);
+}
+const MAPS: MapName[] = mapArg ? [mapArg] : ['long', 'square'];
+const expectedFile = (map: MapName): URL =>
+  new URL(
+    map === 'long' ? '../tests/baseline-long.expected.json' : '../tests/baseline.expected.json',
+    import.meta.url,
+  );
 
 interface Row {
   variant: string;
@@ -60,52 +69,64 @@ const coreSnapshot = (snap: unknown): unknown =>
   });
 
 const content = loadNodeContent();
-const rows: Row[] = [];
-const msPerTick: number[] = [];
-for (const v of VARIANTS) {
-  for (const seed of SEEDS) {
-    const t0 = process.hrtime.bigint();
-    const m = Match.create(content, {
-      seed,
-      autoGambits: { A: true, B: true },
-      ...v.cfg,
-      ...(long ? { map: 'long' as const } : {}),
-    });
-    if (m.state.phase.kind === 'setup') m.issue({ type: 'setupTeam', ...m.defaultSetup() });
-    m.runToEnd(12);
-    msPerTick.push(Number(process.hrtime.bigint() - t0) / 1e6 / m.state.tick);
-    rows.push({
-      variant: v.name,
-      seed,
-      winner: m.state.winner,
-      act: m.state.phase.n,
-      tick: m.state.tick,
-      events: m.events.length,
-      samples: m.samples.length,
-      logHash: hashContent({ e: m.events, s: m.samples }),
-      stateHash: hashContent(coreState(m.state)),
-      snapHash: hashContent(coreSnapshot(m.snapshot())),
-    });
+const write = process.argv.includes('--write');
+let bad = 0;
+
+function run(map: MapName): { rows: Row[]; msPerTick: number[] } {
+  const rows: Row[] = [];
+  const msPerTick: number[] = [];
+  for (const v of VARIANTS) {
+    for (const seed of SEEDS) {
+      const t0 = process.hrtime.bigint();
+      const m = Match.create(content, {
+        seed,
+        autoGambits: { A: true, B: true },
+        ...v.cfg,
+        ...(map === 'long' ? { map: 'long' as const } : {}),
+      });
+      if (m.state.phase.kind === 'setup') m.issue({ type: 'setupTeam', ...m.defaultSetup() });
+      m.runToEnd(12);
+      msPerTick.push(Number(process.hrtime.bigint() - t0) / 1e6 / m.state.tick);
+      rows.push({
+        variant: v.name,
+        seed,
+        winner: m.state.winner,
+        act: m.state.phase.n,
+        tick: m.state.tick,
+        events: m.events.length,
+        samples: m.samples.length,
+        logHash: hashContent({ e: m.events, s: m.samples }),
+        stateHash: hashContent(coreState(m.state)),
+        snapHash: hashContent(coreSnapshot(m.snapshot())),
+      });
+    }
   }
+  return { rows, msPerTick };
 }
 
-if (process.argv.includes('--write')) {
-  writeFileSync(EXPECTED, JSON.stringify(rows, null, 2) + '\n');
-  console.log(`wrote ${rows.length} rows to ${EXPECTED.pathname.split('/').pop()}`);
-  process.exit(0);
+for (const map of MAPS) {
+  const { rows, msPerTick } = run(map);
+  const file = expectedFile(map);
+  const name = file.pathname.split('/').pop();
+  if (write) {
+    writeFileSync(file, JSON.stringify(rows, null, 2) + '\n');
+    console.log(`wrote ${rows.length} rows to ${name}`);
+    continue;
+  }
+  console.log(`${map === 'long' ? 'Long Board' : 'square map'} (${name})`);
+  const expected = JSON.parse(readFileSync(file, 'utf8')) as Row[];
+  let diff = expected.length === rows.length ? 0 : 1;
+  rows.forEach((r, i) => {
+    const same = JSON.stringify(r) === JSON.stringify(expected[i]);
+    if (!same) diff++;
+    console.log(
+      `${same ? 'ok  ' : 'DIFF'} ${r.variant.padEnd(9)} seed ${String(r.seed).padEnd(5)} ` +
+        `winner ${r.winner} act ${r.act} tick ${r.tick} log ${r.logHash} state ${r.stateHash} ` +
+        `snap ${r.snapHash} (${msPerTick[i].toFixed(3)} ms/tick)`,
+    );
+    if (!same) console.log(`     expected ${JSON.stringify(expected[i])}`);
+  });
+  console.log(diff === 0 ? 'baseline: identical' : `baseline: ${diff} difference(s)`);
+  bad += diff;
 }
-
-const expected = JSON.parse(readFileSync(EXPECTED, 'utf8')) as Row[];
-let bad = expected.length === rows.length ? 0 : 1;
-rows.forEach((r, i) => {
-  const same = JSON.stringify(r) === JSON.stringify(expected[i]);
-  if (!same) bad++;
-  console.log(
-    `${same ? 'ok  ' : 'DIFF'} ${r.variant.padEnd(9)} seed ${String(r.seed).padEnd(5)} ` +
-      `winner ${r.winner} act ${r.act} tick ${r.tick} log ${r.logHash} state ${r.stateHash} ` +
-      `snap ${r.snapHash} (${msPerTick[i].toFixed(3)} ms/tick)`,
-  );
-  if (!same) console.log(`     expected ${JSON.stringify(expected[i])}`);
-});
-console.log(bad === 0 ? 'baseline: identical' : `baseline: ${bad} difference(s)`);
 process.exit(bad === 0 ? 0 : 1);

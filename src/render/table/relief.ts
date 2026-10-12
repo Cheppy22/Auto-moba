@@ -275,12 +275,10 @@ export const TERRACE = {
   /** Open water in the river band, and the Pit floor. */
   water: -14,
   pit: -20,
+  /** The lake round the garden (the apron's outer edge drops to it). */
+  lake: -46,
   /** The slope just inside a sunken grove or the Pit. */
   bank: 26,
-  /** Open ground: the chess squares stand up as blocks in a two-height checker. */
-  blockLow: 18,
-  blockHigh: 26,
-  bevel: 22,
   /** Base dais on the home terrace: outer and inner tier. */
   daisOuter: 16,
   daisInner: 30,
@@ -291,8 +289,9 @@ export const TERRACE = {
  * The Long Board's relief (view only; the sim's tiers are `tierAt` in `sim/world/height.ts`):
  * the river band and its ramps are low, the midfield terrace is one `step` up, the home terrace
  * and base two. Lanes climb the 12 ramps; groves and the Pit are sunken basins with a bank; open
- * ground stands up as chess-square blocks on its terrace; the river band is water. The frame is
- * level with the home terrace, so the board reads as carved into the table.
+ * ground stands one flat lip above its terrace; the river band is water. Past the board's edge
+ * the `apron` carries on the dead-space floor of each terrace and the river's water, out to the
+ * lake (the board view drops the grid's outer ring to the lake's level).
  */
 export class LongRelief implements Ground {
   readonly nx: number;
@@ -315,15 +314,21 @@ export class LongRelief implements Ground {
   private readonly bases: number[][];
   private readonly R: number;
   private readonly tiles: [number, number][];
-  /** One flat lip for all dead space (the visual-language styles), or null for the checker blocks. */
-  private readonly lip: { h: number; bevel: number } | null;
+  /** One flat lip for all dead space: its height over the terrace and its bevel. */
+  private readonly lip: { h: number; bevel: number };
+  /** Ground past the board's edge, and the width of its bank down to the lake. */
+  private readonly apron: number;
+  private readonly bank: number;
 
   constructor(
     map: MapDef,
-    frame: number,
-    cell = 20,
-    lip: { h: number; bevel: number } | null = null,
+    apron: number,
+    cell: number,
+    lip: { h: number; bevel: number },
+    bank = 150,
   ) {
+    this.apron = apron;
+    this.bank = bank;
     const t = map.terraces!;
     this.lip = lip;
     this.w = map.size;
@@ -332,14 +337,14 @@ export class LongRelief implements Ground {
     this.river = t.river;
     this.rampLen = t.rampLen;
     this.home = t.home;
-    this.ex = this.w / 2 + frame;
-    this.ez = this.l / 2 + frame;
+    this.ex = this.w / 2 + apron;
+    this.ez = this.l / 2 + apron;
     this.cell = cell;
     this.nx = Math.round((this.ex * 2) / cell);
     this.nz = Math.round((this.ez * 2) / cell);
     const T = TERRACE.step;
     this.frameH = 2 * T;
-    this.peak = 2 * T + TERRACE.blockHigh;
+    this.peak = 2 * T + lip.h;
     this.dais = 2 * T + TERRACE.daisInner;
     this.shapes = buildTerrain(map).shapes;
     this.sunk = this.shapes.filter((s) => s.kind === 'grove' || s.kind === 'pit');
@@ -382,8 +387,15 @@ export class LongRelief implements Ground {
 
   /** Ground height at a sim point; the grid samples this. */
   private sample(x: number, y: number): number {
-    if (x <= 0 || y <= 0 || x >= this.w || y >= this.l) return this.frameH;
     const e = Math.abs(y - this.mid);
+    // the apron: the river's water and each terrace's dead-space floor run on past the edge, then
+    // a bank (rounded at the corners) slopes down into the lake
+    if (x <= 0 || y <= 0 || x >= this.w || y >= this.l) {
+      const top = e < this.river ? TERRACE.water : this.terrace(e) + this.lip.h;
+      const out = Math.hypot(Math.max(-x, x - this.w, 0), Math.max(-y, y - this.l, 0));
+      const k = smooth(this.apron - this.bank, this.apron - 6, out);
+      return top + (TERRACE.lake - 10 - top) * k;
+    }
     let d = Infinity;
     let near: WalkShape | null = null;
     for (const s of this.shapes) {
@@ -422,18 +434,12 @@ export class LongRelief implements Ground {
         floor += TERRACE.tile * (1 - smooth(RELIEF.tileHalf, RELIEF.tileHalf + 14, cheb));
     }
     if (d <= 0) return floor;
-    // off the walkable shapes: water in the river band, chess-square blocks on the terraces
+    // off the walkable shapes: water in the river band, one flat lip over the terraces
     if (e < this.river) return floor + (TERRACE.water - floor) * smooth(0, 12, d);
-    if (this.lip)
-      return Math.max(
-        floor,
-        floor + (this.terrace(e) + this.lip.h - floor) * smooth(0, this.lip.bevel, d),
-      );
-    const sq = this.w / 8;
-    const top =
-      this.terrace(e) +
-      ((Math.floor(x / sq) + Math.floor(y / sq)) % 2 === 0 ? TERRACE.blockHigh : TERRACE.blockLow);
-    return Math.max(floor, floor + (top - floor) * smooth(0, TERRACE.bevel, d));
+    return Math.max(
+      floor,
+      floor + (this.terrace(e) + this.lip.h - floor) * smooth(0, this.lip.bevel, d),
+    );
   }
 
   at(wx: number, wz: number): number {
