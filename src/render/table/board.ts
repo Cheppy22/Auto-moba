@@ -16,13 +16,12 @@ import {
 import type { Content } from '../../sim';
 import { buildTerrain } from '../../sim';
 import { LOOK, TABLE } from './palette';
-import { groveTrees, paintLong } from './longpaint';
 import {
   CAMP_BADGE,
   groveProps,
   LIP,
   mapStyle,
-  mapStyleId,
+  type MapStyleId,
   paintCover,
   paintLongStyled,
 } from './longlook';
@@ -91,12 +90,13 @@ export class Board {
   private orient: Orient | null = null;
   private readonly gates: { mesh: Mesh; id: string }[] = [];
   private readonly texSize: number;
-  /** The Long Board's style (`?mapstyle`); null on the square board and for the phase-3 look. */
+  /** The Long Board's theme; null on the square board. */
   private readonly style: ReturnType<typeof mapStyle> | null;
 
   constructor(
     private readonly content: Content,
     texSize: number,
+    theme: MapStyleId = 'a',
   ) {
     const map = content.map;
     const hx = map.size / 2;
@@ -108,11 +108,8 @@ export class Board {
     this.ez = hz + FRAME;
     const E = Math.max(this.ex, this.ez);
     this.texSize = texSize;
-    const sid = this.long ? mapStyleId() : 'old';
-    this.style = sid === 'old' ? null : mapStyle(sid);
-    this.relief = this.long
-      ? new LongRelief(map, FRAME, 20, this.style ? LIP : null)
-      : new Relief(content, E);
+    this.style = this.long ? mapStyle(theme) : null;
+    this.relief = this.long ? new LongRelief(map, FRAME, 20, LIP) : new Relief(content, E);
     const lift = this.relief.frameH;
 
     // table: a walnut plane with a pool of lamp light under the board
@@ -243,11 +240,7 @@ export class Board {
     this.group.add(table, slab, this.top);
 
     // the Long Board's groves are ringed by low-poly pines (one static mesh)
-    const trees = !this.long
-      ? null
-      : this.style
-        ? groveProps(map, this.relief, this.style)
-        : groveTrees(map, this.relief);
+    const trees = this.style ? groveProps(map, this.relief, this.style) : null;
     if (trees) {
       const mesh = new Mesh(
         this.own(trees),
@@ -324,13 +317,11 @@ export class Board {
   }
 
   private paint(o: Orient): Texture {
-    if (this.long) {
+    if (this.style) {
       // the long side gets a third more pixels than the square board's texture
       const H = Math.round((this.texSize * 4) / 3);
       const [c, g] = canvas(Math.round((H * this.ex) / this.ez), H);
-      if (this.style)
-        paintLongStyled(g, c.height / (2 * this.ez), this.content.map, FRAME, o, this.style);
-      else paintLong(g, c.height / (2 * this.ez), this.content.map, FRAME, o);
+      paintLongStyled(g, c.height / (2 * this.ez), this.content.map, FRAME, o, this.style);
       return this.own(tex(c));
     }
     const S = this.texSize;

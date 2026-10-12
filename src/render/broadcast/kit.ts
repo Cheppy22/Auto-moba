@@ -12,14 +12,11 @@ import {
   type ColorRepresentation,
   DataTexture,
   DoubleSide,
-  FrontSide,
-  type Side,
   Material,
   Mesh,
   MeshBasicMaterial,
   MeshToonMaterial,
   NearestFilter,
-  Object3D,
   PlaneGeometry,
   RedFormat,
   RingGeometry,
@@ -29,13 +26,8 @@ import {
 } from 'three';
 import { mergeGeometries, mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
-export const INK = '#0b0a0f';
-export const STONE = '#5b5569';
-export const STONE_DARK = '#3b3647';
+const INK = '#0b0a0f';
 export const BRASS = '#c8963c';
-export const LACQUER = '#2a1c24';
-export const PAPER = '#ece2cc';
-export const SKIN = '#e4d3b4';
 
 const TAU = Math.PI * 2;
 
@@ -80,19 +72,6 @@ function bake(bit: Bit): BufferGeometry {
   return g.applyMatrix4(_mat);
 }
 
-/** A model part that a defeated figure breaks into. */
-export interface Piece {
-  object: Object3D;
-  radius: number;
-  lie: boolean;
-}
-
-export function put<T extends Object3D>(parent: Object3D, child: T, x = 0, y = 0, z = 0): T {
-  child.position.set(x, y, z);
-  parent.add(child);
-  return child;
-}
-
 /** Shared GPU resources: toon ramp, cached materials and textures, ink outline hulls. */
 export class Kit {
   /** World units of ink-outline thickness; the view retunes it with camera distance. */
@@ -133,35 +112,6 @@ export class Kit {
       this.geos.set(key, g);
     }
     return g;
-  }
-
-  toon(
-    color: ColorRepresentation,
-    emissive?: ColorRepresentation,
-    intensity = 1,
-  ): MeshToonMaterial {
-    const key = `${new Color(color).getHexString()}|${emissive === undefined ? '' : new Color(emissive).getHexString()}|${intensity}`;
-    let m = this.toons.get(key);
-    if (!m) {
-      m = this.uniqueToon(color, emissive, intensity);
-      this.toons.set(key, m);
-    }
-    return m;
-  }
-
-  uniqueToon(
-    color: ColorRepresentation,
-    emissive?: ColorRepresentation,
-    intensity = 1,
-  ): MeshToonMaterial {
-    return this.own(
-      new MeshToonMaterial({
-        color,
-        gradientMap: this.gradient,
-        emissive: emissive ?? '#000000',
-        emissiveIntensity: intensity,
-      }),
-    );
   }
 
   basic(color: ColorRepresentation, opacity = 1, additive = false): MeshBasicMaterial {
@@ -491,81 +441,6 @@ export class Kit {
     return m;
   }
 
-  /** Unlit vertex-colour mesh for bright trim and glass. */
-  glowSolid(key: string, make: () => Bit[], side: Side = FrontSide): Mesh {
-    const geo = this.geo(key, () => this.disown(this.merge(make())));
-    const mk = `vertex-basic-${side}`;
-    let m = this.basics.get(mk);
-    if (!m) {
-      m = this.own(new MeshBasicMaterial({ vertexColors: true, side, fog: false }));
-      this.basics.set(mk, m);
-    }
-    return new Mesh(geo, m);
-  }
-
-  /** Shorthand: cached geometry, inked mesh. */
-  part(
-    key: string,
-    make: () => BufferGeometry,
-    material: Material,
-    k = 1,
-    x = 0,
-    y = 0,
-    z = 0,
-  ): Mesh {
-    const m = this.inked(this.geo(key, make), material, k);
-    m.position.set(x, y, z);
-    return m;
-  }
-
-  /** Soft dark contact shadow lying on the ground. */
-  blob(r: number, opacity = 0.55): Mesh {
-    const tex = this.texture('blob', 128, 128, (g) => {
-      const gr = g.createRadialGradient(64, 64, 0, 64, 64, 64);
-      gr.addColorStop(0, 'rgba(0,0,0,1)');
-      gr.addColorStop(0.55, 'rgba(0,0,0,0.55)');
-      gr.addColorStop(1, 'rgba(0,0,0,0)');
-      g.fillStyle = gr;
-      g.fillRect(0, 0, 128, 128);
-    });
-    const mat = this.own(
-      new MeshBasicMaterial({
-        map: tex,
-        transparent: true,
-        opacity,
-        depthWrite: false,
-        fog: false,
-      }),
-    );
-    const m = new Mesh(
-      this.geo('decal', () => new PlaneGeometry(1, 1).rotateX(-Math.PI / 2)),
-      mat,
-    );
-    m.scale.set(r * 2, 1, r * 2);
-    m.position.y = 0.55;
-    m.renderOrder = 4;
-    return m;
-  }
-
-  /** Clone a model piece with its own materials so it can fade independently. */
-  fadable(src: Object3D): { object: Object3D; materials: Material[] } {
-    const object = src.clone(true);
-    const materials: Material[] = [];
-    const sprites: Object3D[] = [];
-    object.traverse((o) => {
-      if (o instanceof Sprite) sprites.push(o);
-      if (!(o instanceof Mesh)) return;
-      const old = o.material as Material;
-      const next =
-        typeof old.userData.ink === 'number' ? this.makeInk(old.userData.ink) : old.clone();
-      next.transparent = true;
-      o.material = next;
-      materials.push(next);
-    });
-    for (const s of sprites) s.removeFromParent();
-    return { object, materials };
-  }
-
   dispose(): void {
     for (const o of this.owned) o.dispose();
     this.owned = [];
@@ -573,19 +448,6 @@ export class Kit {
       m.clear();
     this.hulls.clear();
   }
-}
-
-export function hash(s: string): number {
-  let h = 2166136261;
-  for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619);
-  return h >>> 0;
-}
-
-export function rand01(seed: number): number {
-  let t = (seed + 0x6d2b79f5) | 0;
-  t = Math.imul(t ^ (t >>> 15), t | 1);
-  t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
 }
 
 /** A flat ring on the ground whose swept arc grows from north, clockwise (0..1). */

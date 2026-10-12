@@ -132,7 +132,7 @@ describe('the Long Board in the table view', () => {
   const W = map.size;
   const L = map.length!;
   const t = map.terraces!;
-  const r = new LongRelief(map, 130);
+  const r = new LongRelief(map, 130, 20, LIP);
   const T = TERRACE.step;
   const world = buildWorld(map);
   const shapes = world.terrain.shapes;
@@ -179,19 +179,15 @@ describe('the Long Board in the table view', () => {
     expect(ramp(t.river + t.rampLen / 2)).toBeGreaterThan(T * 0.3);
     expect(ramp(t.river + t.rampLen / 2)).toBeLessThan(T * 0.7);
     expect(ramp(t.home + t.rampLen + 30)).toBeCloseTo(2 * T, 0);
-    // a block between the Sally spur and the Mid lane on the midfield terrace, and open water
-    expect(r.atSim(810, L / 2 + 450)).toBeGreaterThan(T + TERRACE.blockLow - 2);
+    // dead space between the Sally spur and the Mid lane on the midfield terrace, and open water
+    expect(r.atSim(810, L / 2 + 450)).toBeGreaterThan(T + LIP.h - 2);
     expect(r.atSim(60, L / 2)).toBeLessThan(0);
     expect(r.atSim(-50, 100)).toBe(r.frameH);
   });
 
-  it('the map styles raise all dead space by one flat lip over its terrace', () => {
-    const flat = new LongRelief(map, 130, 20, LIP);
-    expect(flat.atSim(810, L / 2 + 450)).toBeCloseTo(T + LIP.h, 0);
-    expect(flat.atSim(200, L / 2 + 1600)).toBeCloseTo(2 * T + LIP.h, 0);
-    // walkable ground is where the phase-3 relief puts it
-    const [lx] = map.lanes.top[1];
-    expect(flat.atSim(lx, L / 2 + 600)).toBeCloseTo(r.atSim(lx, L / 2 + 600), 3);
+  it('all dead space stands one flat lip over its terrace', () => {
+    expect(r.atSim(810, L / 2 + 450)).toBeCloseTo(T + LIP.h, 0);
+    expect(r.atSim(200, L / 2 + 1600)).toBeCloseTo(2 * T + LIP.h, 0);
   });
 
   it('a gate arch stands wherever a path crosses a grove edge, matching the sim', () => {

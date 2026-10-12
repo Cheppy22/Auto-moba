@@ -180,7 +180,7 @@ export async function playPast(page: Page, tick: number, timeout = 60_000): Prom
     .toBeGreaterThan(tick);
 }
 
-/** True when the page draws the legacy corner HUD (`?look=grand` or `?hud=old`), false for the court bar. */
+/** True when the page draws the legacy corner HUD (`?hud=old`), false for the court bar. */
 export async function isOldHud(page: Page): Promise<boolean> {
   return (await page.getByTestId('hud').getAttribute('data-hud')) === 'old';
 }

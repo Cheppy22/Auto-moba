@@ -2,7 +2,6 @@ import type { BufferGeometry } from 'three';
 import type { MapDef, WalkShape } from '../../sim';
 import { buildTerrain, shapeDist } from '../../sim';
 import type { Orient } from './board';
-import { fillShapes, hash, mix, shapePath } from './longpaint';
 import { box, cone, merge, prism, type Part } from './mesh';
 import { TABLE } from './palette';
 import { type Ground, RELIEF } from './relief';
@@ -12,9 +11,9 @@ import { type Ground, RELIEF } from './relief';
  * Felt = lane; flagstone = any other walkable ground; a pale stone lip = a change of height;
  * a brass medallion (ring + badge with an icon) = a place you use or fight over; calm floor
  * tiles = dead space; trees, hedges and water only on dead space. `a` and `b` follow the same
- * rules in two moods; `old` is the phase-3 look (`longpaint.ts`), kept for comparison.
+ * rules in two moods.
  */
-export type MapStyleId = 'a' | 'b' | 'old';
+export type MapStyleId = 'a' | 'b';
 
 export interface MapStyle {
   id: 'a' | 'b';
@@ -107,14 +106,61 @@ const STYLES: Record<'a' | 'b', MapStyle> = {
   },
 };
 
-/** The Long Board's style from `?mapstyle=a|b|old` (default a). */
-export function mapStyleId(): MapStyleId {
-  if (typeof location === 'undefined') return 'a';
-  const v = new URLSearchParams(location.search).get('mapstyle');
-  return v === 'b' || v === 'old' ? v : 'a';
+/** Mixes two #rrggbb colours. */
+export function mix(a: string, b: string, t: number): string {
+  const p = (h: string, i: number): number => parseInt(h.slice(1 + i * 2, 3 + i * 2), 16);
+  const c = [0, 1, 2].map((i) => Math.round(p(a, i) + (p(b, i) - p(a, i)) * t));
+  return `rgb(${c[0]},${c[1]},${c[2]})`;
 }
 
-export function mapStyle(id: 'a' | 'b'): MapStyle {
+/** A small deterministic hash in [0, 1) (the paint is the same every load). */
+export function hash(i: number): number {
+  const x = Math.sin(i * 127.1 + 311.7) * 43758.5453;
+  return x - Math.floor(x);
+}
+
+/** Adds a walkable shape, grown by `pad`, to the current path (a capsule, or a flat-ended box). */
+export function shapePath(g: CanvasRenderingContext2D, s: WalkShape, pad: number): void {
+  const r = s.r + pad;
+  if (r <= 0) return;
+  const dx = s.bx - s.ax;
+  const dy = s.by - s.ay;
+  const len = Math.hypot(dx, dy);
+  const t = Math.atan2(dy, dx);
+  if (s.box) {
+    const ux = len > 0 ? dx / len : 1;
+    const uy = len > 0 ? dy / len : 0;
+    const ex = ux * pad;
+    const ey = uy * pad;
+    const nx = -uy * r;
+    const ny = ux * r;
+    // the same turning sense as the capsules' arcs, so overlapping shapes add up (no holes)
+    g.moveTo(s.ax - ex - nx, s.ay - ey - ny);
+    g.lineTo(s.bx + ex - nx, s.by + ey - ny);
+    g.lineTo(s.bx + ex + nx, s.by + ey + ny);
+    g.lineTo(s.ax - ex + nx, s.ay - ey + ny);
+    g.closePath();
+    return;
+  }
+  g.moveTo(s.ax + Math.cos(t + Math.PI / 2) * r, s.ay + Math.sin(t + Math.PI / 2) * r);
+  g.arc(s.ax, s.ay, r, t + Math.PI / 2, t + (Math.PI * 3) / 2);
+  g.arc(s.bx, s.by, r, t - Math.PI / 2, t + Math.PI / 2);
+  g.closePath();
+}
+
+export function fillShapes(
+  g: CanvasRenderingContext2D,
+  shapes: readonly WalkShape[],
+  pad: number,
+  style: string | CanvasGradient | CanvasPattern,
+): void {
+  g.beginPath();
+  for (const s of shapes) shapePath(g, s, pad);
+  g.fillStyle = style;
+  g.fill();
+}
+
+export function mapStyle(id: MapStyleId): MapStyle {
   return STYLES[id];
 }
 

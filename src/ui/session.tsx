@@ -119,8 +119,6 @@ const freshUi = (): UiState => ({
 export interface PickView {
   pickGround(clientX: number, clientY: number): { x: number; y: number } | null;
   pickUnit(clientX: number, clientY: number): number | null;
-  /** Frames the 3D view has drawn (the match intro starts its clock after the first). */
-  readonly framesDrawn: number;
   /** Where a map point lands on the canvas (CSS pixels from its top-left). */
   project(x: number, y: number, lift?: number): { x: number; y: number; visible: boolean };
 }

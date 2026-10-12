@@ -177,16 +177,6 @@ function webgl(canvas: HTMLCanvasElement): WebGLRenderer {
 }
 
 /**
- * URL switch: the table view is the default; `?look=grand` picks the legacy Grand Board view,
- * except on the Long Board (`?map=long`), which only the table view draws.
- */
-export function wantsTable(): boolean {
-  if (typeof location === 'undefined') return true;
-  const q = new URLSearchParams(location.search);
-  return q.get('look') !== 'grand' || q.get('map') === 'long';
-}
-
-/**
  * The Tournament Table view (the default look): the whole board on a walnut table under a
  * fixed war-table camera, faceted humanoid pieces at miniature scale. Same contract as the
  * broadcast view: reads snapshots and events, never touches the sim.

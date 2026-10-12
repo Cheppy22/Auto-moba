@@ -11,7 +11,7 @@ import {
   watchErrors,
 } from './helpers';
 
-/** The new HUD ("court bar"): the default with the table look (no params); `?hud=new` forces it, `?hud=old` and `?look=grand` give the old corner HUD. */
+/** The new HUD ("court bar"): the default; `?hud=old` gives the legacy corner HUD. */
 
 async function startWith(page: Page, query: string, seed = '42'): Promise<void> {
   await page.goto(`/?${query ? `${query}&` : ''}intro=off`);
@@ -343,7 +343,7 @@ test('the drawer switch turns automatic pawn fielding off and on', async ({ page
   expect(errors).toEqual([]);
 });
 
-test('the new HUD is the default and ?hud=old / ?look=grand give the old one', async ({ page }) => {
+test('the new HUD is the default and ?hud=old gives the old one', async ({ page }) => {
   test.setTimeout(240_000);
   const errors = watchErrors(page);
   await startWith(page, '');
@@ -355,13 +355,5 @@ test('the new HUD is the default and ?hud=old / ?look=grand give the old one', a
   await expect(page.getByTestId('hud')).toHaveAttribute('data-hud', 'old');
   await expect(page.getByTestId('drawer')).toHaveCount(0);
   await expect(page.getByTestId('gambit-0')).toBeVisible();
-  expect(errors).toEqual([]);
-});
-
-test('the legacy ?look=grand look uses the old HUD', async ({ page }) => {
-  test.setTimeout(240_000);
-  const errors = watchErrors(page);
-  await startWith(page, 'look=grand');
-  await expect(page.getByTestId('hud')).toHaveAttribute('data-hud', 'old');
   expect(errors).toEqual([]);
 });
