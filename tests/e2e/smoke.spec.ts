@@ -307,7 +307,7 @@ test('title, setup, gambits, pawn, fork, adjourn, checkmate and report', async (
   await page.keyboard.press('Escape');
   await expect(page.getByTestId('adjourn-panel')).toHaveCount(0);
   await playPast(page, frozen);
-  await expect(page.getByTestId('roster-A-knight')).toHaveAttribute('aria-label', /Right/);
+  await expect(page.getByTestId('roster-A-knight')).toHaveAttribute('data-lane', 'bot');
 
   // ---- to checkmate: the end screen and the report
   await setSpeed(page, 0);

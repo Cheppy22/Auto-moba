@@ -4,9 +4,11 @@ Live: https://cheppy22.github.io/Auto-moba/v2/ (main game at the root URL). Defa
 
 ## Status
 
-Playable chess auto-battler: 5 pieces per side, pawnlings/pawns, Bastions, Check/Checkmate, gambit schools + Openings, archetype at Rank 4, all 23 relics (draft at each Act break), Act bell + break sheet (Report / Orders with pawn counts / Relics), combat feedback, fixed whole-board camera by default, sound, match intro, report with graphs and damage mitigated. Look: Tournament Table variant c "Spotlight Arena" (low-poly humanoid pieces, chessboard on a table, relief/terraces visual only) with the new phone HUD (court bar on top, piece row + card drawer at the bottom, dead-piece trays), lane camera (tap lane to lean in, drag along lane, pinch/wheel zoom), 3-page setup (paths with first buys, board with piece descriptors + synergy, Opening with example hands), 6.7 s versus-card intro. White/Black balance is on target (49.6–51.4%).
+Playable chess auto-battler: 5 pieces per side, pawnlings/pawns, Bastions, Check/Checkmate, gambit schools + Openings, archetype at Rank 4, all 23 relics (draft at each Act break), Act bell + break sheet (Report / Orders with pawn counts / Relics), combat feedback, fixed whole-board camera by default, sound, match intro, report with graphs and damage mitigated. Look: Tournament Table variant c "Spotlight Arena" (low-poly humanoid pieces, chessboard on a table, relief/terraces visual only) with the new phone HUD (court bar on top, piece row + card drawer at the bottom, dead-piece trays), lane camera (tap lane to lean in, drag along lane, pinch/wheel zoom), 3-page setup (paths with first buys, board with piece descriptors + synergy, Opening with example hands), 6.7 s versus-card intro. Combat spacing + AI judgement: attackers take slots around a target (ranged stand off), heavy hits knock back, pieces don't dive towers or take bad-odds fights, low-health pieces retreat (thresholds in `content/tuning.json` → `judgement`). White/Black balance 49.9–53.0% after that change (800 matches, seeds 31000/29000).
 
-## Done recently (2026-10-11, all pushed)
+## Done recently (2026-10-11/12, all pushed)
+
+- **Late 10-11 → 10-12:** UI fixes batch (Opening counters single verdict, instant intro held until Begin, auto-pawn switch, hold clock to pause, red flash only in duels, lane tags), table hit effects + teleport-home effect, **combat spacing + AI judgement** (kills per match 55 → 28, blob share 66% → 19%, tower-range deaths 5.5 → 2.6, 0 stuck units in 200 matches; Throne 3800 health, respawn 18 s + 6 s per Act, cap 70 s; baseline re-recorded on purpose). New tool: `npm run combat-check -- --matches 200 --seed 29000`.
 
 - **Afternoon:** table-look variants (a/b/c) + lane camera, owner picked **c as default**; new phone HUD; 3-page setup overhaul (+ fork-sheet landscape fix, report swipe fix); versus-card intro with 3D portraits; HUD reports the drawer footprint so the board frames around it. **Long Board map spec** written (`docs/MAP-LONGBOARD-2026-10-11.md`, diagram `docs/img/map-longboard.svg`) — awaiting owner approval.
 
@@ -17,20 +19,21 @@ Playable chess auto-battler: 5 pieces per side, pawnlings/pawns, Bastions, Check
 
 ## Next steps
 
-1. **Long Board map overhaul** — once the owner approves the six decisions in the spec: 5 phases behind `?map=long` (sim map + walkable + pathing; high-ground rules + AI; table render + camera; 800-match balance with a deliberate baseline re-record; switch default + e2e + docs), about 5–6 days with 2–3 agents. Highest risk: AI rotation/pathing.
+1. **Long Board map overhaul** (approved, spec v2; task next): units move 15% faster, Reach + Sight high-ground rules with a minimal eye icon. Build 5 phases behind `?map=long` (sim map + walkable + pathing; high-ground rules + AI; table render + camera; 800-match balance with a deliberate baseline re-record; switch default + e2e + docs), about 5–6 days with 2–3 agents. Highest risk: AI rotation/pathing.
 2. QA open items: King's Ransom offered by the tailored slot while far ahead; auto-actions (Standing Order, Pawn Structure, pawn plan, Rally) need a note; new HUD side shape: aim banner covers Black's base at 800×520, Black tokens 38 px (< 44); intro portraits small on phones; old-look Black portraits murky.
-3. Balance follow-ups: second style pass (Ram, Errant, Usurper, Lancer, Shadow), relic value runs, third seed for Wing Gambit / Royal Keep.
+3. Balance follow-ups: White 53.0% on seed 29000 after combat/AI (just over 48–52%; kills even, likely noise — run a third seed); second style pass (Ram, Errant, Usurper, Lancer, Shadow), relic value runs, third seed for Wing Gambit / Royal Keep.
 4. Code cleanup phases 4–6 (big-function rewrites, speed, tests) — after the map overhaul (it rewrites render/ui/sim map code anyway); delete the Grand Board renderer (~10.6k lines) then.
 5. Synergy notes on setup page 2 are thin (only King + Bishop produce any) — richer synergy would need design.
 
 ## Open decisions
 
-- Long Board: approve the six decisions (speed ×1.2, retire Grand Board look, Reach + Sight high-ground rules, grove floors open all match, one shop Square per side, build behind `?map=long`).
+- Pacing knobs if wanted: lower `judgement.retreatHp` for more kills; Throne 3800 → 3500 for shorter matches.
 - Intro: flip the header to Black-left/White-right to match the rows? Lighten the ~85% dim?
 - Karpathy coding guidelines in global `~/.claude/CLAUDE.md`: blocked by the auto-mode safety check; needs a permission rule or a manual paste.
 
 ## Gotchas
 
+- Matches simulate ~8 s each now (was ~7): an 800-match balance run with `--workers 2` takes ~55 min.
 - Machine is 4 cores and shared by agents: run balance with `--workers 2`, one job at a time; browser tests time out under load (rerun alone). `tests/terrain.test.ts` and `tests/lane-share.test.ts` have hard-coded 60/120 s timeouts.
 - Two Playwright specs fail on this branch: mobile landscape (fork sheet ~8 px too tall at 844×390, "Let the AI choose" 80% in view — small CSS fix in `src/ui/css/responsive.css`) and report landscape (swipe/arrow doesn't switch to Economy; cause unknown). Report desktop can hang under load.
 - Never use `pkill -f` / `pgrep -f` patterns that can match your own shell command (it killed the shell twice). Kill by PID.
