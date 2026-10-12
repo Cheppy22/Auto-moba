@@ -230,16 +230,18 @@ export function drawReplay(
     g.lineWidth = 1;
     g.stroke();
   }
+  // the Long Board's lanes are drawn near their real width (its zones are drawn to scale)
+  const lw = content.map.length !== undefined ? content.map.walk.lane * 1.2 : 21;
   for (const lane of [content.map.lanes.top, content.map.lanes.mid, content.map.lanes.bot]) {
     g.beginPath();
     lane.forEach(([x, y], i) => (i === 0 ? g.moveTo(...xy(x, y)) : g.lineTo(...xy(x, y))));
     g.lineCap = 'round';
     g.lineJoin = 'round';
     g.strokeStyle = 'rgba(201,163,90,0.3)';
-    g.lineWidth = 26 * p;
+    g.lineWidth = (lw + 5) * p;
     g.stroke();
     g.strokeStyle = '#4a3a2a';
-    g.lineWidth = 21 * p;
+    g.lineWidth = lw * p;
     g.stroke();
   }
   for (const t of ['A', 'B'] as const) {
