@@ -1050,7 +1050,7 @@ export function groveProps(map: MapDef, ground: Ground, st: MapStyle): BufferGeo
 /**
  * The woods round the garden: pines in loose rows on the apron past the board's edge, out onto
  * the bank (two cones each, no trunk), darker toward the haze; never on the river's water, which
- * runs on out to the lake. One static mesh (it casts no shadow: nothing walks out there).
+ * runs on out to the lake. One static mesh of open cones (no bases; it casts no shadow).
  */
 export function woods(map: MapDef, ground: Ground, st: MapStyle, apron: number): BufferGeometry {
   const parts: Part[] = [];
@@ -1085,9 +1085,9 @@ export function woods(map: MapDef, ground: Ground, st: MapStyle, apron: number):
       const dim = 0.12 + row * 0.1;
       const v = hash(n++) < 0.5 ? 0 : 1;
       parts.push(
-        { g: cone(19, 34, 6), c: mix(st.pine[v], st.haze, dim), p: at, r: turn, s: k },
+        { g: cone(19, 34, 6, true), c: mix(st.pine[v], st.haze, dim), p: at, r: turn, s: k },
         {
-          g: cone(13, 27, 6),
+          g: cone(13, 27, 6, true),
           c: mix(st.pine[v + 2], st.haze, dim),
           p: [at[0], at[1] + 19 * k, at[2]],
           r: turn,

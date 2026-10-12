@@ -1,6 +1,6 @@
 # Look: the Long Board's visual language (2026-10-12)
 
-Status: built behind `?map=long`. `?mapstyle=a` (the default) and `?mapstyle=b` both follow the rules below; `?mapstyle=old` shows the phase-3 look for comparison. The square board is unchanged. Code: `src/render/table/longlook.ts` (styles, painter, gate arches and hedges), `relief.ts` (`LongRelief` with one flat lip), `board.ts`, `fx.ts` (eye badge).
+Status: the Long Board is the default map (2026-10-12), drawn full screen. Style a (Slate garden) is the default theme and b (Lamplit parterre) a theme the player picks on the Title or in Adjourn (remembered; `?mapstyle=a|b` overrides it); both follow the rules below. The phase-3 look is deleted. The square board is unchanged. Code: `src/render/table/longlook.ts` (styles, painter, gate arches and hedges), `relief.ts` (`LongRelief` with one flat lip), `board.ts`, `fx.ts` (eye badge).
 
 Owner feedback it answers: "Map size is good, but the visual flair lacks polish. There isn't a lot of visual cohesion or design logic around the symbols and places on the map. Side Roads fail to mesh with farms."
 
