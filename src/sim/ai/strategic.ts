@@ -19,6 +19,8 @@ interface Cand {
 }
 
 const goalKey = (kind: GoalKind, id: string | number): string => `${kind}:${id}`;
+/** Falling back to the nearest own structure: walked down the piece's lane, like a retreat. */
+const FALLBACK_KEY = goalKey('regroup', 'fallback');
 
 function cand(
   kind: GoalKind,
@@ -175,7 +177,9 @@ function setGoal(ctx: Ctx, u: Unit, g: Goal): void {
   const route = (x: number, y: number): [number, number][] =>
     findPath(ctx.world, { x: u.x, y: u.y }, { x, y }, ctx.open);
   let lp: [number, number][] | null =
-    g.kind === 'retreat' || g.kind === 'base' ? retreatLanePath(ctx, u, g.x, g.y) : null;
+    g.kind === 'retreat' || g.kind === 'base' || g.key === FALLBACK_KEY
+      ? retreatLanePath(ctx, u, g.x, g.y)
+      : null;
   const tgt = g.kind === 'pushTower' && g.targetId !== null ? ctx.unit(g.targetId) : null;
   if (lp) {
     // retreat: already routed down the hero's own lane
@@ -585,7 +589,7 @@ export function strategicUpdate(ctx: Ctx, u: Unit): void {
   if (!needHeal && h.engage === 'flee') {
     const f = fallbackPoint(ctx, u);
     cands.length = 0;
-    cands.push(cand('regroup', f.x, f.y, goalKey('regroup', 'fallback'), 10));
+    cands.push(cand('regroup', f.x, f.y, FALLBACK_KEY, 10));
   }
   if (wary) {
     for (const c of cands) {

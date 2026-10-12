@@ -3,6 +3,7 @@ import { dist } from '../core/math';
 import { hpPct, type Ctx } from '../ctx';
 import { LANES } from '../world/map';
 import type { PlayTeam, Unit } from '../types';
+import { closestLane } from './lanes';
 import { unitDps, unitEhp } from './power';
 import { isWary } from './swap';
 
@@ -102,8 +103,8 @@ export function threatened(ctx: Ctx, u: Unit, ratio: number, enemyHeroes: number
 }
 
 /**
- * Where a piece that is outmatched but not badly hurt falls back to: just behind its nearest own
- * Bastion or Throne that lies between it and its base, else the base itself.
+ * Where a piece that is outmatched but not badly hurt falls back to: just behind the nearest own
+ * Bastion of its lane (or its Throne) that lies between it and its base, else the base itself.
  */
 export function fallbackPoint(ctx: Ctx, u: Unit): { x: number; y: number; structure: Unit | null } {
   const team = u.team as PlayTeam;
@@ -120,7 +121,7 @@ export function fallbackPoint(ctx: Ctx, u: Unit): { x: number; y: number; struct
       best = st;
     }
   };
-  for (const lane of LANES) for (const st of ctx.towers[team][lane]) consider(st);
+  for (const st of ctx.towers[team][closestLane(ctx, u)]) consider(st);
   consider(ctx.guardians[team]);
   const st = best as Unit | null;
   if (!st) return { x: base.x, y: base.y, structure: null };
