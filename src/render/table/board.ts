@@ -17,6 +17,15 @@ import type { Content } from '../../sim';
 import { buildTerrain } from '../../sim';
 import { LOOK, TABLE } from './palette';
 import { groveTrees, paintLong } from './longpaint';
+import {
+  CAMP_BADGE,
+  groveProps,
+  LIP,
+  mapStyle,
+  mapStyleId,
+  paintCover,
+  paintLongStyled,
+} from './longlook';
 import { bastionSites, type Ground, LongRelief, Relief, RELIEF } from './relief';
 
 /** Walnut frame width around the board (world units). */
@@ -82,6 +91,8 @@ export class Board {
   private orient: Orient | null = null;
   private readonly gates: { mesh: Mesh; id: string }[] = [];
   private readonly texSize: number;
+  /** The Long Board's style (`?mapstyle`); null on the square board and for the phase-3 look. */
+  private readonly style: ReturnType<typeof mapStyle> | null;
 
   constructor(
     private readonly content: Content,
@@ -97,7 +108,11 @@ export class Board {
     this.ez = hz + FRAME;
     const E = Math.max(this.ex, this.ez);
     this.texSize = texSize;
-    this.relief = this.long ? new LongRelief(map, FRAME) : new Relief(content, E);
+    const sid = this.long ? mapStyleId() : 'old';
+    this.style = sid === 'old' ? null : mapStyle(sid);
+    this.relief = this.long
+      ? new LongRelief(map, FRAME, 20, this.style ? LIP : null)
+      : new Relief(content, E);
     const lift = this.relief.frameH;
 
     // table: a walnut plane with a pool of lamp light under the board
@@ -173,30 +188,36 @@ export class Board {
 
     // iron gates over jungle courts that are not open yet (round over the Long Board's clearings)
     const [gc, gg] = canvas(256, 256);
-    if (this.long) {
+    // the Long Board's styles: a dark cover with a keyhole, notched round the camp's badge
+    const coverR = (content.map.slots[0]?.radius ?? 0) * 0.92 + 8;
+    if (this.style)
+      paintCover(gg, 256, this.style, (coverR - 8) / coverR, (CAMP_BADGE + 5) / coverR);
+    else if (this.long) {
       gg.beginPath();
       gg.arc(128, 128, 125, 0, Math.PI * 2);
       gg.clip();
     }
-    gg.fillStyle = 'rgba(14,10,8,0.14)';
-    gg.fillRect(0, 0, 256, 256);
-    gg.strokeStyle = 'rgba(30,26,24,0.7)';
-    gg.lineWidth = 7;
-    for (let i = -256; i < 512; i += 42) {
-      gg.beginPath();
-      gg.moveTo(i, 0);
-      gg.lineTo(i + 256, 256);
-      gg.moveTo(i + 256, 0);
-      gg.lineTo(i, 256);
-      gg.stroke();
+    if (!this.style) {
+      gg.fillStyle = 'rgba(14,10,8,0.14)';
+      gg.fillRect(0, 0, 256, 256);
+      gg.strokeStyle = 'rgba(30,26,24,0.7)';
+      gg.lineWidth = 7;
+      for (let i = -256; i < 512; i += 42) {
+        gg.beginPath();
+        gg.moveTo(i, 0);
+        gg.lineTo(i + 256, 256);
+        gg.moveTo(i + 256, 0);
+        gg.lineTo(i, 256);
+        gg.stroke();
+      }
+      gg.strokeStyle = 'rgba(201,163,90,0.8)';
+      gg.lineWidth = 6;
+      if (this.long) {
+        gg.beginPath();
+        gg.arc(128, 128, 122, 0, Math.PI * 2);
+        gg.stroke();
+      } else gg.strokeRect(6, 6, 244, 244);
     }
-    gg.strokeStyle = 'rgba(201,163,90,0.8)';
-    gg.lineWidth = 6;
-    if (this.long) {
-      gg.beginPath();
-      gg.arc(128, 128, 122, 0, Math.PI * 2);
-      gg.stroke();
-    } else gg.strokeRect(6, 6, 244, 244);
     const gateMat = this.own(
       new MeshBasicMaterial({ map: this.own(tex(gc, 4)), transparent: true, depthWrite: false }),
     );
@@ -204,9 +225,11 @@ export class Board {
       const side = slot.radius * 1.84;
       const mesh = new Mesh(
         this.own(
-          this.long
-            ? new CircleGeometry(slot.radius * 0.96, 40).rotateX(-Math.PI / 2)
-            : new PlaneGeometry(side, side).rotateX(-Math.PI / 2),
+          this.style
+            ? new CircleGeometry(coverR, 40).rotateX(-Math.PI / 2)
+            : this.long
+              ? new CircleGeometry(slot.radius * 0.96, 40).rotateX(-Math.PI / 2)
+              : new PlaneGeometry(side, side).rotateX(-Math.PI / 2),
         ),
         gateMat,
       );
@@ -220,7 +243,11 @@ export class Board {
     this.group.add(table, slab, this.top);
 
     // the Long Board's groves are ringed by low-poly pines (one static mesh)
-    const trees = this.long ? groveTrees(map, this.relief) : null;
+    const trees = !this.long
+      ? null
+      : this.style
+        ? groveProps(map, this.relief, this.style)
+        : groveTrees(map, this.relief);
     if (trees) {
       const mesh = new Mesh(
         this.own(trees),
@@ -286,6 +313,9 @@ export class Board {
     this.topMat.map = this.paint(o);
     this.topMat.needsUpdate = true;
     old?.dispose();
+    // the closed-clearing covers' keyholes face the player too
+    if (this.style)
+      for (const g of this.gates) g.mesh.rotation.y = o === 'portrait' ? 0 : Math.PI / 2;
   }
 
   /** Shows the iron gate over each court that is still closed. */
@@ -298,7 +328,9 @@ export class Board {
       // the long side gets a third more pixels than the square board's texture
       const H = Math.round((this.texSize * 4) / 3);
       const [c, g] = canvas(Math.round((H * this.ex) / this.ez), H);
-      paintLong(g, c.height / (2 * this.ez), this.content.map, FRAME, o);
+      if (this.style)
+        paintLongStyled(g, c.height / (2 * this.ez), this.content.map, FRAME, o, this.style);
+      else paintLong(g, c.height / (2 * this.ez), this.content.map, FRAME, o);
       return this.own(tex(c));
     }
     const S = this.texSize;

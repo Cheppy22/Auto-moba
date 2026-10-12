@@ -47,6 +47,9 @@ async function settle(page: Page): Promise<void> {
     .toBe(true);
 }
 
+/** The Long Board, in the map style `PW_MAPSTYLE` names (a, b or old; the default is a). */
+const LONG = `&map=long${process.env.PW_MAPSTYLE ? `&mapstyle=${process.env.PW_MAPSTYLE}` : ''}`;
+
 const board = (page: Page) => page.evaluate(() => (window as unknown as Long).__tvBoard());
 
 test.describe('the Long Board (?map=long), desktop', () => {
@@ -57,7 +60,7 @@ test.describe('the Long Board (?map=long), desktop', () => {
   }) => {
     test.setTimeout(300_000);
     const errors = watchErrors(page);
-    await startLive(page, '42', true, false, '&map=long');
+    await startLive(page, '42', true, false, LONG);
     expect(
       await page.evaluate(() => (window as unknown as Long).__session.match.content.map.length),
     ).toBe(4000);
@@ -110,7 +113,7 @@ test.describe('the Long Board (?map=long), desktop', () => {
   test('a tap on a piece opens its card', async ({ page }) => {
     test.setTimeout(300_000);
     const errors = watchErrors(page);
-    await startLive(page, '42', true, false, '&map=long');
+    await startLive(page, '42', true, false, LONG);
     await step(page, 200);
     await page.getByTestId('roster-A-king').click();
     await expect(page.getByTestId('cam-btn')).toHaveAttribute('data-mode', 'follow');
@@ -162,7 +165,7 @@ test.describe('the Long Board (?map=long), desktop', () => {
   test('the report replay map draws the long board on its side', async ({ page }) => {
     test.setTimeout(600_000);
     const errors = watchErrors(page);
-    await startLive(page, '42', true, false, '&map=long');
+    await startLive(page, '42', true, false, LONG);
     await playToEnd(page);
     await expect(page.getByTestId('report')).toBeVisible();
     await page.locator('[data-testid^="report-hero-"]').first().click();
@@ -182,7 +185,7 @@ test.describe('the Long Board (?map=long), phone portrait', () => {
   test('the long axis runs up the screen and a tap on a lane leans in', async ({ page }) => {
     test.setTimeout(300_000);
     const errors = watchErrors(page);
-    await startLive(page, '42', true, false, '&map=long');
+    await startLive(page, '42', true, false, LONG);
     await step(page, 60);
     await settle(page);
     const b = await board(page);
@@ -203,4 +206,22 @@ test.describe('the Long Board (?map=long), phone portrait', () => {
       .toBe('bot');
     expect(errors).toEqual([]);
   });
+});
+
+test.describe('the Long Board map styles', () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+
+  for (const style of ['b', 'old'] as const)
+    test(`?mapstyle=${style} draws the board`, async ({ page }) => {
+      test.setTimeout(300_000);
+      const errors = watchErrors(page);
+      await startLive(page, '42', true, false, `&map=long&mapstyle=${style}`);
+      await step(page, 60);
+      await expect(page.getByTestId('no-webgl')).toHaveCount(0);
+      const lit = await page.getByTestId('stage').screenshot();
+      expect(lit.byteLength).toBeGreaterThan(20_000);
+      const b = await board(page);
+      expect(b.h).toBeGreaterThan(b.w * 1.5);
+      expect(errors).toEqual([]);
+    });
 });

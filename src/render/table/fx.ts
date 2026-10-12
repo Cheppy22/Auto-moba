@@ -324,10 +324,29 @@ function atlas(): CanvasTexture {
   return t;
 }
 
-/** A minimal eyeball: an ivory almond in a dark rim, a brass iris and a dark pupil. */
+/**
+ * The high-ground badge: an ivory eye on a dark round badge with a gold ring (the board's
+ * medallion family) and a soft light halo, so it reads on any ground at phone size.
+ */
 function eye(g: CanvasRenderingContext2D, cx: number, cy: number): void {
-  const w = CELL * 0.44;
-  const h = CELL * 0.4;
+  const halo = g.createRadialGradient(cx, cy, CELL * 0.36, cx, cy, CELL * 0.49);
+  halo.addColorStop(0, 'rgba(255,236,190,0.6)');
+  halo.addColorStop(1, 'rgba(255,236,190,0)');
+  g.fillStyle = halo;
+  g.beginPath();
+  g.arc(cx, cy, CELL * 0.49, 0, Math.PI * 2);
+  g.fill();
+  g.fillStyle = '#0c0907';
+  g.beginPath();
+  g.arc(cx, cy, CELL * 0.4, 0, Math.PI * 2);
+  g.fill();
+  g.strokeStyle = '#f0c55a';
+  g.lineWidth = CELL * 0.06;
+  g.beginPath();
+  g.arc(cx, cy, CELL * 0.35, 0, Math.PI * 2);
+  g.stroke();
+  const w = CELL * 0.27;
+  const h = CELL * 0.24;
   const almond = (): void => {
     g.beginPath();
     g.moveTo(cx - w, cy);
@@ -336,21 +355,18 @@ function eye(g: CanvasRenderingContext2D, cx: number, cy: number): void {
     g.closePath();
   };
   almond();
-  g.fillStyle = '#f6eedb';
+  g.fillStyle = '#fbf3e0';
   g.fill();
-  g.lineWidth = CELL * 0.08;
-  g.strokeStyle = '#120d0a';
-  g.stroke();
   g.save();
   almond();
   g.clip();
-  g.fillStyle = '#e0b860';
+  g.fillStyle = '#d99a2b';
   g.beginPath();
-  g.arc(cx, cy, CELL * 0.15, 0, Math.PI * 2);
+  g.arc(cx, cy, CELL * 0.105, 0, Math.PI * 2);
   g.fill();
-  g.fillStyle = '#120d0a';
+  g.fillStyle = '#0c0907';
   g.beginPath();
-  g.arc(cx, cy, CELL * 0.075, 0, Math.PI * 2);
+  g.arc(cx, cy, CELL * 0.05, 0, Math.PI * 2);
   g.fill();
   g.restore();
 }

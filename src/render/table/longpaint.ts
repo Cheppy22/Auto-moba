@@ -31,20 +31,20 @@ const ZONE = {
 const FILES = 'abcdefgh';
 
 /** Mixes two #rrggbb colours. */
-function mix(a: string, b: string, t: number): string {
+export function mix(a: string, b: string, t: number): string {
   const p = (h: string, i: number): number => parseInt(h.slice(1 + i * 2, 3 + i * 2), 16);
   const c = [0, 1, 2].map((i) => Math.round(p(a, i) + (p(b, i) - p(a, i)) * t));
   return `rgb(${c[0]},${c[1]},${c[2]})`;
 }
 
 /** A small deterministic hash in [0, 1) (the paint is the same every load). */
-function hash(i: number): number {
+export function hash(i: number): number {
   const x = Math.sin(i * 127.1 + 311.7) * 43758.5453;
   return x - Math.floor(x);
 }
 
 /** Adds a walkable shape, grown by `pad`, to the current path (a capsule, or a flat-ended box). */
-function shapePath(g: CanvasRenderingContext2D, s: WalkShape, pad: number): void {
+export function shapePath(g: CanvasRenderingContext2D, s: WalkShape, pad: number): void {
   const r = s.r + pad;
   if (r <= 0) return;
   const dx = s.bx - s.ax;
@@ -72,7 +72,7 @@ function shapePath(g: CanvasRenderingContext2D, s: WalkShape, pad: number): void
   g.closePath();
 }
 
-function fillShapes(
+export function fillShapes(
   g: CanvasRenderingContext2D,
   shapes: readonly WalkShape[],
   pad: number,
