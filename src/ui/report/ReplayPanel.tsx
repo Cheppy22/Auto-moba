@@ -42,7 +42,7 @@ export function ReplayPanel(props: { data: ReportData; id: number; active: boole
             recalls: h.recalls
               .filter((r) => r.stage === 'start')
               .map((r) => ({ tick: r.tick, dest: r.dest })),
-            slots: s.content.map.slots.map((sl) => ({
+            slots: s.board.map.slots.map((sl) => ({
               id: sl.id,
               biomeId:
                 biomes.find((b) => b.slot === sl.id && b.tick <= report.toTick)?.biome ?? null,
@@ -50,7 +50,7 @@ export function ReplayPanel(props: { data: ReportData; id: number; active: boole
             selectedFight: fightId,
           }
         : null,
-    [h, fights, fightId, report.toTick, biomes, s.content],
+    [h, fights, fightId, report.toTick, biomes, s.board],
   );
   useEffect(() => {
     setTick(report.fromTick);
@@ -58,18 +58,18 @@ export function ReplayPanel(props: { data: ReportData; id: number; active: boole
     setPlaying(false);
   }, [props.id, report.fromTick, report.toTick]);
   useEffect(() => {
-    if (canvas.current && data && props.active) drawReplay(canvas.current, s.content, data, tick);
-  }, [data, tick, s.content, props.active]);
+    if (canvas.current && data && props.active) drawReplay(canvas.current, s.board, data, tick);
+  }, [data, tick, s.board, props.active]);
   // redraw when the canvas changes size (rotation, window resize)
   useEffect(() => {
     const el = canvas.current;
     if (!el || typeof ResizeObserver === 'undefined') return;
     const ro = new ResizeObserver(() => {
-      if (data && el.clientWidth > 0) drawReplay(el, s.content, data, tick);
+      if (data && el.clientWidth > 0) drawReplay(el, s.board, data, tick);
     });
     ro.observe(el);
     return () => ro.disconnect();
-  }, [data, tick, s.content]);
+  }, [data, tick, s.board]);
   useEffect(() => {
     if (!playing) return;
     let raf = 0;
@@ -104,10 +104,10 @@ export function ReplayPanel(props: { data: ReportData; id: number; active: boole
       <div class="rp-replay-map">
         <canvas
           ref={canvas}
-          class="rp-replay-canvas"
+          class={`rp-replay-canvas${s.board.map.length !== undefined ? ' long' : ''}`}
           aria-label={`Path of the ${heroName(s.content, h.def)} through the match`}
           onClick={(e) => {
-            const id = replayHit(e.currentTarget, s.content, data, e.clientX, e.clientY);
+            const id = replayHit(e.currentTarget, s.board, data, e.clientX, e.clientY);
             setFightId(id);
             if (id !== null) {
               const f = fights.find((x) => x.id === id);

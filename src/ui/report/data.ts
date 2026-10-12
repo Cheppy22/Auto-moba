@@ -41,7 +41,8 @@ function wantsMock(): boolean {
 export function useReportData(): ReportData {
   const s = useSession();
   const m = s.match!;
-  const content = s.content;
+  // the match's own content: its map (lanes, bases) places the fights and lanes
+  const content = m.content;
   const events = m.events;
   const endTick = events.length ? events[events.length - 1].tick : 0;
   return useMemo(() => {
