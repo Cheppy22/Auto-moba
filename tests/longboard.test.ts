@@ -271,7 +271,8 @@ describe('Long Board high ground: Reach and Sight', () => {
 });
 
 describe('Long Board determinism', () => {
-  for (const seed of [29000, 31000]) {
+  // two short games (a White and a Black win in the 400-match run) keep the suite fast
+  for (const seed of [29008, 29017]) {
     it(`seed ${seed}: the match ends, and its replay reproduces it exactly`, () => {
       const m = Match.create(content, { seed, autoGambits: { A: true, B: true }, map: 'long' });
       m.runToEnd(12);
@@ -283,6 +284,7 @@ describe('Long Board determinism', () => {
         expect(Number.isFinite(u.x) && Number.isFinite(u.y)).toBe(true);
       const again = Match.fromReplay(content, JSON.parse(JSON.stringify(m.exportReplay())));
       expect(again.state.tick).toBe(m.state.tick);
+      expect(again.state.winner).toBe(m.state.winner);
       expect(logHash(again)).toBe(logHash(m));
     }, 240_000);
   }

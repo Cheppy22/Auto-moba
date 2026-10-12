@@ -204,8 +204,9 @@ function setGoal(ctx: Ctx, u: Unit, g: Goal): void {
 
 /**
  * Long Board: a defending piece (defend posture, or its lane's outer Bastion is down) with an
- * enemy piece near its farm point stops just above the nearest ramp top between it and the wave,
- * instead of walking down to meet it. Flat maps: the progress is returned unchanged.
+ * enemy piece near its farm point stops just above the ramp top when the wave stands at the foot
+ * of that ramp (within `height.holdWindow`), instead of walking down to meet it. Flat maps: the
+ * progress is returned unchanged.
  */
 function holdTheTop(ctx: Ctx, u: Unit, lane: LaneId, prog: number): number {
   const team = u.team as PlayTeam;
@@ -215,9 +216,12 @@ function holdTheTop(ctx: Ctx, u: Unit, lane: LaneId, prog: number): number {
   if (u.hero!.posture !== 'defend' && outer?.alive) return prog;
   const fp = pointAtProgress(ctx, team, lane, prog);
   if (threatNear(ctx, team, fp.x, fp.y, ctx.t.ai.fightRadius * 2, false) === 0) return prog;
-  const step = ctx.t.height.holdOffset / ctx.world.lanes[lane].length;
+  const len = ctx.world.lanes[lane].length;
+  const { holdOffset, holdWindow } = ctx.t.height;
+  // only a wave at the foot of the ramp: a fight further down is not given up for the ramp
   let hold = prog;
-  for (const top of tops) if (top < prog) hold = top - step;
+  for (const top of tops)
+    if (top < prog && (prog - top) * len <= holdWindow) hold = top - holdOffset / len;
   return hold;
 }
 

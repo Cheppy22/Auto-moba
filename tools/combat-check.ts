@@ -12,6 +12,7 @@ import { loadNodeContent } from './content-node';
 import { Match } from '../src/sim';
 import type { Unit } from '../src/sim';
 import { bodyRadius } from '../src/sim/collision';
+import { attackRange, tierAt } from '../src/sim/world/height';
 
 function arg(name: string, def: number): number {
   const i = process.argv.indexOf(`--${name}`);
@@ -63,6 +64,10 @@ const out = {
   perMatch: [] as [number, number | null][],
   goals: {} as Record<string, number>,
   time: { all: 0, dead: 0, recall: 0, base: 0, flee: 0, retreat: 0, hold: 0 },
+  // Long Board: piece-on-piece damage by height (down = dealt by the piece on the higher tier),
+  // the high ground's share of the cross-tier part, and fights by the tier they ended on
+  tierDamage: { same: 0, down: 0, up: 0, downShare: 0 },
+  fightsByTier: [0, 0, 0],
 };
 
 function enemyStructureNear(m: Match, u: Unit, pad: number): boolean {
@@ -95,6 +100,27 @@ for (let k = 0; k < matches; k++) {
       const e = m.events[evI];
       if (e.type === 'throneDown' && throneAt < 0) throneAt = e.tick;
       if (e.type === 'structureDown') out.bastionsDown++;
+      if (e.type === 'fightEnd' && ctx.world.height) {
+        const f = e.payload as { x: number; y: number };
+        out.fightsByTier[tierAt(ctx.world.height, f.x, f.y)]++;
+      }
+      if (e.type === 'damage' && ctx.world.height) {
+        const d = e.payload as {
+          src: number;
+          tgt: number;
+          srcKind: string;
+          tgtKind: string;
+          amount: number;
+        };
+        const a = d.srcKind === 'hero' && d.tgtKind === 'hero' ? ctx.unit(d.src) : undefined;
+        const b = a ? ctx.unit(d.tgt) : undefined;
+        if (a && b) {
+          const ta = tierAt(ctx.world.height, a.x, a.y);
+          const tb = tierAt(ctx.world.height, b.x, b.y);
+          const key = ta === tb ? 'same' : ta > tb ? 'down' : 'up';
+          out.tierDamage[key] += d.amount;
+        }
+      }
       if (e.type !== 'death') continue;
       const p = e.payload as {
         id: number;
@@ -126,7 +152,8 @@ for (let k = 0; k < matches; k++) {
       const base = ctx.world.basePos[u.team];
       const t = u.targetId === null ? undefined : ctx.unit(u.targetId);
       const pad = t && (t.kind === 'tower' || t.kind === 'guardian') ? 16 : 4;
-      const inRange = !!t && t.alive && Math.hypot(u.x - t.x, u.y - t.y) <= u.stats.range + pad;
+      const inRange =
+        !!t && t.alive && Math.hypot(u.x - t.x, u.y - t.y) <= attackRange(ctx, u, t) + pad;
       const fighting = inRange || tick - u.lastDamagedTick <= 30;
       const atBase = Math.hypot(u.x - base.x, u.y - base.y) <= ctx.t.ai.healBaseRadius + 60;
       const stunned = u.stunUntil !== undefined && u.stunUntil > tick;
@@ -238,4 +265,9 @@ for (const k of Object.keys(out.time) as (keyof typeof out.time)[])
   if (k !== 'all') out.time[k] = +(out.time[k] / Math.max(1, out.time.all)).toFixed(3);
 lengths.sort((a, b) => a - b);
 out.medianMin = +(lengths[Math.floor(lengths.length / 2)] ?? 0).toFixed(2);
+const td = out.tierDamage;
+td.downShare = +(td.down / Math.max(1, td.down + td.up)).toFixed(3);
+td.same = Math.round(td.same);
+td.down = Math.round(td.down);
+td.up = Math.round(td.up);
 console.log(JSON.stringify(out));

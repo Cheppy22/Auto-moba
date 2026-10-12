@@ -903,8 +903,10 @@ export const TuningSchema = z.object({
     sightUpPad: z.number(),
     /** Fight odds: units above the fight centre's tier count this much more power. */
     oddsBonus: z.number(),
-    /** A defending piece holds this far above the nearest ramp top of its lane. */
+    /** A defending piece holds this far above the nearest ramp top of its lane... */
     holdOffset: z.number(),
+    /** ...when its farm point lies at most this far down the lane below that ramp top. */
+    holdWindow: z.number(),
   }),
   ai: z.object({
     aggroRadius: z.number(),

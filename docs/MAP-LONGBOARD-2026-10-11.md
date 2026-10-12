@@ -1,6 +1,6 @@
 # Map spec: "The Long Board" (2026-10-11)
 
-Design spec for the owner's workshop decision (2026-10-11). Status: **v2 approved by Cheppy 2026-10-11 (decisions in section 6), not built yet**. v2 applies the owner's sketch on v1: groves turned 180°, verges, Sally Paths. Branch `test-product-2`. Diagram: [img/map-longboard.svg](img/map-longboard.svg).
+Design spec for the owner's workshop decision (2026-10-11). Status: **v2 approved by Cheppy 2026-10-11 (decisions in section 6); phases 1–2 (sim) built 2026-10-12 behind `?map=long`, rules in [CHESS.md](CHESS.md) "The Long Board"**. v2 applies the owner's sketch on v1: groves turned 180°, verges, Sally Paths. Branch `test-product-2`. Diagram: [img/map-longboard.svg](img/map-longboard.svg).
 
 ## 1. BLUF
 

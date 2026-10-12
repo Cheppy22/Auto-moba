@@ -383,7 +383,8 @@
     "sightMul": 1.25,
     "sightUpPad": 20,
     "oddsBonus": 0.1,
-    "holdOffset": 60
+    "holdOffset": 60,
+    "holdWindow": 300
   },
   "ai": {
     "aggroRadius": 150,
