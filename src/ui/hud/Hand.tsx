@@ -1,4 +1,5 @@
 import type { Snapshot, SnapGambit } from '../../sim';
+import { Term, Terms } from '../glossary';
 import { PieceGlyph, pieceLabel } from '../pieces';
 import { longPress, longPressed } from '../press';
 import {
@@ -74,17 +75,19 @@ export function GambitSheet(props: { snap: Snapshot }) {
           </div>
           <span class="gs-cost" data-testid="gambit-info-cost" aria-label={`${c.cost} Tempo`}>
             {c.cost}
-            <small>Tempo</small>
+            <small>
+              <Term id="tempo">Tempo</Term>
+            </small>
           </span>
         </header>
         <p class="gs-desc" data-testid="gambit-info-desc">
-          {c.desc}
+          <Terms text={c.desc} skip={['tempo']} max={2} />
         </p>
         {c.school && (
           <div class="gs-school" data-testid="gambit-info-school">
             <b class="gs-school-name">
               <SchoolGlyph school={c.school} size={18} />
-              {SCHOOL_NAME[c.school]} school
+              {SCHOOL_NAME[c.school]} <Term id="school">school</Term>
             </b>
             <span class="gs-school-job">{SCHOOL_JOB[c.school]}</span>
             <span class="gs-school-row">

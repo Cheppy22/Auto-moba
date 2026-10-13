@@ -1,3 +1,4 @@
+import type { ComponentChildren } from 'preact';
 import { useEffect, useMemo, useState } from 'preact/hooks';
 import type { ActReport, PlayTeam, Snapshot } from '../../sim';
 import { actCallouts } from '../../analysis/callouts';
@@ -11,6 +12,7 @@ import {
 } from '../../analysis/feedback';
 import { courtName } from '../../analysis/text';
 import { n0 } from '../format';
+import { Term, Terms } from '../glossary';
 import { Orders } from '../Orders';
 import { PIECE_ORDER } from '../pieces';
 import { useSession } from '../session';
@@ -28,7 +30,7 @@ const TABS: { id: Tab; label: string }[] = [
 
 interface Row {
   key: string;
-  label: string;
+  label: ComponentChildren;
   a: number;
   b: number;
   /** Which way is better for a side. */
@@ -41,7 +43,17 @@ const bastionsDown = (r: ActReport, team: PlayTeam): number =>
 function rows(r: ActReport): Row[] {
   const t = r.teams;
   return [
-    { key: 'tempo', label: 'Tempo earned', a: t.A.tempo, b: t.B.tempo, better: 'high' },
+    {
+      key: 'tempo',
+      label: (
+        <>
+          <Term id="tempo">Tempo</Term> earned
+        </>
+      ),
+      a: t.A.tempo,
+      b: t.B.tempo,
+      better: 'high',
+    },
     { key: 'damage', label: 'Damage dealt', a: t.A.damage, b: t.B.damage, better: 'high' },
     {
       key: 'mitigated',
@@ -53,7 +65,11 @@ function rows(r: ActReport): Row[] {
     { key: 'deaths', label: 'Piece deaths', a: t.A.pieceDeaths, b: t.B.pieceDeaths, better: 'low' },
     {
       key: 'bastions',
-      label: 'Bastions destroyed',
+      label: (
+        <>
+          <Term id="bastion">Bastions</Term> destroyed
+        </>
+      ),
       a: bastionsDown(r, 'A'),
       b: bastionsDown(r, 'B'),
       better: 'high',
@@ -66,7 +82,17 @@ function rows(r: ActReport): Row[] {
       better: 'high',
     },
     { key: 'camps', label: 'Camps cleared', a: t.A.camps, b: t.B.camps, better: 'high' },
-    { key: 'gambits', label: 'Gambits played', a: t.A.gambits, b: t.B.gambits, better: 'high' },
+    {
+      key: 'gambits',
+      label: (
+        <>
+          <Term id="gambit">Gambits</Term> played
+        </>
+      ),
+      a: t.A.gambits,
+      b: t.B.gambits,
+      better: 'high',
+    },
   ];
 }
 
@@ -144,7 +170,9 @@ function BlackRelics(props: { snap: Snapshot }) {
   const opening = s.match!.state.opening.B;
   return (
     <section class="bs-sec" data-testid="break-black-relics">
-      <h3 class="bs-h">Black’s relics</h3>
+      <h3 class="bs-h">
+        Black’s <Term id="relic">relics</Term>
+      </h3>
       <ul class="bs-list relics">
         {held.map((h) => {
           const def = s.content.relicById.get(h.id);
@@ -177,7 +205,9 @@ function Report(props: { report: ActReport; snap: Snapshot }) {
         ))}
       </ul>
       <section class="bs-sec" data-testid="break-lanes">
-        <h3 class="bs-h">Lanes at the bell</h3>
+        <h3 class="bs-h">
+          Lanes at the <Term id="bell">bell</Term>
+        </h3>
         <LaneBars lanes={report.lanes} big testid="break-lane-bars" />
       </section>
       <Fights report={report} />
@@ -245,8 +275,12 @@ export function BreakSheet(props: { snap: Snapshot }) {
       >
         <header class="bs-head">
           <div class="bs-title">
-            <b>Act {act.n} complete</b>
-            <span class="tiny dim">The bell has rung. Play is stopped.</span>
+            <b>
+              <Term id="act">Act</Term> {act.n} complete
+            </b>
+            <span class="tiny dim">
+              <Terms text="The bell has rung. Play is stopped." />
+            </span>
           </div>
           <div class="tabs bs-tabs" role="tablist">
             {TABS.map((t) => (

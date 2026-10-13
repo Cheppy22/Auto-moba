@@ -1,5 +1,6 @@
 import { useRef, useState } from 'preact/hooks';
 import type { Content, LaneId, PieceId, SetupEntry } from '../../sim';
+import { Term, Terms } from '../glossary';
 import { moveToLane, swapLanes } from '../LaneBoard';
 import { LANES, LANE_SLOTS, PieceGlyph } from '../pieces';
 import { DISPOSITION_LABEL, DISPOSITION_NOTE, LANE_FULL, laneNotes, passiveParts } from './data';
@@ -88,7 +89,9 @@ export function BoardPage(props: {
       <div class="bp-grid">
         <div class="bp-left">
           <div class="bd" data-testid="lane-board" ref={bd}>
-            <div class="bd-side bd-black">Black’s court (hidden)</div>
+            <div class="bd-side bd-black">
+              Black’s <Term id="court">court</Term> (hidden)
+            </div>
             <div class="bd-lanes">
               {lanes.map(({ lane, here }) => (
                 <div
@@ -258,7 +261,7 @@ export function BoardPage(props: {
                     <div class="pcard-body" data-testid={`desc-${e.piece}-body`}>
                       <p class="pcard-role">
                         <b>{DISPOSITION_LABEL[def.disposition]}.</b>{' '}
-                        {DISPOSITION_NOTE[def.disposition]}. {def.playstyle}
+                        <Terms text={`${DISPOSITION_NOTE[def.disposition]}. ${def.playstyle}`} />
                       </p>
                       <h5>Base skills</h5>
                       <ul class="skills">

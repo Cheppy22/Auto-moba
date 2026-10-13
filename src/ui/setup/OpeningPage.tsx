@@ -1,5 +1,6 @@
 import { useState } from 'preact/hooks';
 import type { Content, SetupEntry } from '../../sim';
+import { Term, Terms } from '../glossary';
 import { LANE_TAG, PATH_LABEL, PieceGlyph } from '../pieces';
 import { SCHOOL_COLOR, SCHOOL_NAME, SchoolChip, SchoolGlyph } from '../schools';
 import { exampleHands, openingInfo } from './data';
@@ -52,7 +53,9 @@ function OpeningCard(props: {
       {more && (
         <div class="op-body" data-testid={`opening-body-${o.id}`}>
           <h5>What it does</h5>
-          <p>{info.explain}</p>
+          <p>
+            <Terms text={info.explain} skip={['opening']} max={2} />
+          </p>
           <h5>How it plays</h5>
           <p>{info.plays}</p>
           {info.share && (
@@ -127,8 +130,15 @@ export function OpeningPage(props: {
   return (
     <section class="sp-page op-page" aria-label="Opening">
       <div class="sp-lede">
-        <h3>Opening</h3>
-        <p>An Opening tilts which gambit cards you are dealt. Tap More to read how each plays.</p>
+        <h3>
+          <Term id="opening">Opening</Term>
+        </h3>
+        <p>
+          <Terms
+            skip={['opening']}
+            text="An Opening tilts which gambit cards you are dealt. Tap More to read how each plays."
+          />
+        </p>
       </div>
       <div class="openings" role="radiogroup" aria-label="Opening" data-testid="openings">
         {c.openings.map((o) => (

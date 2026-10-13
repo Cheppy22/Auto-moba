@@ -1,4 +1,5 @@
 import { useState } from 'preact/hooks';
+import { RulesPage, Terms } from './glossary';
 import { PieceGlyph, PIECE_ORDER } from './pieces';
 import { SoundToggle } from './SoundToggle';
 import { ThemePicker } from './ThemePicker';
@@ -7,6 +8,7 @@ import { useSession } from './session';
 export function Title() {
   const s = useSession();
   const [seed, setSeed] = useState('');
+  const [rules, setRules] = useState(false);
   const start = (): void => {
     const n = Number(seed);
     s.newMatch(seed.trim() !== '' && Number.isFinite(n) ? { seed: n } : {});
@@ -28,13 +30,18 @@ export function Title() {
         </div>
         <div class="subtitle">Every piece fights. Every move is yours.</div>
         <p class="title-copy">
-          Lead the White court against Black across a living chessboard. Your King, Queen, Rook,
-          Bishop and Knight fight on their own. You choose their styles and lanes, then play
-          gambits, answer forks and field pawns until one King is checkmated.
+          <Terms
+            text="Lead the White court against Black across a living chessboard. Your King, Queen, Rook, Bishop and Knight fight on their own. You choose their styles and lanes, then play gambits, answer forks and field pawns until one King is checkmated."
+            skip={['court']}
+            max={4}
+          />
         </p>
         <div class="title-actions">
           <button class="btn primary" data-testid="start" onClick={start}>
             New match
+          </button>
+          <button class="btn" data-testid="rules-open" onClick={() => setRules(true)}>
+            Rules
           </button>
         </div>
         <SoundToggle />
@@ -51,6 +58,7 @@ export function Title() {
           />
         </label>
       </div>
+      {rules && <RulesPage onClose={() => setRules(false)} />}
     </div>
   );
 }

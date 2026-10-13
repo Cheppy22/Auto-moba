@@ -1,4 +1,5 @@
 import type { Unit } from '../../sim';
+import { Term, Terms } from '../glossary';
 import { ItemIcon } from '../ItemIcon';
 import { itemCategory } from '../itemInfo';
 import {
@@ -38,7 +39,9 @@ export function PieceCard() {
       name: forkOptionName(s.content, h.defId, h.style, p.rank, p.optionId ?? ''),
     }))
     .filter((p) => p.name);
-  const waiting = m.snapshot().forks.some((f) => f.heroId === u.id);
+  const snap = m.snapshot();
+  const waiting = snap.forks.some((f) => f.heroId === u.id);
+  const highGround = snap.units.some((x) => x.id === u.id && x.highGround === true);
   const next = h.rank + 1;
   const nextText =
     next > 8
@@ -90,9 +93,14 @@ export function PieceCard() {
         </button>
       </header>
       <p class="ucard-desc">
-        {h.style
-          ? styleDesc(s.content, h.defId, h.style)
-          : 'Uses its base kit until Rank 4, then chooses an archetype.'}
+        {h.style ? (
+          styleDesc(s.content, h.defId, h.style)
+        ) : (
+          <Terms
+            text="Uses its base kit until Rank 4, then chooses an archetype."
+            skip={['rank']}
+          />
+        )}
       </p>
       <div class="ucard-meta">
         <span class="chip">{PATH_LABEL[h.path]}</span>
@@ -102,7 +110,9 @@ export function PieceCard() {
         </span>
       </div>
       <div class="ucard-rank">
-        <b>Rank {h.rank}</b>
+        <b>
+          <Term id="rank">Rank</Term> {h.rank}
+        </b>
         <span class="rank-pips" aria-hidden="true">
           {RANKS.map((r) => (
             <i key={r} class={r <= h.rank ? 'on' : ''} />
@@ -110,8 +120,20 @@ export function PieceCard() {
         </span>
       </div>
       <p class="ucard-next tiny dim">
-        {waiting ? 'A fork is waiting for a choice.' : next > 8 ? nextText : `Next: ${nextText}`}
+        <Terms
+          skip={['rank', 'archetype']}
+          max={1}
+          text={
+            waiting ? 'A fork is waiting for a choice.' : next > 8 ? nextText : `Next: ${nextText}`
+          }
+        />
       </p>
+      {highGround && (
+        <p class="ucard-hg tiny" data-testid="unit-card-highground">
+          <Term id="eye-badge">Eye badge</Term>: this piece holds the{' '}
+          <Term id="high-ground">high ground</Term> over its target.
+        </p>
+      )}
       {taken.map((t) => (
         <p class="ucard-fork tiny" key={t.rank}>
           <span class="dim">

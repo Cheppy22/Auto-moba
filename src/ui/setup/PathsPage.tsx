@@ -1,6 +1,7 @@
 import { useState } from 'preact/hooks';
 import { naturalPath, type Content, type Path, type PieceId, type SetupEntry } from '../../sim';
 import { ItemIcon } from '../ItemIcon';
+import { Term, Terms } from '../glossary';
 import { PATHS, PATH_LABEL, PIECE_ORDER, PieceGlyph } from '../pieces';
 import { plainText } from '../richtext';
 import { PATH_FOCUS, buildOrder, firstBuys, leanOf, pathMeaning } from './data';
@@ -28,7 +29,9 @@ export function PathsPage(props: {
   return (
     <section class="sp-page pp" aria-label="Build paths">
       <div class="sp-lede">
-        <h3>Build paths</h3>
+        <h3>
+          <Term id="build-path">Build paths</Term>
+        </h3>
         <p>
           Your pieces buy their own items. A path tells a piece what to buy first. Each piece starts
           on its natural path.
@@ -129,9 +132,9 @@ export function PathsPage(props: {
                 ))}
             </p>
             <p class="pp-note" data-testid={`style-desc-${shown}`}>
-              The AI shops on its own as gold comes in, and may add an armor or resist item against
-              the enemy’s damage. The {def.name} picks an archetype at Rank 4, which can change this
-              list.
+              <Terms
+                text={`The AI shops on its own as gold comes in, and may add an armor or resist item against the enemy’s damage. The ${def.name} picks an archetype at Rank 4, which can change this list.`}
+              />
             </p>
           </div>
         </div>

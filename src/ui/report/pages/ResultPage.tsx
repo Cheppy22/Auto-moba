@@ -2,6 +2,7 @@ import type { PlayTeam } from '../../../sim';
 import type { Award, PieceRow } from '../../../analysis/summary';
 import { clock, full } from '../../charts';
 import { TEAM_COLOR } from '../../charts';
+import { Term } from '../../glossary';
 import { ItemIcon } from '../../ItemIcon';
 import { itemCategory } from '../../itemInfo';
 import { PieceGlyph } from '../../pieces';
@@ -19,7 +20,13 @@ const fmtAward = (a: Award): string => {
 function Banner(props: { data: ReportData; onSame: () => void; onNew: () => void; hint: boolean }) {
   const { sum } = props.data;
   const win = sum.winner;
-  const kicker = sum.checkmate ? 'Checkmate' : 'No checkmate';
+  const kicker = sum.checkmate ? (
+    <Term id="checkmate">Checkmate</Term>
+  ) : (
+    <>
+      No <Term id="checkmate">checkmate</Term>
+    </>
+  );
   const verdict = win ? `${teamWord(win)} wins` : 'Draw';
   const acts = `${sum.acts} ${sum.acts === 1 ? 'Act' : 'Acts'}`;
   return (
@@ -101,7 +108,14 @@ function Awards(props: { data: ReportData }) {
 
 function Totals(props: { data: ReportData }) {
   const { teams } = props.data.sum;
-  const metrics: { id: string; label: string; a: number; b: number; hint?: string }[] = [
+  const metrics: {
+    id: string;
+    label: string;
+    term?: string;
+    a: number;
+    b: number;
+    hint?: string;
+  }[] = [
     { id: 'kills', label: 'Kills', a: teams.A.kills, b: teams.B.kills },
     { id: 'gold', label: 'Gold', a: teams.A.goldEarned, b: teams.B.goldEarned },
     { id: 'damage', label: 'Damage', a: teams.A.damageToPieces, b: teams.B.damageToPieces },
@@ -115,6 +129,7 @@ function Totals(props: { data: ReportData }) {
     {
       id: 'bastions',
       label: 'Bastions',
+      term: 'bastion',
       a: teams.A.bastionsDestroyed,
       b: teams.B.bastionsDestroyed,
       hint: 'Enemy Bastions destroyed',
@@ -122,6 +137,7 @@ function Totals(props: { data: ReportData }) {
     {
       id: 'checks',
       label: 'Checks',
+      term: 'check',
       a: teams.A.checks,
       b: teams.B.checks,
       hint: 'Times the King fell with the Throne standing',
@@ -140,7 +156,9 @@ function Totals(props: { data: ReportData }) {
           <div class="rp-total" key={m.id} title={m.hint} data-testid={`total-${m.id}`}>
             <span class="rp-total-a">{full(m.a)}</span>
             <span class="rp-total-mid">
-              <span class="rp-total-label">{m.label}</span>
+              <span class="rp-total-label">
+                {m.term ? <Term id={m.term}>{m.label}</Term> : m.label}
+              </span>
               <span class="rp-total-bar" aria-hidden="true">
                 {total > 0 ? (
                   <>
