@@ -19,6 +19,8 @@ describe('balance tooling', () => {
     for (const h of [
       'Balance report',
       'Tempo: gambits and pawns',
+      'Tempo pacing',
+      'High-ground eye badge',
       'Pieces',
       'Styles',
       'Build paths',
@@ -54,5 +56,20 @@ describe('balance tooling', () => {
     }
     expect(Object.keys(r.gambits.A)).toHaveLength(0);
     expect(r.pawns.A).toBe(0);
+  });
+
+  it('reads Tempo pacing, and the player stand-in plays cards while the plan fields pawns', () => {
+    const r = results[0];
+    const cards = (t: 'A' | 'B'): number => Object.values(r.gambits[t]).reduce((a, b) => a + b, 0);
+    expect(r.pace.A.cardsByAct.reduce((a, b) => a + b, 0)).toBe(cards('A'));
+    expect(r.pace.A.gaps).toHaveLength(Math.max(0, cards('A') - 1));
+    expect(r.pace.A.firstAffordableSec).not.toBeNull();
+    const act1 = r.pace.A.act1Playable.reduce((a, b) => a + b, 0);
+    expect(act1).toBeGreaterThan(200);
+    // the square map has no heights, so no eye badge
+    expect(r.eye.onTicks).toBe(0);
+    const p = simulateMatch(content, 11, { whitePlayer: true, whiteEvery: 60, maxPhases: 1 });
+    expect(p.pawns.A).toBeGreaterThan(0);
+    expect(p.pace.A.gaps.every((g) => g >= 60)).toBe(true);
   });
 });

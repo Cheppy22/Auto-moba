@@ -40,6 +40,13 @@ const poolIdx = process.argv.indexOf('--relic-pool');
 const relicPool = poolIdx >= 0 ? process.argv[poolIdx + 1] : '';
 if (relicPool) process.env.BALANCE_RELIC_POOL = relicPool;
 
+// --white-player: White plays like the browser's player (standing pawn plan 2 / 2 / 2 fields its
+// pawns; a stand-in plays the AI's best card each second). With --no-gambits-A it plays no cards.
+const whitePlayer = flag('white-player');
+// --white-every S: with --white-player, the stand-in plays at most one card per S seconds (a
+// person who checks the hand now and then; default 0 = whenever a card fits).
+const whiteEvery = arg('white-every', 0);
+
 // --map long: play every match on the Long Board (output files get a -long suffix).
 const mapIdx = process.argv.indexOf('--map');
 const map = mapIdx >= 0 && process.argv[mapIdx + 1] === 'long' ? ('long' as const) : undefined;
@@ -59,7 +66,15 @@ async function main(): Promise<void> {
             '--import',
             'tsx',
             workerPath,
-            JSON.stringify({ seeds: mine, noGambitsA, noGambitsB, relics, map }),
+            JSON.stringify({
+              seeds: mine,
+              noGambitsA,
+              noGambitsB,
+              relics,
+              map,
+              whitePlayer,
+              whiteEvery,
+            }),
           ],
           {
             stdio: ['ignore', 'pipe', 'inherit'],
@@ -79,13 +94,14 @@ async function main(): Promise<void> {
     }),
   );
   results.sort((a, b) => a.seed - b.seed);
-  const { md, stats } = report(results, { noGambitsA, noGambitsB });
+  const { md, stats } = report(results, { noGambitsA, noGambitsB, whitePlayer, whiteEvery });
   const dir = new URL('../out/', import.meta.url);
   mkdirSync(dir, { recursive: true });
-  const base =
+  const base0 =
     noGambitsA || noGambitsB
       ? `balance-no-gambits-${noGambitsA ? 'A' : ''}${noGambitsB ? 'B' : ''}`
       : 'balance';
+  const base = whitePlayer ? `${base0}-player${whiteEvery ? whiteEvery : ''}` : base0;
   const withSchools = schools
     ? `${base}-${schools.replace(/[^a-z,]/g, '').replace(/,/g, '-')}`
     : base;

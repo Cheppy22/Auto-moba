@@ -737,7 +737,7 @@ export function onPoisonedDeath(ctx: Ctx, victim: Unit, killer: Unit | null): vo
 
 // ---------------------------------------------------------------- AI
 
-interface Plan {
+export interface Plan {
   score: number;
   target: GambitTarget;
 }
@@ -1048,8 +1048,15 @@ function pawnLane(ctx: Ctx, team: PlayTeam): LaneId {
   return best;
 }
 
-/** The Tempo heuristic: play the best-fitting card, otherwise field pawns from the surplus. */
-function aiGambits(ctx: Ctx, team: PlayTeam): void {
+/**
+ * The AI's card pick: the best-fitting affordable card in the hand (`best`, or null) and the cost
+ * of the dearest fitting card it cannot pay for yet (`wanted`, 0 if none). Also drives the
+ * balance tool's stand-in player (`tools/simulate.ts`).
+ */
+export function aiCardPick(
+  ctx: Ctx,
+  team: PlayTeam,
+): { best: { slot: number; plan: Plan } | null; wanted: number } {
   const s = ctx.s;
   const hand = s.hands[team];
   let best: { slot: number; plan: Plan } | null = null;
@@ -1068,6 +1075,13 @@ function aiGambits(ctx: Ctx, team: PlayTeam): void {
     }
     if (!best || pl.score > best.plan.score) best = { slot: i, plan: pl };
   }
+  return { best, wanted };
+}
+
+/** The Tempo heuristic: play the best-fitting card, otherwise field pawns from the surplus. */
+function aiGambits(ctx: Ctx, team: PlayTeam): void {
+  const s = ctx.s;
+  const { best, wanted } = aiCardPick(ctx, team);
   if (best && playGambit(ctx, team, best.slot, best.plan.target).ok) return;
   const cost = pawnCost(ctx, team);
   const reserve = wanted > 0 ? wanted : 20;

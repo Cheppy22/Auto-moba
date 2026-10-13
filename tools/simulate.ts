@@ -8,6 +8,8 @@ import {
 } from '../src/sim';
 import { teamNetWorth } from '../src/sim/curses';
 import { PLAY_TEAMS } from '../src/sim';
+import { aiCardPick, cardBlock } from '../src/sim/gambits';
+import { highGroundEdge } from '../src/sim/world/height';
 
 export interface HeroResult {
   team: PlayTeam;
@@ -58,6 +60,39 @@ export interface MatchSummary {
   mate: 'throneFirst' | 'kingFirst' | null;
   /** Relic ids offered to each side across the match, and the ones it took. */
   relics: Record<PlayTeam, { offered: string[]; taken: string[]; held: string[] }>;
+  /** Tempo pacing per side (seconds of match clock). */
+  pace: Record<PlayTeam, TempoPace>;
+  /** The Long Board's high-ground eye badge (`SnapUnit.highGround`), read every tick. */
+  eye: EyeRead;
+}
+
+export interface TempoPace {
+  /** First second a card in the hand could be played (its piece up, the Tempo there); null if never. */
+  firstAffordableSec: number | null;
+  /** First card played; null if none. */
+  firstPlaySec: number | null;
+  /** Cards played in each Act (index 0 = Act 1). */
+  cardsByAct: number[];
+  /** Seconds between consecutive card plays. */
+  gaps: number[];
+  /** Act 1 seconds with 0, 1, 2 and 3 playable cards in the hand. */
+  act1Playable: [number, number, number, number];
+  /** Cards dealt in Act 1, and those that left the hand without ever being playable. */
+  act1Dealt: number;
+  act1Dead: number;
+  /** Mean Tempo held across Act 1. */
+  act1Tempo: number;
+}
+
+export interface EyeRead {
+  /** Ticks a living piece existed, and ticks it showed the badge. */
+  pieceTicks: number;
+  onTicks: number;
+  /** Times the badge turned on (all, and only showings that lasted at least 1 s). */
+  turnOns: number;
+  turnOns1s: number;
+  /** Pieces in the match (for per-piece rates). */
+  pieces: number;
 }
 
 export interface SimOptions {
@@ -73,7 +108,17 @@ export interface SimOptions {
   map?: 'long';
   /** Force archetypes at Rank 4 (per team and piece). */
   forceStyles?: { A?: Partial<Record<PieceId, string>>; B?: Partial<Record<PieceId, string>> };
+  /**
+   * White as the browser sets up a player: the standing pawn plan (2 / 2 / 2, auto on) fields
+   * White's pawns, never the AI. White's cards come from a stand-in player that plays the AI's
+   * best-fitting card once a second, or none with `noGambitsA` (a player who never taps a card).
+   */
+  whitePlayer?: boolean;
+  /** With `whitePlayer`: the stand-in plays at most one card per this many seconds (0 = no limit). */
+  whiteEvery?: number;
 }
+
+const TPS = 20;
 
 export function simulateMatch(content: Content, seed: number, opts: SimOptions = {}): MatchSummary {
   const t0 = process.hrtime.bigint();
@@ -84,20 +129,29 @@ export function simulateMatch(content: Content, seed: number, opts: SimOptions =
     forceStyles: opts.forceStyles,
     relics: opts.relics,
     map: opts.map,
-    autoGambits: { A: !opts.noGambitsA, B: !opts.noGambitsB },
+    autoGambits: { A: !opts.noGambitsA && !opts.whitePlayer, B: !opts.noGambitsB },
     // The baseline removes Tempo spending only; forks still pick at once as the AI does.
     autoForks: { A: true, B: true },
   });
   if (m.state.phase.kind === 'setup') m.issue({ type: 'setupTeam', ...m.defaultSetup() });
+  if (opts.whitePlayer) m.issue({ type: 'setPawnPlan', quota: { top: 2, mid: 2, bot: 2 } });
+  const reads = paceReader(m, !!opts.whitePlayer && !opts.noGambitsA, opts.whiteEvery ?? 0);
   const act = content.tuning.phaseSeconds * content.tuning.tickRate;
-  m.step(act);
+  const run = (ticks: number): void => {
+    for (let i = 0; i < ticks; i++) {
+      reads.before();
+      if (m.step(1) === 0) return;
+      reads.after();
+    }
+  };
+  run(act);
   let lead1: PlayTeam | null = null;
   if (m.state.phase.kind === 'live') {
     const a = teamNetWorth(m.ctx, 'A');
     const b = teamNetWorth(m.ctx, 'B');
     lead1 = a === b ? null : a > b ? 'A' : 'B';
   }
-  while (m.state.phase.kind === 'live' && m.state.phase.n <= maxPhases) m.step(act);
+  while (m.state.phase.kind === 'live' && m.state.phase.n <= maxPhases) run(act);
   const s = m.state;
   const winner = s.winner;
   const heroes: HeroResult[] = [];
@@ -198,5 +252,116 @@ export function simulateMatch(content: Content, seed: number, opts: SimOptions =
     rankMinute,
     mate,
     relics,
+    pace: reads.pace(),
+    eye: reads.eye,
+  };
+}
+
+/**
+ * Per-tick read-outs for the Tempo pacing and eye-badge metrics. They only read the state, so
+ * the match plays the same with or without them; the stand-in player (`cards`) issues White's
+ * card plays as commands.
+ */
+function paceReader(
+  m: Match,
+  cards: boolean,
+  every: number,
+): { before(): void; after(): void; pace(): Record<PlayTeam, TempoPace>; eye: EyeRead } {
+  const ctx = m.ctx;
+  const s = m.state;
+  const blank = (): TempoPace => ({
+    firstAffordableSec: null,
+    firstPlaySec: null,
+    cardsByAct: [],
+    gaps: [],
+    act1Playable: [0, 0, 0, 0],
+    act1Dealt: 0,
+    act1Dead: 0,
+    act1Tempo: 0,
+  });
+  const out: Record<PlayTeam, TempoPace> = { A: blank(), B: blank() };
+  const slots: Record<PlayTeam, { key: string; ever: boolean; act1: boolean }[]> = { A: [], B: [] };
+  const eye: EyeRead = { pieceTicks: 0, onTicks: 0, turnOns: 0, turnOns1s: 0, pieces: 0 };
+  const run = new Map<number, number>();
+  let act1Ticks = 0;
+  let lastPlay = -Infinity;
+  const endSlot = (team: PlayTeam, k: number): void => {
+    const old = slots[team][k];
+    if (old?.key && old.act1) {
+      out[team].act1Dealt++;
+      if (!old.ever) out[team].act1Dead++;
+    }
+  };
+  return {
+    before(): void {
+      if (!cards || s.tick % TPS !== 5 || s.phase.kind !== 'live') return;
+      if (s.tick - lastPlay < every * TPS) return;
+      const best = aiCardPick(ctx, 'A').best;
+      if (best && m.issue({ type: 'playGambit', slot: best.slot, ...best.plan.target }).ok)
+        lastPlay = s.tick;
+    },
+    after(): void {
+      const act1 = s.phase.kind === 'live' && s.phase.n === 1;
+      if (act1) act1Ticks++;
+      for (const team of PLAY_TEAMS) {
+        const o = out[team];
+        let n = 0;
+        s.hands[team].forEach((h, k) => {
+          const key = h.cardId === null ? '' : `${h.cardId}@${h.expireTick}`;
+          const cur = slots[team][k];
+          if (!cur || cur.key !== key) {
+            endSlot(team, k);
+            slots[team][k] = { key, ever: false, act1 };
+          }
+          if (h.cardId !== null && cardBlock(ctx, team, k) === '') {
+            n++;
+            slots[team][k].ever = true;
+          }
+        });
+        if (n > 0 && o.firstAffordableSec === null) o.firstAffordableSec = s.tick / TPS;
+        if (act1) {
+          o.act1Playable[Math.min(3, n)] += 1 / TPS;
+          o.act1Tempo += s.tempo[team];
+        }
+      }
+      for (const team of PLAY_TEAMS) {
+        for (const id of s.teams[team].heroIds) {
+          const u = ctx.unit(id);
+          if (!u?.alive) continue;
+          eye.pieceTicks++;
+          const on = highGroundEdge(ctx, u);
+          const len = run.get(id) ?? 0;
+          if (on) {
+            eye.onTicks++;
+            if (len === 0) eye.turnOns++;
+            if (len + 1 === TPS) eye.turnOns1s++;
+            run.set(id, len + 1);
+          } else if (len) run.set(id, 0);
+        }
+      }
+    },
+    pace(): Record<PlayTeam, TempoPace> {
+      eye.pieces = s.teams.A.heroIds.length + s.teams.B.heroIds.length;
+      for (const team of PLAY_TEAMS) {
+        slots[team].forEach((_x, k) => endSlot(team, k));
+        out[team].act1Tempo /= Math.max(1, act1Ticks);
+      }
+      let act = 0;
+      const last: Record<PlayTeam, number | null> = { A: null, B: null };
+      for (const e of m.events) {
+        if (e.type === 'phaseStart' && e.payload.kind === 'live') act = e.payload.phase;
+        if (e.type !== 'gambit') continue;
+        const o = out[e.payload.team];
+        const sec = e.tick / TPS;
+        while (o.cardsByAct.length < act) o.cardsByAct.push(0);
+        o.cardsByAct[act - 1]++;
+        if (o.firstPlaySec === null) o.firstPlaySec = sec;
+        const prev = last[e.payload.team];
+        if (prev !== null) o.gaps.push(sec - prev);
+        last[e.payload.team] = sec;
+      }
+      return out;
+    },
+    eye,
   };
 }

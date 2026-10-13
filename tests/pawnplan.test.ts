@@ -10,14 +10,14 @@ describe("White's standing pawn plan", () => {
   it('fields pawns toward the lane counts when Tempo allows, and keeps the reserve', () => {
     const m = liveMatch(5, { autoGambits: { A: false, B: true } });
     expect(m.issue({ type: 'setPawnPlan', quota: { top: 1, mid: 2, bot: 0 } }).ok).toBe(true);
-    expect(m.snapshot().pawnPlan?.reserve).toBe(20);
+    expect(m.snapshot().pawnPlan?.reserve).toBe(content.tuning.pawns.planReserve);
     m.state.tempo.A = 100;
     m.step(TPS * 3);
     expect(pawnsIn(m, 'mid')).toBe(2);
     expect(pawnsIn(m, 'top')).toBe(1);
     expect(pawnsIn(m, 'bot')).toBe(0);
-    // each pawn cost 15: the plan never spends below the reserve of 20
-    m.state.tempo.A = 25;
+    // each pawn cost 15: the plan never spends below its reserve (40)
+    m.state.tempo.A = content.tuning.pawns.planReserve + 10;
     m.state.units = m.state.units.filter((u) => !(u.team === 'A' && u.pawn && u.lane === 'mid'));
     const before = m.snapshot().pawns.A.alive;
     m.step(TPS / 2);
