@@ -17,7 +17,12 @@ const quant = (xs: number[], q: number): number => {
 
 export function report(
   results: MatchSummary[],
-  opts: { noGambitsA?: boolean; noGambitsB?: boolean } = {},
+  opts: {
+    noGambitsA?: boolean;
+    noGambitsB?: boolean;
+    whitePlayer?: boolean;
+    whiteEvery?: number;
+  } = {},
 ): { md: string; stats: Record<string, unknown> } {
   const n = results.length;
   const finished = results.filter((r) => r.winner !== null);
@@ -26,7 +31,11 @@ export function report(
   const lines: string[] = [];
   lines.push(`# Balance report (chess variant)`);
   lines.push('');
-  if (opts.noGambitsA)
+  if (opts.whitePlayer)
+    lines.push(
+      `- **Player run:** White's pawns come from the standing pawn plan (2 / 2 / 2) as in the browser; ${opts.noGambitsA ? 'White plays no cards' : `a stand-in plays the AI's best-fitting card${opts.whiteEvery ? `, at most one per ${opts.whiteEvery} s` : ' whenever one fits'}`}. Black uses the AI.`,
+    );
+  else if (opts.noGambitsA)
     lines.push(
       '- **Baseline run:** White plays no gambits and fields no pawns; Black uses the AI.',
     );
@@ -93,6 +102,8 @@ export function report(
   lines.push(
     `| times in Check | ${(results.reduce((a, r) => a + r.checks.A, 0) / n).toFixed(1)} | ${(results.reduce((a, r) => a + r.checks.B, 0) / n).toFixed(1)} |`,
   );
+  lines.push('');
+  lines.push(...paceLines(results));
   lines.push('');
   lines.push('## Pieces (share of appearances on the winning side)');
   lines.push('');
@@ -228,4 +239,64 @@ export function report(
       noGambitsB: !!opts.noGambitsB,
     },
   };
+}
+
+/** Tempo pacing (when a card is first playable, cards per Act, gaps) and the eye badge. */
+function paceLines(results: MatchSummary[]): string[] {
+  const n = results.length;
+  const out: string[] = ['## Tempo pacing (seconds of match clock)', ''];
+  out.push('| | White | Black |');
+  out.push('| --- | --- | --- |');
+  const both = (label: string, f: (t: 'A' | 'B') => string): void => {
+    out.push(`| ${label} | ${f('A')} | ${f('B')} |`);
+  };
+  const medOf = (t: 'A' | 'B', get: (p: MatchSummary['pace']['A']) => number | null): string => {
+    const xs = results.map((r) => get(r.pace[t])).filter((x): x is number => x !== null);
+    return xs.length ? `${median(xs).toFixed(0)} (p90 ${quant(xs, 0.9).toFixed(0)})` : '-';
+  };
+  both('First playable card, median s', (t) => medOf(t, (p) => p.firstAffordableSec));
+  both('First card played, median s', (t) => medOf(t, (p) => p.firstPlaySec));
+  const maxAct = Math.min(6, Math.max(0, ...results.map((r) => r.phases)));
+  for (let a = 1; a <= maxAct; a++) {
+    const reached = results.filter((r) => r.phases >= a);
+    both(`Cards played in Act ${a} (${reached.length} matches)`, (t) =>
+      (
+        reached.reduce((x, r) => x + (r.pace[t].cardsByAct[a - 1] ?? 0), 0) /
+        Math.max(1, reached.length)
+      ).toFixed(1),
+    );
+  }
+  both('Seconds between card plays, median (p90)', (t) => {
+    const xs = results.flatMap((r) => r.pace[t].gaps);
+    return xs.length ? `${median(xs).toFixed(0)} (${quant(xs, 0.9).toFixed(0)})` : '-';
+  });
+  both('Act 1 time with 0 / 1 / 2 / 3 playable cards', (t) => {
+    const h = [0, 1, 2, 3].map((k) => results.reduce((x, r) => x + r.pace[t].act1Playable[k], 0));
+    const tot = h.reduce((x, y) => x + y, 0);
+    return h.map((x) => pct(x, tot)).join(' / ');
+  });
+  both('Act 1 cards never playable before leaving the hand', (t) =>
+    pct(
+      results.reduce((x, r) => x + r.pace[t].act1Dead, 0),
+      results.reduce((x, r) => x + r.pace[t].act1Dealt, 0),
+    ),
+  );
+  both('Act 1 mean Tempo held', (t) =>
+    (results.reduce((x, r) => x + r.pace[t].act1Tempo, 0) / Math.max(1, n)).toFixed(1),
+  );
+  const e = results.reduce(
+    (a, r) => ({
+      on: a.on + r.eye.onTicks,
+      all: a.all + r.eye.pieceTicks,
+      ons: a.ons + r.eye.turnOns,
+      ons1: a.ons1 + r.eye.turnOns1s,
+      pieces: a.pieces + r.eye.pieces,
+    }),
+    { on: 0, all: 0, ons: 0, ons1: 0, pieces: 0 },
+  );
+  out.push('');
+  out.push(
+    `- High-ground eye badge: on for ${pct(e.on, e.all)} of living piece-time; turns on ${(e.ons / Math.max(1, e.pieces)).toFixed(1)} times per piece per match (${(e.ons1 / Math.max(1, e.pieces)).toFixed(1)} of them lasting 1 s or more); mean showing ${(e.on / Math.max(1, e.ons) / 20).toFixed(1)} s.`,
+  );
+  return out;
 }

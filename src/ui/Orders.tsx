@@ -183,7 +183,7 @@ export function PawnPlan(props: { snap: Snapshot }) {
           <p class="dim small">
             {plan?.auto === false
               ? 'Auto pawns are off: nothing is fielded for you, but your counts are kept. Field Pawn still works.'
-              : `Fielded for you during the Act while Tempo stays above ${plan?.reserve ?? 20} (kept for gambits). Field Pawn still adds extras. Pawn Structure: you choose the reserve, and pawns cost 2 less.`}
+              : `Fielded for you during the Act while Tempo stays above ${plan?.reserve ?? 40} (kept for gambits). Field Pawn still adds extras. Pawn Structure: you choose the reserve, and pawns cost 2 less.`}
           </p>
           <div class="rl-steppers" role="group" aria-label="Pawns to keep in each lane">
             {LANES.map((lane) => (

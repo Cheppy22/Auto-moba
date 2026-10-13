@@ -84,7 +84,7 @@ test('Orders at the break sets pawns per lane, and the plan fields them', async 
   const plan = () =>
     page.evaluate(() => (window as unknown as Polish).__session.match.snapshot().pawnPlan);
   expect((await plan())?.quota).toEqual({ top: 2, mid: 2, bot: 2 });
-  expect((await plan())?.reserve).toBe(20);
+  expect((await plan())?.reserve).toBe(40);
 
   await toBreak(page);
   await page.getByTestId('break-tab-orders').click();

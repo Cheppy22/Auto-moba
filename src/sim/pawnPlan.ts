@@ -6,9 +6,6 @@ import { fieldTowardQuota } from './relicsLive';
 import { LANES } from './world/map';
 import type { CommandResult, PawnQuota } from './types';
 
-/** Tempo the standing plan keeps back so gambits stay playable (Pawn Structure lets you choose). */
-export const PLAN_RESERVE = 20;
-
 /**
  * White's standing pawn plan (Orders at each Act break): pawns are fielded toward these lane
  * counts whenever Tempo is above the reserve. Pawn Structure does the same job with a chosen
@@ -23,7 +20,7 @@ export function setPawnPlan(ctx: Ctx, quota: PawnQuota): CommandResult {
   if (total > pawnCap(ctx, 'A', act)) return { ok: false, reason: 'more pawns than your cap' };
   ctx.s.pawnPlan = {
     quota: { top: quota.top, mid: quota.mid, bot: quota.bot },
-    reserve: PLAN_RESERVE,
+    reserve: ctx.t.pawns.planReserve,
     auto: ctx.s.pawnPlan?.auto ?? true,
   };
   return { ok: true };
@@ -33,7 +30,8 @@ export function setPawnPlan(ctx: Ctx, quota: PawnQuota): CommandResult {
 export function setPawnAuto(ctx: Ctx, auto: boolean): CommandResult {
   const plan = ctx.s.pawnPlan;
   if (plan) plan.auto = auto;
-  else ctx.s.pawnPlan = { quota: { top: 0, mid: 0, bot: 0 }, reserve: PLAN_RESERVE, auto };
+  else
+    ctx.s.pawnPlan = { quota: { top: 0, mid: 0, bot: 0 }, reserve: ctx.t.pawns.planReserve, auto };
   return { ok: true };
 }
 

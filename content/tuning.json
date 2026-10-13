@@ -37,7 +37,8 @@
     "scalePerAct": 0.3,
     "structureMul": 1.4,
     "bounty": 40,
-    "teamBounty": 10
+    "teamBounty": 10,
+    "planReserve": 40
   },
   "relics": {
     "max": 3,

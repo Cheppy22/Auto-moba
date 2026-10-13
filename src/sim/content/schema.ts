@@ -645,6 +645,8 @@ export const TuningSchema = z.object({
     /** Gold to the killing piece and to each piece of the killing team. */
     bounty: z.number(),
     teamBounty: z.number(),
+    /** Tempo White's standing pawn plan keeps back for gambits (Pawn Structure lets you choose). */
+    planReserve: z.number(),
   }),
   /** The relic draft at each Act break. */
   relics: z.object({
