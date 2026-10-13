@@ -111,3 +111,50 @@ Each item is a strategy change and gets its own spec in `docs/` for approval bef
 - The desktop board leaves most of the screen black; the lean-in view (about 1.9×) is where the pieces look best.
 - Checkmate is a text card with no board moment.
 - `index.html` has no icon (`href="data:,"`) and loads fonts from Google, so the game cannot start offline.
+
+## 7. Update after the Long Board (2026-10-13, for discussion with Fable)
+
+Written by the build session (Claude Code) after Long Board phases 1–5 shipped (build `6f5d28a`). Nothing here is approved yet; it is input for the next Fable review. Score changes are estimates from the work done, not a new playtest.
+
+### 7.1 What changed since this review
+
+- **Long Board shipped and is the default** (spec [MAP-LONGBOARD-2026-10-11.md](MAP-LONGBOARD-2026-10-11.md)): 2× long board, three height tiers, Reach +30% and Slope ±20% high-ground rules, grove line of sight, units 15% faster; 800-match balance White 49.2% / 51.8%, median 14.8 min.
+- **Full-screen map, no table:** the map fills the screen, the HUD floats over it, woods and a lake dress the edges (no void). Owner decision: "the entire gameplay area is the entire screen".
+- **Free camera by default:** pan, pinch, twist to rotate, two-finger tilt, compass reset, Auto as a toggle; tap a piece to follow, tap an empty lane to lean in.
+- **One visual language** ([LOOK-LONGBOARD-2026-10-12.md](LOOK-LONGBOARD-2026-10-12.md)) with two themes: a Slate garden (default) and b Lamplit parterre (player choice).
+- **Combat spacing and AI judgement:** attack slots, knockback, no tower dives, odds-based retreats; kills per match 55 → 28.
+- **Grand Board deleted** (about −8.1k lines in `src`); the two failing e2e specs now pass (42/42).
+
+### 7.2 Estimated score moves
+
+| Area                      | Was | Now (est.) | Why                                                                     |
+| ------------------------- | --- | ---------- | ----------------------------------------------------------------------- |
+| Board readability (phone) | 5   | 6–7        | Free camera, follow and lane lean-in; needs a real-phone check          |
+| Art direction, uniqueness | 6   | 6–7        | Void gone, one visual language; pieces are still generic low-poly       |
+| Code health               | 7   | 8          | Legacy renderer deleted, failing specs fixed                            |
+| Live play agency          | 4   | 4          | Unchanged; still the weakest core score                                 |
+| Everything else           | —   | unchanged  | Replayability 4, onboarding 2, audio 3, platform 3 remain the low marks |
+
+### 7.3 Conflicts with section 4 (proposed fixes)
+
+1. **4A "Fill the hall"** (lamps, audience, visible table edge on desktop) contradicts the full-screen decision. Proposed: rewrite as **4A "Fill the world"** — weather, birds, banners, light drift, life in the woods and lake past the edges. Smaller than planned: phase 5 already added the woods and lake.
+2. **4B Capture spectacle** says a fallen piece is "knocked off the board into its tray". With no in-world board edge: the piece is knocked flying and its token lands in the HUD capture tray.
+3. **"Spotlight Arena (variant c) stays"** (owner answers, top of this doc) is superseded: the Long Board themes are the default look; variant c remains only on `?map=square`.
+
+### 7.4 Proposed additions to the plan
+
+- **Tempo tune (about half a day, numbers only):** higher starting Tempo and cheaper Act 1 cards so the first playable card comes early (section 6, first bullet). Folded into the next balance run. Addresses live agency without 1A.
+- **Glossary taps early (about 1 day):** pull the tappable glossary out of onboarding and ship it with 1B, since the Tournament run adds new nouns.
+
+### 7.5 Proposed order (unchanged apart from the additions)
+
+1. 1B Tournament run + 1C Interactive armory (specs first), with the Tempo tune and the glossary.
+2. 2B Blitz and Classical + 3B Named opponents.
+3. Art: 4A Fill the world, 4B Capture spectacle, 4C post-process prototype.
+4. Onboarding, audio, platform last.
+
+### 7.6 Questions for Fable
+
+- Do the estimated score moves hold up in a fresh playtest on the full-screen Long Board?
+- Does the free camera change the art plan (e.g. 4C post-process cost when the view is zoomed in and tilted)?
+- Is Blitz (3 × 150 s) still the right phone default on a board that is 2× longer?
