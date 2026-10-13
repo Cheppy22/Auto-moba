@@ -1,0 +1,176 @@
+/* ---------- glossary: marked game words, the one popover, the Rules page ---------- */
+
+/* a game word: the text's own colour with a dotted brass underline */
+.term {
+  position: relative;
+  cursor: pointer;
+  text-decoration: underline dotted var(--brass) 1px;
+  text-underline-offset: 3px;
+  text-decoration-skip-ink: none;
+}
+/* the tap area is padded to 44 px tall without moving the text */
+.term::after {
+  content: '';
+  position: absolute;
+  left: -4px;
+  right: -4px;
+  top: 50%;
+  height: 44px;
+  transform: translateY(-50%);
+}
+/* inside running text two words can sit on neighbouring lines: a taller pad would cover the
+   word above or below, so the pad stays under one line height */
+.term.prose::after {
+  height: 34px;
+}
+.term:hover {
+  text-decoration-color: var(--brass-hi);
+}
+.term:focus-visible {
+  outline: 2px solid var(--brass-hi);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.gloss-pop {
+  position: fixed;
+  z-index: 400;
+  box-sizing: border-box;
+  width: max-content;
+  max-width: min(280px, calc(100vw - 16px));
+  padding: 10px 12px 11px;
+  background: rgba(20, 17, 14, 0.96);
+  border: 1px solid var(--brass-dim);
+  border-radius: 6px;
+  box-shadow:
+    inset 0 0 0 1px rgba(201, 163, 90, 0.18),
+    0 8px 26px rgba(0, 0, 0, 0.6);
+  color: var(--ivory);
+  font-size: var(--fs-sm, 14px);
+  line-height: 1.4;
+  text-align: left;
+  text-shadow: none;
+  font-weight: 400;
+  letter-spacing: normal;
+  font-variant: normal;
+  animation: gloss-in 120ms ease-out both;
+}
+.gloss-pop:focus {
+  outline: none;
+}
+/* the little pointer towards the word */
+.gloss-pop::after {
+  content: '';
+  position: absolute;
+  left: calc(var(--arrow, 20px) - 6px);
+  bottom: -6px;
+  width: 10px;
+  height: 10px;
+  background: rgba(20, 17, 14, 0.96);
+  border-right: 1px solid var(--brass-dim);
+  border-bottom: 1px solid var(--brass-dim);
+  transform: rotate(45deg);
+}
+.gloss-pop.below::after {
+  bottom: auto;
+  top: -6px;
+  transform: rotate(225deg);
+}
+.gloss-term {
+  display: block;
+  color: var(--brass);
+  font-family: var(--font-display);
+  font-variant: small-caps;
+  letter-spacing: 0.08em;
+  font-size: 1.05em;
+  font-weight: 400;
+}
+.gloss-short,
+.gloss-more {
+  margin: 4px 0 0;
+}
+.gloss-more {
+  color: var(--ivory-2);
+}
+.gloss-morebtn,
+.gloss-chip {
+  min-height: 32px;
+  padding: 2px 10px;
+  background: rgba(201, 163, 90, 0.12);
+  border: 1px solid var(--brass-dim);
+  border-radius: 999px;
+  color: var(--brass-hi);
+  font: inherit;
+  font-size: 0.9em;
+  cursor: pointer;
+}
+.gloss-morebtn {
+  margin-top: 6px;
+}
+.gloss-morebtn:focus-visible,
+.gloss-chip:focus-visible {
+  outline: 2px solid var(--brass-hi);
+  outline-offset: 2px;
+}
+.gloss-see {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+.gloss-see > span {
+  color: var(--faint);
+  font-size: 0.85em;
+}
+@keyframes gloss-in {
+  from {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gloss-pop {
+    animation: none;
+  }
+}
+
+/* the Rules page (Title) and tab (Adjourn) */
+.overlay.rules-page {
+  z-index: 6;
+}
+.rules-panel {
+  width: min(720px, 100%);
+  max-height: calc(100dvh - 24px);
+  min-height: 0;
+}
+.rules-panel > * {
+  flex: none;
+}
+.rules-panel > .rules-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overscroll-behavior: contain;
+}
+.rules-group {
+  margin-bottom: var(--sp-4, 16px);
+}
+.rules-h {
+  color: var(--brass);
+  font-variant: small-caps;
+  letter-spacing: 0.08em;
+}
+.rules-list dl {
+  margin: 0;
+}
+.rules-row {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--rule);
+}
+.rules-row dt {
+  color: var(--ivory);
+  font-weight: 600;
+}
+.rules-row dd {
+  margin: 2px 0 0;
+  line-height: 1.45;
+}

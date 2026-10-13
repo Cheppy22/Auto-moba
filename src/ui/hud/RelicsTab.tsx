@@ -9,6 +9,7 @@ import type {
   Snapshot,
 } from '../../sim';
 import { SEALED_TRIGGERS } from '../../sim';
+import { Term, Terms } from '../glossary';
 import { whitePieces } from '../Orders';
 import { LANES, LANE_LABEL, LANE_TAG, PieceGlyph, pieceLabel } from '../pieces';
 import {
@@ -319,13 +320,15 @@ function OfferCard(props: {
             <FamilyChip family={def.family} />
             {def.rally && (
               <span class="rally-chip" title="Works only while you are behind">
-                Rally
+                <Term id="rally">Rally</Term>
               </span>
             )}
           </span>
         </div>
       </header>
-      <p class="rcard-desc">{relicText(s.content, def, 'A', s.match!.state.opening.A)}</p>
+      <p class="rcard-desc">
+        <Terms text={relicText(s.content, def, 'A', s.match!.state.opening.A)} max={1} />
+      </p>
       <details class="rcard-more">
         <summary>Rewards and counter</summary>
         <dl class="rcard-facts">
@@ -431,8 +434,13 @@ export function RelicsTab(props: { snap: Snapshot }) {
       {open ? (
         <>
           <p class="rl-intro">
-            Take one relic. It stays with you for the match and starts working next Act.
-            {offers.some((o) => o.tailored) && ' The first card answers what went wrong this Act.'}
+            <Terms
+              text={`Take one relic. It stays with you for the match and starts working next Act.${
+                offers.some((o) => o.tailored)
+                  ? ' The first card answers what went wrong this Act.'
+                  : ''
+              }`}
+            />
           </p>
           {full && (
             <section class="rl-replace" data-testid="relic-replace">
@@ -525,7 +533,7 @@ export function RelicsTab(props: { snap: Snapshot }) {
       )}
       <section class="rl-held" data-testid="relic-held">
         <h3 class="bs-h">
-          Your relics ({held.A.length}/{max})
+          Your <Term id="relic">relics</Term> ({held.A.length}/{max})
         </h3>
         {held.A.length === 0 ? (
           <p class="bs-line dim">

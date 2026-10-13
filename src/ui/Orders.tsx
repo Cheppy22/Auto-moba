@@ -14,6 +14,7 @@ import {
   pieceLabel,
   styleLabel,
 } from './pieces';
+import { Term, Terms } from './glossary';
 import { useSession } from './session';
 
 export function whitePieces(s: ReturnType<typeof useSession>): Unit[] {
@@ -109,8 +110,7 @@ export function Paths() {
   return (
     <div class="col" data-testid="tab-paths">
       <p class="dim small">
-        A build path decides which items a piece buys first. Changing it takes effect at its next
-        purchase.
+        <Terms text="A build path decides which items a piece buys first. Changing it takes effect at its next purchase." />
       </p>
       {whitePieces(s).map((u) => {
         const h = u.hero!;
@@ -171,7 +171,9 @@ export function PawnPlan(props: { snap: Snapshot }) {
   };
   return (
     <section class="card col pawn-plan" data-testid="pawn-plan">
-      <b>Pawns per lane</b>
+      <b>
+        <Term id="pawn">Pawns</Term> per lane
+      </b>
       {relic ? (
         <p class="dim small" data-testid="pawn-plan-relic">
           Pawn Structure is in play: it fields your pawns toward its own counts (set them in
@@ -181,9 +183,14 @@ export function PawnPlan(props: { snap: Snapshot }) {
         <>
           <AutoPawn snap={snap} testId="plan-auto" />
           <p class="dim small">
-            {plan?.auto === false
-              ? 'Auto pawns are off: nothing is fielded for you, but your counts are kept. Field Pawn still works.'
-              : `Fielded for you during the Act while Tempo stays above ${plan?.reserve ?? 40} (kept for gambits). Field Pawn still adds extras. Pawn Structure: you choose the reserve, and pawns cost 2 less.`}
+            <Terms
+              skip={['pawn']}
+              text={
+                plan?.auto === false
+                  ? 'Auto pawns are off: nothing is fielded for you, but your counts are kept. Field Pawn still works.'
+                  : `Fielded for you during the Act while Tempo stays above ${plan?.reserve ?? 40} (kept for gambits). Field Pawn still adds extras. Pawn Structure: you choose the reserve, and pawns cost 2 less.`
+              }
+            />
           </p>
           <div class="rl-steppers" role="group" aria-label="Pawns to keep in each lane">
             {LANES.map((lane) => (

@@ -156,6 +156,7 @@ Each hero re-plans about once per second and scores goals (farm lane, push tower
 - **Upgrades** appear as a hand of cards with before→after numbers (a scroll-snap row on phones).
 - **Your hero** has a gold ring and a pulsing halo at phase start and on respawn; tapping your portrait flashes it.
 - **Map labels** are drawn last and nudged or skipped on collision.
+- **Glossary (chess branch, 2026-10-13):** game words carry a dotted brass underline where the player reads (first appearance per block of text); tap one for a one-sentence definition. A Rules list sits on the Title and in Adjourn. Words live in `content/glossary.json`; details in [CHESS.md](CHESS.md) "Interface".
 - Escape closes overlays; an unspent-gold reminder appears before starting a phase; the Shop tab shows your gold.
 - **View:** the three.js 3D view is the only game view, and it fills the whole screen; the HUD floats over it as glass panels (chess branch, 2026-10-12). The 2D map is removed. Jungle shops are tapped as HTML pins over the 3D view.
   - **Free** camera is the default on the chess branch: it starts on the board's full width from White's end, and the player pans, zooms, turns and tilts it (touch: one finger, pinch, twist, two-finger drag; desktop: drag, wheel, right drag, Q / E); a compass shows while it is turned and resets the angle. Spec: [CHESS.md](CHESS.md) "Interface", Camera.

@@ -3,6 +3,7 @@ import { courtName } from '../analysis/text';
 import { ItemIcon } from './ItemIcon';
 import { Lanes, Paths, whitePieces } from './Orders';
 import { RichText, plainText } from './richtext';
+import { RulesList, Term } from './glossary';
 import { itemCategory } from './itemInfo';
 import { PATH_LABEL, PieceGlyph, pieceLabel } from './pieces';
 import { n0 } from './format';
@@ -14,12 +15,13 @@ import { useEscape, useSession } from './session';
 /** Black's Opening stays hidden for the first minute of play (20 ticks a second). */
 const REVEAL_TICKS = 60 * 20;
 
-type Tab = 'lanes' | 'paths' | 'armory';
+type Tab = 'lanes' | 'paths' | 'armory' | 'rules';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'lanes', label: 'Lanes' },
   { id: 'paths', label: 'Paths' },
   { id: 'armory', label: 'Armory' },
+  { id: 'rules', label: 'Rules' },
 ];
 
 function Armory() {
@@ -34,7 +36,8 @@ function Armory() {
   return (
     <div class="col" data-testid="tab-armory">
       <p class="dim small">
-        What each piece carries and will buy next. Read only: they shop on their own.
+        <Term id="armory">Armory</Term>: what each piece carries and will buy next. Read only: they
+        shop on their own.
       </p>
       {whitePieces(s).map((u) => {
         const h = u.hero!;
@@ -106,13 +109,30 @@ function Mini() {
             <b>{courtName(t)}</b>
             <span class="pts-big">{snap.points[t]}</span>
             <span class="dim tiny">
-              {team.kills} kills · {team.towersDown} Bastions taken · Tempo {snap.tempo[t]} · Pawns{' '}
+              {team.kills} kills · {team.towersDown}{' '}
+              {t === 'A' ? <Term id="bastion">Bastions</Term> : 'Bastions'} taken ·{' '}
+              {t === 'A' ? <Term id="tempo">Tempo</Term> : 'Tempo'} {snap.tempo[t]} · Pawns{' '}
               {snap.pawns[t].alive}/{snap.pawns[t].cap}
-              {snap.check[t] ? ' · In Check' : ''}
-              {snap.throneDown[t] ? ' · Throne down' : ''}
+              {snap.check[t] ? (
+                <>
+                  {' · In '}
+                  <Term id="check">Check</Term>
+                </>
+              ) : (
+                ''
+              )}
+              {snap.throneDown[t] ? (
+                <>
+                  {' · '}
+                  <Term id="throne">Throne</Term>
+                  {' down'}
+                </>
+              ) : (
+                ''
+              )}
             </span>
             <span class="mini-opening tiny" data-testid={`opening-${t}`}>
-              <span class="dim">Opening</span>{' '}
+              <span class="dim">{t === 'A' ? <Term id="opening">Opening</Term> : 'Opening'}</span>{' '}
               <b>{opening ? opening.name : shown ? id : 'Not yet seen'}</b>
               {opening?.schools.map((sc) => (
                 <SchoolChip key={sc} school={sc} glyph={11} />
@@ -164,6 +184,7 @@ export function Adjourn() {
           {tab === 'lanes' && <Lanes />}
           {tab === 'paths' && <Paths />}
           {tab === 'armory' && <Armory />}
+          {tab === 'rules' && <RulesList />}
         </div>
       </div>
     </div>

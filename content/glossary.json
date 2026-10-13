@@ -1,0 +1,221 @@
+[
+  {
+    "id": "act",
+    "term": "Act",
+    "aliases": ["Act", "Acts"],
+    "short": "A timed stretch of the match; each one ends with the bell and a break sheet where you give orders and draft a relic.",
+    "more": "Later Acts open more jungle clearings and switch on pressure events, and from Act 7 the game pushes toward an ending.",
+    "see": ["bell", "relic"],
+    "group": "Match"
+  },
+  {
+    "id": "bell",
+    "term": "Bell",
+    "aliases": ["bell", "Bell"],
+    "short": "The tolling that ends an Act: once the board is calm, play stops and the break sheet opens.",
+    "more": "If a fight will not stop, the bell tolls anyway after about half a minute. Nothing is moved or reset while play stops.",
+    "see": ["act"],
+    "group": "Match"
+  },
+  {
+    "id": "tempo",
+    "term": "Tempo",
+    "aliases": ["Tempo", "tempo"],
+    "short": "Your team's spending meter (0–100): it fills over time and from kills, and pays for gambits and pawns.",
+    "more": "It starts at 30 and gains 1 every second, plus bonuses for piece kills, pawn kills and Bastions. Full Tempo that sits unspent is wasted.",
+    "see": ["gambit", "pawn"],
+    "group": "Match"
+  },
+  {
+    "id": "court",
+    "term": "Court",
+    "aliases": ["court", "courts", "Court"],
+    "short": "Your whole side: five pieces, their pawns and pawnlings, your Bastions and your Throne.",
+    "see": ["throne", "bastion"],
+    "group": "Match"
+  },
+  {
+    "id": "check",
+    "term": "Check",
+    "aliases": ["Check"],
+    "short": "While your King is dead and your Throne still stands, your court is in Check: he respawns slower and your team deals 10% less damage.",
+    "more": "Check is also the name of a gambit that marks an enemy piece so it takes extra damage for a few seconds.",
+    "see": ["throne", "checkmate"],
+    "group": "Match"
+  },
+  {
+    "id": "checkmate",
+    "term": "Checkmate",
+    "aliases": ["Checkmate", "checkmate", "checkmated"],
+    "short": "The end of the match: a court loses the moment its Throne is down and its King is dead.",
+    "more": "Either order counts. A Throne that has fallen also stops the King from ever respawning.",
+    "see": ["throne", "check"],
+    "group": "Match"
+  },
+  {
+    "id": "adjourn",
+    "term": "Adjourn",
+    "aliases": ["Adjourn", "Adjourned"],
+    "short": "Pauses the match so you can move pieces between lanes, change build paths and read the Armory.",
+    "see": ["armory", "build-path"],
+    "group": "Match"
+  },
+  {
+    "id": "bastion",
+    "term": "Bastion",
+    "aliases": ["Bastion", "Bastions"],
+    "short": "A lane tower that shoots enemies in range; each court has two in every lane, and destroying one earns Tempo.",
+    "more": "Bastions take only half damage from pieces, so pawnlings and pawns do most of the pushing, and the Rook is built to break them.",
+    "see": ["throne", "tempo"],
+    "group": "Board"
+  },
+  {
+    "id": "throne",
+    "term": "Throne",
+    "aliases": ["Throne", "Thrones"],
+    "short": "Your base structure; it never moves, and once it falls your King can no longer come back from the dead.",
+    "more": "Lose the Throne and the King together and the match is over: that is Checkmate.",
+    "see": ["checkmate", "check"],
+    "group": "Board"
+  },
+  {
+    "id": "grove",
+    "term": "Grove",
+    "aliases": ["grove", "groves", "Grove", "Groves"],
+    "short": "A sunken wood beside a side lane that holds jungle camps; its pines block line of sight, and you enter through stone gates.",
+    "see": ["line-of-sight", "high-ground"],
+    "group": "Board"
+  },
+  {
+    "id": "high-ground",
+    "term": "High ground",
+    "aliases": ["high ground", "High ground"],
+    "short": "Standing on a higher tier than your target: your hits land 20% harder and ranged pieces reach 30% farther.",
+    "more": "The Long Board has three tiers: the river is lowest, the midfield terrace is next, and each home terrace is highest. Hitting uphill is 20% weaker.",
+    "see": ["eye-badge", "line-of-sight"],
+    "group": "Board"
+  },
+  {
+    "id": "eye-badge",
+    "term": "Eye badge",
+    "aliases": ["eye badge", "Eye badge"],
+    "short": "A small eye above a piece's health bar: it is hitting a target below it, so it hits 20% harder.",
+    "more": "Ranged pieces with the eye also reach 30% farther. The badge stays up for at least two seconds so you have time to notice it.",
+    "see": ["high-ground"],
+    "group": "Board"
+  },
+  {
+    "id": "line-of-sight",
+    "term": "Line of sight",
+    "aliases": ["line of sight", "Line of sight"],
+    "short": "Whether a piece can see and shoot a target: a grove's pines block sight and shots across its edge, except through gates and roads.",
+    "more": "A piece with no line of sight walks round to an opening instead of shooting. The central Pit has no such rule.",
+    "see": ["grove", "high-ground"],
+    "group": "Board"
+  },
+  {
+    "id": "rank",
+    "term": "Rank",
+    "aliases": ["Rank", "Ranks", "rank", "ranks"],
+    "short": "A piece's level from 1 to 8, earned from the gold it collects; ranks grow its stats, and Ranks 4 and 8 bring a fork.",
+    "see": ["fork", "archetype"],
+    "group": "Pieces"
+  },
+  {
+    "id": "archetype",
+    "term": "Archetype",
+    "aliases": ["archetype", "archetypes", "Archetype"],
+    "short": "The style a piece chooses at Rank 4 from three options; it adds a fourth skill and tilts the piece's stats.",
+    "more": "Until Rank 4 a piece uses its base kit. At Rank 8 it gets a smaller choice between two upgrades.",
+    "see": ["rank", "fork"],
+    "group": "Pieces"
+  },
+  {
+    "id": "fork",
+    "term": "Fork",
+    "aliases": ["fork", "forks"],
+    "short": "A choice a piece earns at Rank 4 (pick an archetype) and Rank 8 (pick one of two upgrades); play pauses until you choose.",
+    "more": "Let the AI choose picks for you. The Knight's Fork gambit is a different thing: a leap that stuns one enemy piece.",
+    "see": ["rank", "archetype"],
+    "group": "Pieces"
+  },
+  {
+    "id": "build-path",
+    "term": "Build path",
+    "aliases": ["build path", "build paths", "Build path", "Build paths"],
+    "short": "Which items a piece buys first: Offense, Defense or Utility; pieces shop on their own.",
+    "more": "Each piece starts on its natural path. The AI may add an armor or resist item against the enemy's damage.",
+    "see": ["armory"],
+    "group": "Pieces"
+  },
+  {
+    "id": "pawn",
+    "term": "Pawn",
+    "aliases": ["pawn", "pawns"],
+    "short": "An elite foot soldier you field with Tempo; it is much tougher than a pawnling and does not come back when it dies.",
+    "more": "There is a cap on living pawns. Auto pawns field them for you in the lanes you choose at each break.",
+    "see": ["pawnling", "tempo"],
+    "group": "Pieces"
+  },
+  {
+    "id": "pawnling",
+    "term": "Pawnling",
+    "aliases": ["pawnling", "pawnlings"],
+    "short": "A small soldier that both courts send marching down every lane in waves; killing them earns gold.",
+    "see": ["pawn"],
+    "group": "Pieces"
+  },
+  {
+    "id": "gambit",
+    "term": "Gambit",
+    "aliases": ["gambit", "gambits"],
+    "short": "A card you play with Tempo to give an order, such as pushing a lane, holding a file or marking an enemy piece.",
+    "more": "You hold a hand of three. A card you do not play expires after a while and is replaced.",
+    "see": ["tempo", "school", "opening"],
+    "group": "Gambits"
+  },
+  {
+    "id": "school",
+    "term": "School",
+    "aliases": ["school", "schools", "School", "Schools"],
+    "short": "One of six families of gambits (March, Initiative, Fortress, Sacrifice, Position, Clock); each is strong against some and weak against others.",
+    "more": "Counters work through card effects, never by cancelling a card: Fortress, for example, soaks a March push.",
+    "see": ["gambit", "opening"],
+    "group": "Gambits"
+  },
+  {
+    "id": "opening",
+    "term": "Opening",
+    "aliases": ["Opening", "Openings"],
+    "short": "Your setup choice that tilts which gambit cards you are dealt; most favour two schools, doubling their chance.",
+    "more": "The Italian Game is balanced and favours none. Black picks an Opening too, and you see it a little way into the match.",
+    "see": ["gambit", "school"],
+    "group": "Gambits"
+  },
+  {
+    "id": "relic",
+    "term": "Relic",
+    "aliases": ["relic", "relics", "Relic", "Relics"],
+    "short": "A permanent bonus your court drafts at each Act break: pick one of three, and hold up to three.",
+    "more": "A relic takes effect from the next Act. Black drafts relics too, and its newest one stays hidden until that Act starts.",
+    "see": ["act", "rally"],
+    "group": "Armory"
+  },
+  {
+    "id": "rally",
+    "term": "Rally",
+    "aliases": ["Rally", "rally"],
+    "short": "A kind of relic that works only while your court is behind when the break begins.",
+    "more": "Closed Position, King's Ransom, Compensation and Sortie are Rally relics; whether they apply is read once, at the start of the break.",
+    "see": ["relic"],
+    "group": "Armory"
+  },
+  {
+    "id": "armory",
+    "term": "Armory",
+    "aliases": ["Armory"],
+    "short": "A read-only look at what each of your pieces carries and will buy next.",
+    "see": ["build-path", "adjourn"],
+    "group": "Armory"
+  }
+]

@@ -1,5 +1,6 @@
 import { useEffect } from 'preact/hooks';
 import { Adjourn } from './Adjourn';
+import { GlossaryPopover } from './glossary';
 import { Hud } from './Hud';
 import { Intro } from './hud/Intro';
 import { Report } from './Report';
@@ -21,7 +22,13 @@ export function App() {
     return () => window.removeEventListener('keydown', onKey);
   }, [s]);
   const m = s.match;
-  if (!m) return <Title />;
+  if (!m)
+    return (
+      <>
+        <Title />
+        <GlossaryPopover />
+      </>
+    );
   const kind = m.state.phase.kind;
   const bell = kind === 'live' ? m.state.bell.stage : 'none';
   const snap = bell === 'none' ? null : m.snapshot().act;
@@ -43,6 +50,7 @@ export function App() {
       {kind === 'live' && <Intro />}
       {kind === 'live' && s.ui.adjourned && <Adjourn />}
       {kind === 'end' && <Report />}
+      <GlossaryPopover />
     </div>
   );
 }

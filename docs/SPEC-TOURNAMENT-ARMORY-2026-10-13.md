@@ -1,6 +1,6 @@
 # Spec: Tournament run, interactive armory, glossary (2026-10-13)
 
-Status: **approved by Cheppy 2026-10-13** (all ten decisions as recommended, with one change to decision 8: a **best finish** line is kept on the device, e.g. "Best: reached the Final"; it carries no power, so it is not meta progression). Nothing here is built yet. Covers the approved items **1B Tournament run** and **1C Interactive armory**, plus the **tappable glossary** that ships with 1B ([FABLE-REVIEW-1-2026-10-11.md](FABLE-REVIEW-1-2026-10-11.md) 4.1, 4.5, section 5). Belongs to [CHESS.md](CHESS.md). Written by Opus (planner); built by Sonnet agents in the phases below.
+Status: **approved by Cheppy 2026-10-13** (all ten decisions as recommended, with one change to decision 8: a **best finish** line is kept on the device, e.g. "Best: reached the Final"; it carries no power, so it is not meta progression). **The glossary is built (2026-10-13)**; the armory and the Tournament run are not. Covers the approved items **1B Tournament run** and **1C Interactive armory**, plus the **tappable glossary** that ships with 1B ([FABLE-REVIEW-1-2026-10-11.md](FABLE-REVIEW-1-2026-10-11.md) 4.1, 4.5, section 5). Belongs to [CHESS.md](CHESS.md). Written by Opus (planner); built by Sonnet agents in the phases below.
 
 ## BLUF
 

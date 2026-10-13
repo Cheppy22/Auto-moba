@@ -1,4 +1,5 @@
 import type { ForkOptionDef, Path, SnapFork } from '../../sim';
+import { Term } from '../glossary';
 import {
   PATH_LABEL,
   PATHS,
@@ -72,7 +73,14 @@ export function ForkSheet(props: { forks: SnapFork[] }) {
               </span>
             </b>
             <span class="fs-sub">
-              Rank {f.rank} · {archetype ? 'Choose an archetype' : 'Choose a path'}
+              <Term id="rank">Rank</Term> {f.rank} ·{' '}
+              {archetype ? (
+                <>
+                  Choose an <Term id="archetype">archetype</Term>
+                </>
+              ) : (
+                'Choose a path'
+              )}
               {more > 0 && (
                 <span class="fs-more" data-testid="fork-more">
                   {' '}
