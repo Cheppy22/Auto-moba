@@ -29,6 +29,7 @@ import { LaneCam } from './lanecam';
 import { Crowd, crowdInk, facetMaterial, hullOf } from './crowd';
 import { FIG_HEIGHT, type PieceId } from './figures';
 import { CombatFx } from './combatfx';
+import { newEyeHold, stepEyeHold } from './eyehold';
 import { Bolts, Chips, Tags } from './fx';
 import {
   baseRim,
@@ -144,6 +145,8 @@ class Rec {
   period = 1.2;
   flashed = false;
   alive = true;
+  /** The high-ground eye's minimum on-screen time. */
+  readonly eye = newEyeHold();
   fall = 0;
   drop = 1;
   placed = false;
@@ -986,6 +989,7 @@ export class TableView {
           v.fall = 1e-4;
           v.warpPhase = 0;
           v.recallT = -1;
+          Object.assign(v.eye, newEyeHold());
         }
         v.fall = Math.min(1, v.fall + dt / FALL_SEC);
         v.live = false;
@@ -1274,9 +1278,11 @@ export class TableView {
         );
       // the high-ground eye: this piece's target stands below it (Reach and Sight favour it)
       // (a 17 px medallion-style badge that breathes gently, still when motion is reduced)
-      if (u.highGround) {
+      // it stays up for at least EYE_HOLD_SEC after it turns on, then shrinks away
+      const eyeShow = stepEyeHold(v.eye, u.highGround === true, this.time);
+      if (eyeShow > 0) {
         const breathe = reduced ? 1 : 1 + 0.08 * Math.sin(this.time * 4);
-        this.tags.eye(v.x, top + (u.shield > 0 ? 13 : 11) * px, v.z, 17 * px * breathe);
+        this.tags.eye(v.x, top + (u.shield > 0 ? 13 : 11) * px, v.z, 17 * px * breathe * eyeShow);
       }
       const ts = Math.min(8 * px, f.height * 0.3);
       const cam = this.cam.camera.position;
