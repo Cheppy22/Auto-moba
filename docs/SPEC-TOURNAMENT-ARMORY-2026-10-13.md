@@ -1,6 +1,6 @@
 # Spec: Tournament run, interactive armory, glossary (2026-10-13)
 
-Status: **draft for owner approval.** Nothing here is built. Covers the approved items **1B Tournament run** and **1C Interactive armory**, plus the **tappable glossary** that ships with 1B ([FABLE-REVIEW-1-2026-10-11.md](FABLE-REVIEW-1-2026-10-11.md) 4.1, 4.5, section 5). Belongs to [CHESS.md](CHESS.md). Written by Opus (planner); built by Sonnet agents in the phases below.
+Status: **approved by Cheppy 2026-10-13** (all ten decisions as recommended, with one change to decision 8: a **best finish** line is kept on the device, e.g. "Best: reached the Final"; it carries no power, so it is not meta progression). Nothing here is built yet. Covers the approved items **1B Tournament run** and **1C Interactive armory**, plus the **tappable glossary** that ships with 1B ([FABLE-REVIEW-1-2026-10-11.md](FABLE-REVIEW-1-2026-10-11.md) 4.1, 4.5, section 5). Belongs to [CHESS.md](CHESS.md). Written by Opus (planner); built by Sonnet agents in the phases below.
 
 ## BLUF
 
@@ -21,7 +21,7 @@ Each has a recommendation. Say "all as recommended" or change any number.
 5. **Reward after each win: pick 1 of 3**, always one of each kind: a **relic**, an **heirloom** (one piece starts every later match with a given cheap item) or a **book move** (one gambit card is drawn twice as often for the rest of the run).
 6. **One loss ends the run.** A match that ends without Checkmate is **adjudicated**: more enemy Bastions destroyed wins, then more Throne health left; a dead tie counts as a loss. No retries, except that a match interrupted by closing the page restarts from its beginning.
 7. **Opponents until 3B ships:** generated courts with names, harder each round because Black starts with relics and extra Tempo (table in 1B). 3B later swaps in the hand-made courts without changing anything else.
-8. **Saving:** the run is saved between matches (on this device only); a match in progress is not (that is the platform pass, 4.7). After the run, nothing is kept, not even a best result.
+8. **Saving:** the run is saved between matches (on this device only); a match in progress is not (that is the platform pass, 4.7). After the run nothing is kept except one **best finish** line on this device (owner change, 2026-10-13); it gives no power.
 9. **Title screen:** **Tournament** becomes the main button; a single match stays as **Exhibition**.
 10. **Build order: glossary, then armory, then tournament.** The armory changes every match's balance, and the run's difficulty has to be tuned on top of it, not before.
 
