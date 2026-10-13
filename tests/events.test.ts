@@ -87,7 +87,8 @@ describe('jungle events', () => {
     }
     expect(kills).toBeGreaterThan(0);
     expect(rewards).toBeGreaterThan(0);
-  });
+    // six full matches: about 60 s alone, longer on a busy machine
+  }, 180_000);
 
   it('same seed gives the same event log hash', () => {
     expect(logHash(runAi(33))).toBe(logHash(runAi(33)));
