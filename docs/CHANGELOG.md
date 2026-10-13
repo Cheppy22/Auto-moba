@@ -4,6 +4,7 @@ Newest first. One entry per change: what changed, why, and any measured effect. 
 
 ## 2026-10-13
 
+- **Fable review 1 rewritten with pass 2** ([FABLE-REVIEW-1-2026-10-11.md](FABLE-REVIEW-1-2026-10-11.md), branch `test-product-2`). Why: Cheppy asked Fable to review the build session's section 7, audit its own pass-1 assumptions and fold every amendment into one current document. Fresh playtest on the Long Board build `cb5f979` (phone seed 42, desktop seed 11); `npm run check` (298 tests) and the full Playwright suite (42 of 42) pass. Verified scores: phone readability 5 → 6, desktop readability 5 (new row), art 6 → 7 phone / 6 desktop, code health 7 → 8; overall about 6. Approved amendments: Tempo tune first; glossary ships with the Tournament run; Blitz redefined as pace (3 Acts, Endgame from Act 3, Throne 3000, probe first) instead of 150 s Acts; 4A "Fill the hall" withdrawn, its remainder a life pass inside 4B; new 4D desktop framing, 4E portrait chrome compaction (moved out of platform) and 4F woods triangle budget before 4C. HANDOFF's stale note about two failing Playwright specs removed. No code change.
 - **Fable review 1, section 7 added** ([FABLE-REVIEW-1-2026-10-11.md](FABLE-REVIEW-1-2026-10-11.md)). Why: Cheppy wants to discuss the plan with Fable after the Long Board shipped. Lists what changed, estimated score moves, three conflicts with section 4 (4A Fill the hall vs the full-screen map, 4B tray, Spotlight Arena default), two proposed additions (Tempo tune, early glossary) and questions. Nothing approved yet.
 
 ## 2026-10-12
