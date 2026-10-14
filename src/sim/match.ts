@@ -26,6 +26,7 @@ import { tickSpiritTide } from './pressure';
 import { forkOptions, tickForks } from './ranks';
 import { attackKindOf } from './pieces';
 import { aiSetup, placeTeam, validateSetup } from './setup';
+import { applyStart, runRulesFor } from './runRules';
 import { aiShop, nextTarget } from './ai/shopping';
 import { armoryOpen, nearBase } from './shop';
 import { armoryQuote, armoryView } from './armory';
@@ -66,6 +67,7 @@ import { PLAY_TEAMS } from './names';
 
 function initialState(content: Content, config: MatchConfig): MatchState {
   const seed = config.seed;
+  const run = runRulesFor(config, content);
   const rng = seedStreams(seed);
   // Both seeded picks are always drawn (White's pre-filled default first), so a fixed setup never
   // shifts the stream for the other side.
@@ -142,6 +144,7 @@ function initialState(content: Content, config: MatchConfig): MatchState {
       behind: { A: false, B: false },
       mode: relicModes(config),
     },
+    ...(run ? { run } : {}),
   };
 }
 
@@ -191,7 +194,7 @@ function buildCtx(
   return ctx;
 }
 
-function startMatch(ctx: Ctx, white: TeamSetup): void {
+function startMatch(ctx: Ctx, white: TeamSetup, start?: MatchConfig['start']): void {
   const s = ctx.s;
   s.setup.A = white;
   s.opening = { A: white.opening, B: s.setup.B.opening };
@@ -214,6 +217,7 @@ function startMatch(ctx: Ctx, white: TeamSetup): void {
   });
   ctx.emit('matchStart', { seed: s.seed, heroes });
   s.tempo = { A: ctx.t.gambits.tempoStart, B: ctx.t.gambits.tempoStart };
+  applyStart(ctx, start);
   initHands(ctx);
   enterAct(ctx, 1);
 }
@@ -292,7 +296,7 @@ export class Match {
       const err = validateSetup(content, side);
       if (err) throw new Error(`Invalid setup: ${err}`);
     }
-    if (config.setup?.A) startMatch(m.ctx, m.ctx.s.setup.A);
+    if (config.setup?.A) startMatch(m.ctx, m.ctx.s.setup.A, config.start);
     return m;
   }
 
@@ -316,7 +320,7 @@ export class Match {
 
   issue(cmd: Command): CommandResult {
     this.ops.push({ op: 'issue', cmd });
-    return applyCommand(this.ctx, cmd, startMatch);
+    return applyCommand(this.ctx, cmd, (ctx, white) => startMatch(ctx, white, this.config.start));
   }
 
   /**
@@ -561,6 +565,7 @@ export class Match {
         behind: { ...s.relics.behind },
         formation: formationError(this.ctx, 'A'),
         pawnCap: pawnCap(this.ctx, 'A', s.phase.n + 1),
+        ...(s.run ? { max: s.run.relicMax } : {}),
       },
       tempoMax: tempoCap(this.ctx, 'A'),
       handRefillSec: refillSec(this.ctx, 'A'),

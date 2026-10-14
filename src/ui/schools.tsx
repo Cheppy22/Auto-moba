@@ -1,4 +1,4 @@
-import type { School } from '../sim';
+import { COUNTERED_BY as SIM_COUNTERED_BY, type School } from '../sim';
 
 export type { School };
 
@@ -40,14 +40,7 @@ export const SCHOOL_JOB: Record<School, string> = {
 };
 
 /** Which schools beat each school through their effects (docs/CHESS.md, "Gambit schools"). */
-export const COUNTERED_BY: Record<School, School[]> = {
-  march: ['fortress', 'position'],
-  initiative: ['fortress'],
-  fortress: ['sacrifice', 'initiative'],
-  sacrifice: ['clock', 'position'],
-  position: ['initiative'],
-  clock: ['march'],
-};
+export const COUNTERED_BY: Record<School, School[]> = SIM_COUNTERED_BY;
 
 /** The inverse: the schools a school is good against. */
 export const COUNTERS: Record<School, School[]> = Object.fromEntries(

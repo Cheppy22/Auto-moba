@@ -20,7 +20,8 @@
     "balance": "tsx tools/balance.ts",
     "balance:pairwise": "tsx tools/pairwise.ts",
     "diagnose": "tsx tools/diagnose.ts",
-    "combat-check": "tsx tools/combat-check.ts"
+    "combat-check": "tsx tools/combat-check.ts",
+    "tournament": "tsx tools/tournament.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

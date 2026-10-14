@@ -11,6 +11,7 @@ import type {
 } from './content/schema';
 import { kitOf, perkOf, pieceDef, styleDef } from './pieces';
 import { carriesRelic } from './relics';
+import { lockedStyle } from './runRules';
 import type { CommandResult, PlayTeam, Unit } from './types';
 
 /** Typical size of one point of each stat, so add-mods compare with mul-mods. */
@@ -205,17 +206,31 @@ export function aiForkPick(ctx: Ctx, u: Unit, rank: 4 | 8): string {
   return best.id;
 }
 
-function applyFork(ctx: Ctx, u: Unit, rank: 4 | 8, optionId: string, auto: boolean): void {
+function applyFork(
+  ctx: Ctx,
+  u: Unit,
+  rank: 4 | 8,
+  optionId: string,
+  auto: boolean,
+  locked = false,
+): void {
   const h = u.hero!;
   if (rank === 8 && h.style === null) {
     // The skill fork can only follow an archetype: settle that first.
-    applyFork(ctx, u, 4, aiArchetypePick(ctx, u), true);
+    const carried = lockedStyle(ctx, u);
+    applyFork(ctx, u, 4, carried ?? aiArchetypePick(ctx, u), true, carried !== null);
     optionId = aiForkPick(ctx, u, 8);
   }
   if (rank === 4) h.style = optionId;
   h.perks.push({ rank, optionId });
   u.dirty = true;
-  ctx.emit('fork', { id: u.id, rank, optionId, auto });
+  ctx.emit('fork', {
+    id: u.id,
+    rank,
+    optionId,
+    auto,
+    ...(locked ? { locked: true as const } : {}),
+  });
 }
 
 /** White's forks wait for the player unless the AI plays White (headless runs). */
@@ -230,7 +245,10 @@ function rankTo(ctx: Ctx, u: Unit, rank: number): void {
   if (rank === 4 || rank === 8) {
     ctx.emit('rankUp', { id: u.id, rank, bonus: '' });
     const team = u.team as PlayTeam;
-    if (playerDecides(ctx, team)) {
+    // a Tournament run's carried archetype: Rank 4 resolves at once, without the fork sheet
+    const carried = rank === 4 ? lockedStyle(ctx, u) : null;
+    if (carried !== null) applyFork(ctx, u, 4, carried, true, true);
+    else if (playerDecides(ctx, team)) {
       ctx.s.forks.push({
         heroId: u.id,
         rank,

@@ -7,6 +7,7 @@ import { actTicks, endAct, enterAct } from './phase';
 import type { BellStage, BellState } from './types';
 import { PLAY_TEAMS } from './names';
 import { closeArmory, openArmory, teamBreakShop } from './armory';
+import { adjudicate } from './runRules';
 
 export const freshBell = (): BellState => ({
   stage: 'none',
@@ -93,7 +94,10 @@ export function tickBell(ctx: Ctx): void {
       if (s.phase.n >= ctx.t.maxPhases) {
         endAct(ctx);
         s.phase = { kind: 'end', n: s.phase.n, startTick: s.tick };
-        ctx.emit('matchEnd', { winner: null, phase: s.phase.n });
+        if (s.run?.adjudicate) {
+          s.winner = adjudicate(ctx);
+          ctx.emit('matchEnd', { winner: s.winner, phase: s.phase.n, adjudicated: true });
+        } else ctx.emit('matchEnd', { winner: null, phase: s.phase.n });
         return;
       }
       b.calm = 0;

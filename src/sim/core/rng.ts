@@ -21,6 +21,11 @@ function hashString(s: string): number {
   return h >>> 0;
 }
 
+/** A seed derived from several parts (a run's match seeds, its draw and its reward offers). */
+export function mixSeed(...parts: (string | number)[]): number {
+  return hashString(parts.join(':')) || 1;
+}
+
 export function seedStreams(seed: number): RngState {
   const out = {} as RngState;
   for (const name of STREAMS) {
