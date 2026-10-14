@@ -20,7 +20,8 @@ function chainIncludes(ctx: Ctx, item: ItemDef, id: string): boolean {
   return false;
 }
 
-function satisfied(ctx: Ctx, u: Unit, id: string): boolean {
+/** The piece owns the item, or an item built from it. */
+export function satisfied(ctx: Ctx, u: Unit, id: string): boolean {
   const h = u.hero!;
   for (const owned of h.items) {
     if (owned === id) return true;
@@ -75,7 +76,7 @@ export function nextPurchase(ctx: Ctx, u: Unit, where: Where = 'here'): Purchase
     // Save up for a target that can be bought; skip one the shop cannot offer right now
     // (a tier 3 item that is neither unlocked nor in the keeper's stock) so gold is not hoarded.
     if (reachable) return null;
-    if (item.tier === 3 && where !== 'jungle') {
+    if (item.tier === 3 && where !== 'jungle' && where !== 'break') {
       saveForJungle = true;
       break;
     }
@@ -116,5 +117,14 @@ export function aiShop(ctx: Ctx, u: Unit): void {
     const p = nextPurchase(ctx, u);
     if (!p) break;
     if (!buyItem(ctx, u, p.id).ok) break;
+  }
+}
+
+/** The Act break's shop: the AI buys by the piece's plan from every tier until nothing fits. */
+export function breakShop(ctx: Ctx, u: Unit): void {
+  for (let i = 0; i < 12; i++) {
+    const p = nextPurchase(ctx, u, 'break');
+    if (!p) break;
+    if (!buyItem(ctx, u, p.id, 'break').ok) break;
   }
 }

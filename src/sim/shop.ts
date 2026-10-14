@@ -65,7 +65,14 @@ interface Access {
   jungle: boolean;
 }
 
-export type Where = 'here' | 'base' | 'jungle';
+/**
+ * Where a purchase is priced: `here` (the shops in reach), `base`/`jungle` (the AI's what-if for a
+ * trip), or `break` (the Act break's armory: every tier, wherever the piece stands).
+ */
+export type Where = 'here' | 'base' | 'jungle' | 'break';
+
+/** The armory is open from the bell's break until the next Act starts. */
+export const armoryOpen = (ctx: Ctx): boolean => ctx.s.phase.kind === 'live' && ctx.s.armory.open;
 
 function shopAccess(ctx: Ctx, u: Unit): Access {
   if (ctx.s.phase.kind !== 'live') return { base: false, keeper: false, jungle: false };
@@ -74,7 +81,7 @@ function shopAccess(ctx: Ctx, u: Unit): Access {
   return { base: nearBase(ctx, u) || jungle, keeper: nearKeeper(ctx, u), jungle };
 }
 
-function itemPrice(
+export function itemPrice(
   ctx: Ctx,
   u: Unit,
   itemId: string,
@@ -98,7 +105,7 @@ function itemPrice(
   return { price: Math.max(0, gross - discount), consumed };
 }
 
-interface Quote {
+export interface Quote {
   price: number;
   consumed: string[];
 }
@@ -112,10 +119,12 @@ export function quote(
   const h = u.hero;
   const item = ctx.c.itemById.get(itemId);
   if (!h || !item || u.team === 'neutral') return { error: 'unknown item' };
+  if (h.items.includes(itemId)) return { error: 'already owned' };
+  if (where === 'break' && !armoryOpen(ctx)) return { error: 'the armory opens at the Act break' };
   const access: Access =
     where === 'base'
       ? { base: true, keeper: false, jungle: false }
-      : where === 'jungle'
+      : where === 'jungle' || where === 'break'
         ? { base: true, keeper: false, jungle: true }
         : shopAccess(ctx, u);
   const inBase = access.base && baseCatalog(ctx).includes(itemId);
@@ -130,33 +139,54 @@ export function quote(
   return p;
 }
 
-export function buyItem(ctx: Ctx, u: Unit, itemId: string): CommandResult {
+export function buyItem(ctx: Ctx, u: Unit, itemId: string, where: Where = 'here'): CommandResult {
   const h = u.hero;
   if (!h) return { ok: false, reason: 'not a hero' };
-  const q = quote(ctx, u, itemId);
+  const q = quote(ctx, u, itemId, where);
   if ('error' in q) return { ok: false, reason: q.error };
   if (h.gold < q.price) return { ok: false, reason: 'not enough gold' };
   h.gold -= q.price;
   for (const c of q.consumed) h.items.splice(h.items.indexOf(c), 1);
   h.items.push(itemId);
   u.dirty = true;
-  ctx.emit('purchase', { id: u.id, item: itemId, price: q.price, consumed: q.consumed });
+  ctx.emit('purchase', {
+    id: u.id,
+    item: itemId,
+    price: q.price,
+    consumed: q.consumed,
+    ...(where === 'break' ? { at: 'break' as const } : {}),
+  });
   return { ok: true };
 }
 
-export function sellItem(ctx: Ctx, u: Unit, itemId: string): CommandResult {
+/** Half the list price back (`shop.sellRefund`); null for a cursed item, which cannot be sold. */
+export function sellRefund(ctx: Ctx, itemId: string): number | null {
+  const item = ctx.c.itemById.get(itemId);
+  return item ? Math.round(item.cost * ctx.t.shop.sellRefund) : null;
+}
+
+/** Sells an owned item: at a shop in reach, or anywhere at the Act break (`where: 'break'`). */
+export function sellItem(ctx: Ctx, u: Unit, itemId: string, where: Where = 'here'): CommandResult {
   const h = u.hero;
   if (!h) return { ok: false, reason: 'not a hero' };
   const i = h.items.indexOf(itemId);
   if (i < 0) return { ok: false, reason: 'item not owned' };
-  const item = ctx.c.itemById.get(itemId);
-  if (!item) return { ok: false, reason: 'cursed items cannot be sold' };
-  const access = shopAccess(ctx, u);
-  if (!access.base && !access.keeper) return { ok: false, reason: 'no shop in reach' };
-  const refund = Math.round(item.cost * ctx.t.shop.sellRefund);
+  const refund = sellRefund(ctx, itemId);
+  if (refund === null) return { ok: false, reason: 'cursed items cannot be sold' };
+  if (where === 'break') {
+    if (!armoryOpen(ctx)) return { ok: false, reason: 'the armory opens at the Act break' };
+  } else {
+    const access = shopAccess(ctx, u);
+    if (!access.base && !access.keeper) return { ok: false, reason: 'no shop in reach' };
+  }
   h.items.splice(i, 1);
   h.gold += refund;
   u.dirty = true;
-  ctx.emit('sell', { id: u.id, item: itemId, refund });
+  ctx.emit('sell', {
+    id: u.id,
+    item: itemId,
+    refund,
+    ...(where === 'break' ? { at: 'break' as const } : {}),
+  });
   return { ok: true };
 }

@@ -88,6 +88,7 @@ export function makeHero(ctx: Ctx, team: PlayTeam, slot: number, entry: SetupEnt
     disposition: def.disposition,
     jungler: false,
     items: [],
+    plan: null,
     flaws: {},
     gold: ctx.t.startingGold,
     goldEarned: 0,

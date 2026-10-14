@@ -6,6 +6,7 @@ import { closeDraft, resolveDraft } from './draft';
 import { actTicks, endAct, enterAct } from './phase';
 import type { BellStage, BellState } from './types';
 import { PLAY_TEAMS } from './names';
+import { closeArmory, openArmory, teamBreakShop } from './armory';
 
 export const freshBell = (): BellState => ({
   stage: 'none',
@@ -39,7 +40,10 @@ function boardCalm(ctx: Ctx): boolean {
   return true;
 }
 
-/** The Act ends: the report is cut, both AIs re-plan, and the sheet waits (or resumes at once). */
+/**
+ * The Act ends: the report is cut, both AIs re-plan, relics are offered, the armory opens and
+ * Black break-shops; the sheet waits (or, headless, White and then Black shop and play resumes).
+ */
 function enterBreak(ctx: Ctx): void {
   const s = ctx.s;
   endAct(ctx);
@@ -48,17 +52,26 @@ function enterBreak(ctx: Ctx): void {
   replanLanes(ctx, 'B', report);
   if (!ctx.pauseForBreak) replanLanes(ctx, 'A', report);
   resolveDraft(ctx, report);
+  openArmory(ctx);
   if (!ctx.pauseForBreak) {
+    teamBreakShop(ctx, 'A');
+    teamBreakShop(ctx, 'B');
     resumeFromBreak(ctx);
     return;
   }
+  teamBreakShop(ctx, 'B');
   setStage(ctx, 'break');
 }
 
-/** Starts the next Act from the break; the next pawnling wave follows right after. */
+/**
+ * Starts the next Act from the break; the next pawnling wave follows right after. On the sheet's
+ * Resume, White's pieces the player did not buy or sell for get the AI's break shop first.
+ */
 export function resumeFromBreak(ctx: Ctx): void {
   const s = ctx.s;
   const next = s.phase.n + 1;
+  if (ctx.pauseForBreak) teamBreakShop(ctx, 'A', s.armory.touched);
+  closeArmory(ctx);
   closeDraft(ctx);
   s.bell = freshBell();
   enterAct(ctx, next);
