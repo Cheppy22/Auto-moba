@@ -59,6 +59,10 @@ export interface Terrain {
   rows: number;
   /** Shape indices near each grid cell, row-major. */
   cells: number[][];
+  /** 1 when a shape with no jungle gate covers the whole cell (any point in it is walkable). */
+  inside: Uint8Array;
+  /** Shape indices that may cover part of each cell (what `walkable` tests), row-major. */
+  edge: number[][];
 }
 
 type Terraces = NonNullable<MapDef['terraces']>;
@@ -245,18 +249,33 @@ export function buildTerrain(map: MapDef): Terrain {
   const cols = Math.ceil(map.size / CELL);
   const rows = Math.ceil((map.length ?? map.size) / CELL);
   const cells: number[][] = [];
+  const inside = new Uint8Array(cols * rows);
+  const edge: number[][] = [];
   const half = CELL * 0.71 + REACH;
+  // Every point of a cell lies within CELL * 0.71 of its centre, and shape distances change no
+  // faster than distance itself, so a shape whose edge is farther than that (plus 1 for rounding)
+  // either covers the whole cell or none of it. A zero-length box has no such bound: keep it.
+  const cover = CELL * 0.71 + 1;
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
       const cx = (c + 0.5) * CELL;
       const cy = (r + 0.5) * CELL;
       const near: number[] = [];
-      for (let i = 0; i < shapes.length; i++)
-        if (shapeDist(shapes[i], cx, cy) <= half) near.push(i);
+      const part: number[] = [];
+      for (let i = 0; i < shapes.length; i++) {
+        const s = shapes[i];
+        const d = shapeDist(s, cx, cy);
+        if (d > half) continue;
+        near.push(i);
+        const point = s.box && s.ax === s.bx && s.ay === s.by;
+        if (!point && s.slot === null && d <= -cover) inside[r * cols + c] = 1;
+        if (point || d <= cover) part.push(i);
+      }
       cells.push(near);
+      edge.push(part);
     }
   }
-  return { shapes, blocks: [], size: map.size, cell: CELL, cols, rows, cells };
+  return { shapes, blocks: [], size: map.size, cell: CELL, cols, rows, cells, inside, edge };
 }
 
 function near(t: Terrain, x: number, y: number): number[] | null {
@@ -275,10 +294,13 @@ function inBlock(t: Terrain, x: number, y: number): boolean {
 }
 
 export function walkable(t: Terrain, open: OpenSlots, x: number, y: number): boolean {
-  const list = near(t, x, y);
-  if (!list) return false;
+  const c = Math.floor(x / t.cell);
+  const r = Math.floor(y / t.cell);
+  if (c < 0 || r < 0 || c >= t.cols || r >= t.rows) return false;
   if (t.blocks.length && inBlock(t, x, y)) return false;
-  for (const i of list) {
+  const k = r * t.cols + c;
+  if (t.inside[k]) return true;
+  for (const i of t.edge[k]) {
     const s = t.shapes[i];
     if (usable(s, open) && shapeDist(s, x, y) <= 0) return true;
   }
@@ -375,9 +397,125 @@ export function clearLine(
   const dy = by - ay;
   const n = Math.max(1, Math.ceil(sqrt(dx * dx + dy * dy) / STEP));
   for (let i = 1; i <= n; i++) {
-    if (!walkable(t, open, ax + (dx * i) / n, ay + (dy * i) / n)) return false;
+    const x = ax + (dx * i) / n;
+    const y = ay + (dy * i) / n;
+    if (!walkable(t, open, x, y)) return false;
+    if (n - i < 4 || t.blocks.length) continue;
+    // Speed-up only (same answer): walk shapes and the board are convex, so when sample i and a
+    // later sample j lie well inside the same shape, every sample between them does too.
+    let skip = i;
+    for (const k of t.edge[Math.floor(y / t.cell) * t.cols + Math.floor(x / t.cell)]) {
+      const s = t.shapes[k];
+      if (!usable(s, open) || !deepAt(t, s, ax, ay, dx, dy, n, i)) continue;
+      // Guess the last sample inside from the geometry; if `deepAt` rejects it, search below it.
+      const j = Math.min(n, Math.floor(exitAlong(s, ax, ay, dx, dy, 0.001) * n));
+      if (!(j > i)) continue;
+      if (deepAt(t, s, ax, ay, dx, dy, n, j)) {
+        if (j > skip) skip = j;
+        continue;
+      }
+      let lo = i;
+      let hi = j - 1;
+      while (lo < hi) {
+        const mid = (lo + hi + 1) >> 1;
+        if (deepAt(t, s, ax, ay, dx, dy, n, mid)) lo = mid;
+        else hi = mid - 1;
+      }
+      if (lo > skip) skip = lo;
+    }
+    i = skip;
   }
   return true;
+}
+
+/**
+ * How far along the line a + f·(dx, dy) (f = 1 at its end) it stays inside shape s shrunk by m,
+ * going forward from a point inside; -Infinity when it never enters.
+ */
+function exitAlong(
+  s: WalkShape,
+  ax: number,
+  ay: number,
+  dx: number,
+  dy: number,
+  m: number,
+): number {
+  const r = s.r - m;
+  const sx = s.bx - s.ax;
+  const sy = s.by - s.ay;
+  const len = sqrt(sx * sx + sy * sy);
+  if (len === 0) return s.box ? -Infinity : discExit(s.ax, s.ay, r, ax, ay, dx, dy);
+  // The line in the shape's frame: u along a-b, v across it.
+  const ux = sx / len;
+  const uy = sy / len;
+  const u0 = (ax - s.ax) * ux + (ay - s.ay) * uy;
+  const du = dx * ux + dy * uy;
+  const v0 = (ay - s.ay) * ux - (ax - s.ax) * uy;
+  const dv = dy * ux - dx * uy;
+  // The straight part (the whole shape for a box): where m <= u <= len - m (0 <= u <= len for a
+  // capsule) and |v| <= r.
+  const lo = s.box ? m : 0;
+  const hi = s.box ? len - m : len;
+  const enter = Math.max(slabIn(u0, du, lo, hi), slabIn(v0, dv, -r, r));
+  const exit = Math.min(slabOut(u0, du, lo, hi), slabOut(v0, dv, -r, r));
+  const straight = enter <= exit ? exit : -Infinity;
+  return s.box ? straight : Math.max(straight, capsEnds(s, r, ax, ay, dx, dy));
+}
+
+/** Where the line p0 + f·dp enters [min, max] (-Infinity: always inside, Infinity: never). */
+function slabIn(p0: number, dp: number, min: number, max: number): number {
+  if (dp === 0) return p0 < min || p0 > max ? Infinity : -Infinity;
+  return Math.min((min - p0) / dp, (max - p0) / dp);
+}
+
+/** Where the line p0 + f·dp leaves [min, max] (Infinity: always inside, -Infinity: never). */
+function slabOut(p0: number, dp: number, min: number, max: number): number {
+  if (dp === 0) return p0 < min || p0 > max ? -Infinity : Infinity;
+  return Math.max((min - p0) / dp, (max - p0) / dp);
+}
+
+/** `exitAlong` for the two end discs of a capsule. */
+function capsEnds(s: WalkShape, r: number, ax: number, ay: number, dx: number, dy: number): number {
+  return Math.max(discExit(s.ax, s.ay, r, ax, ay, dx, dy), discExit(s.bx, s.by, r, ax, ay, dx, dy));
+}
+
+/** Where the line a + f·(dx, dy) leaves the disc of radius r at c (-Infinity if it misses). */
+function discExit(
+  cx: number,
+  cy: number,
+  r: number,
+  ax: number,
+  ay: number,
+  dx: number,
+  dy: number,
+): number {
+  const a = dx * dx + dy * dy;
+  const b = (ax - cx) * dx + (ay - cy) * dy;
+  const c = (ax - cx) * (ax - cx) + (ay - cy) * (ay - cy) - r * r;
+  const disc = b * b - a * c;
+  if (a === 0 || disc < 0) return -Infinity;
+  return (-b + sqrt(disc)) / a;
+}
+
+/** Margin for `deepAt`: far above rounding error, far below any distance that matters. */
+const DEEP = 1e-6;
+
+/** True when `clearLine`'s sample i of n lies inside shape s and the board, with margin. */
+function deepAt(
+  t: Terrain,
+  s: WalkShape,
+  ax: number,
+  ay: number,
+  dx: number,
+  dy: number,
+  n: number,
+  i: number,
+): boolean {
+  const x = ax + (dx * i) / n;
+  const y = ay + (dy * i) / n;
+  if (x < DEEP || y < DEEP || x > t.cols * t.cell - DEEP || y > t.rows * t.cell - DEEP)
+    return false;
+  return shapeDist(s, x, y) <= -DEEP;
 }
 
 function segPointD2(
