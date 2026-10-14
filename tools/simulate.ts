@@ -274,6 +274,8 @@ export function simulateMatch(content: Content, seed: number, opts: SimOptions =
       pawns[e.payload.team]++;
       tempoSpent[e.payload.team].pawns += content.tuning.pawns.cost;
     } else if (e.type === 'check') checks[e.payload.team]++;
+    else if (e.type === 'purchase' && content.itemById.get(e.payload.item)?.tier === 3)
+      masterworks[e.payload.item] = (masterworks[e.payload.item] ?? 0) + 1;
     else if (e.type === 'rankUp') {
       if (rankMinute[e.payload.rank] === null) rankMinute[e.payload.rank] = min(e.tick);
     } else if (e.type === 'throneDown' && winner && e.payload.team !== winner) throneAt = e.tick;
