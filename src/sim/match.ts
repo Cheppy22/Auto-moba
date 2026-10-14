@@ -611,6 +611,12 @@ export class Match {
     return armoryQuote(this.ctx, heroId, item);
   }
 
+  /** White's Tempo cost for a card, less an extra relic `discount` (read-only; never below the minimum). */
+  cardCost(cardId: string, discount = 0): number {
+    const def = this.ctx.c.gambitById.get(cardId);
+    return def ? cardCost(this.ctx, 'A', def, discount) : 0;
+  }
+
   unitById(id: number): Unit | undefined {
     return this.ctx.unit(id);
   }

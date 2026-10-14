@@ -55,7 +55,8 @@ export function nextPurchase(ctx: Ctx, u: Unit, where: Where = 'here'): Purchase
   const h = u.hero;
   if (!h) return null;
   const targets = [...buildList(ctx, u)];
-  const adapt = adaptTarget(ctx, u);
+  // The counter item goes into the build path's list only; a plan the player wrote stays as written.
+  const adapt = h.plan === null ? adaptTarget(ctx, u) : null;
   if (adapt && isWary(ctx, h)) targets.unshift(adapt);
   else if (adapt && h.items.length >= 2) targets.splice(2, 0, adapt);
   let saveForJungle = false;

@@ -296,6 +296,21 @@ describe('wave 1 relic effects', () => {
     expect(cardCost(m.ctx, 'A', card('advance'))).toBe(card('advance').cost - 2);
   });
 
+  it('relic discounts never bring a card below 3 Tempo', () => {
+    const m = fresh();
+    const sac = content.gambitById.get('pawn_sacrifice')!;
+    const min = content.tuning.gambits.minCost;
+    expect(min).toBe(3);
+    // Opening Theory's 5 off a 7-Tempo card in the Opening's schools
+    m.state.opening.A = content.openings.find((o) => o.schools.includes(sac.school))!.id;
+    hold(m, 'A', { id: 'opening_theory' });
+    expect(cardCost(m.ctx, 'A', sac)).toBe(min);
+    // and Sealed Move's 10 off on top
+    expect(cardCost(m.ctx, 'A', sac, 10)).toBe(min);
+    expect(m.cardCost(sac.id, 10)).toBe(min);
+    expect(cardCost(m.ctx, 'A', content.gambitById.get('fork')!, 10)).toBeGreaterThan(min);
+  });
+
   it('Standing Order keeps a lane card on at 40% strength and out of the deck', () => {
     const m = fresh();
     const u = piece(m, 'A', 'rook');

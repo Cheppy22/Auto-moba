@@ -298,7 +298,7 @@ function sealedMove(ctx: Ctx, team: PlayTeam): void {
     if (!tripped(ctx, team, trigger, state.skip)) return;
     state.since = ctx.s.tick;
   }
-  const cost = Math.max(0, cardCost(ctx, team, card) - param(sm, 'discount', 10));
+  const cost = cardCost(ctx, team, card, param(sm, 'discount', 10));
   if (playSealed(ctx, team, card, cost)) {
     state.fired = true;
     ctx.emit('sealedMove', { team, card: card.id, trigger, outcome: 'fired' });

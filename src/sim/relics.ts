@@ -271,16 +271,19 @@ export function pawnCapBonus(ctx: Ctx, team: PlayTeam): number {
   return Math.min(ctx.t.relics.pawnCapMax, bonus);
 }
 
-/** A card's Tempo cost with Opening Theory: the Opening's schools cheaper, the others dearer. */
-export function cardCost(ctx: Ctx, team: PlayTeam, def: GambitDef): number {
-  let cost = def.cost;
+/**
+ * A card's Tempo cost with Opening Theory (the Opening's schools cheaper, the others dearer) and an
+ * extra `discount` (Sealed Move). Discounts never bring a card below `gambits.minCost`.
+ */
+export function cardCost(ctx: Ctx, team: PlayTeam, def: GambitDef, discount = 0): number {
+  let cost = def.cost - discount;
   for (const { def: relic } of working(ctx, team)) {
     if (relicEffect(relic) !== 'opening_theory') continue;
     const schools = ctx.c.openingById.get(ctx.s.opening[team])?.schools ?? [];
     if (schools.length === 0) cost += p(relic, 'italian', -2);
     else cost += schools.includes(def.school) ? p(relic, 'favoured', -5) : p(relic, 'other', 5);
   }
-  return Math.max(0, cost);
+  return Math.max(Math.min(def.cost, ctx.t.gambits.minCost), cost);
 }
 
 /** Extra bounty the killer earns for a fallen piece (Development makes its piece worth more). */

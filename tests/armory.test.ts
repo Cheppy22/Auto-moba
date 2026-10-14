@@ -118,6 +118,31 @@ describe('the armory (Act break shop)', () => {
     expect(m.armoryView(q.id)!.customPlan).toBe(false);
   });
 
+  it('the counter item goes into a build-path plan but never into a plan the player wrote', () => {
+    const m = atBreak(9);
+    const q = piece(m, 'A', 'queen');
+    const h = q.hero!;
+    // Black hits with blades only, and the queen keeps dying: the counter item comes first
+    for (const id of m.state.teams.B.heroIds) {
+      const e = m.unitById(id)!;
+      e.stats.bladeDmg = 200;
+      e.stats.soulPower = 0;
+    }
+    h.items = [];
+    h.gold = 10000;
+    h.deaths = 10;
+    h.kills = 0;
+    expect(h.plan).toBeNull();
+    expect(nextPurchase(m.ctx, q, 'break')?.id).toBe('riveted_plate');
+    const plan = content.items
+      .filter((i) => i.tier === 1 && i.id !== 'riveted_plate')
+      .slice(0, 6)
+      .map((i) => i.id);
+    expect(m.issue({ type: 'setPlan', heroId: q.id, plan }).ok).toBe(true);
+    expect(nextPurchase(m.ctx, q, 'break')?.id).toBe(plan[0]);
+    expect(m.armoryView(q.id)!.suggestion).toBe(plan[0]);
+  });
+
   it('untouched pieces shop on Resume; a piece you shopped for keeps its gold', () => {
     const m = atBreak(10);
     const white = m.state.teams.A.heroIds.map((id) => m.unitById(id)!);

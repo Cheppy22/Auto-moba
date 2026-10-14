@@ -137,9 +137,38 @@ export interface SimOptions {
   whitePlayer?: boolean;
   /** With `whitePlayer`: the stand-in plays at most one card per this many seconds (0 = no limit). */
   whiteEvery?: number;
+  /** White's pieces buy by a fixed greedy plan from the start (see `PLAN_PRESETS`). */
+  plans?: PlanPreset;
 }
 
 const TPS = 20;
+
+/**
+ * Greedy fixed plans for White (`--plans A=<preset>`, spec 1C balance plan step 3):
+ * `mind-queen` (the Queen rushes the three Mind Masterworks), `body-rook` (the Rook rushes the three
+ * Body Masterworks), `stack` (every piece stacks its main category: the four tier-2 items for the
+ * 4-item attunement, then two Masterworks).
+ */
+export const PLAN_PRESETS = ['mind-queen', 'body-rook', 'stack'] as const;
+export type PlanPreset = (typeof PLAN_PRESETS)[number];
+
+function presetPlans(content: Content, m: Match, preset: PlanPreset): void {
+  const byCat = (cat: string, tier: number) =>
+    content.items.filter((i) => i.category === cat && i.tier === tier).map((i) => i.id);
+  const rush = (cat: string) => [...byCat(cat, 3), ...byCat(cat, 2)].slice(0, 6);
+  for (const id of m.state.teams.A.heroIds) {
+    const h = m.unitById(id)!.hero!;
+    let plan: string[] | null = null;
+    if (preset === 'mind-queen' && h.defId === 'queen') plan = rush('mind');
+    else if (preset === 'body-rook' && h.defId === 'rook') plan = rush('body');
+    else if (preset === 'stack') {
+      const st = content.pieceById.get(h.defId)!.stats;
+      const cat = st.soulPower > st.bladeDmg * 0.8 ? 'soul' : 'mind';
+      plan = [...byCat(cat, 2), ...byCat(cat, 3)].slice(0, 6);
+    }
+    if (plan) h.plan = plan;
+  }
+}
 
 export function simulateMatch(content: Content, seed: number, opts: SimOptions = {}): MatchSummary {
   const t0 = process.hrtime.bigint();
@@ -156,6 +185,7 @@ export function simulateMatch(content: Content, seed: number, opts: SimOptions =
   });
   if (m.state.phase.kind === 'setup') m.issue({ type: 'setupTeam', ...m.defaultSetup() });
   if (opts.whitePlayer) m.issue({ type: 'setPawnPlan', quota: { top: 2, mid: 2, bot: 2 } });
+  if (opts.plans) presetPlans(content, m, opts.plans);
   const reads = paceReader(m, !!opts.whitePlayer && !opts.noGambitsA, opts.whiteEvery ?? 0);
   const act = content.tuning.phaseSeconds * content.tuning.tickRate;
   const breaks: BreakRead[] = [];

@@ -141,7 +141,7 @@ function SealedControls(props: {
                 .filter((g) => g.school === school)
                 .map((g) => (
                   <option key={g.id} value={g.id}>
-                    {g.name} ({Math.max(0, g.cost - discount)} Tempo)
+                    {g.name} ({s.match!.cardCost(g.id, discount)} Tempo)
                   </option>
                 ))}
             </optgroup>

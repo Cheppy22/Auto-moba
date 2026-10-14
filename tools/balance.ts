@@ -5,7 +5,7 @@ import { createInterface } from 'node:readline';
 import { fileURLToPath } from 'node:url';
 import { report } from './report';
 import type { RelicMode } from '../src/sim';
-import type { MatchSummary } from './simulate';
+import { PLAN_PRESETS, type MatchSummary, type PlanPreset } from './simulate';
 
 function arg(name: string, def: number): number {
   const i = process.argv.indexOf(`--${name}`);
@@ -51,6 +51,13 @@ const whiteEvery = arg('white-every', 0);
 const mapIdx = process.argv.indexOf('--map');
 const map = mapIdx >= 0 && process.argv[mapIdx + 1] === 'long' ? ('long' as const) : undefined;
 
+// --plans A=mind-queen|body-rook|stack: White's pieces buy by a fixed greedy plan (Black stays AI).
+const plansIdx = process.argv.indexOf('--plans');
+const plansSpec = plansIdx >= 0 ? process.argv[plansIdx + 1] : '';
+const plans = plansSpec ? (plansSpec.replace(/^A=/, '') as PlanPreset) : undefined;
+if (plans && !PLAN_PRESETS.includes(plans))
+  throw new Error(`--plans expects A=${PLAN_PRESETS.join('|')}: got "${plansSpec}"`);
+
 async function main(): Promise<void> {
   const seeds = Array.from({ length: total }, (_, i) => startSeed + i);
   const results: MatchSummary[] = [];
@@ -74,6 +81,7 @@ async function main(): Promise<void> {
               map,
               whitePlayer,
               whiteEvery,
+              plans,
             }),
           ],
           {
@@ -109,7 +117,8 @@ async function main(): Promise<void> {
   const withRelics = relicsSpec
     ? `${withPool}-relics-${relicsSpec.replace(/[^A-Za-z]/g, '')}`
     : withPool;
-  const withMap = map ? `${withRelics}-long` : withRelics;
+  const withPlans = plans ? `${withRelics}-plans-${plans}` : withRelics;
+  const withMap = map ? `${withPlans}-long` : withPlans;
   // --tag NAME: appended to the output file name, so parallel runs do not overwrite each other.
   const tagIdx = process.argv.indexOf('--tag');
   const name = tagIdx >= 0 ? `${withMap}-${process.argv[tagIdx + 1]}` : withMap;

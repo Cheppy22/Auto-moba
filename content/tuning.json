@@ -61,7 +61,8 @@
     "tempoPawnlingKill": 0,
     "handSize": 3,
     "refillSec": 6,
-    "expireSec": 40
+    "expireSec": 40,
+    "minCost": 3
   },
   "check": {
     "kingRespawnMul": 1.5,
