@@ -1,5 +1,6 @@
 import { PATHS } from './content/schema';
 import { frozen, resumeFromBreak } from './bell';
+import { armoryAutoShop, armoryBuy, armorySell, armorySetPlan } from './armory';
 import { aimRelic, autoRelic, declineRelic, draftOpen, pickRelic } from './draft';
 import type { Ctx } from './ctx';
 import { playGambit } from './gambits';
@@ -53,6 +54,14 @@ function run(ctx: Ctx, cmd: Command, startMatch: StartMatchFn): CommandResult {
       resumeFromBreak(ctx);
       return { ok: true };
     }
+    case 'buy':
+      return armoryBuy(ctx, cmd.heroId, cmd.item);
+    case 'sell':
+      return armorySell(ctx, cmd.heroId, cmd.item);
+    case 'setPlan':
+      return armorySetPlan(ctx, cmd.heroId, cmd.plan);
+    case 'autoShop':
+      return armoryAutoShop(ctx, cmd.heroId);
     case 'pickRelic':
       return pickRelic(ctx, cmd.relicId, cmd, cmd.replace);
     case 'declineRelic':
@@ -99,6 +108,8 @@ function run(ctx: Ctx, cmd: Command, startMatch: StartMatchFn): CommandResult {
       if (!u) return { ok: false, reason: 'not one of your pieces' };
       if (!(PATHS as readonly string[]).includes(cmd.path))
         return { ok: false, reason: 'unknown build path' };
+      // a new path resets the armory plan to that path's list
+      if (u.hero!.path !== cmd.path) u.hero!.plan = null;
       u.hero!.path = cmd.path;
       ctx.emit('pathSet', { id: u.id, path: cmd.path });
       return { ok: true };

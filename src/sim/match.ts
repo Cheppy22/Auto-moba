@@ -27,7 +27,8 @@ import { forkOptions, tickForks } from './ranks';
 import { attackKindOf } from './pieces';
 import { aiSetup, placeTeam, validateSetup } from './setup';
 import { aiShop, nextTarget } from './ai/shopping';
-import { nearBase } from './shop';
+import { armoryOpen, nearBase } from './shop';
+import { armoryQuote, armoryView } from './armory';
 import {
   passiveGold,
   processDeaths,
@@ -41,6 +42,7 @@ import { makeGuardian, makeTower } from './units';
 import { LANES, buildWorld } from './world/map';
 import { highGroundEdge } from './world/height';
 import type {
+  ArmoryView,
   Command,
   CommandResult,
   EventPayloads,
@@ -128,6 +130,7 @@ function initialState(content: Content, config: MatchConfig): MatchState {
     eventSchedule: [],
     nextEventId: 1,
     bell: freshBell(),
+    armory: { open: false, touched: [] },
     actTally: freshTally(0),
     feedback: freshFeedback(),
     relics: {
@@ -588,6 +591,30 @@ export class Match {
   nextBuy(heroId: number): string | null {
     const u = this.ctx.unit(heroId);
     return u?.hero ? nextTarget(this.ctx, u) : null;
+  }
+
+  /** True at an Act break while the armory sells (from the sheet opening until Resume). */
+  get armoryOpen(): boolean {
+    return armoryOpen(this.ctx);
+  }
+
+  /** The Armory tab's data for one piece (either side; read-only): items, plan, tiles, suggestion. */
+  armoryView(heroId: number): ArmoryView | null {
+    return armoryView(this.ctx, heroId);
+  }
+
+  /** What one item costs a piece at the break, or why it cannot be bought (read-only). */
+  armoryQuote(
+    heroId: number,
+    item: string,
+  ): { price: number; consumed: string[] } | { error: string } {
+    return armoryQuote(this.ctx, heroId, item);
+  }
+
+  /** White's Tempo cost for a card, less an extra relic `discount` (read-only; never below the minimum). */
+  cardCost(cardId: string, discount = 0): number {
+    const def = this.ctx.c.gambitById.get(cardId);
+    return def ? cardCost(this.ctx, 'A', def, discount) : 0;
   }
 
   unitById(id: number): Unit | undefined {

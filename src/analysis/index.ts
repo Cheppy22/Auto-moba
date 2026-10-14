@@ -250,6 +250,9 @@ function windowFor(events: GameEvent[], scope: Scope): Window {
     } else if (e.type === 'phaseEnd' && e.payload.phase === scope.n) {
       w.seqTo = e.seq;
       w.tickTo = e.tick;
+    } else if (e.type === 'phaseStart' && e.payload.phase === scope.n + 1) {
+      // the Act break (relic picks, the armory's purchases) belongs to the Act that just ended
+      w.seqTo = e.seq - 1;
     }
   }
   if (!foundStart) w.seqFrom = 0;

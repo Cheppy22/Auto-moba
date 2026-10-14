@@ -123,6 +123,11 @@ export interface HeroState {
   disposition: Disposition;
   jungler: boolean;
   items: string[];
+  /**
+   * The piece's armory plan: six item ids it buys in order (set at an Act break), or null to
+   * follow its build path's list (its archetype's list from Rank 4).
+   */
+  plan: string[] | null;
   flaws: Record<string, string>;
   gold: number;
   goldEarned: number;
@@ -658,6 +663,8 @@ export interface MatchState {
   bell: BellState;
   /** White's standing pawn plan; absent until the player sets one (the AI never does). */
   pawnPlan?: PawnPlan;
+  /** The Act break's armory: open while the break resolves; White's pieces bought or sold for. */
+  armory: ArmoryState;
   actTally: ActTally;
   feedback: FeedbackState;
   relics: RelicState;
@@ -722,8 +729,11 @@ export interface EventPayloads {
   };
   respawn: { id: number };
   gold: { id: number; amount: number; source: string };
-  purchase: { id: number; item: string; price: number; consumed: string[] };
-  sell: { id: number; item: string; refund: number };
+  /** `at: 'break'` marks a purchase made at the Act break (the armory or the AI's break shop). */
+  purchase: { id: number; item: string; price: number; consumed: string[]; at?: 'break' };
+  sell: { id: number; item: string; refund: number; at?: 'break' };
+  /** White changed a piece's armory plan at the break (null: back to the path's list). */
+  planSet: { id: number; plan: string[] | null };
   rankUp: { id: number; rank: number; bonus: string };
   fork: { id: number; rank: number; optionId: string; auto: boolean };
   gambit: {
@@ -872,6 +882,14 @@ export type Command =
   | { type: 'setPawnAuto'; auto: boolean }
   /** Leaves the Act break sheet and starts the next Act (after a relic is taken). */
   | { type: 'resumeAct' }
+  /** Armory (Act break only): White's piece buys an item from the full shop, all tiers. */
+  | { type: 'buy'; heroId: number; item: string }
+  /** Armory (Act break only): White's piece sells an item for half its price (not cursed ones). */
+  | { type: 'sell'; heroId: number; item: string }
+  /** Armory (Act break only): six distinct item ids the piece buys in order, or null for its path's list. */
+  | { type: 'setPlan'; heroId: number; plan: string[] | null }
+  /** Armory (Act break only): the AI shops now for one White piece, or all five (null). */
+  | { type: 'autoShop'; heroId: number | null }
   /** Takes one of the break's offered relics, aimed; with three held, `replace` names the one it replaces. */
   | ({ type: 'pickRelic'; relicId: string; replace?: string } & Partial<RelicAim>)
   /** A full hand of three keeps what it holds and takes none of the offers. */
@@ -880,6 +898,60 @@ export type Command =
   | ({ type: 'aimRelic'; relicId: string } & Partial<RelicAim>)
   /** "Let the AI choose": picks and aims a relic for White. */
   | { type: 'autoRelic' };
+
+export interface ArmoryState {
+  /** True from the bell's break until the next Act starts (the break shop sells every tier). */
+  open: boolean;
+  /** White's hero ids bought or sold for at this break: they keep their gold on resume. */
+  touched: number[];
+}
+
+/** One item in the armory grid, priced for one piece. */
+export interface ArmoryTile {
+  id: string;
+  name: string;
+  tier: number;
+  category: string;
+  /** List price. */
+  cost: number;
+  /** Price for this piece now: parts it owns come off, and the obelisk discount on a Masterwork. */
+  price: number;
+  /** The parts it is built from, and those the piece owns (consumed on purchase). */
+  parts: string[];
+  partsOwned: string[];
+  owned: boolean;
+  inPlan: boolean;
+  /** The AI's next buy for this piece (the "AI suggests" pip). */
+  suggested: boolean;
+  /** Buyable now: armory open, not blocked, price within the piece's gold. */
+  affordable: boolean;
+  /** Why it cannot be bought (duplicate, no free slot, armory closed), or null. */
+  blocked: string | null;
+}
+
+/** What the armory shows for one piece. */
+export interface ArmoryView {
+  heroId: number;
+  piece: PieceId;
+  gold: number;
+  /** Items held (cursed ones included), and the slot count. */
+  items: string[];
+  slots: number;
+  /** The six-item plan the piece shops by (its path's list until changed), and whether it was changed. */
+  plan: string[];
+  customPlan: boolean;
+  /** Plan items the piece does not have yet, in order (the ghost tiles). */
+  planLeft: string[];
+  /** The AI's next buy at the break (null when it would buy nothing). */
+  suggestion: string | null;
+  /** Bought or sold for at this break: keeps its gold on resume instead of the AI shopping. */
+  touched: boolean;
+  /** Sale price per held item (null for cursed items, which cannot be sold). */
+  sellRefund: Record<string, number | null>;
+  open: boolean;
+  /** Tier 1, 2 and 3 tiles for every item. */
+  tiles: ArmoryTile[];
+}
 
 export interface CommandResult {
   ok: boolean;

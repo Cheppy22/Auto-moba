@@ -687,6 +687,8 @@ export const TuningSchema = z.object({
     handSize: z.number().int(),
     refillSec: z.number(),
     expireSec: z.number(),
+    /** Relic discounts never bring a card below this many Tempo. */
+    minCost: z.number(),
   }),
   check: z.object({ kingRespawnMul: z.number(), damageMul: z.number() }),
   /** Combat feedback (information only): why a piece fell, fight verdicts, lane momentum, gambit impact. */

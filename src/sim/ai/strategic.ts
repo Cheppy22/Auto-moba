@@ -43,6 +43,12 @@ function enemiesNear(ctx: Ctx, u: Unit, x: number, y: number, r: number): number
   return n;
 }
 
+function enemyPieceNear(ctx: Ctx, u: Unit, r: number): boolean {
+  for (const e of ctx.grid.query(u.x, u.y, r))
+    if (e.alive && e.kind === 'hero' && e.team !== u.team && e.team !== 'neutral') return true;
+  return false;
+}
+
 function standoff(u: Unit): number {
   return Math.max(90, Math.min(130, u.stats.range + 14));
 }
@@ -594,7 +600,8 @@ export function strategicUpdate(ctx: Ctx, u: Unit): void {
       const smallOnly = nextPurchase(ctx, u, 'base');
       const wantsT3 = !!big && ctx.c.itemById.get(big.id)?.tier === 3;
       const radius = wantsT3 ? ai.ai.tier3TripRadius : ai.ai.shopTripRadius;
-      if ((wantsT3 || smallOnly) && enemiesNear(ctx, u, u.x, u.y, 420 * ctx.world.k) === 0) {
+      // Only enemy pieces block the trip: a lane piece almost always has pawnlings near.
+      if ((wantsT3 || smallOnly) && !enemyPieceNear(ctx, u, 420 * ctx.world.k)) {
         let bestShop: { id: string; d: number } | null = null;
         for (const sh of ctx.world.map.shops) {
           const d = dist(u.x, u.y, sh.x, sh.y);

@@ -1,6 +1,6 @@
 import type { RelicMode } from '../src/sim';
 import { loadNodeContent } from './content-node';
-import { simulateMatch } from './simulate';
+import { simulateMatch, type PlanPreset } from './simulate';
 
 const content = loadNodeContent();
 const job = JSON.parse(process.argv[2] ?? '{}') as {
@@ -11,6 +11,7 @@ const job = JSON.parse(process.argv[2] ?? '{}') as {
   map?: 'long';
   whitePlayer?: boolean;
   whiteEvery?: number;
+  plans?: PlanPreset;
 };
 for (const seed of job.seeds ?? []) {
   const r = simulateMatch(content, seed, {
@@ -20,6 +21,7 @@ for (const seed of job.seeds ?? []) {
     map: job.map,
     whitePlayer: job.whitePlayer,
     whiteEvery: job.whiteEvery,
+    plans: job.plans,
   });
   process.stdout.write(JSON.stringify(r) + '\n');
 }

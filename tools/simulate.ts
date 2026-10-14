@@ -64,6 +64,27 @@ export interface MatchSummary {
   pace: Record<PlayTeam, TempoPace>;
   /** The Long Board's high-ground eye badge (`SnapUnit.highGround`), read every tick. */
   eye: EyeRead;
+  /** Each Act break: every piece's gold and Masterworks (break index 0 = after Act 1). */
+  breaks: BreakRead[];
+  /** Masterwork purchases (any time), by item id. */
+  masterworks: Record<string, number>;
+}
+
+/** One piece at one Act break (gold before and after the break shop, items after it). */
+export interface BreakRead {
+  act: number;
+  team: PlayTeam;
+  piece: string;
+  /** Gold banked when the bell broke (before any break shopping). */
+  goldBefore: number;
+  /** Gold left when the next Act starts. */
+  goldAfter: number;
+  /** Gold spent at the break (net of sell refunds). */
+  spent: number;
+  items: number;
+  /** Masterworks owned when the next Act starts, and those bought at this break. */
+  masterworks: number;
+  boughtMasterworks: number;
 }
 
 export interface TempoPace {
@@ -116,9 +137,38 @@ export interface SimOptions {
   whitePlayer?: boolean;
   /** With `whitePlayer`: the stand-in plays at most one card per this many seconds (0 = no limit). */
   whiteEvery?: number;
+  /** White's pieces buy by a fixed greedy plan from the start (see `PLAN_PRESETS`). */
+  plans?: PlanPreset;
 }
 
 const TPS = 20;
+
+/**
+ * Greedy fixed plans for White (`--plans A=<preset>`, spec 1C balance plan step 3):
+ * `mind-queen` (the Queen rushes the three Mind Masterworks), `body-rook` (the Rook rushes the three
+ * Body Masterworks), `stack` (every piece stacks its main category: the four tier-2 items for the
+ * 4-item attunement, then two Masterworks).
+ */
+export const PLAN_PRESETS = ['mind-queen', 'body-rook', 'stack'] as const;
+export type PlanPreset = (typeof PLAN_PRESETS)[number];
+
+function presetPlans(content: Content, m: Match, preset: PlanPreset): void {
+  const byCat = (cat: string, tier: number) =>
+    content.items.filter((i) => i.category === cat && i.tier === tier).map((i) => i.id);
+  const rush = (cat: string) => [...byCat(cat, 3), ...byCat(cat, 2)].slice(0, 6);
+  for (const id of m.state.teams.A.heroIds) {
+    const h = m.unitById(id)!.hero!;
+    let plan: string[] | null = null;
+    if (preset === 'mind-queen' && h.defId === 'queen') plan = rush('mind');
+    else if (preset === 'body-rook' && h.defId === 'rook') plan = rush('body');
+    else if (preset === 'stack') {
+      const st = content.pieceById.get(h.defId)!.stats;
+      const cat = st.soulPower > st.bladeDmg * 0.8 ? 'soul' : 'mind';
+      plan = [...byCat(cat, 2), ...byCat(cat, 3)].slice(0, 6);
+    }
+    if (plan) h.plan = plan;
+  }
+}
 
 export function simulateMatch(content: Content, seed: number, opts: SimOptions = {}): MatchSummary {
   const t0 = process.hrtime.bigint();
@@ -135,12 +185,49 @@ export function simulateMatch(content: Content, seed: number, opts: SimOptions =
   });
   if (m.state.phase.kind === 'setup') m.issue({ type: 'setupTeam', ...m.defaultSetup() });
   if (opts.whitePlayer) m.issue({ type: 'setPawnPlan', quota: { top: 2, mid: 2, bot: 2 } });
+  if (opts.plans) presetPlans(content, m, opts.plans);
   const reads = paceReader(m, !!opts.whitePlayer && !opts.noGambitsA, opts.whiteEvery ?? 0);
   const act = content.tuning.phaseSeconds * content.tuning.tickRate;
+  const breaks: BreakRead[] = [];
+  let evSeen = 0;
+  const readBreak = (act: number): void => {
+    // the break resolved inside this tick (headless): purchases and sells marked `at: 'break'`
+    const spent = new Map<number, number>();
+    const bought = new Map<number, number>();
+    for (let k = evSeen; k < m.events.length; k++) {
+      const e = m.events[k];
+      if (e.type === 'purchase' && e.payload.at === 'break') {
+        spent.set(e.payload.id, (spent.get(e.payload.id) ?? 0) + e.payload.price);
+        if (content.itemById.get(e.payload.item)?.tier === 3)
+          bought.set(e.payload.id, (bought.get(e.payload.id) ?? 0) + 1);
+      } else if (e.type === 'sell' && e.payload.at === 'break')
+        spent.set(e.payload.id, (spent.get(e.payload.id) ?? 0) - e.payload.refund);
+    }
+    for (const team of PLAY_TEAMS) {
+      for (const id of m.state.teams[team].heroIds) {
+        const h = m.unitById(id)!.hero!;
+        const sp = spent.get(id) ?? 0;
+        breaks.push({
+          act,
+          team,
+          piece: h.defId,
+          goldBefore: h.gold + sp,
+          goldAfter: h.gold,
+          spent: sp,
+          items: h.items.length,
+          masterworks: h.items.filter((x) => content.itemById.get(x)?.tier === 3).length,
+          boughtMasterworks: bought.get(id) ?? 0,
+        });
+      }
+    }
+  };
   const run = (ticks: number): void => {
     for (let i = 0; i < ticks; i++) {
       reads.before();
+      const act = m.state.phase.n;
+      evSeen = m.events.length;
       if (m.step(1) === 0) return;
+      if (m.state.phase.kind === 'live' && m.state.phase.n > act) readBreak(act);
       reads.after();
     }
   };
@@ -192,6 +279,7 @@ export function simulateMatch(content: Content, seed: number, opts: SimOptions =
     B: { offered: [], taken: [], held: s.relics.held.B.map((h) => h.id) },
   };
   const rankMinute: (number | null)[] = Array.from({ length: 9 }, () => null);
+  const masterworks: Record<string, number> = {};
   let campsCleared = 0;
   let firstTowerMinute: number | null = null;
   let throneAt = -1;
@@ -216,6 +304,8 @@ export function simulateMatch(content: Content, seed: number, opts: SimOptions =
       pawns[e.payload.team]++;
       tempoSpent[e.payload.team].pawns += content.tuning.pawns.cost;
     } else if (e.type === 'check') checks[e.payload.team]++;
+    else if (e.type === 'purchase' && content.itemById.get(e.payload.item)?.tier === 3)
+      masterworks[e.payload.item] = (masterworks[e.payload.item] ?? 0) + 1;
     else if (e.type === 'rankUp') {
       if (rankMinute[e.payload.rank] === null) rankMinute[e.payload.rank] = min(e.tick);
     } else if (e.type === 'throneDown' && winner && e.payload.team !== winner) throneAt = e.tick;
@@ -254,6 +344,8 @@ export function simulateMatch(content: Content, seed: number, opts: SimOptions =
     relics,
     pace: reads.pace(),
     eye: reads.eye,
+    breaks,
+    masterworks,
   };
 }
 

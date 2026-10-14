@@ -177,6 +177,8 @@ export function report(
   for (const [id, s] of Object.entries(itemStats).sort((a, b) => b[1].n - a[1].n))
     lines.push(`| ${id} | ${s.n} | ${pct(s.w, s.n)} |`);
   lines.push('');
+  lines.push(...breakLines(results));
+  lines.push('');
   lines.push('## Relics');
   lines.push('');
   lines.push('| Relic | Offered | Pick rate | Held at end | Win rate when held |');
@@ -239,6 +241,43 @@ export function report(
       noGambitsB: !!opts.noGambitsB,
     },
   };
+}
+
+/** Gold banked and Masterworks owned at each Act break (both sides, per piece). */
+function breakLines(results: MatchSummary[]): string[] {
+  const n = results.length;
+  const out: string[] = ['## Gold and Masterworks at the Act breaks (per piece, both sides)', ''];
+  out.push(
+    '| Break after Act | Matches | Gold banked, median (p90) | Spent at the break, median | Gold left, median | Pieces owning a Masterwork | Masterworks bought at the break / match | Items held, median |',
+  );
+  out.push('| --- | --- | --- | --- | --- | --- | --- | --- |');
+  const all = results.flatMap((r) => r.breaks ?? []);
+  const acts = [...new Set(all.map((b) => b.act))].sort((a, b) => a - b);
+  for (const act of acts) {
+    const xs = all.filter((b) => b.act === act);
+    const matches = results.filter((r) => (r.breaks ?? []).some((b) => b.act === act)).length;
+    const gb = xs.map((b) => b.goldBefore);
+    out.push(
+      `| ${act} | ${matches} | ${median(gb).toFixed(0)} (${quant(gb, 0.9).toFixed(0)}) | ${median(xs.map((b) => b.spent)).toFixed(0)} | ${median(xs.map((b) => b.goldAfter)).toFixed(0)} | ${pct(xs.filter((b) => b.masterworks > 0).length, xs.length)} | ${(xs.reduce((a, b) => a + b.boughtMasterworks, 0) / Math.max(1, matches)).toFixed(2)} | ${median(xs.map((b) => b.items)).toFixed(0)} |`,
+    );
+  }
+  const mw: Record<string, number> = {};
+  for (const r of results)
+    for (const id of Object.keys(r.masterworks ?? {})) mw[id] = (mw[id] ?? 0) + 1;
+  const bought = results.reduce(
+    (a, r) => a + Object.values(r.masterworks ?? {}).reduce((x, y) => x + y, 0),
+    0,
+  );
+  out.push('');
+  out.push(
+    `- Masterworks bought per match (any time): ${(bought / Math.max(1, n)).toFixed(2)}; share of matches each was bought by some piece: ${
+      Object.entries(mw)
+        .sort((a, b) => b[1] - a[1])
+        .map(([id, k]) => `${id} ${pct(k, n)}`)
+        .join(', ') || 'none'
+    }`,
+  );
+  return out;
 }
 
 /** Tempo pacing (when a card is first playable, cards per Act, gaps) and the eye badge. */

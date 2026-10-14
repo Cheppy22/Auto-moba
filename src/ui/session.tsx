@@ -90,7 +90,9 @@ export interface UiState {
   /** The gambit sheet (long-press on a card): the hand slot shown enlarged. The game is paused while it is open. */
   info: { slot: number; cardId: string } | null;
   /** The tab open on the Act break sheet. */
-  breakTab: 'report' | 'orders' | 'relics';
+  breakTab: 'report' | 'orders' | 'armory' | 'relics';
+  /** The piece shown in the Armory tab (a hero id); null until the tab picks the one with most gold. */
+  armoryPick: number | null;
   /** When (ms) a countdown alert last flashed the Act clock; 0 before the first. */
   clockFlash: number;
   /** The match intro while it plays; the sim is held until it ends. */
@@ -115,6 +117,7 @@ const freshUi = (): UiState => ({
   card: null,
   info: null,
   breakTab: 'report',
+  armoryPick: null,
   clockFlash: 0,
   intro: null,
   blackPlay: null,
@@ -675,7 +678,8 @@ export class Session {
 
   /** Leaves the Act break sheet: the next Act begins. */
   resumeAct(): void {
-    if (this.issue({ type: 'resumeAct' }).ok) this.setUi({ breakTab: 'report', aim: null });
+    if (this.issue({ type: 'resumeAct' }).ok)
+      this.setUi({ breakTab: 'report', armoryPick: null, aim: null });
   }
 
   setBreakTab(tab: UiState['breakTab']): void {

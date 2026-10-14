@@ -17,9 +17,14 @@ export function kitOf(c: Content, h: HeroState): AbilityDef[] {
   return h.style === null ? pieceDef(c, h).abilities : c.kitByKey.get(`${h.defId}/${h.style}`)!;
 }
 
-/** The build list for the piece's current path (its style's list when the style has one). */
-export function buildListOf(c: Content, h: HeroState): string[] {
+/** The path's build list (its style's list when the style has one): the AI's suggested plan. */
+export function pathListOf(c: Content, h: HeroState): string[] {
   return styleDef(c, h)?.paths?.[h.path] ?? pieceDef(c, h).paths[h.path];
+}
+
+/** The list the piece buys by: its armory plan when one is set, else its path's list. */
+export function buildListOf(c: Content, h: HeroState): string[] {
+  return h.plan ?? pathListOf(c, h);
 }
 
 export function attackKindOf(c: Content, h: HeroState): 'melee' | 'ranged' {

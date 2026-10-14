@@ -36,21 +36,27 @@ function Armory() {
   return (
     <div class="col" data-testid="tab-armory">
       <p class="dim small">
-        <Term id="armory">Armory</Term>: what each piece carries and will buy next. Read only: they
-        shop on their own.
+        <Term id="armory">Armory</Term>: what each piece carries, then the items it plans to buy
+        (dashed). Read only: change plans and buy at an Act break.
       </p>
       {whitePieces(s).map((u) => {
         const h = u.hero!;
         const next = m.nextBuy(u.id);
+        // the plan's unbought items follow as ghosts (the next buy first), up to the free slots
+        const ghosts = (m.armoryView(u.id)?.planLeft ?? [])
+          .filter((id) => id !== next)
+          .slice(0, Math.max(0, 6 - h.items.length - (next ? 1 : 0)));
         const open = sel && sel.hero === u.id ? sel.item : null;
-        const tile = (id: string, key: string, isNext: boolean) => {
+        const tile = (id: string, key: string, isNext: boolean, ghost = false) => {
           const it = def(id);
           const on = open === id;
           return (
             <button
               key={key}
-              class={`atile cat-${itemCategory(s.content, id)} ${isNext ? 'next' : ''} ${on ? 'sel' : ''}`}
-              data-testid={isNext ? `next-${h.defId}` : `item-${h.defId}-${id}`}
+              class={`atile cat-${itemCategory(s.content, id)} ${isNext ? 'next' : ''} ${ghost ? 'ghost' : ''} ${on ? 'sel' : ''}`}
+              data-testid={
+                isNext ? `next-${h.defId}` : `${ghost ? 'plan' : 'item'}-${h.defId}-${id}`
+              }
               aria-pressed={on}
               title={`${it?.name ?? id}: ${plainText(desc(id))}`}
               onClick={() => setSel(on ? null : { hero: u.id, item: id })}
@@ -80,6 +86,7 @@ function Armory() {
               {h.items.length === 0 && <span class="dim small">No items yet.</span>}
               {h.items.map((id, i) => tile(id, `${id}:${i}`, false))}
               {next && tile(next, 'next', true)}
+              {ghosts.map((id) => tile(id, `plan:${id}`, false, true))}
             </div>
             {open && (
               <div class={`adesc small cat-${itemCategory(s.content, open)}`}>
