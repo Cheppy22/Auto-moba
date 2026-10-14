@@ -668,6 +668,43 @@ export interface MatchState {
   actTally: ActTally;
   feedback: FeedbackState;
   relics: RelicState;
+  /** Tournament-run rules for this match (`MatchConfig.start`, `lockStyles`, `adjudicate`, `relicMax`); absent otherwise. */
+  run?: RunRules;
+}
+
+/** The in-match part of a Tournament run (absent in an Exhibition match). */
+export interface RunRules {
+  /** Relics a side may hold (3 normally, 5 in a run). */
+  relicMax: number;
+  /** Book moves: cards drawn twice as often for this side. */
+  books: Record<PlayTeam, string[]>;
+  /** White's carried archetypes: Rank 4 resolves at once to these. */
+  locked: Partial<Record<PieceId, string>>;
+  /** A match that reaches the last Act's 0:00 gets a winner by Bastions, then Throne health. */
+  adjudicate: boolean;
+}
+
+/** A relic carried between Tournament matches: aimed by piece type, since unit ids change. */
+export interface CarriedRelic {
+  id: string;
+  lane: LaneId | null;
+  piece: PieceId | null;
+  card: string | null;
+  trigger: SealedTrigger | null;
+  quota: PawnQuota | null;
+  reserve: number | null;
+}
+
+/** What one side brings into a match (a Tournament run): held relics, items, book moves, Tempo. */
+export interface TeamStart {
+  /** Held from Act 1; an aim that no longer fits (a piece, an Opening's card) falls back to the default aim. */
+  relics?: CarriedRelic[];
+  /** One item per piece, owned from the start (free). */
+  heirlooms?: Partial<Record<PieceId, string>>;
+  /** Cards drawn twice as often (stacks with the Opening's ×2). */
+  books?: string[];
+  /** Extra Tempo at the start (on top of `gambits.tempoStart`). */
+  tempoBonus?: number;
 }
 
 export interface PositionSample {
@@ -735,7 +772,8 @@ export interface EventPayloads {
   /** White changed a piece's armory plan at the break (null: back to the path's list). */
   planSet: { id: number; plan: string[] | null };
   rankUp: { id: number; rank: number; bonus: string };
-  fork: { id: number; rank: number; optionId: string; auto: boolean };
+  /** `locked`: a Tournament run's carried archetype resolved the Rank 4 choice (`lockStyles`). */
+  fork: { id: number; rank: number; optionId: string; auto: boolean; locked?: true };
   gambit: {
     team: PlayTeam;
     cardId: string;
@@ -810,7 +848,8 @@ export interface EventPayloads {
   laneSwap: { a: number; b: number };
   keeperMoved: { spot: string; x: number; y: number; stock: string[] };
   commandRejected: { cmd: string; reason: string };
-  matchEnd: { winner: PlayTeam | null; phase: number };
+  /** `adjudicated`: no Checkmate; the winner came from `MatchConfig.adjudicate` (null: a dead tie). */
+  matchEnd: { winner: PlayTeam | null; phase: number; adjudicated?: true };
   teamPoints: { team: PlayTeam; amount: number; source: string };
   eventWarning: {
     id: number;
@@ -989,6 +1028,14 @@ export interface MatchConfig {
   relics?: { A?: RelicMode; B?: RelicMode };
   /** `long`: play on the Long Board (`content/map-long.json`, its own tuning). Default: the square map. */
   map?: 'default' | 'long';
+  /** Tournament run: what each side brings into the match (relics, heirlooms, book moves, Tempo). */
+  start?: { A?: TeamStart; B?: TeamStart };
+  /** Tournament run: White's Rank 4 resolves at once to these archetypes (Rank 8 still pauses). */
+  lockStyles?: { A?: Partial<Record<PieceId, string>> };
+  /** Tournament run: a match without Checkmate is decided by Bastions destroyed, then Throne health. */
+  adjudicate?: boolean;
+  /** Relics a side may hold (default `relics.max`, 3; a run uses 5). */
+  relicMax?: number;
 }
 
 export interface Replay {
@@ -1099,6 +1146,8 @@ export interface Snapshot {
 /** The relic draft as the sheet and the HUD see it (White's open offers; both sides' held relics). */
 interface SnapRelics {
   held: Record<PlayTeam, HeldRelic[]>;
+  /** Relics a side may hold, in a Tournament run (5); absent means `relics.max` (3). */
+  max?: number;
   /** White's offers while the break draft is open. */
   offers: RelicOffer[];
   /** White's draft at this break is done (or there was nothing to offer). */

@@ -1,0 +1,34 @@
+{
+  "relicMax": 5,
+  "heirloomMaxPrice": 1000,
+  "rounds": [
+    { "round": 1, "name": "Club", "relics": 0, "tempoBonus": 0, "counterOpening": false },
+    { "round": 2, "name": "County", "relics": 1, "tempoBonus": 5, "counterOpening": false },
+    { "round": 3, "name": "Semifinal", "relics": 2, "tempoBonus": 10, "counterOpening": true },
+    { "round": 4, "name": "Final", "relics": 3, "tempoBonus": 15, "counterOpening": true }
+  ],
+  "finalName": "The Black Queen's Court",
+  "names": [
+    "The Brasswick Club",
+    "Lady Marlow's Court",
+    "Old Tenby Chess Hall",
+    "The Lantern Street Circle",
+    "Wexmoor Gambit Society",
+    "The Copperfen Club",
+    "The Hollowmere Knights",
+    "The Mirrorgate Society",
+    "The Teacup Square Club",
+    "Duchess Avenell's Court",
+    "The Inkwell Chess Rooms",
+    "Ravelsby Chess Hall",
+    "The Clockmaker's Circle",
+    "Lord Pellingham's Court",
+    "The Quillmouth Club",
+    "The Sable Rook Society",
+    "The Thistlewick Hall",
+    "Mistress Oakhart's Court",
+    "The Glasshouse Club",
+    "The Velvet Pawn Society",
+    "Fenwhistle Chess Hall"
+  ]
+}

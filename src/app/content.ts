@@ -33,6 +33,9 @@ export function loadBrowserContent(): Content {
     mapLong: Object.values(
       import.meta.glob('/content/map-long.json', { eager: true, import: 'default' }),
     )[0],
+    tournament: Object.values(
+      import.meta.glob('/content/tournament.json', { eager: true, import: 'default' }),
+    )[0],
     tuning: Object.values(
       import.meta.glob('/content/tuning.json', { eager: true, import: 'default' }),
     )[0],

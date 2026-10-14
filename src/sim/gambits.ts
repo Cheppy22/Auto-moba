@@ -24,6 +24,7 @@ import { confine, shapeDist, walkable, type WalkShape } from './world/terrain';
 import type { CommandResult, GambitOrder, Modifier, PlayTeam, Unit, ZoneState } from './types';
 import { other } from './types';
 import { PLAY_TEAMS } from './names';
+import { booksOf } from './runRules';
 
 /** The mod that marks a Poisoned Pawn (a no-op multiplier; its presence is the mark). */
 export const POISON_MOD = 'gambit:poisoned_pawn';
@@ -54,6 +55,16 @@ function alivePieces(ctx: Ctx, team: PlayTeam): Unit[] {
 
 // ---------------------------------------------------------------- hand
 
+/**
+ * A card's weight in a side's draw: the Opening's two schools come up twice as often, and so do a
+ * run's book moves (stacking to ×4).
+ */
+export function drawWeight(ctx: Ctx, team: PlayTeam): (g: GambitDef) => number {
+  const favoured = ctx.c.openingById.get(ctx.s.opening[team])?.schools ?? [];
+  const books = booksOf(ctx, team);
+  return (g) => g.weight * (favoured.includes(g.school) ? 2 : 1) * (books.includes(g.id) ? 2 : 1);
+}
+
 function drawCard(ctx: Ctx, team: PlayTeam): string | null {
   const held = new Set(ctx.s.hands[team].map((h) => h.cardId).filter((x) => x !== null));
   const bound = boundCards(ctx, team);
@@ -65,14 +76,8 @@ function drawCard(ctx: Ctx, team: PlayTeam): string | null {
   const fresh = deck.filter((g) => !held.has(g.id));
   const pool = fresh.length > 0 ? fresh : deck;
   if (pool.length === 0) return null;
-  // The opening's two schools come up twice as often.
-  const favoured = ctx.c.openingById.get(ctx.s.opening[team])?.schools ?? [];
-  return weightedPick(
-    ctx.s.rng,
-    'gambit',
-    pool,
-    (g) => g.weight * (favoured.includes(g.school) ? 2 : 1),
-  ).id;
+  const weight = drawWeight(ctx, team);
+  return weightedPick(ctx.s.rng, 'gambit', pool, weight).id;
 }
 
 function deal(ctx: Ctx, team: PlayTeam, slot: number): void {

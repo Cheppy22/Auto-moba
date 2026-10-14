@@ -281,6 +281,32 @@ const OpeningSchema = z.object({
 
 export const OpeningFileSchema = z.array(OpeningSchema).min(1);
 
+/** `content/tournament.json`: the Tournament run's round table and the stand-in court names. */
+export const TournamentSchema = z.object({
+  /** Relics a side may hold in a run match. */
+  relicMax: z.number().int().min(1),
+  /** Heirlooms are tier-1 or tier-2 items up to this price. */
+  heirloomMaxPrice: z.number(),
+  rounds: z
+    .array(
+      z.object({
+        round: z.number().int().min(1).max(4),
+        name: z.string(),
+        /** Relics the opponent starts with. */
+        relics: z.number().int().min(0),
+        /** Extra Tempo the opponent starts with. */
+        tempoBonus: z.number().min(0),
+        /** The opponent's Opening does well against yours. */
+        counterOpening: z.boolean(),
+      }),
+    )
+    .length(4),
+  /** The Final's court, always. */
+  finalName: z.string(),
+  /** Invented club names for rounds 1-3 (never real clubs). */
+  names: z.array(z.string()).min(3),
+});
+
 export const RELIC_FAMILIES = ['lane', 'carry', 'pawns', 'siege', 'orders'] as const;
 const RelicFamilySchema = z.enum(RELIC_FAMILIES);
 
@@ -1022,6 +1048,7 @@ export type GambitDef = z.infer<typeof GambitSchema>;
 export type GambitTarget = z.infer<typeof GambitTargetSchema>;
 export type School = z.infer<typeof SchoolSchema>;
 export type OpeningDef = z.infer<typeof OpeningSchema>;
+export type TournamentDef = z.infer<typeof TournamentSchema>;
 export type RelicDef = z.infer<typeof RelicSchema>;
 export type RelicFamily = z.infer<typeof RelicFamilySchema>;
 export type RelicEffect = (typeof RELIC_EFFECTS)[number];

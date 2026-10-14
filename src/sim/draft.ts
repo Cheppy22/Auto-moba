@@ -1,6 +1,6 @@
 import { laneResult } from './ai/replan';
 import { allCallouts, type Callout } from './callouts';
-import { relicEffect } from './content/loader';
+import { relicEffect, type Content } from './content/loader';
 import { RELIC_FAMILIES, SEALED_TRIGGERS } from './content/schema';
 import type { RelicDef, RelicFamily, SealedTrigger } from './content/schema';
 import { pick, rand, shuffle } from './core/rng';
@@ -23,8 +23,9 @@ import type {
 } from './types';
 import { other } from './types';
 import { PLAY_TEAMS } from './names';
+import { relicMax } from './runRules';
 
-const NO_AIM: RelicAim = {
+export const NO_AIM: RelicAim = {
   lane: null,
   piece: null,
   card: null,
@@ -132,12 +133,13 @@ function tailoredHint(ctx: Ctx, team: PlayTeam, report: ActReport): Hint | null 
   return { callout: c, family, lane: c.lane ?? null, piece: pieceId };
 }
 
-function chooseCard(ctx: Ctx, team: PlayTeam, def: RelicDef): string {
-  const favoured = ctx.c.openingById.get(ctx.s.opening[team])?.schools ?? [];
+/** A Standing Order's lane card for an Opening: one of its schools first, Fortress last. */
+export function laneCardFor(c: Content, opening: string, def: RelicDef): string {
+  const favoured = c.openingById.get(opening)?.schools ?? [];
   let best = def.cards[0];
   let bestScore = -Infinity;
   for (const id of def.cards) {
-    const school = ctx.c.gambitById.get(id)?.school;
+    const school = c.gambitById.get(id)?.school;
     const score = (school && favoured.includes(school) ? 1 : 0) + (school === 'fortress' ? 0 : 0.5);
     if (score > bestScore) {
       bestScore = score;
@@ -146,6 +148,9 @@ function chooseCard(ctx: Ctx, team: PlayTeam, def: RelicDef): string {
   }
   return best;
 }
+
+const chooseCard = (ctx: Ctx, team: PlayTeam, def: RelicDef): string =>
+  laneCardFor(ctx.c, ctx.s.opening[team], def);
 
 /**
  * A coach hint aims a relic only when the relic fits it: a problem (a bad callout: a lane that
@@ -196,12 +201,15 @@ export function aimFor(
   }
 }
 
-/** Whether a card may be sealed: the Opening's schools, or any school for the Italian Game. */
-function sealable(ctx: Ctx, team: PlayTeam, card: string): boolean {
-  const g = ctx.c.gambitById.get(card);
-  const schools = ctx.c.openingById.get(ctx.s.opening[team])?.schools ?? [];
+/** Whether a card may be sealed under an Opening: its schools, or any school for the Italian Game. */
+export function sealableUnder(c: Content, opening: string, card: string): boolean {
+  const g = c.gambitById.get(card);
+  const schools = c.openingById.get(opening)?.schools ?? [];
   return !!g && g.weight > 0 && (schools.length === 0 || schools.includes(g.school));
 }
+
+const sealable = (ctx: Ctx, team: PlayTeam, card: string): boolean =>
+  sealableUnder(ctx.c, ctx.s.opening[team], card);
 
 /** Sealed Move's "your Crown Jewel or Guarded piece" trigger needs one of those relics. */
 function guardedAvailable(ctx: Ctx, team: PlayTeam): boolean {
@@ -349,7 +357,7 @@ function drawOffers(ctx: Ctx, team: PlayTeam, report: ActReport): Drawn {
 }
 
 /** Pieces and lanes a relic may be aimed at; returns the aim or why it is refused. */
-function checkAim(
+export function checkAim(
   ctx: Ctx,
   team: PlayTeam,
   def: RelicDef,
@@ -463,7 +471,7 @@ function aiPick(
     if (!best || score > best.score) best = { offer, def, score };
   }
   if (!best) return decline(ctx, team);
-  const full = r.held[team].length >= ctx.t.relics.max;
+  const full = r.held[team].length >= relicMax(ctx);
   if (full) {
     const weak = weakest(ctx, team, tags);
     if (best.score <= weak.score) return decline(ctx, team);
@@ -477,7 +485,7 @@ function randomPick(ctx: Ctx, team: PlayTeam): void {
   const r = ctx.s.relics;
   const offer = pick(ctx.s.rng, 'relic', r.offers[team]);
   const def = ctx.c.relicById.get(offer.id)!;
-  if (r.held[team].length < ctx.t.relics.max) return take(ctx, team, def, offer.aim, null, false);
+  if (r.held[team].length < relicMax(ctx)) return take(ctx, team, def, offer.aim, null, false);
   if (rand(ctx.s.rng, 'relic') < 0.5) return decline(ctx, team);
   take(ctx, team, def, offer.aim, pick(ctx.s.rng, 'relic', r.held[team]).id, false);
 }
@@ -537,6 +545,9 @@ export function closeDraft(ctx: Ctx): void {
 export const draftOpen = (ctx: Ctx): boolean =>
   !ctx.s.relics.settled.A && ctx.s.relics.offers.A.length > 0;
 
+const WORDS = ['no', 'one', 'two', 'three', 'four', 'five', 'six'];
+const countWord = (n: number): string => WORDS[n] ?? String(n);
+
 function atBreak(ctx: Ctx): string | null {
   return ctx.s.phase.kind === 'live' && ctx.s.bell.stage === 'break'
     ? null
@@ -556,9 +567,12 @@ export function pickRelic(
   const offer = r.offers.A.find((o) => o.id === relicId);
   const def = ctx.c.relicById.get(relicId);
   if (!offer || !def) return { ok: false, reason: 'not one of the offered relics' };
-  if (r.held.A.length >= ctx.t.relics.max) {
+  if (r.held.A.length >= relicMax(ctx)) {
     if (!replace || !r.held.A.some((h) => h.id === replace))
-      return { ok: false, reason: 'you hold three relics: replace one, or decline' };
+      return {
+        ok: false,
+        reason: `you hold ${countWord(relicMax(ctx))} relics: replace one, or decline`,
+      };
   } else if (replace) return { ok: false, reason: 'you have a free slot: nothing to replace' };
   const aim = checkAim(ctx, 'A', def, want, offer.aim);
   if (typeof aim === 'string') return { ok: false, reason: aim };
@@ -570,7 +584,7 @@ export function declineRelic(ctx: Ctx): CommandResult {
   const early = atBreak(ctx);
   if (early) return { ok: false, reason: early };
   if (!draftOpen(ctx)) return { ok: false, reason: 'no relic draft is open' };
-  if (ctx.s.relics.held.A.length < ctx.t.relics.max)
+  if (ctx.s.relics.held.A.length < relicMax(ctx))
     return { ok: false, reason: 'you have a free slot: take a relic' };
   decline(ctx, 'A');
   return { ok: true };

@@ -12,6 +12,7 @@ import {
   PieceSchema,
   RelicFileSchema,
   RELIC_EFFECTS,
+  TournamentSchema,
   TuningSchema,
   type BadgeDef,
   type BiomeDef,
@@ -28,6 +29,7 @@ import {
   type OpeningDef,
   type PressureDef,
   type RelicDef,
+  type TournamentDef,
   type RelicEffect,
   type Tuning,
 } from './schema';
@@ -45,6 +47,8 @@ export interface RawContentFiles {
   map: unknown;
   /** The Long Board (`content/map-long.json`): a map plus a `tuning` patch it plays with. */
   mapLong?: unknown;
+  /** The Tournament run's round table and court names (`content/tournament.json`). */
+  tournament?: unknown;
   tuning: unknown;
 }
 
@@ -82,6 +86,8 @@ export interface Content {
   tuning: Tuning;
   /** The Long Board, played with `MatchConfig.map: 'long'`; null when its file is missing. */
   longBoard: MapVariant | null;
+  /** The Tournament run's table (`src/sim/run`); null when its file is missing. */
+  tournament: TournamentDef | null;
 }
 
 /** Deep-merges a JSON patch into a copy of `base` (objects merge, everything else is replaced). */
@@ -253,6 +259,7 @@ export function loadContent(raw: RawContentFiles): Content {
     map,
     tuning,
     longBoard,
+    tournament: raw.tournament === undefined ? null : TournamentSchema.parse(raw.tournament),
   };
   const errs = validateRefs(content);
   if (longBoard) {

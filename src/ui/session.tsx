@@ -1,8 +1,26 @@
 import { createContext } from 'preact';
 import { useContext, useEffect, useRef, useState } from 'preact/hooks';
 import {
+  aiReward,
+  aimRunRelic,
+  applyReward,
+  beginMatch,
+  betterFinish,
   contentFor,
+  finishOf,
   Match,
+  newRun,
+  nextMatchConfig,
+  outcomeOf,
+  recordResult,
+  setArchetype,
+  type BestFinish,
+  type CarriedRelic,
+  type PieceId,
+  type Reward,
+  type RunState,
+  type RunStep,
+  type TeamSetup,
   type Command,
   type CommandResult,
   type Content,
@@ -14,6 +32,9 @@ import {
 } from '../sim';
 import type { CamMode } from '../render/broadcast/types';
 import { courtName } from '../analysis/text';
+import { inputFromMatch } from '../analysis';
+import { buildSummary } from '../analysis/summary';
+import { loadBest, loadRun, saveBest, saveRun } from './run/save';
 import {
   blackPlayLine,
   cardLine,
@@ -157,6 +178,13 @@ const isMap = (kind: string): boolean => kind === 'tower' || kind === 'guardian'
 
 export class Session {
   match: Match | null = null;
+  /**
+   * The Tournament run being played (null in an Exhibition). Saved on this device between
+   * matches (`src/ui/run/save.ts`); a match in progress is not saved.
+   */
+  run: RunState | null = null;
+  /** The best-finish line kept on this device after runs end (no power; decision 8). */
+  best: BestFinish | null = loadBest();
   ui: UiState = freshUi();
   version = 0;
   alpha = 1;
@@ -270,6 +298,10 @@ export class Session {
     if (!r.ok) this.toast(r.reason ?? 'rejected');
     else {
       if (cmd.type === 'setupTeam') {
+        if (this.run?.status === 'between') {
+          const court = { opening: cmd.opening, pieces: cmd.pieces.map((e) => ({ ...e })) };
+          this.applyRun(beginMatch(this.content, this.run, court));
+        }
         // White starts with a standing pawn plan, so a player who never taps still fields pawns
         this.match.issue({ type: 'setPawnPlan', quota: DEFAULT_PAWN_PLAN });
         this.startIntro();
@@ -282,6 +314,8 @@ export class Session {
 
   reset(): void {
     this.match = null;
+    // a run in memory is on the device's save; the Title offers Continue
+    this.run = null;
     this.forkCam = null;
     this.blackQueue = [];
     this.ui = freshUi();
@@ -376,6 +410,109 @@ export class Session {
 
   resume(): void {
     this.setUi({ adjourned: false });
+  }
+
+  // ------------------------------------------------------------ tournament run
+
+  /** The saved run on this device (for the Title's Continue), or null. */
+  savedRun(): RunState | null {
+    return loadRun(this.content);
+  }
+
+  /** A new run (the Draw comes next); it replaces any saved run. */
+  startRun(seed = Math.floor(Math.random() * 1e9)): void {
+    this.match = null;
+    this.run = newRun(this.content, seed);
+    saveRun(this.run);
+    this.notify();
+  }
+
+  /**
+   * Picks up the saved run. Between matches it waits where it was saved (Spoils when offers are
+   * open, else Setup for the next round via `playRound`); a run saved while a match was being
+   * played restarts that match from its beginning, with the same court and seed.
+   */
+  continueRun(): boolean {
+    const run = this.savedRun();
+    if (!run) return false;
+    this.run = run;
+    if (run.status === 'playing') {
+      this.newMatch(nextMatchConfig(this.content, run));
+      this.issue({ type: 'setupTeam', ...run.court });
+    } else this.notify();
+    return true;
+  }
+
+  /** Opens Setup for the current round's match (pre-fill it with `setupDefaults`). */
+  playRound(): void {
+    if (!this.run) return;
+    this.newMatch(nextMatchConfig(this.content, this.run));
+  }
+
+  /** What Setup pre-fills: the run's court, else the match's seeded default. */
+  setupDefaults(): TeamSetup | null {
+    if (this.run) return this.run.court;
+    return this.match ? this.match.defaultSetup() : null;
+  }
+
+  /** Spoils: takes one reward ('auto' = Let the AI choose). */
+  pickReward(reward: Reward | 'auto'): CommandResult {
+    if (!this.run) return { ok: false, reason: 'no run' };
+    const pick = reward === 'auto' ? aiReward(this.content, this.run) : reward;
+    if (!pick) return { ok: false, reason: 'no reward to take' };
+    const r = this.applyRun(applyReward(this.content, this.run, pick));
+    if (r.ok) play('chime');
+    return r;
+  }
+
+  /** Run kit: a piece's carried archetype (null: choose at Rank 4). */
+  setRunArchetype(piece: PieceId, style: string | null): CommandResult {
+    if (!this.run) return { ok: false, reason: 'no run' };
+    return this.applyRun(setArchetype(this.content, this.run, piece, style));
+  }
+
+  /** Run kit: re-aims a carried relic. */
+  aimRunRelic(relicId: string, aim: Partial<Omit<CarriedRelic, 'id'>>): CommandResult {
+    if (!this.run) return { ok: false, reason: 'no run' };
+    return this.applyRun(aimRunRelic(this.content, this.run, relicId, aim));
+  }
+
+  /** Leaves the run: its save is deleted (the Run summary's buttons, or abandoning it). */
+  endRun(): void {
+    saveRun(null);
+    this.run = null;
+    this.notify();
+  }
+
+  private applyRun(step: RunStep): CommandResult {
+    if (!step.ok) {
+      this.toast(step.reason);
+      return { ok: false, reason: step.reason };
+    }
+    this.run = step.run;
+    saveRun(this.run);
+    this.notify();
+    return { ok: true };
+  }
+
+  /** The run's match has ended: record it (Spoils, or the run's end and the best finish). */
+  private finishRunMatch(m: Match): void {
+    if (!this.run || this.run.status !== 'playing') return;
+    let mvp: PieceId | null = null;
+    try {
+      const row = buildSummary(inputFromMatch(m, m.content)).mvp.White?.row;
+      mvp = (row?.piece as PieceId | undefined) ?? null;
+    } catch (err) {
+      console.warn('Run: the match MVP could not be read', err);
+    }
+    this.run = recordResult(this.content, this.run, outcomeOf(m, mvp));
+    const done = finishOf(this.run);
+    if (done) {
+      this.best = betterFinish(this.best, done);
+      saveBest(this.best);
+    }
+    saveRun(this.run);
+    this.notify();
   }
 
   // ------------------------------------------------------------ match intro
@@ -729,6 +866,7 @@ export class Session {
   syncEvents(): void {
     const m = this.match;
     if (!m) return;
+    if (m.state.phase.kind === 'end' && this.run?.status === 'playing') this.finishRunMatch(m);
     const ev = m.events;
     if (ev.length === 0 || ev[ev.length - 1].seq < this.seenSeq) this.seenSeq = -1;
     const fresh: Chip[] = [];

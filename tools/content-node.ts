@@ -72,6 +72,7 @@ export function readRawContent(): RawContentFiles {
     badges: readJson(join(root, 'badges.json')),
     map: readJson(join(root, 'map.json')),
     mapLong: readJson(join(root, 'map-long.json')),
+    tournament: readJson(join(root, 'tournament.json')),
     tuning: readJson(join(root, 'tuning.json')),
   });
 }
