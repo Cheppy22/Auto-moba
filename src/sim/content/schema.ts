@@ -645,8 +645,12 @@ export const TuningSchema = z.object({
     /** Gold to the killing piece and to each piece of the killing team. */
     bounty: z.number(),
     teamBounty: z.number(),
-    /** Tempo White's standing pawn plan keeps back for gambits (Pawn Structure lets you choose). */
+    /** Tempo the standing pawn plan keeps back for gambits (Pawn Structure lets you choose). */
     planReserve: z.number(),
+    /** Pawns per lane of the AI's standing plan (the same counts a browser match starts with). */
+    planQuota: z.object({ top: z.number(), mid: z.number(), bot: z.number() }),
+    /** Tempo the AI keeps after paying for a card, to refill its plan when a pawn falls. */
+    aiCardReserve: z.number(),
   }),
   /** The relic draft at each Act break. */
   relics: z.object({

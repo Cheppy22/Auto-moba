@@ -32,13 +32,51 @@ describe("White's standing pawn plan", () => {
     expect(m.snapshot().pawnPlan).toBeUndefined();
   });
 
-  it('is absent (and changes nothing) in AI-vs-AI matches', () => {
+  it('is not stored for AI sides, and AI-vs-AI matches stay deterministic', () => {
     const a = liveMatch(11);
     const b = liveMatch(11);
     a.step(TPS * 60);
     b.step(TPS * 60);
     expect(a.snapshot().pawnPlan).toBeUndefined();
     expect(JSON.stringify(a.state)).toBe(JSON.stringify(b.state));
+  });
+
+  it('is followed by an AI side with the default counts and the same reserve', () => {
+    const m = liveMatch(5);
+    const blackPawns = (lane: string): number =>
+      m.state.units.filter((u) => u.alive && u.pawn && u.team === 'B' && u.lane === lane).length;
+    // no cards in Black's hand, so only the plan spends Tempo
+    for (const h of m.state.hands.B) {
+      h.cardId = null;
+      h.refillTick = null;
+    }
+    const { planQuota, planReserve, cost } = content.tuning.pawns;
+    m.state.tempo.B = 100;
+    m.step(TPS * 3);
+    const fielded = (['top', 'mid', 'bot'] as const).map(blackPawns);
+    // 100 Tempo pays for 4 pawns before it reaches the reserve
+    expect(fielded.reduce((n, x) => n + x, 0)).toBe(Math.floor((100 - planReserve) / cost));
+    expect(m.state.tempo.B).toBeGreaterThanOrEqual(planReserve);
+    m.state.tempo.B = 100;
+    m.step(TPS * 3);
+    expect(blackPawns('top')).toBe(planQuota.top);
+    expect(blackPawns('mid')).toBe(planQuota.mid);
+    expect(blackPawns('bot')).toBe(planQuota.bot);
+  });
+
+  it('lets an AI side play a card only if it keeps its card reserve after paying', () => {
+    const m = liveMatch(5);
+    const before = m.events.filter((e) => e.type === 'gambit' && e.payload.team === 'B').length;
+    for (let i = 0; i < TPS * 20; i++) {
+      // one Tempo short of the cheapest card in hand plus the reserve
+      const costs = m.state.hands.B.flatMap((h) =>
+        h.cardId === null ? [] : [content.gambitById.get(h.cardId)!.cost],
+      );
+      m.state.tempo.B = content.tuning.pawns.aiCardReserve + Math.min(...costs) - 1;
+      m.step(1);
+    }
+    const after = m.events.filter((e) => e.type === 'gambit' && e.payload.team === 'B').length;
+    expect(after).toBe(before);
   });
 
   it('gives way to Pawn Structure, which keeps its own counts', () => {

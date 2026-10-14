@@ -7,14 +7,13 @@ import { weightedPick } from './core/rng';
 import { hpPct, isTargetable, type Ctx } from './ctx';
 import { enemyTowerTarget } from './ai/lanes';
 import { bindZone, noteDrain, noteHeal, startRun } from './impact';
-import { fieldPawn, pawnCap, pawnsAlive } from './pawns';
+import { pawnsAlive } from './pawns';
 import { teamPiece } from './pieces';
 import {
   LANE_SPEED_TAG,
   boundCards,
   cardCost,
   handSize,
-  pawnCost,
   refillSec,
   tempoCap,
   tempoRate,
@@ -1032,35 +1031,17 @@ function plan(ctx: Ctx, team: PlayTeam, def: GambitDef): Plan | null {
   }
 }
 
-/** Lane to field a pawn in: fewest of our pawns there, then the lane we are losing most. */
-function pawnLane(ctx: Ctx, team: PlayTeam): LaneId {
-  let best: LaneId = 'mid';
-  let bestScore = Infinity;
-  for (const lane of seatLanes(ctx.world, team)) {
-    let n = 0;
-    for (const u of ctx.s.units) if (u.alive && u.pawn && u.team === team && u.lane === lane) n++;
-    const score = n * 10 + ctx.front[team][lane] - (lane === 'mid' ? 0 : 0.5);
-    if (score < bestScore) {
-      bestScore = score;
-      best = lane;
-    }
-  }
-  return best;
-}
-
 /**
- * The AI's card pick: the best-fitting affordable card in the hand (`best`, or null) and the cost
- * of the dearest fitting card it cannot pay for yet (`wanted`, 0 if none). Also drives the
- * balance tool's stand-in player (`tools/simulate.ts`).
+ * The AI's card pick: the best-fitting affordable card in the hand and its cost, or null. Also
+ * drives the balance tool's stand-in player (`tools/simulate.ts`).
  */
 export function aiCardPick(
   ctx: Ctx,
   team: PlayTeam,
-): { best: { slot: number; plan: Plan } | null; wanted: number } {
+): { slot: number; plan: Plan; cost: number } | null {
   const s = ctx.s;
   const hand = s.hands[team];
-  let best: { slot: number; plan: Plan } | null = null;
-  let wanted = 0;
+  let best: { slot: number; plan: Plan; cost: number } | null = null;
   for (let i = 0; i < hand.length; i++) {
     const id = hand[i].cardId;
     if (id === null) continue;
@@ -1069,23 +1050,20 @@ export function aiCardPick(
     const pl = plan(ctx, team, def);
     if (!pl || pl.score < 1) continue;
     const cost = cardCost(ctx, team, def);
-    if (s.tempo[team] < cost) {
-      wanted = Math.max(wanted, cost);
-      continue;
-    }
-    if (!best || pl.score > best.plan.score) best = { slot: i, plan: pl };
+    if (s.tempo[team] < cost) continue;
+    if (!best || pl.score > best.plan.score) best = { slot: i, plan: pl, cost };
   }
-  return { best, wanted };
+  return best;
 }
 
-/** The Tempo heuristic: play the best-fitting card, otherwise field pawns from the surplus. */
+/**
+ * The AI's cards: it plays its best-fitting card if it keeps `pawns.aiCardReserve` Tempo after
+ * paying. Its pawns come from the standing pawn plan (`pawnPlan.ts`, the same rule and counts as
+ * the player's), which spends what the cards leave.
+ */
 function aiGambits(ctx: Ctx, team: PlayTeam): void {
-  const s = ctx.s;
-  const { best, wanted } = aiCardPick(ctx, team);
-  if (best && playGambit(ctx, team, best.slot, best.plan.target).ok) return;
-  const cost = pawnCost(ctx, team);
-  const reserve = wanted > 0 ? wanted : 20;
-  if (pawnsAlive(ctx, team) >= pawnCap(ctx, team)) return;
-  if (s.tempo[team] >= cost + reserve || s.tempo[team] >= tempoCap(ctx, team) - 10)
-    fieldPawn(ctx, team, pawnLane(ctx, team));
+  const best = aiCardPick(ctx, team);
+  if (!best) return;
+  if (ctx.s.tempo[team] - best.cost < ctx.t.pawns.aiCardReserve) return;
+  playGambit(ctx, team, best.slot, best.plan.target);
 }

@@ -296,7 +296,7 @@ function paceReader(
     before(): void {
       if (!cards || s.tick % TPS !== 5 || s.phase.kind !== 'live') return;
       if (s.tick - lastPlay < every * TPS) return;
-      const best = aiCardPick(ctx, 'A').best;
+      const best = aiCardPick(ctx, 'A');
       if (best && m.issue({ type: 'playGambit', slot: best.slot, ...best.plan.target }).ok)
         lastPlay = s.tick;
     },

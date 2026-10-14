@@ -87,7 +87,8 @@ describe('jungle events', () => {
     }
     expect(kills).toBeGreaterThan(0);
     expect(rewards).toBeGreaterThan(0);
-  });
+    // six full matches: about 60 s alone, longer on a busy machine
+  }, 180_000);
 
   it('same seed gives the same event log hash', () => {
     expect(logHash(runAi(33))).toBe(logHash(runAi(33)));
@@ -95,7 +96,8 @@ describe('jungle events', () => {
     const b = evEvents(runAi(33));
     expect(JSON.stringify(a)).toBe(JSON.stringify(b));
     expect(JSON.stringify(evEvents(runAi(34)))).not.toBe(JSON.stringify(a));
-  });
+    // five full matches (see above)
+  }, 180_000);
 
   it('well and oni sit only on the symmetry axis (equidistant from both bases)', () => {
     for (const seed of [1, 2, 3, 4]) {
@@ -105,5 +107,6 @@ describe('jungle events', () => {
           expect(Math.abs(e.payload.x - e.payload.y)).toBeLessThan(1.5);
       }
     }
-  });
+    // four full matches (see above)
+  }, 180_000);
 });
