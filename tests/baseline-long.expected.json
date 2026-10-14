@@ -3,25 +3,25 @@
     "variant": "default",
     "seed": 1,
     "winner": "B",
-    "act": 4,
-    "tick": 17877,
-    "events": 24164,
-    "samples": 15972,
-    "logHash": "dff843f12b31f",
-    "stateHash": "1da703270991a3",
-    "snapHash": "1f2f21919e80e9"
+    "act": 3,
+    "tick": 13051,
+    "events": 16927,
+    "samples": 11107,
+    "logHash": "aaef6d1239af3",
+    "stateHash": "159c3fbdfa1209",
+    "snapHash": "1f43a612fec16a"
   },
   {
     "variant": "default",
     "seed": 2,
     "winner": "B",
     "act": 3,
-    "tick": 15210,
-    "events": 13749,
-    "samples": 13563,
-    "logHash": "1efe93d055fab7",
-    "stateHash": "4ec44f237d720",
-    "snapHash": "1e27483dd7c2b"
+    "tick": 14367,
+    "events": 12861,
+    "samples": 12971,
+    "logHash": "1ac1970c85844a",
+    "stateHash": "d270702a8c0b3",
+    "snapHash": "897266dd6981d"
   },
   {
     "variant": "default",
@@ -64,24 +64,24 @@
     "seed": 1,
     "winner": "B",
     "act": 3,
-    "tick": 15201,
-    "events": 18296,
-    "samples": 13630,
-    "logHash": "7a8d9be72730d",
-    "stateHash": "1fd0ca33e0c429",
-    "snapHash": "a6badc17ffb"
+    "tick": 12772,
+    "events": 17509,
+    "samples": 11350,
+    "logHash": "1df06405c85b6e",
+    "stateHash": "1769cf9cb4a4aa",
+    "snapHash": "e99372afc687e"
   },
   {
     "variant": "relicsOff",
     "seed": 2,
     "winner": "B",
-    "act": 4,
-    "tick": 16633,
-    "events": 14897,
-    "samples": 14728,
-    "logHash": "71bf87243a0c1",
-    "stateHash": "184fe91651822b",
-    "snapHash": "18af461bfab2c"
+    "act": 3,
+    "tick": 15954,
+    "events": 14103,
+    "samples": 13781,
+    "logHash": "198870baa81a43",
+    "stateHash": "a7b7e7116f4bb",
+    "snapHash": "f55049867a9b6"
   },
   {
     "variant": "relicsOff",
@@ -111,12 +111,12 @@
     "variant": "relicsOff",
     "seed": 29000,
     "winner": "B",
-    "act": 3,
-    "tick": 16300,
-    "events": 29325,
-    "samples": 14213,
-    "logHash": "422215184fa2",
-    "stateHash": "813ad4683e5fe",
-    "snapHash": "d38c08daeb82d"
+    "act": 4,
+    "tick": 17956,
+    "events": 35282,
+    "samples": 15664,
+    "logHash": "12dc90410e45cf",
+    "stateHash": "a95050b898b4",
+    "snapHash": "2856ea1c083bd"
   }
 ]

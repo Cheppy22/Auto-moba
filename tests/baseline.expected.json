@@ -4,12 +4,12 @@
     "seed": 1,
     "winner": "B",
     "act": 3,
-    "tick": 13836,
-    "events": 16453,
-    "samples": 11386,
-    "logHash": "15448a16de70fc",
-    "stateHash": "1396b64bfdfb3",
-    "snapHash": "1bda9a38aa3a0c"
+    "tick": 14497,
+    "events": 15065,
+    "samples": 12084,
+    "logHash": "73d6ad91aa672",
+    "stateHash": "122360b23da1b2",
+    "snapHash": "30e9fd717848e"
   },
   {
     "variant": "default",
@@ -27,13 +27,13 @@
     "variant": "default",
     "seed": 3,
     "winner": "A",
-    "act": 3,
-    "tick": 16264,
-    "events": 33789,
-    "samples": 12983,
-    "logHash": "149777c30b47c",
-    "stateHash": "f89a99faaa14c",
-    "snapHash": "17b01937a90af3"
+    "act": 4,
+    "tick": 16518,
+    "events": 37123,
+    "samples": 13746,
+    "logHash": "16644bc236e9d5",
+    "stateHash": "915555eab53b1",
+    "snapHash": "16752c24aa658"
   },
   {
     "variant": "default",
@@ -64,24 +64,24 @@
     "seed": 1,
     "winner": "B",
     "act": 3,
-    "tick": 15801,
-    "events": 18054,
-    "samples": 13645,
-    "logHash": "1da50d21d7e0f9",
-    "stateHash": "db38067aafdb1",
-    "snapHash": "d668c52198cda"
+    "tick": 15798,
+    "events": 18045,
+    "samples": 13639,
+    "logHash": "2648799c33b81",
+    "stateHash": "16da9241e0a0ca",
+    "snapHash": "4d10d2ba1c5d6"
   },
   {
     "variant": "relicsOff",
     "seed": 2,
     "winner": "B",
-    "act": 5,
-    "tick": 23902,
-    "events": 28868,
-    "samples": 19511,
-    "logHash": "a2b0fb2701580",
-    "stateHash": "6c8b53ac3f52",
-    "snapHash": "e896a2af190b5"
+    "act": 4,
+    "tick": 17141,
+    "events": 17740,
+    "samples": 14713,
+    "logHash": "bf616b77a64d9",
+    "stateHash": "e337319603edb",
+    "snapHash": "120359889e1ced"
   },
   {
     "variant": "relicsOff",
