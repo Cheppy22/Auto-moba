@@ -58,9 +58,9 @@ Both teams field the same five pieces, so balance lives in roles, styles, paths 
 - **Pawns** are elite foot soldiers the team **fields with Tempo** (`pawns.cost`, default 15). Fielding one is a permanent button next to the gambit hand, not a card: pick a lane, the pawn spawns at the base and marches it, fighting like a tougher pawnling (about 3× a pawnling's health and damage, scaling per Act).
 - **Cap:** at most **8 living pawns** per team in the early game (Acts 1–3). From Act 4 the cap rises by 2 per Act (10, 12, …) — owner may veto this.
 - A dead pawn is gone; field another. No respawn and **no promotion**.
-- Tempo now pays for both pawns and gambits; that trade-off is the point. Teams start with `gambits.tempoStart` 30 (enough for about 2 pawns, or any card up to 30).
+- Tempo now pays for both pawns and gambits; that trade-off is the point. Teams start with `gambits.tempoStart` 30 (enough for about 2 pawns, or any card).
 - Black's AI fields pawns too (and both teams in headless runs with `autoGambits`), with the same standing pawn plan as the player (below).
-- **Standing pawn plan (White, 2026-10-11).** Orders at each Act break has **Pawns per lane**: three steppers (Left / Mid / Right, total at most the pawn cap of the next Act). During the Act a pawn is fielded on its own in the lane with the biggest gap whenever Tempo is at least the pawn cost plus a **reserve of 40** (`pawns.planReserve`; kept back so every card but Fork (45) stays playable while the plan runs, so the plan's Tempo floats between 40 and 55; shown in the text; tuned 2026-10-13, [BALANCE-2026-10-13.md](BALANCE-2026-10-13.md)). A new match starts with 2 / 2 / 2 so a player who never taps still fields pawns; set 0 / 0 / 0 to field none. **Auto pawns on/off** (2026-10-11): a switch at the top of Pawns per lane in Orders and a small one above the hand in the new HUD's drawer (hidden while Pawn Structure is held); off fields nothing for you but keeps the counts, Field Pawn still works, and the choice is kept for the match (`PawnPlan.auto`, the `setPawnAuto` command; on by default). **Field Pawn stays** as a manual extra (the cap still applies). No pawns are fielded from the first toll to the resume. The plan is `MatchState.pawnPlan` (set by the `setPawnPlan` command, in `src/sim/pawnPlan.ts`; the fielding rule is shared with Pawn Structure in `src/sim/relicsLive.ts`). **The AI uses the same plan (2026-10-13):** every AI-controlled side (Black in the browser, both sides in AI-vs-AI) fields toward the default 2 / 2 / 2 (`pawns.planQuota`) with the same reserve of 40, by the same rule; it never changes its counts. Its cards wait while any lane is short (see Gambits). Why: a player who left auto pawns on and played no cards beat the AI 73–80%, because the AI spent nearly all its Tempo on cards and fielded about 18 pawns a match against the player's 48–67 ([BALANCE-2026-10-13.md](BALANCE-2026-10-13.md) "The AI uses the pawn plan"). White's own plan is `MatchState.pawnPlan`; the AI's plan is not stored.
+- **Standing pawn plan (White, 2026-10-11).** Orders at each Act break has **Pawns per lane**: three steppers (Left / Mid / Right, total at most the pawn cap of the next Act). During the Act a pawn is fielded on its own in the lane with the biggest gap whenever Tempo is at least the pawn cost plus a **reserve of 40** (`pawns.planReserve`; kept back so every card (7–30) stays playable while the plan runs, so the plan's Tempo floats between 40 and 55; shown in the text; tuned 2026-10-13, [BALANCE-2026-10-13.md](BALANCE-2026-10-13.md)). A new match starts with 2 / 2 / 2 so a player who never taps still fields pawns; set 0 / 0 / 0 to field none. **Auto pawns on/off** (2026-10-11): a switch at the top of Pawns per lane in Orders and a small one above the hand in the new HUD's drawer (hidden while Pawn Structure is held); off fields nothing for you but keeps the counts, Field Pawn still works, and the choice is kept for the match (`PawnPlan.auto`, the `setPawnAuto` command; on by default). **Field Pawn stays** as a manual extra (the cap still applies). No pawns are fielded from the first toll to the resume. The plan is `MatchState.pawnPlan` (set by the `setPawnPlan` command, in `src/sim/pawnPlan.ts`; the fielding rule is shared with Pawn Structure in `src/sim/relicsLive.ts`). **The AI uses the same plan (2026-10-13):** every AI-controlled side (Black in the browser, both sides in AI-vs-AI) fields toward the default 2 / 2 / 2 (`pawns.planQuota`) with the same reserve of 40, by the same rule; it never changes its counts. Its cards share the same 40 floor (see Gambits). Why: a player who left auto pawns on and played no cards beat the AI 73–80%, because the AI spent nearly all its Tempo on cards and fielded about 18 pawns a match against the player's 48–67 ([BALANCE-2026-10-13.md](BALANCE-2026-10-13.md) "The AI uses the pawn plan"). White's own plan is `MatchState.pawnPlan`; the AI's plan is not stored.
   - **Pawn Structure is strictly better**: it lets you pick the reserve (0, 20 or 40) and its auto pawns cost 2 less. While it is held it takes over, the plan sleeps, and Orders shows a line saying so.
 - Pawn kills pay a small bounty to the killer's team; pawnling bounties stay as minion bounties were.
 
@@ -76,24 +76,24 @@ Both teams field the same five pieces, so balance lives in roles, styles, paths 
 
 ## Gambits
 
-- Each team has **Tempo** 0–100 (`gambits.tempo`): starts at 30, +1 per second, +5 per piece kill, +10 per Bastion, +2 per pawn kill. Spent on gambits (10–45) and on fielding pawns (15). Pawns come first for the AI: its standing pawn plan fields whenever Tempo is at least 15 + 40 and a lane is short, and it plays its best-fitting card only while every lane of the plan is full (or it is at the pawn cap) and it keeps 20 Tempo after paying (`pawns.aiCardReserve`), so it can refill a lane at once. White's plan keeps back 40 the same way.
+- Each team has **Tempo** 0–100 (`gambits.tempo`): starts at 30, +1 per second, +5 per piece kill, +10 per Bastion, +2 per pawn kill. Spent on gambits (7–30) and on fielding pawns (15). The AI's standing pawn plan fields whenever Tempo is at least 15 + 40 and a lane is short, and it plays its best-fitting card whenever it keeps 40 Tempo after paying (`pawns.aiCardReserve`), lanes full or not, so cheap cards often come before a pawn and dear ones after. White's plan keeps back 40 the same way. **Card costs and effects (2026-10-14):** every card costs about a third less (×⅔, rounded) and every card's effect is half again as strong (the bonus part ×1.5: +10% → +15%, 4% → 6% a second, 2× → 3×), because with the AI on the pawn plan a Tempo spent on a pawn was worth more than one spent on a card ([BALANCE-2026-10-14.md](BALANCE-2026-10-14.md)).
 - Each team holds a **hand of 3** cards drawn from its deck with the seeded `gambit` random stream. The deck holds the universal cards plus the signature card of each **living** piece (a held card whose piece is dead is unusable until it respawns).
 - A played card is replaced after `gambits.refillSec` (6 s). An unplayed card expires after `gambits.expireSec` (40 s) and is replaced, so the hand keeps changing.
 - **Black plays gambits with an AI heuristic.** In headless runs both teams use it (`MatchConfig.autoGambits`). In the browser White's gambits come only from the player.
 - Starting card list (numbers in `content/gambits.json`):
 
-| Card           | Piece  | Target | Effect                                                                   |
-| -------------- | ------ | ------ | ------------------------------------------------------------------------ |
-| Advance        | —      | lane   | Pieces and pawns in that lane push; +10% move speed, 20 s                |
-| Hold the File  | —      | lane   | Pieces in that lane defend; +15% armor and resist, 20 s                  |
-| Regroup        | —      | point  | Every living piece gathers at the point, 15 s                            |
-| Pawn Storm     | —      | lane   | That lane's pawns +50% damage and move speed, 15 s                       |
-| Check          | —      | enemy  | Marks an enemy piece: +20% damage taken, visible to all, 8 s             |
-| Castle         | King   | none   | King and Rook swap places instantly                                      |
-| Queen's Gambit | Queen  | none   | Queen +40% damage for 12 s, then −20% for 6 s                            |
-| Siege          | Rook   | enemy  | Rook and its lane focus a Bastion or Throne; +30% structure damage, 10 s |
-| Sanctuary      | Bishop | point  | A zone that heals allies 4% max health per second, 6 s                   |
-| Fork           | Knight | enemy  | Knight leaps to an enemy piece within reach and stuns it 1 s             |
+| Card           | Cost | Piece  | Target | Effect                                                                   |
+| -------------- | ---- | ------ | ------ | ------------------------------------------------------------------------ |
+| Advance        | 10   | —      | lane   | Pieces and pawns in that lane push; +15% move speed, 20 s                |
+| Hold the File  | 13   | —      | lane   | Pieces in that lane defend; +22% armor and resist, 20 s                  |
+| Regroup        | 17   | —      | point  | Every living piece gathers at the point, 15 s                            |
+| Pawn Storm     | 20   | —      | lane   | That lane's pawns +75% damage and move speed, 15 s                       |
+| Check          | 20   | —      | enemy  | Marks an enemy piece: +30% damage taken, visible to all, 8 s             |
+| Castle         | 13   | King   | none   | King and Rook swap places instantly                                      |
+| Queen's Gambit | 27   | Queen  | none   | Queen +60% damage for 12 s, then −20% for 6 s                            |
+| Siege          | 23   | Rook   | enemy  | Rook and its lane focus a Bastion or Throne; +45% structure damage, 10 s |
+| Sanctuary      | 23   | Bishop | point  | A zone that heals allies 6% max health per second, 6 s                   |
+| Fork           | 30   | Knight | enemy  | Knight leaps to an enemy piece within reach and stuns it 1.5 s           |
 
 ## Gambit schools (2026-10-10)
 
@@ -124,8 +124,8 @@ Every gambit belongs to one of six **schools**. Each card shows its school's col
   - March: Advance, Pawn Storm, Siege (Rook). Wave 3: Breakthrough.
   - Initiative: Check, Fork (Knight). Wave 3: Pin, Desperado.
   - Fortress: Hold the File, Castle (King), Sanctuary (Bishop). Wave 3: Fortify.
-  - Sacrifice: Queen's Gambit (Queen), ★Pawn Sacrifice (10 + one of your pawns: a burst on the nearest enemy Bastion in that lane), ★Exchange (20: a piece gives up 25% of its health; your team +15% damage for 10 s), ★Poisoned Pawn (15: mark a pawn for 20 s; whoever kills it is slowed and Black loses 10 Tempo).
-  - Position: Regroup, ★Barricade (25: seal a gate path or bridge for 20 s), ★Open File (20: allies +25% move speed in one lane for 15 s), ★Outpost (30: a banner; allies near it get +armor and resist for 25 s).
+  - Sacrifice: Queen's Gambit (Queen), ★Pawn Sacrifice (7 + one of your pawns: a burst of three times its health on the nearest enemy Bastion in that lane), ★Exchange (13: a piece gives up 25% of its health; your team +22% damage for 10 s), ★Poisoned Pawn (10: mark a pawn for 20 s; whoever kills it is slowed for 6 s and loses 15 Tempo).
+  - Position: Regroup, ★Barricade (17: seal a gate path or bridge for 20 s), ★Open File (13: allies +38% move speed in one lane for 15 s), ★Outpost (20: a banner; allies near it get +30 armor and resist for 25 s).
   - Clock (wave 2): Zugzwang, Time Trouble, Opening Book, Blitz.
 - **Testing** goes a few schools at a time: the balance tool can restrict both decks to chosen schools.
 

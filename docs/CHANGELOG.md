@@ -2,6 +2,10 @@
 
 Newest first. One entry per change: what changed, why, and any measured effect. How the game works _now_ is in [SOURCE_OF_TRUTH.md](SOURCE_OF_TRUTH.md); this file is history. Commit ids are on branch `test-product`.
 
+## 2026-10-14
+
+- **Cards a third cheaper and half again stronger; the AI plays cards again** (branch `test-product-2`; rules in [CHESS.md](CHESS.md) "Gambits", runs in [BALANCE-2026-10-14.md](BALANCE-2026-10-14.md)). Why: with the AI on the pawn plan a Tempo spent on a card was worth less than one spent on a pawn, so a player who played a card a minute won only 43.4% and the AI played 1–2 cards an Act. **Changed:** every card cost ×⅔ rounded (10–45 → 7–30, order kept), every card effect's bonus ×1.5 (for example Advance +10% → +15%, Pawn Storm +50% → +75%, Fork stun 1 → 1.5 s), card text updated; the AI plays its best card whenever it keeps 40 Tempo after paying (`pawns.aiCardReserve` 20 → 40) and no longer waits for full lanes (`planShort` removed). Pawns and the plan's 40 reserve unchanged; Throne and respawn untouched. **Measured** (Long Board, seed 29000): idle player 54.3% → 49.5% (200), card-a-minute player 43.4% → 54.5% (200), AI vs AI White 50.4% → 53.1% (800; second seed not run, see the report), AI cards per Act 1.1 / 2.0 / 1.8 → 6.5 / 7.2 / 5.6, first AI card 198 → 50 s, p90 25.3 → 22.2 min (median 14.5); square map 200: White 53.5%, p90 30.8 → 23.8 min. Baselines re-recorded on purpose; card-effect tests now read their numbers from content.
+
 ## 2026-10-13
 
 - **Test budget rules** added to the project `CLAUDE.md` ("Test budget"). Why: balance tasks ran 4–5 h with redundant runs (two 800-match runs that matched exactly; second seeds run regardless). Probes at 200, one confirming 800, a second seed only outside 48–52% or for map/rule changes, one player-proxy probe per balance task, deadlines in every brief, solo rerun for load timeouts.

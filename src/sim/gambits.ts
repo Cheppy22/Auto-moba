@@ -7,7 +7,6 @@ import { weightedPick } from './core/rng';
 import { hpPct, isTargetable, type Ctx } from './ctx';
 import { enemyTowerTarget } from './ai/lanes';
 import { bindZone, noteDrain, noteHeal, startRun } from './impact';
-import { planShort } from './pawnPlan';
 import { pawnsAlive } from './pawns';
 import { teamPiece } from './pieces';
 import {
@@ -1058,14 +1057,13 @@ export function aiCardPick(
 }
 
 /**
- * The AI's cards: its pawns come first, from the standing pawn plan (`pawnPlan.ts`, the same rule
- * and counts as the player's). It plays its best-fitting card only while every lane of the plan
- * is full (or it is at the pawn cap), and only if it keeps `pawns.aiCardReserve` Tempo after
- * paying, so it can refill a lane at once when a pawn falls.
+ * The AI's cards: it plays its best-fitting card if it keeps `pawns.aiCardReserve` Tempo after
+ * paying. Its pawns come from the standing pawn plan (`pawnPlan.ts`, the same rule and counts as
+ * the player's), which spends what the cards leave.
  */
 function aiGambits(ctx: Ctx, team: PlayTeam): void {
   const best = aiCardPick(ctx, team);
-  if (!best || planShort(ctx, team)) return;
+  if (!best) return;
   if (ctx.s.tempo[team] - best.cost < ctx.t.pawns.aiCardReserve) return;
   playGambit(ctx, team, best.slot, best.plan.target);
 }

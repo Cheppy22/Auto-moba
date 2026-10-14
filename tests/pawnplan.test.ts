@@ -64,13 +64,15 @@ describe("White's standing pawn plan", () => {
     expect(blackPawns('bot')).toBe(planQuota.bot);
   });
 
-  it('keeps an AI side from playing cards while its plan is short of pawns', () => {
+  it('lets an AI side play a card only if it keeps its card reserve after paying', () => {
     const m = liveMatch(5);
     const before = m.events.filter((e) => e.type === 'gambit' && e.payload.team === 'B').length;
     for (let i = 0; i < TPS * 20; i++) {
-      // below the plan's trigger (pawn cost + reserve), with every Black pawn removed
-      m.state.tempo.B = content.tuning.pawns.planReserve + content.tuning.pawns.cost - 1;
-      m.state.units = m.state.units.filter((u) => !(u.team === 'B' && u.pawn));
+      // one Tempo short of the cheapest card in hand plus the reserve
+      const costs = m.state.hands.B.flatMap((h) =>
+        h.cardId === null ? [] : [content.gambitById.get(h.cardId)!.cost],
+      );
+      m.state.tempo.B = content.tuning.pawns.aiCardReserve + Math.min(...costs) - 1;
       m.step(1);
     }
     const after = m.events.filter((e) => e.type === 'gambit' && e.payload.team === 'B').length;

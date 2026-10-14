@@ -3,7 +3,7 @@ import type { Ctx } from './ctx';
 import { pawnCap } from './pawns';
 import { workingRelic } from './relics';
 import { PLAY_TEAMS } from './names';
-import { fieldTowardQuota, quotaGap } from './relicsLive';
+import { fieldTowardQuota } from './relicsLive';
 import { LANES } from './world/map';
 import type { CommandResult, PawnQuota, PlayTeam } from './types';
 
@@ -47,12 +47,6 @@ function aiOrPlayerPlan(ctx: Ctx, team: PlayTeam): { quota: PawnQuota; reserve: 
     return { quota: ctx.t.pawns.planQuota, reserve: ctx.t.pawns.planReserve };
   const plan = team === 'A' ? ctx.s.pawnPlan : undefined;
   return plan?.auto ? plan : null;
-}
-
-/** True while a side's plan is short of pawns and could field one (under the cap). */
-export function planShort(ctx: Ctx, team: PlayTeam): boolean {
-  const plan = aiOrPlayerPlan(ctx, team);
-  return plan !== null && quotaGap(ctx, team, plan.quota) !== null;
 }
 
 /** Every 10 ticks: field one pawn per side toward its plan (never during the bell's tolls and halt). */

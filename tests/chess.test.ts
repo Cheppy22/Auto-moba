@@ -629,7 +629,7 @@ describe('wave-1 gambits', () => {
     return m.issue({ type: 'playGambit', slot: 0, ...extra });
   };
 
-  it('Pawn Sacrifice needs a pawn and a Bastion, then hits for twice the pawn past the cap', () => {
+  it('Pawn Sacrifice needs a pawn and a Bastion, then hits for a multiple of the pawn past the cap', () => {
     const m = playerMatch(50);
     hold(m, 'pawn_sacrifice');
     expect(m.snapshot().hand[0]).toMatchObject({ usable: false, school: 'sacrifice' });
@@ -638,7 +638,7 @@ describe('wave-1 gambits', () => {
     expect(play(m, 'pawn_sacrifice', { lane: 'bot' }).reason).toMatch(/pawn/);
     const bastion = tower(m, 'top');
     const hp = bastion.hp;
-    const hit = pawn.stats.maxHp * 2;
+    const hit = pawn.stats.maxHp * content.gambitById.get('pawn_sacrifice')!.params.hpMul;
     expect(hit).toBeGreaterThan(bastion.stats.maxHp * content.tuning.tower.maxHpPerSec);
     expect(play(m, 'pawn_sacrifice', { lane: 'top' }).ok).toBe(true);
     expect(hp - bastion.hp).toBeCloseTo(hit, 0);
@@ -673,7 +673,7 @@ describe('wave-1 gambits', () => {
     };
     const boosted = dmg();
     m.state.teamDamage.A = null;
-    expect(boosted / dmg()).toBeCloseTo(1.15, 2);
+    expect(boosted / dmg()).toBeCloseTo(content.gambitById.get('exchange')!.params.damageMul, 2);
   });
 
   it('Poisoned Pawn slows its killer and drains their Tempo', () => {
@@ -688,7 +688,8 @@ describe('wave-1 gambits', () => {
     const pawnKill = content.tuning.gambits.tempoPawnKill;
     kill(m, pawn, killer.id);
     expect(killer.mods.find((x) => x.id.includes('poisoned_pawn:slow'))?.value).toBeCloseTo(0.6);
-    expect(m.state.tempo.B).toBeLessThanOrEqual(tempo + pawnKill - 10 + 1);
+    const drain = content.gambitById.get('poisoned_pawn')!.params.tempoLoss;
+    expect(m.state.tempo.B).toBeLessThanOrEqual(tempo + pawnKill - drain + 1);
   });
 
   it('Barricade seals the nearest crossing so a march cannot pass, then falls', () => {
@@ -732,7 +733,8 @@ describe('wave-1 gambits', () => {
     const top = m.state.units.filter((u) => u.team === 'A' && u.hero?.lane === 'top');
     const bot = m.state.units.filter((u) => u.team === 'A' && u.hero?.lane === 'bot');
     expect(top.length).toBeGreaterThan(0);
-    for (const u of top) expect(speedy(u)).toBeCloseTo(1.25);
+    const mul = content.gambitById.get('open_file')!.params.moveSpeedMul;
+    for (const u of top) expect(speedy(u)).toBeCloseTo(mul);
     for (const u of bot) expect(speedy(u)).toBeUndefined();
     const foes = m.state.units.filter((u) => u.team === 'B' && u.hero?.lane === 'top');
     for (const u of foes) expect(speedy(u)).toBeUndefined();
@@ -745,8 +747,9 @@ describe('wave-1 gambits', () => {
     expect(play(m, 'outpost', { x: q.x, y: q.y }).ok).toBe(true);
     m.step(10);
     const armor = q.mods.find((x) => x.id === 'gambit:outpost:a');
-    expect(armor).toMatchObject({ stat: 'armor', kind: 'add', value: 20 });
-    expect(q.mods.find((x) => x.id === 'gambit:outpost:r')?.value).toBe(20);
+    const { armor: add, resist } = content.gambitById.get('outpost')!.params;
+    expect(armor).toMatchObject({ stat: 'armor', kind: 'add', value: add });
+    expect(q.mods.find((x) => x.id === 'gambit:outpost:r')?.value).toBe(resist);
     expect(m.snapshot().zones[0]).toMatchObject({ kind: 'outpost', team: 'A' });
     q.x = 40;
     q.y = 40;
