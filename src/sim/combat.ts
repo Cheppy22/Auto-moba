@@ -745,10 +745,13 @@ export function tickDots(ctx: Ctx, u: Unit): void {
 }
 
 export function cleanExpired(ctx: Ctx, u: Unit): void {
-  if (u.mods.length) {
-    const before = u.mods.length;
-    u.mods = u.mods.filter((m) => m.expiresTick === null || m.expiresTick > ctx.s.tick);
-    if (u.mods.length !== before) u.dirty = true;
+  // Rebuild the list only when a mod has run out (most ticks none has).
+  const tick = ctx.s.tick;
+  let gone = false;
+  for (const m of u.mods) if (m.expiresTick !== null && m.expiresTick <= tick) gone = true;
+  if (gone) {
+    u.mods = u.mods.filter((m) => m.expiresTick === null || m.expiresTick > tick);
+    u.dirty = true;
   }
   if (u.shields.length)
     u.shields = u.shields.filter((s) => s.expiresTick > ctx.s.tick && s.amount > 0);

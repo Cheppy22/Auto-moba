@@ -41,6 +41,11 @@ let pushY = new Float64Array(256);
 let fixedRad = new Float64Array(64);
 let order = new Int32Array(256);
 let sortX = new Float64Array(256);
+// Positions and teams copied at the start of each pass: the pair loop reads these plain arrays
+// rather than the unit objects (faster; the same numbers).
+let posX = new Float64Array(256);
+let posY = new Float64Array(256);
+let teamOf = new Int8Array(256);
 
 function isFixed(u: Unit): boolean {
   return u.kind === 'tower' || u.kind === 'guardian' || u.kind === 'obelisk' || u.kind === 'keeper';
@@ -115,6 +120,9 @@ function grow(n: number): void {
   pushY = new Float64Array(size);
   order = new Int32Array(size);
   sortX = new Float64Array(size);
+  posX = new Float64Array(size);
+  posY = new Float64Array(size);
+  teamOf = new Int8Array(size);
 }
 
 /**
@@ -189,22 +197,29 @@ export function resolveCollisions(ctx: Ctx): void {
     for (let i = 0; i < m; i++) {
       pushX[i] = 0;
       pushY[i] = 0;
+      const u = mobile[i];
+      posX[i] = u.x;
+      posY[i] = u.y;
+      teamOf[i] = u.team === 'A' ? 0 : u.team === 'B' ? 1 : 2;
     }
     let any = false;
     for (let p = 0; p < m; p++) {
       const i = order[p];
-      const a = mobile[i];
       const ra = rad[i];
       const ma = mass[i];
+      const ax = posX[i];
+      const ay = posY[i];
+      const ta = teamOf[i];
       for (let q = p + 1; q < m && sortX[q] - sortX[p] < span; q++) {
         const j = order[q];
-        const b = mobile[j];
-        const dx = a.x - b.x;
-        const dy = a.y - b.y;
-        const extra = a.team === b.team ? space[i] + space[j] : 0;
+        const dx = ax - posX[j];
+        const dy = ay - posY[j];
+        const extra = ta === teamOf[j] ? space[i] + space[j] : 0;
         const reach = ra + rad[j] + extra - cfg.tolerance;
         const d2 = dx * dx + dy * dy;
         if (d2 >= reach * reach) continue;
+        const a = mobile[i];
+        const b = mobile[j];
         const d = sqrt(d2);
         let nx: number;
         let ny: number;
@@ -243,12 +258,12 @@ export function resolveCollisions(ctx: Ctx): void {
       }
       for (let q = l; q < m && sortX[q] <= hi; q++) {
         const i = order[q];
-        const a = mobile[i];
-        const dx = a.x - b.x;
-        const dy = a.y - b.y;
+        const dx = posX[i] - b.x;
+        const dy = posY[i] - b.y;
         const reach = rad[i] + fr - cfg.tolerance;
         const d2 = dx * dx + dy * dy;
         if (d2 >= reach * reach) continue;
+        const a = mobile[i];
         const d = sqrt(d2);
         let nx: number;
         let ny: number;

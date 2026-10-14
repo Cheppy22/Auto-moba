@@ -5,6 +5,8 @@ interface Positioned {
 
 export class Grid<T extends Positioned> {
   private cells: T[][];
+  /** Indices of the cells holding items, so `clear` skips the empty ones. */
+  private used: number[] = [];
   private readonly cols: number;
   private readonly rows: number;
   constructor(
@@ -18,7 +20,8 @@ export class Grid<T extends Positioned> {
   }
 
   clear(): void {
-    for (const c of this.cells) c.length = 0;
+    for (const k of this.used) this.cells[k].length = 0;
+    this.used.length = 0;
   }
 
   private idx(v: number, n: number): number {
@@ -27,7 +30,9 @@ export class Grid<T extends Positioned> {
   }
 
   insert(item: T): void {
-    this.cells[this.idx(item.y, this.rows) * this.cols + this.idx(item.x, this.cols)].push(item);
+    const k = this.idx(item.y, this.rows) * this.cols + this.idx(item.x, this.cols);
+    if (this.cells[k].length === 0) this.used.push(k);
+    this.cells[k].push(item);
   }
 
   query(x: number, y: number, radius: number, out: T[] = []): T[] {
