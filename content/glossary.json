@@ -214,8 +214,50 @@
     "id": "armory",
     "term": "Armory",
     "aliases": ["Armory"],
-    "short": "A read-only look at what each of your pieces carries and will buy next.",
-    "see": ["build-path", "adjourn"],
+    "short": "The Act break shop: each piece can buy and sell items with its own gold; Adjourn shows the same view, read only.",
+    "see": ["plan", "build-path", "adjourn"],
+    "group": "Armory",
+    "more": "Untouched pieces shop on their own when you resume, and Black shops at every break too, though its new items stay hidden until the next Act starts."
+  },
+  {
+    "id": "plan",
+    "term": "Plan",
+    "aliases": ["Plan", "Plans"],
+    "short": "The six items a piece buys, in order, when it shops on its own; it starts as the build path's list.",
+    "more": "Change it at any Act break in the Armory. Changing the build path resets it to that path's list; a plan you changed stays yours at Rank 4.",
+    "see": ["build-path", "ai-suggests"],
+    "group": "Armory"
+  },
+  {
+    "id": "slot",
+    "term": "Slot",
+    "aliases": ["Slot", "Slots"],
+    "short": "A place in a piece's bag: it carries at most six items, and a full bag cannot buy until it sells one.",
+    "see": ["plan", "parts"],
+    "group": "Armory"
+  },
+  {
+    "id": "parts",
+    "term": "Built from",
+    "aliases": ["Built from"],
+    "short": "The smaller items a bigger one is made of; parts a piece already owns are used up and come off the price.",
+    "see": ["slot", "masterwork"],
+    "group": "Armory"
+  },
+  {
+    "id": "ai-suggests",
+    "term": "AI suggests",
+    "aliases": ["AI suggests"],
+    "short": "A brass pip on the item the AI would buy next for this piece; Let the AI shop buys by the same rule.",
+    "see": ["plan", "armory"],
+    "group": "Armory"
+  },
+  {
+    "id": "masterwork",
+    "term": "Masterwork",
+    "aliases": ["Masterwork", "Masterworks"],
+    "short": "A top-tier item with a powerful effect; the Armory sells them at each Act break, and the jungle shops sell them during an Act.",
+    "see": ["armory", "parts"],
     "group": "Armory"
   }
 ]

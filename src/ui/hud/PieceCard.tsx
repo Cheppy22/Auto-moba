@@ -13,6 +13,7 @@ import {
   styleLabel,
 } from '../pieces';
 import { forkOptionName, useEscape, useSession } from '../session';
+import { shownItems } from './blackItems';
 
 const RANKS = [1, 2, 3, 4, 5, 6, 7, 8];
 
@@ -39,6 +40,7 @@ export function PieceCard() {
       name: forkOptionName(s.content, h.defId, h.style, p.rank, p.optionId ?? ''),
     }))
     .filter((p) => p.name);
+  const items = shownItems(m, u);
   const snap = m.snapshot();
   const waiting = snap.forks.some((f) => f.heroId === u.id);
   const highGround = snap.units.some((x) => x.id === u.id && x.highGround === true);
@@ -143,8 +145,8 @@ export function PieceCard() {
         </p>
       ))}
       <div class="ucard-items" data-testid="unit-card-items">
-        {h.items.length === 0 && <span class="dim tiny">No items yet.</span>}
-        {h.items.map((item, i) => (
+        {items.length === 0 && <span class="dim tiny">No items yet.</span>}
+        {items.map((item, i) => (
           <span key={`${item}:${i}`} class={`ucard-item cat-${itemCategory(s.content, item)}`}>
             <ItemIcon id={item} size={16} />
             <span>{itemName(item)}</span>
