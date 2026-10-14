@@ -38,7 +38,9 @@
     "structureMul": 1.4,
     "bounty": 40,
     "teamBounty": 10,
-    "planReserve": 40
+    "planReserve": 40,
+    "planQuota": { "top": 2, "mid": 2, "bot": 2 },
+    "aiCardReserve": 20
   },
   "relics": {
     "max": 3,

@@ -212,16 +212,10 @@ function curtain(ctx: Ctx, team: PlayTeam): void {
 }
 
 /**
- * Fields one pawn toward a lane quota: the lane with the biggest gap, once Tempo is above the
- * reserve. Shared by Pawn Structure and the standing pawn plan (`pawnPlan.ts`).
+ * The lane with the biggest gap under a lane quota, or null when every lane is full or the team
+ * is at its pawn cap.
  */
-export function fieldTowardQuota(
-  ctx: Ctx,
-  team: PlayTeam,
-  quota: PawnQuota,
-  reserve: number,
-  discount: number,
-): void {
+export function quotaGap(ctx: Ctx, team: PlayTeam, quota: PawnQuota): LaneId | null {
   const have: Record<LaneId, number> = { top: 0, mid: 0, bot: 0 };
   for (const u of ctx.s.units) if (u.alive && u.pawn && u.team === team && u.lane) have[u.lane]++;
   let lane: LaneId | null = null;
@@ -233,7 +227,22 @@ export function fieldTowardQuota(
       lane = l;
     }
   }
-  if (!lane || pawnsAlive(ctx, team) >= pawnCap(ctx, team)) return;
+  return lane && pawnsAlive(ctx, team) < pawnCap(ctx, team) ? lane : null;
+}
+
+/**
+ * Fields one pawn toward a lane quota: the lane with the biggest gap, once Tempo is above the
+ * reserve. Shared by Pawn Structure and the standing pawn plan (`pawnPlan.ts`).
+ */
+export function fieldTowardQuota(
+  ctx: Ctx,
+  team: PlayTeam,
+  quota: PawnQuota,
+  reserve: number,
+  discount: number,
+): void {
+  const lane = quotaGap(ctx, team, quota);
+  if (!lane) return;
   const cost = Math.max(0, pawnCost(ctx, team) - discount);
   if (ctx.s.tempo[team] >= cost + reserve) fieldPawn(ctx, team, lane, discount);
 }
