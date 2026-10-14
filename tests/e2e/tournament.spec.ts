@@ -27,7 +27,8 @@ const views = [
 
 async function shot(page: Page, name: string): Promise<void> {
   if (!shots) return;
-  await page.waitForTimeout(500);
+  // the Title fades its parts in over about 2.5 s
+  await page.waitForTimeout(name.startsWith('title') ? 3000 : 500);
   await page.screenshot({ path: `${shots}/tournament-${name}.png` });
 }
 
