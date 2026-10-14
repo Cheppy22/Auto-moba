@@ -1,0 +1,949 @@
+/* ---------- Tournament run: Title additions, the draw, Spoils, the run strip and kit, the summary ---------- */
+
+/* ---- Title: Tournament is the main button, Exhibition and Rules sit under it ---- */
+.title-actions {
+  flex-direction: column;
+  align-items: center;
+  width: min(340px, 100%);
+}
+.title-actions .btn.title-main {
+  width: 100%;
+  min-height: 52px;
+  display: grid;
+  justify-items: center;
+  gap: 1px;
+  font-size: var(--fs-xl);
+  padding: 8px 20px;
+}
+.title-main-sub {
+  font-family: var(--font-body);
+  font-size: var(--fs-sm);
+  font-weight: 400;
+  letter-spacing: 0;
+  text-wrap: balance;
+}
+.title-actions .title-second {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-3);
+}
+.title-actions .title-second .btn {
+  min-height: 48px;
+  padding-inline: 12px;
+}
+.title-modes {
+  margin: 2px 0 0;
+  max-width: 34ch;
+  font-size: var(--fs-sm);
+  line-height: 1.45;
+  color: var(--faint);
+  text-wrap: balance;
+}
+.title-best {
+  margin: 0;
+  padding: 4px 12px;
+  font-family: var(--font-display);
+  font-size: var(--fs-md);
+  letter-spacing: 0.04em;
+  color: var(--brass-hi);
+  border-top: 1px solid var(--brass-dim);
+  border-bottom: 1px solid var(--brass-dim);
+}
+.title-confirm {
+  width: 100%;
+  display: grid;
+  gap: var(--sp-2);
+  padding: var(--sp-3);
+  text-align: center;
+  background: rgba(184, 57, 44, 0.14);
+  border: 1px solid var(--clock-hi);
+  border-radius: var(--r-1);
+}
+.title-confirm p {
+  margin: 0;
+  font-size: var(--fs-md);
+}
+.title-confirm .row {
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.title-confirm .btn {
+  min-height: 44px;
+}
+
+/* ---- a run screen: one centred column that scrolls on a short screen ---- */
+.overlay.run-screen {
+  padding: 0;
+  align-items: flex-start;
+  justify-content: center;
+}
+.rs-wrap {
+  width: min(660px, 100%);
+  margin: auto;
+  display: grid;
+  gap: var(--sp-4);
+  padding: 18px 16px calc(22px + env(safe-area-inset-bottom));
+  padding-left: max(16px, env(safe-area-inset-left));
+  padding-right: max(16px, env(safe-area-inset-right));
+}
+.rs-head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-3);
+}
+.rs-head h2 {
+  font-size: clamp(26px, 7.4vw, 34px);
+  line-height: 1.05;
+  color: var(--ivory);
+  text-wrap: balance;
+}
+.rs-sub {
+  margin: 6px 0 0;
+  font-size: var(--fs-md);
+  line-height: 1.4;
+  color: var(--dim);
+}
+.rs-back {
+  flex: none;
+  min-height: 44px;
+  min-width: 64px;
+}
+.rs-h {
+  margin: 0 0 6px;
+  font-size: var(--fs-lg);
+  color: var(--brass-hi);
+}
+.rs-foot {
+  display: grid;
+  gap: var(--sp-3);
+  justify-items: stretch;
+}
+.rs-cta {
+  min-height: 52px;
+  font-size: var(--fs-lg);
+}
+.rs-fine {
+  margin: 0;
+  font-size: var(--fs-sm);
+  line-height: 1.45;
+  color: var(--faint);
+}
+.rs-error {
+  margin: 0;
+  padding: 6px 10px;
+  font-size: var(--fs-sm);
+  color: #ffd9d2;
+  border-left: 3px solid var(--clock-hi);
+  background: rgba(184, 57, 44, 0.16);
+}
+
+/* ---- the court seal: a wax medallion with a Black piece ---- */
+.court-seal {
+  --seal: var(--brass);
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background:
+    radial-gradient(
+      circle at 34% 28%,
+      color-mix(in srgb, var(--seal) 55%, #fff) 0%,
+      transparent 38%
+    ),
+    radial-gradient(
+      circle,
+      color-mix(in srgb, var(--seal) 70%, #000) 0%,
+      color-mix(in srgb, var(--seal) 38%, #0d0b09) 100%
+    );
+  border: 1px solid color-mix(in srgb, var(--seal) 70%, #fff);
+  box-shadow:
+    inset 0 0 0 3px rgba(13, 11, 9, 0.55),
+    inset 0 0 0 4px color-mix(in srgb, var(--seal) 60%, transparent),
+    0 2px 6px rgba(0, 0, 0, 0.6);
+}
+.court-seal.final {
+  border-color: var(--brass-hi);
+  box-shadow:
+    inset 0 0 0 3px rgba(13, 11, 9, 0.55),
+    inset 0 0 0 4px var(--brass-hi),
+    var(--glow-brass);
+}
+
+/* ---- the draw: four rounds on a ladder ---- */
+.ladder {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  position: relative;
+  display: grid;
+  gap: 10px;
+}
+/* the rail the round nodes sit on */
+.ladder::before {
+  content: '';
+  position: absolute;
+  left: 13px;
+  top: 28px;
+  bottom: 28px;
+  width: 2px;
+  background: linear-gradient(180deg, var(--brass) 0 28%, var(--rule) 28% 100%);
+}
+.rung {
+  position: relative;
+  display: grid;
+  grid-template-columns: 28px 56px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px 10px 0;
+}
+.rung-node {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  font-family: var(--font-display);
+  font-size: var(--fs-md);
+  color: var(--dim);
+  background: var(--ebony);
+  border: 1px solid var(--rule);
+  border-radius: 50%;
+}
+.rung.now .rung-node {
+  color: var(--ebony);
+  background: var(--brass);
+  border-color: var(--brass-hi);
+  box-shadow: var(--glow-brass);
+}
+.rung.final .rung-node {
+  border-color: var(--brass-dim);
+}
+.rung.now {
+  padding: 14px 12px 14px 0;
+}
+.rung .court-seal {
+  justify-self: center;
+}
+.rung.ahead .court-seal {
+  filter: saturate(0.55) brightness(0.8);
+}
+.rung-body {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.rung-round {
+  font-family: var(--font-display);
+  font-size: var(--fs-md);
+  letter-spacing: 0.06em;
+  color: var(--brass);
+}
+.rung-name {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--fs-lg);
+  line-height: 1.15;
+  color: var(--ivory);
+  text-wrap: balance;
+}
+.rung.now .rung-name {
+  font-size: var(--fs-xl);
+}
+.rung.ahead .rung-name {
+  color: var(--ivory-2);
+}
+.rung-note {
+  font-size: var(--fs-sm);
+  line-height: 1.4;
+  color: var(--dim);
+}
+.opening-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  font-size: var(--fs-md);
+  color: var(--ivory);
+}
+.opening-line b {
+  font-weight: 600;
+}
+.opening-schools {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.rung.now {
+  background: linear-gradient(
+    90deg,
+    transparent 0,
+    rgba(201, 163, 90, 0.08) 28px,
+    rgba(201, 163, 90, 0.04) 100%
+  );
+  border-top: 1px solid rgba(201, 163, 90, 0.25);
+  border-bottom: 1px solid rgba(201, 163, 90, 0.25);
+}
+
+/* ---- Spoils ---- */
+.next-court {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--brass);
+  border-radius: var(--r-1);
+}
+.next-body {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.relic-names {
+  list-style: none;
+  margin: 2px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+.relic-names li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-sm);
+  color: var(--ivory-2);
+}
+.spoil-row {
+  display: grid;
+  gap: 12px;
+}
+.spoil {
+  --family: var(--brass);
+  position: relative;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 8px;
+  padding: 12px 14px 14px 18px;
+  overflow: hidden;
+  background: linear-gradient(180deg, #33241a 0%, #221912 100%);
+  border: 1px solid var(--brass-dim);
+  border-radius: var(--r-1);
+  box-shadow: var(--sh-1);
+}
+.spoil::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 5px;
+  background: var(--brass);
+}
+.spoil-heirloom::before {
+  background: var(--body);
+}
+.spoil-book::before {
+  background: var(--soul);
+}
+.spoil-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.spoil-mark {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  background: rgba(13, 11, 9, 0.5);
+  border: 1px solid var(--brass-dim);
+  border-radius: var(--r-1);
+}
+.spoil-kind {
+  display: block;
+  font-size: var(--fs-sm);
+  color: var(--brass);
+  font-family: var(--font-display);
+  letter-spacing: 0.08em;
+}
+.spoil-title {
+  display: block;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--fs-xl);
+  line-height: 1.1;
+  color: var(--ivory);
+}
+.spoil-x2 {
+  font-family: var(--font-display);
+  font-size: var(--fs-xl);
+  color: var(--soul-3);
+}
+.spoil-body {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+}
+.spoil-body p {
+  margin: 0;
+  font-size: var(--fs-md);
+  line-height: 1.45;
+  color: var(--ivory);
+}
+.spoil-body p.spoil-fine {
+  font-size: var(--fs-sm);
+  color: var(--dim);
+}
+.spoil-tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.spoil-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--fs-sm);
+  color: var(--brass-hi);
+}
+.spoil-action {
+  display: grid;
+  gap: 6px;
+}
+.spoil-take,
+.spoil-swapbtn,
+.spoil-auto {
+  min-height: 48px;
+  width: 100%;
+}
+.spoil-swap {
+  display: grid;
+  gap: 6px;
+}
+.spoil-auto {
+  justify-self: center;
+  max-width: 320px;
+}
+
+/* phones: the three cards in a scroll-snap row, one and a bit visible */
+html:not([data-layout='desktop']) .spoil-row {
+  display: flex;
+  gap: 10px;
+  margin-inline: -16px;
+  padding: 2px 16px 8px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: 16px;
+  overscroll-behavior-x: contain;
+}
+html:not([data-layout='desktop']) .spoil-row > .spoil {
+  flex: 0 0 min(82%, 320px);
+  scroll-snap-align: start;
+}
+html[data-layout='landscape'] .spoil-row > .spoil {
+  flex-basis: min(46%, 340px);
+}
+html[data-layout='desktop'] .overlay.spoils .rs-wrap {
+  width: min(1040px, 100%);
+}
+html[data-layout='desktop'] .spoil-row {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+/* ---- the run strip on Setup, and the Run kit ---- */
+.run-strip {
+  grid-area: run;
+  min-height: 44px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'round open'
+    'marks open';
+  align-items: center;
+  gap: 2px 10px;
+  padding: 5px 12px;
+  text-align: left;
+  cursor: pointer;
+  color: var(--ivory);
+  background: linear-gradient(180deg, rgba(201, 163, 90, 0.16), rgba(201, 163, 90, 0.07));
+  border: 1px solid var(--brass-dim);
+  border-radius: var(--r-1);
+}
+.run-strip:hover {
+  border-color: var(--brass-hi);
+}
+.rst-round {
+  grid-area: round;
+  font-family: var(--font-display);
+  font-size: var(--fs-md);
+  letter-spacing: 0.04em;
+}
+.rst-round b {
+  font-weight: 400;
+}
+.rst-name {
+  color: var(--brass-hi);
+}
+.rst-marks {
+  grid-area: marks;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+.rst-extra {
+  display: contents;
+}
+.rst-mark {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(13, 11, 9, 0.45);
+}
+.rst-mark.item,
+.rst-mark.piece {
+  border: 1px solid var(--brass-dim);
+}
+.rst-none {
+  font-size: var(--fs-sm);
+  color: var(--faint);
+}
+.rst-open {
+  grid-area: open;
+  font-family: var(--font-display);
+  font-size: var(--fs-sm);
+  letter-spacing: 0.05em;
+  color: var(--brass-hi);
+  padding: 4px 10px;
+  border: 1px solid var(--brass-dim);
+  border-radius: var(--r-1);
+}
+.sp.in-run .sp-head {
+  grid-template-areas:
+    'title quick'
+    'run run'
+    'steps steps';
+}
+html[data-layout='desktop'] .sp.in-run .sp-head,
+html[data-layout='landscape'] .sp.in-run .sp-head {
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr) auto;
+  grid-template-areas: 'run steps quick';
+}
+html[data-layout='desktop'] .sp.in-run .sp-head h2,
+html[data-layout='landscape'] .sp.in-run .sp-head h2 {
+  display: none;
+}
+html[data-layout='desktop'] .sp.in-run .run-strip {
+  min-width: 300px;
+}
+/* a short phone keeps the strip to one line: round and relic seals only */
+html[data-layout='landscape'] .run-strip {
+  grid-template-columns: auto auto auto;
+  grid-template-areas: 'round marks open';
+  gap: 8px;
+  padding: 3px 8px;
+}
+html[data-layout='landscape'] .rst-extra,
+html[data-layout='landscape'] .rst-none,
+html[data-layout='landscape'] .rst-name {
+  display: none;
+}
+
+.rk-back {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(13, 11, 9, 0.7);
+  backdrop-filter: blur(2px);
+}
+.rk {
+  width: min(640px, 100%);
+  max-height: 88%;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  background: var(--grain), linear-gradient(180deg, var(--walnut) 0%, #1d1510 100%);
+  border: 1px solid var(--brass-dim);
+  border-bottom: 0;
+  border-radius: var(--r-2) var(--r-2) 0 0;
+  box-shadow: var(--sh-2);
+  animation: rk-up var(--t-med) var(--ease) both;
+}
+@keyframes rk-up {
+  from {
+    translate: 0 24px;
+    opacity: 0;
+  }
+}
+html[data-layout='desktop'] .rk-back {
+  align-items: center;
+}
+html[data-layout='desktop'] .rk {
+  max-height: 86%;
+  border-bottom: 1px solid var(--brass-dim);
+  border-radius: var(--r-1);
+}
+html[data-layout='landscape'] .rk {
+  max-height: 96%;
+}
+.rk-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--rule);
+}
+.rk-head h3 {
+  font-size: var(--fs-xl);
+  color: var(--ivory);
+}
+.rk-close {
+  min-height: 44px;
+  min-width: 88px;
+}
+.rk-body {
+  display: grid;
+  align-content: start;
+  gap: var(--sp-4);
+  padding: 12px 14px calc(18px + env(safe-area-inset-bottom));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.rk-sec {
+  display: grid;
+  gap: 8px;
+}
+.rk-h {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--fs-lg);
+  letter-spacing: 0.05em;
+  color: var(--brass-hi);
+}
+.rk-note {
+  margin: 0;
+  font-size: var(--fs-sm);
+  line-height: 1.4;
+  color: var(--dim);
+}
+.rk-arch {
+  display: grid;
+  gap: 6px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-1);
+}
+.rk-arch-piece {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-size: var(--fs-md);
+}
+.rk-arch-opts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.rk-relic {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--rule);
+  border-left: 4px solid var(--brass);
+  border-radius: var(--r-1);
+}
+.rk-relic[data-family='lane'] {
+  border-left-color: #5aa3a0;
+}
+.rk-relic[data-family='carry'] {
+  border-left-color: #d9a066;
+}
+.rk-relic[data-family='pawns'] {
+  border-left-color: #9fb36a;
+}
+.rk-relic[data-family='siege'] {
+  border-left-color: #c97a5e;
+}
+.rk-relic[data-family='orders'] {
+  border-left-color: #8e9bc9;
+}
+.rk-relic-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.rk-relic-tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 3px;
+}
+.rk-relic-desc {
+  margin: 0;
+  font-size: var(--fs-sm);
+  line-height: 1.45;
+  color: var(--ivory-2);
+}
+
+/* ---- the run summary ---- */
+.sum-head {
+  align-items: center;
+}
+.sum-head h2 {
+  font-size: clamp(30px, 8vw, 46px);
+}
+.summary.champion .sum-head h2 {
+  color: var(--brass-hi);
+  text-shadow: 0 0 22px rgba(240, 213, 138, 0.35);
+}
+.new-best {
+  margin-left: 4px;
+  padding: 1px 8px;
+  font-family: var(--font-display);
+  font-size: var(--fs-sm);
+  color: var(--ebony);
+  background: var(--brass-hi);
+  border-radius: 9px;
+}
+.sum-rounds {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.sum-round {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid var(--rule);
+  border-left: 4px solid var(--rule);
+  border-radius: var(--r-1);
+}
+.sum-round.won {
+  border-left-color: var(--baize-hi);
+}
+.sum-round.lost {
+  border-left-color: var(--clock-hi);
+}
+.sum-round.unplayed {
+  opacity: 0.62;
+}
+.sum-round-body {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+.sum-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 12px;
+  font-size: var(--fs-sm);
+  color: var(--dim);
+}
+.sum-result {
+  font-family: var(--font-display);
+  letter-spacing: 0.05em;
+  color: var(--ivory);
+}
+.sum-round.won .sum-result {
+  color: var(--baize-hi);
+}
+.sum-round.lost .sum-result {
+  color: var(--clock-hi);
+}
+.sum-mvp {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.sum-kit {
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-1);
+}
+.sum-kit .rs-h:not(:first-child) {
+  margin-top: 8px;
+}
+.sum-opening {
+  margin: 0;
+}
+.sum-pieces {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 6px 12px;
+}
+.sum-pieces li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-sm);
+}
+.sum-fine {
+  text-align: center;
+}
+.sum-foot {
+  grid-template-columns: 1fr 1fr;
+}
+.sum-foot {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  margin: 0 -16px;
+  padding: 14px 16px 2px;
+  background: linear-gradient(180deg, transparent 0%, rgba(13, 11, 9, 0.94) 38%);
+}
+.sum-foot .btn {
+  min-height: 48px;
+}
+.sum-foot .rs-cta {
+  grid-column: 1 / -1;
+}
+
+/* ---- the result splash and the versus card in a run ---- */
+.rp-points {
+  flex-basis: 100%;
+  color: var(--brass-hi);
+}
+.vs-round {
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: var(--fs-sm);
+  letter-spacing: 0.12em;
+  color: var(--brass-hi);
+}
+.vs-relics {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 8px;
+}
+.vs-relic {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--b-trim);
+}
+@media (max-width: 720px) {
+  .vs-relic-name {
+    display: none;
+  }
+}
+/* the round line and the relic seals take room: the plates give a little back */
+html[data-layout='landscape'] .vs.in-run {
+  --pic: min(calc((min(100vw, 960px) - 20px - 24px) / 5 - 4px), 14dvh);
+}
+html[data-layout='landscape'] .vs-relic-name {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rk {
+    animation: none;
+  }
+}
+
+/* ---- landscape phone: two columns so the cards and the Set up button stay on screen ---- */
+html[data-layout='landscape'] .title-copy,
+html[data-layout='landscape'] .title-pieces {
+  display: none;
+}
+html[data-layout='landscape'] .overlay.run-screen:is(.draw, .spoils) .rs-wrap {
+  width: 100%;
+  margin: 0;
+  gap: 8px 18px;
+  padding-block: 10px;
+  grid-template-columns: minmax(230px, 300px) minmax(0, 1fr);
+  grid-template-rows: auto auto 1fr;
+  align-items: start;
+}
+html[data-layout='landscape'] .run-screen .rs-head h2 {
+  font-size: var(--fs-xl);
+}
+html[data-layout='landscape'] .draw .rs-head {
+  grid-area: 1 / 1;
+}
+html[data-layout='landscape'] .draw .ladder {
+  grid-area: 1 / 2 / 4 / 3;
+}
+html[data-layout='landscape'] .draw .rs-foot {
+  grid-area: 2 / 1;
+}
+html[data-layout='landscape'] .spoils .rs-head {
+  grid-area: 1 / 1;
+}
+html[data-layout='landscape'] .spoils .next-court {
+  grid-area: 2 / 1;
+}
+html[data-layout='landscape'] .spoils .spoil-row {
+  grid-area: 1 / 2 / 4 / 3;
+  margin-inline: 0;
+  padding-inline: 0 16px;
+  align-items: stretch;
+}
+html[data-layout='landscape'] .spoils .rs-foot {
+  grid-area: 3 / 1;
+  align-self: start;
+}
+html[data-layout='landscape'] .spoil-row > .spoil {
+  flex-basis: min(300px, 62%);
+}
+html[data-layout='landscape'] .rung {
+  padding-block: 4px;
+}
+html[data-layout='landscape'] .rung.now {
+  padding-block: 8px;
+}
+html[data-layout='landscape'] .ladder {
+  gap: 2px;
+}
+html[data-layout='landscape'] .ladder::before {
+  top: 24px;
+  bottom: 24px;
+}
+html[data-layout='landscape'] .spoil {
+  padding-block: 10px;
+}
+html[data-layout='landscape'] .sum-foot {
+  grid-template-columns: 1.4fr 1fr 1fr;
+  padding-top: 10px;
+}
+html[data-layout='landscape'] .sum-foot .rs-cta {
+  grid-column: auto;
+  min-height: 48px;
+  font-size: var(--fs-md);
+}
+.rk .rl-chip,
+.rk .rl-step {
+  min-height: 44px;
+}
+.rp-banner-actions .rp-btn[data-testid='run-next'] {
+  min-height: 46px;
+}
+.btn.small.sound-toggle {
+  min-height: 44px;
+}

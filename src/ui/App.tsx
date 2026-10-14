@@ -7,6 +7,7 @@ import { Report } from './Report';
 import { Setup } from './Setup';
 import { Stage } from './Stage';
 import { Title } from './Title';
+import { RunScreen } from './run/RunScreen';
 import { useLayout } from './layout';
 import { useSession } from './session';
 
@@ -25,7 +26,7 @@ export function App() {
   if (!m)
     return (
       <>
-        <Title />
+        {s.run ? <RunScreen /> : <Title />}
         <GlossaryPopover />
       </>
     );

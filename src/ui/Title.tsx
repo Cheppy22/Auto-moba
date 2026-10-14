@@ -1,5 +1,6 @@
 import { useState } from 'preact/hooks';
-import { RulesPage, Terms } from './glossary';
+import { RulesPage, Term, Terms } from './glossary';
+import { bestText, roundLine } from './run/parts';
 import { PieceGlyph, PIECE_ORDER } from './pieces';
 import { SoundToggle } from './SoundToggle';
 import { ThemePicker } from './ThemePicker';
@@ -9,9 +10,23 @@ export function Title() {
   const s = useSession();
   const [seed, setSeed] = useState('');
   const [rules, setRules] = useState(false);
-  const start = (): void => {
+  const [confirm, setConfirm] = useState(false);
+  const saved = s.savedRun();
+  const given = (): number | undefined => {
     const n = Number(seed);
-    s.newMatch(seed.trim() !== '' && Number.isFinite(n) ? { seed: n } : {});
+    return seed.trim() !== '' && Number.isFinite(n) ? n : undefined;
+  };
+  const start = (): void => {
+    const n = given();
+    s.newMatch(n === undefined ? {} : { seed: n });
+  };
+  const tournament = (): void => {
+    // a saved run is only replaced after the player agrees to abandon it
+    if (saved && !confirm) setConfirm(true);
+    else {
+      if (saved) s.endRun();
+      s.startRun(given());
+    }
   };
   return (
     <div class="overlay title" data-testid="title">
@@ -37,12 +52,55 @@ export function Title() {
           />
         </p>
         <div class="title-actions">
-          <button class="btn primary" data-testid="start" onClick={start}>
-            New match
+          {saved ? (
+            <button
+              class="btn primary title-main"
+              data-testid="continue-run"
+              onClick={() => s.continueRun()}
+            >
+              <span>Continue</span>
+              <span class="title-main-sub">
+                {roundLine(s.content, saved)} vs {saved.opponents[saved.round].name}
+              </span>
+            </button>
+          ) : null}
+          <button
+            class={`btn title-main ${saved ? '' : 'primary'}`}
+            data-testid="tournament"
+            onClick={tournament}
+          >
+            <span>{saved ? 'New tournament' : 'Tournament'}</span>
           </button>
-          <button class="btn" data-testid="rules-open" onClick={() => setRules(true)}>
-            Rules
-          </button>
+          {confirm && saved && (
+            <div class="title-confirm" role="alertdialog" aria-label="Abandon your current run?">
+              <p>Abandon your current run? Its progress is lost.</p>
+              <div class="row">
+                <button class="btn danger" data-testid="abandon-run" onClick={tournament}>
+                  Abandon and start again
+                </button>
+                <button class="btn" data-testid="abandon-keep" onClick={() => setConfirm(false)}>
+                  Keep it
+                </button>
+              </div>
+            </div>
+          )}
+          <div class="title-second">
+            <button class="btn" data-testid="start" onClick={start}>
+              Exhibition
+            </button>
+            <button class="btn" data-testid="rules-open" onClick={() => setRules(true)}>
+              Rules
+            </button>
+          </div>
+          <p class="title-modes">
+            <Term id="tournament">Tournament</Term>: four rounds, and one loss ends it.{' '}
+            <Term id="exhibition">Exhibition</Term>: a single match.
+          </p>
+          {s.best && (
+            <p class="title-best" data-testid="best-finish">
+              {bestText(s.content, s.best)}
+            </p>
+          )}
         </div>
         <SoundToggle />
         <ThemePicker />

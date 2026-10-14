@@ -18,9 +18,16 @@ const fmtAward = (a: Award): string => {
 };
 
 function Banner(props: { data: ReportData; onSame: () => void; onNew: () => void; hint: boolean }) {
+  const s = useSession();
   const { sum } = props.data;
   const win = sum.winner;
-  const kicker = sum.checkmate ? (
+  const run = s.run;
+  // a match with no Checkmate is decided on points only when the run asks for it
+  let adjudicated = false;
+  for (const e of s.match!.events) if (e.type === 'matchEnd') adjudicated = !!e.payload.adjudicated;
+  const kicker = adjudicated ? (
+    <Term id="adjudication">Decided on points</Term>
+  ) : sum.checkmate ? (
     <Term id="checkmate">Checkmate</Term>
   ) : (
     <>
@@ -29,6 +36,14 @@ function Banner(props: { data: ReportData; onSame: () => void; onNew: () => void
   );
   const verdict = win ? `${teamWord(win)} wins` : 'Draw';
   const acts = `${sum.acts} ${sum.acts === 1 ? 'Act' : 'Acts'}`;
+  const { A, B } = sum.teams;
+  const points = !adjudicated
+    ? null
+    : win === null
+      ? 'Dead level: a tie counts as a loss in a tournament'
+      : A.bastionsDestroyed !== B.bastionsDestroyed
+        ? `Bastions destroyed: ${A.bastionsDestroyed} to ${B.bastionsDestroyed}`
+        : 'Bastions level: more Throne health left wins';
   return (
     <header class={`rp-banner ${win ?? 'draw'}`} data-testid="verdict">
       <div class="rp-banner-glow" aria-hidden="true" />
@@ -47,15 +62,45 @@ function Banner(props: { data: ReportData; onSame: () => void; onNew: () => void
         <span>
           <b>{acts}</b>
         </span>
-        <span class="dim">White (you) vs Black</span>
+        <span class="dim">
+          White (you) vs{' '}
+          {run
+            ? run.status === 'playing'
+              ? run.opponents[run.round].name
+              : (run.results[run.results.length - 1]?.opponent ?? 'Black')
+            : 'Black'}
+        </span>
+        {points && (
+          <span class="rp-points" data-testid="points-line">
+            {points}
+          </span>
+        )}
       </div>
       <div class="rp-banner-actions">
-        <button class="btn primary rp-btn" data-testid="new-match" onClick={props.onNew}>
-          New match
-        </button>
-        <button class="btn rp-btn" data-testid="same-seed" onClick={props.onSame}>
-          Same seed
-        </button>
+        {run ? (
+          run.status === 'playing' ? null : (
+            <button
+              class="btn primary rp-btn"
+              data-testid="run-next"
+              onClick={() => s.leaveMatch()}
+            >
+              {run.status === 'between'
+                ? 'Next round'
+                : run.status === 'out'
+                  ? 'Run over'
+                  : 'See your run'}
+            </button>
+          )
+        ) : (
+          <>
+            <button class="btn primary rp-btn" data-testid="new-match" onClick={props.onNew}>
+              New match
+            </button>
+            <button class="btn rp-btn" data-testid="same-seed" onClick={props.onSame}>
+              Same seed
+            </button>
+          </>
+        )}
       </div>
       {props.hint && (
         <div class="rp-swipe" aria-hidden="true" data-testid="swipe-hint">
