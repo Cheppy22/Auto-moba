@@ -25,4 +25,4 @@ Test enough to decide, then stop. Every agent brief states a deadline and these 
 4. **Deadline:** report within the brief's time box with what you have; commit work first; ask before any run beyond the budget.
 5. **Browser suite:** full `npx playwright test` once per merge, by the agent at the end. Don't re-run it when the merged tree is identical to the tested one.
 6. **Parallel agents are fine.** A sim test that times out under load gets one solo rerun before it counts as a failure.
-7. **Estimates:** pad time estimates by 1.5×; an 800-match run takes about 55 min with 2 workers (use 3 workers when only one agent is running).
+7. **Estimates:** pad time estimates by 1.5×; an 800-match run takes about 30 min with 2 workers (use 3 workers when only one agent is running).
