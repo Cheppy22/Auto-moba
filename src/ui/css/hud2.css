@@ -854,6 +854,11 @@ html[data-layout='desktop'] .hud.v2 {
 .hud.v2 .btn.adjourn {
   background: var(--glass-hi);
 }
+/* the glass rule above would turn a primary button's ebony text into ebony on glass: keep its ivory tile */
+.hud.v2 .btn.primary {
+  background: linear-gradient(180deg, #f6eedb 0%, var(--ivory) 45%, #cdbf9f 100%);
+  border-color: var(--brass);
+}
 .hud.v2 .lanebar.pick {
   background: var(--glass);
   border-color: var(--glass-line);

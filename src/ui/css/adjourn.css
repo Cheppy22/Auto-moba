@@ -134,3 +134,8 @@
   border-left: 2px solid var(--cat);
   background: rgba(255, 255, 255, 0.04);
 }
+.atile.ghost {
+  border-style: dashed;
+  border-color: var(--brass-dim);
+  opacity: 0.7;
+}

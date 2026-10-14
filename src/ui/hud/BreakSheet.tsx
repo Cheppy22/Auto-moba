@@ -13,18 +13,23 @@ import {
 import { courtName } from '../../analysis/text';
 import { n0 } from '../format';
 import { Term, Terms } from '../glossary';
-import { Orders } from '../Orders';
+import { Orders, whitePieces } from '../Orders';
 import { PIECE_ORDER } from '../pieces';
 import { useSession } from '../session';
+import { ArmoryTab } from './ArmoryTab';
 import { LaneBars } from './LaneBars';
 import { RelicsTab } from './RelicsTab';
 import { RelicSeal, aimText, relicText, shownRelics } from '../relics';
 
-type Tab = 'report' | 'orders' | 'relics';
+type Tab = 'report' | 'orders' | 'armory' | 'relics';
+
+/** The Armory tab shows a dot while a piece holds this much gold. */
+const UNSPENT_GOLD = 300;
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'report', label: 'Report' },
   { id: 'orders', label: 'Orders' },
+  { id: 'armory', label: 'Armory' },
   { id: 'relics', label: 'Relics' },
 ];
 
@@ -243,7 +248,7 @@ function Report(props: { report: ActReport; snap: Snapshot }) {
 
 /**
  * The Act break sheet: play is frozen. A bottom sheet slides up with the Act report and the
- * Orders (lanes and paths); "Resume" starts the next Act. No time limit.
+ * Orders (lanes and paths), the Armory (items) and the Relics; "Resume" starts the next Act. No time limit.
  */
 export function BreakSheet(props: { snap: Snapshot }) {
   const s = useSession();
@@ -263,6 +268,8 @@ export function BreakSheet(props: { snap: Snapshot }) {
   const tab = s.ui.breakTab;
   const pending = !props.snap.relics.settled;
   const formation = props.snap.relics.formation;
+  // a brass dot while any piece holds 300 gold or more
+  const unspent = s.match!.armoryOpen && whitePieces(s).some((u) => u.hero!.gold >= UNSPENT_GOLD);
   return (
     <>
       <div class="break-scrim" aria-hidden="true" />
@@ -294,6 +301,9 @@ export function BreakSheet(props: { snap: Snapshot }) {
               >
                 {t.label}
                 {t.id === 'relics' && pending && <i class="bs-dot" data-testid="relics-pending" />}
+                {t.id === 'armory' && unspent && (
+                  <i class="bs-dot brass" data-testid="armory-unspent" title="Gold to spend" />
+                )}
               </button>
             ))}
           </div>
@@ -301,6 +311,7 @@ export function BreakSheet(props: { snap: Snapshot }) {
         <div class="bs-body scroll">
           {tab === 'report' && <Report report={act.report} snap={props.snap} />}
           {tab === 'orders' && <Orders formation={props.snap.relics.formation} snap={props.snap} />}
+          {tab === 'armory' && <ArmoryTab />}
           {tab === 'relics' && <RelicsTab snap={props.snap} />}
         </div>
         <footer class="bs-foot">

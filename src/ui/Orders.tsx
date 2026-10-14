@@ -145,6 +145,12 @@ export function Paths() {
                 </button>
               ))}
             </div>
+            {s.match!.armoryView(u.id)?.customPlan && (
+              <p class="plan-warn tiny" data-testid={`plan-warn-${h.defId}`}>
+                You changed this piece’s <Term id="plan">plan</Term>: another path resets it to that
+                path’s list.
+              </p>
+            )}
           </div>
         );
       })}
