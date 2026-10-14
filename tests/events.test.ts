@@ -96,7 +96,8 @@ describe('jungle events', () => {
     const b = evEvents(runAi(33));
     expect(JSON.stringify(a)).toBe(JSON.stringify(b));
     expect(JSON.stringify(evEvents(runAi(34)))).not.toBe(JSON.stringify(a));
-  });
+    // five full matches (see above)
+  }, 180_000);
 
   it('well and oni sit only on the symmetry axis (equidistant from both bases)', () => {
     for (const seed of [1, 2, 3, 4]) {
@@ -106,5 +107,6 @@ describe('jungle events', () => {
           expect(Math.abs(e.payload.x - e.payload.y)).toBeLessThan(1.5);
       }
     }
-  });
+    // four full matches (see above)
+  }, 180_000);
 });
