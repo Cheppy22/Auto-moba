@@ -12,7 +12,7 @@ export interface GlossEntry {
 }
 
 export const GLOSSARY: readonly GlossEntry[] = raw;
-export const GLOSSARY_GROUPS = ['Match', 'Board', 'Pieces', 'Gambits', 'Armory'] as const;
+export const GLOSSARY_GROUPS = ['Match', 'Board', 'Pieces', 'Gambits', 'Armory', 'Run'] as const;
 
 export const BY_ID = new Map(GLOSSARY.map((e) => [e.id, e]));
 const BY_ALIAS = new Map(GLOSSARY.flatMap((e) => e.aliases.map((a) => [a, e.id] as const)));

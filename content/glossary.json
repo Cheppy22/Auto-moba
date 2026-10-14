@@ -196,7 +196,7 @@
     "id": "relic",
     "term": "Relic",
     "aliases": ["relic", "relics", "Relic", "Relics"],
-    "short": "A permanent bonus your court drafts at each Act break: pick one of three, and hold up to three.",
+    "short": "A permanent bonus your court drafts at each Act break: pick one of three, and hold up to three (five in a tournament).",
     "more": "A relic takes effect from the next Act. Black drafts relics too, and its newest one stays hidden until that Act starts.",
     "see": ["act", "rally"],
     "group": "Armory"
@@ -259,5 +259,67 @@
     "short": "A top-tier item with a powerful effect; the Armory sells them at each Act break, and the jungle shops sell them during an Act.",
     "see": ["armory", "parts"],
     "group": "Armory"
+  },
+  {
+    "id": "tournament",
+    "term": "Tournament",
+    "aliases": ["Tournament", "tournament", "Tournaments", "tournaments"],
+    "short": "A run of four matches against named courts: win each to go on, and one loss ends the run.",
+    "more": "Your court, archetypes and relics carry from match to match; items, gold, Ranks and Tempo reset. When the run ends nothing is kept except one best-finish line, which gives no power.",
+    "see": ["round", "spoils", "exhibition"],
+    "group": "Run"
+  },
+  {
+    "id": "exhibition",
+    "term": "Exhibition",
+    "aliases": ["Exhibition", "exhibition"],
+    "short": "A single match outside any tournament: nothing carries in and nothing carries out.",
+    "see": ["tournament"],
+    "group": "Run"
+  },
+  {
+    "id": "round",
+    "term": "Round",
+    "aliases": ["Round", "round", "Rounds", "rounds"],
+    "short": "One match of a tournament: the Club, the County, the Semifinal, then the Final.",
+    "more": "Each round is harder than the last: later courts start with relics and extra Tempo, and the Semifinal and Final play an Opening that does well against yours.",
+    "see": ["tournament", "opening"],
+    "group": "Run"
+  },
+  {
+    "id": "spoils",
+    "term": "Spoils",
+    "aliases": ["Spoils", "spoils"],
+    "short": "The prize for winning a round: pick one of three cards, a relic, an heirloom or a book move.",
+    "more": "The cards are the same if you reload. Let the AI choose takes a relic while you have room, then an heirloom, then a book move.",
+    "see": ["relic", "heirloom", "book-move"],
+    "group": "Run"
+  },
+  {
+    "id": "heirloom",
+    "term": "Heirloom",
+    "aliases": ["Heirloom", "Heirlooms", "heirloom", "heirlooms"],
+    "short": "An item that one piece starts every later match of the run holding, already paid for.",
+    "more": "Each piece can have one. It is a cheap item from that piece's build, and it takes a slot like any other item.",
+    "see": ["spoils", "slot"],
+    "group": "Run"
+  },
+  {
+    "id": "book-move",
+    "term": "Book move",
+    "aliases": ["Book move", "Book moves", "book move", "book moves"],
+    "short": "A gambit card that is drawn twice as often for the rest of the run.",
+    "more": "It stacks with your Opening's schools, so a book move from a school you already favor comes up very often.",
+    "see": ["gambit", "opening"],
+    "group": "Run"
+  },
+  {
+    "id": "adjudication",
+    "term": "Adjudication",
+    "aliases": ["Adjudication", "adjudication", "Adjudicated", "adjudicated"],
+    "short": "A match that ends without Checkmate is decided on points: the side that destroyed more Bastions wins.",
+    "more": "If Bastions are level, the Throne with more health left wins. A dead tie counts as a loss in a tournament.",
+    "see": ["checkmate", "bastion"],
+    "group": "Run"
   }
 ]
