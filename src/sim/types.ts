@@ -722,8 +722,9 @@ export interface EventPayloads {
   };
   respawn: { id: number };
   gold: { id: number; amount: number; source: string };
-  purchase: { id: number; item: string; price: number; consumed: string[] };
-  sell: { id: number; item: string; refund: number };
+  /** `at: 'break'` marks a purchase made at the Act break (the armory or the AI's break shop). */
+  purchase: { id: number; item: string; price: number; consumed: string[]; at?: 'break' };
+  sell: { id: number; item: string; refund: number; at?: 'break' };
   rankUp: { id: number; rank: number; bonus: string };
   fork: { id: number; rank: number; optionId: string; auto: boolean };
   gambit: {

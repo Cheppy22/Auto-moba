@@ -64,6 +64,27 @@ export interface MatchSummary {
   pace: Record<PlayTeam, TempoPace>;
   /** The Long Board's high-ground eye badge (`SnapUnit.highGround`), read every tick. */
   eye: EyeRead;
+  /** Each Act break: every piece's gold and Masterworks (break index 0 = after Act 1). */
+  breaks: BreakRead[];
+  /** Masterwork purchases (any time), by item id. */
+  masterworks: Record<string, number>;
+}
+
+/** One piece at one Act break (gold before and after the break shop, items after it). */
+export interface BreakRead {
+  act: number;
+  team: PlayTeam;
+  piece: string;
+  /** Gold banked when the bell broke (before any break shopping). */
+  goldBefore: number;
+  /** Gold left when the next Act starts. */
+  goldAfter: number;
+  /** Gold spent at the break (net of sell refunds). */
+  spent: number;
+  items: number;
+  /** Masterworks owned when the next Act starts, and those bought at this break. */
+  masterworks: number;
+  boughtMasterworks: number;
 }
 
 export interface TempoPace {
@@ -137,10 +158,46 @@ export function simulateMatch(content: Content, seed: number, opts: SimOptions =
   if (opts.whitePlayer) m.issue({ type: 'setPawnPlan', quota: { top: 2, mid: 2, bot: 2 } });
   const reads = paceReader(m, !!opts.whitePlayer && !opts.noGambitsA, opts.whiteEvery ?? 0);
   const act = content.tuning.phaseSeconds * content.tuning.tickRate;
+  const breaks: BreakRead[] = [];
+  let evSeen = 0;
+  const readBreak = (act: number): void => {
+    // the break resolved inside this tick (headless): purchases and sells marked `at: 'break'`
+    const spent = new Map<number, number>();
+    const bought = new Map<number, number>();
+    for (let k = evSeen; k < m.events.length; k++) {
+      const e = m.events[k];
+      if (e.type === 'purchase' && e.payload.at === 'break') {
+        spent.set(e.payload.id, (spent.get(e.payload.id) ?? 0) + e.payload.price);
+        if (content.itemById.get(e.payload.item)?.tier === 3)
+          bought.set(e.payload.id, (bought.get(e.payload.id) ?? 0) + 1);
+      } else if (e.type === 'sell' && e.payload.at === 'break')
+        spent.set(e.payload.id, (spent.get(e.payload.id) ?? 0) - e.payload.refund);
+    }
+    for (const team of PLAY_TEAMS) {
+      for (const id of m.state.teams[team].heroIds) {
+        const h = m.unitById(id)!.hero!;
+        const sp = spent.get(id) ?? 0;
+        breaks.push({
+          act,
+          team,
+          piece: h.defId,
+          goldBefore: h.gold + sp,
+          goldAfter: h.gold,
+          spent: sp,
+          items: h.items.length,
+          masterworks: h.items.filter((x) => content.itemById.get(x)?.tier === 3).length,
+          boughtMasterworks: bought.get(id) ?? 0,
+        });
+      }
+    }
+  };
   const run = (ticks: number): void => {
     for (let i = 0; i < ticks; i++) {
       reads.before();
+      const act = m.state.phase.n;
+      evSeen = m.events.length;
       if (m.step(1) === 0) return;
+      if (m.state.phase.kind === 'live' && m.state.phase.n > act) readBreak(act);
       reads.after();
     }
   };
@@ -192,6 +249,7 @@ export function simulateMatch(content: Content, seed: number, opts: SimOptions =
     B: { offered: [], taken: [], held: s.relics.held.B.map((h) => h.id) },
   };
   const rankMinute: (number | null)[] = Array.from({ length: 9 }, () => null);
+  const masterworks: Record<string, number> = {};
   let campsCleared = 0;
   let firstTowerMinute: number | null = null;
   let throneAt = -1;
@@ -254,6 +312,8 @@ export function simulateMatch(content: Content, seed: number, opts: SimOptions =
     relics,
     pace: reads.pace(),
     eye: reads.eye,
+    breaks,
+    masterworks,
   };
 }
 
