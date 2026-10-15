@@ -68,7 +68,13 @@ describe('balance tooling', () => {
     expect(act1).toBeGreaterThan(200);
     // the square map has no heights, so no eye badge
     expect(r.eye.onTicks).toBe(0);
-    const p = simulateMatch(content, 11, { whitePlayer: true, whiteEvery: 60, maxPhases: 1 });
+    // White drafts no relics here, so no Sealed Move plays a card on its own between the stand-in's
+    const p = simulateMatch(content, 11, {
+      whitePlayer: true,
+      whiteEvery: 60,
+      maxPhases: 1,
+      relics: { A: 'none' },
+    });
     expect(p.pawns.A).toBeGreaterThan(0);
     expect(p.pace.A.gaps.every((g) => g >= 60)).toBe(true);
   });

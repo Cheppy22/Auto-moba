@@ -79,7 +79,7 @@ describe('Tournament run: the draw', () => {
     expect(generateOpponents(content, 78).map((o) => o.name)).not.toEqual(a.map((o) => o.name));
     expect(a.map((o) => o.round)).toEqual([1, 2, 3, 4]);
     expect(a.map((o) => o.relics.length)).toEqual(T.rounds.map((r) => r.relics));
-    expect(a.map((o) => o.tempoBonus)).toEqual([0, 5, 10, 15]);
+    expect(a.map((o) => o.tempoBonus)).toEqual(T.rounds.map((r) => r.tempoBonus));
     expect(a[3].name).toBe("The Black Queen's Court");
     expect(new Set(a.map((o) => o.name)).size).toBe(4);
     for (const o of a.slice(0, 3)) expect(T.names).toContain(o.name);

@@ -473,6 +473,7 @@ function aiPick(
   if (!best) return decline(ctx, team);
   const full = r.held[team].length >= relicMax(ctx, team);
   if (full) {
+    if (r.held[team].length === 0) return decline(ctx, team); // a cap of 0 (a run's round table)
     const weak = weakest(ctx, team, tags);
     if (best.score <= weak.score) return decline(ctx, team);
     take(ctx, team, best.def, best.offer.aim, weak.held.id, auto);
@@ -487,6 +488,7 @@ function randomPick(ctx: Ctx, team: PlayTeam): void {
   const def = ctx.c.relicById.get(offer.id)!;
   if (r.held[team].length < relicMax(ctx, team))
     return take(ctx, team, def, offer.aim, null, false);
+  if (r.held[team].length === 0) return decline(ctx, team);
   if (rand(ctx.s.rng, 'relic') < 0.5) return decline(ctx, team);
   take(ctx, team, def, offer.aim, pick(ctx.s.rng, 'relic', r.held[team]).id, false);
 }
