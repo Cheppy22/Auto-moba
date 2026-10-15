@@ -471,7 +471,7 @@ function aiPick(
     if (!best || score > best.score) best = { offer, def, score };
   }
   if (!best) return decline(ctx, team);
-  const full = r.held[team].length >= relicMax(ctx);
+  const full = r.held[team].length >= relicMax(ctx, team);
   if (full) {
     const weak = weakest(ctx, team, tags);
     if (best.score <= weak.score) return decline(ctx, team);
@@ -485,7 +485,8 @@ function randomPick(ctx: Ctx, team: PlayTeam): void {
   const r = ctx.s.relics;
   const offer = pick(ctx.s.rng, 'relic', r.offers[team]);
   const def = ctx.c.relicById.get(offer.id)!;
-  if (r.held[team].length < relicMax(ctx)) return take(ctx, team, def, offer.aim, null, false);
+  if (r.held[team].length < relicMax(ctx, team))
+    return take(ctx, team, def, offer.aim, null, false);
   if (rand(ctx.s.rng, 'relic') < 0.5) return decline(ctx, team);
   take(ctx, team, def, offer.aim, pick(ctx.s.rng, 'relic', r.held[team]).id, false);
 }
@@ -567,11 +568,11 @@ export function pickRelic(
   const offer = r.offers.A.find((o) => o.id === relicId);
   const def = ctx.c.relicById.get(relicId);
   if (!offer || !def) return { ok: false, reason: 'not one of the offered relics' };
-  if (r.held.A.length >= relicMax(ctx)) {
+  if (r.held.A.length >= relicMax(ctx, 'A')) {
     if (!replace || !r.held.A.some((h) => h.id === replace))
       return {
         ok: false,
-        reason: `you hold ${countWord(relicMax(ctx))} relics: replace one, or decline`,
+        reason: `you hold ${countWord(relicMax(ctx, 'A'))} relics: replace one, or decline`,
       };
   } else if (replace) return { ok: false, reason: 'you have a free slot: nothing to replace' };
   const aim = checkAim(ctx, 'A', def, want, offer.aim);
@@ -584,7 +585,7 @@ export function declineRelic(ctx: Ctx): CommandResult {
   const early = atBreak(ctx);
   if (early) return { ok: false, reason: early };
   if (!draftOpen(ctx)) return { ok: false, reason: 'no relic draft is open' };
-  if (ctx.s.relics.held.A.length < relicMax(ctx))
+  if (ctx.s.relics.held.A.length < relicMax(ctx, 'A'))
     return { ok: false, reason: 'you have a free slot: take a relic' };
   decline(ctx, 'A');
   return { ok: true };

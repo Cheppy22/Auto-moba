@@ -59,6 +59,8 @@ export function nextMatchConfig(c: Content, run: RunState, withCourt = false): M
   if (run.status === 'champion' || run.status === 'out') throw new Error('the run is over');
   if (run.offers) throw new Error('pick a reward first');
   const opp = run.opponents[run.round];
+  const t = tournamentOf(c);
+  const capB = t.rounds[run.round]?.relicMax;
   return {
     seed: matchSeed(run.seed, run.round),
     setup: { B: copySetup(opp.setup), ...(withCourt ? { A: copySetup(run.court) } : {}) },
@@ -72,7 +74,8 @@ export function nextMatchConfig(c: Content, run: RunState, withCourt = false): M
     },
     lockStyles: { A: { ...run.archetypes } },
     adjudicate: true,
-    relicMax: tournamentOf(c).relicMax,
+    relicMax: t.relicMax,
+    ...(capB !== undefined ? { relicMaxB: capB } : {}),
     ...(opp.styles ? { forceStyles: { B: { ...opp.styles } } } : {}),
     // 2B (Blitz) adds its pace settings here from `run.pace`; Classical uses the defaults.
   };

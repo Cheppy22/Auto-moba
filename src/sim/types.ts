@@ -676,6 +676,8 @@ export interface MatchState {
 export interface RunRules {
   /** Relics a side may hold (3 normally, 5 in a run). */
   relicMax: number;
+  /** Relics Black may hold (the round table can set it lower than `relicMax`). */
+  relicMaxB: number;
   /** Book moves: cards drawn twice as often for this side. */
   books: Record<PlayTeam, string[]>;
   /** White's carried archetypes: Rank 4 resolves at once to these. */
@@ -1036,6 +1038,8 @@ export interface MatchConfig {
   adjudicate?: boolean;
   /** Relics a side may hold (default `relics.max`, 3; a run uses 5). */
   relicMax?: number;
+  /** Relics Black may hold (default `relicMax`; a run's round table can set it lower). */
+  relicMaxB?: number;
 }
 
 export interface Replay {
