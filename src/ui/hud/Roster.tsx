@@ -1,6 +1,7 @@
 import { useRef } from 'preact/hooks';
 import type { Snapshot, Unit } from '../../sim';
 import { causeWord, fallPhrase } from '../../analysis/feedback';
+import { courtName } from '../../analysis/text';
 import { HpRing } from '../Ornament';
 import { mmss } from '../format';
 import {
@@ -46,7 +47,7 @@ export function Roster(props: {
     <div
       class={`roster side-${team} ${props.row ? 'row' : ''}`}
       data-testid={team === 'A' ? 'roster' : 'roster-enemy'}
-      aria-label={team === 'A' ? 'White pieces' : 'Black pieces'}
+      aria-label={`${courtName(team)} pieces`}
     >
       {units.map((u) => {
         const h = u.hero!;
@@ -90,7 +91,7 @@ export function Roster(props: {
             data-testid={`roster-${team}-${h.defId}`}
             data-rank={h.rank}
             data-style={h.style}
-            aria-label={`${team === 'A' ? 'White' : 'Black'} ${name}${style ? `, ${style}` : ''}, rank ${h.rank}, ${LANE_NOW_LABEL[lane]}${u.alive ? '' : ', down'}`}
+            aria-label={`${courtName(team)} ${name}${style ? `, ${style}` : ''}, rank ${h.rank}, ${LANE_NOW_LABEL[lane]}${u.alive ? '' : ', down'}`}
             aria-expanded={open}
             title={`${name}${style ? ` · ${style}` : ''} · Rank ${h.rank}.${fall ? ` Fell: ${fallPhrase(fall)}.` : ''} Tap to follow, tap again or hold for details.`}
             onClick={tap}

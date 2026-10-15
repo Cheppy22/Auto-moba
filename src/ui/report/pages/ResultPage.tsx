@@ -1,5 +1,6 @@
 import type { PlayTeam } from '../../../sim';
 import type { Award, PieceRow } from '../../../analysis/summary';
+import { courtName } from '../../../analysis/text';
 import { clock, full } from '../../charts';
 import { TEAM_COLOR } from '../../charts';
 import { Term } from '../../glossary';
@@ -9,7 +10,7 @@ import { PieceGlyph } from '../../pieces';
 import { useSession } from '../../session';
 import { Num } from '../common';
 import type { ReportData } from '../data';
-import { Portrait, reducedMotion, teamWord } from '../parts';
+import { Portrait, reducedMotion } from '../parts';
 
 const fmtAward = (a: Award): string => {
   if (a.unit === 'seconds') return clock(a.value);
@@ -34,7 +35,7 @@ function Banner(props: { data: ReportData; onSame: () => void; onNew: () => void
       No <Term id="checkmate">checkmate</Term>
     </>
   );
-  const verdict = win ? `${teamWord(win)} wins` : 'Draw';
+  const verdict = win ? `${courtName(win)} wins` : 'Draw';
   const acts = `${sum.acts} ${sum.acts === 1 ? 'Act' : 'Acts'}`;
   const { A, B } = sum.teams;
   const points = !adjudicated
@@ -67,8 +68,8 @@ function Banner(props: { data: ReportData; onSame: () => void; onNew: () => void
           {run
             ? run.status === 'playing'
               ? run.opponents[run.round].name
-              : (run.results[run.results.length - 1]?.opponent ?? 'Black')
-            : 'Black'}
+              : (run.results[run.results.length - 1]?.opponent ?? courtName('B'))
+            : courtName('B')}
         </span>
         {points && (
           <span class="rp-points" data-testid="points-line">
@@ -139,7 +140,7 @@ function Awards(props: { data: ReportData }) {
                   team && <PieceGlyph piece="king" team={team} size={22} />
                 )}
                 <span class={team ? `team${team}` : ''}>
-                  {row ? row.name : team ? teamWord(team) : ''}
+                  {row ? row.name : team ? courtName(team) : ''}
                 </span>
               </span>
               <span class="rp-award-value">{fmtAward(a)}</span>
@@ -193,7 +194,7 @@ function Totals(props: { data: ReportData }) {
       <div class="rp-totals-head">
         <b class="teamA">White</b>
         <span class="dim tiny">Team totals</span>
-        <b class="teamB">Black</b>
+        <b class="teamB">{courtName('B')}</b>
       </div>
       {metrics.map((m) => {
         const total = m.a + m.b;
@@ -307,11 +308,11 @@ function Block(props: {
       class={`rp-block ${props.team}`}
       data-testid={`team-${props.team}`}
       role="table"
-      aria-label={`${teamWord(props.team)} scoreboard`}
+      aria-label={`${courtName(props.team)} scoreboard`}
     >
       <h3 class="rp-block-head">
         <PieceGlyph piece="king" team={props.team} size={22} />
-        <span>{teamWord(props.team)}</span>
+        <span>{courtName(props.team)}</span>
         {props.team === 'A' && <span class="dim tiny">(you)</span>}
         <span class={`rp-tag ${won ? 'won' : ''}`}>
           {sum.winner === null ? 'Draw' : won ? 'Winner' : 'Defeated'}

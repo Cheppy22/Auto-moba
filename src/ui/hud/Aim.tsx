@@ -1,6 +1,7 @@
 import type { Snapshot } from '../../sim';
 import { LANES, LANE_LABEL } from '../pieces';
 import { useEscape, useSession } from '../session';
+import { courtName } from '../../analysis/text';
 
 /** What the next tap does: three lane buttons, or a hint to tap the 3D view. */
 export function Aim(props: { snap: Snapshot }) {
@@ -25,8 +26,8 @@ export function Aim(props: { snap: Snapshot }) {
         ? 'Tap one of your pieces'
         : kind === 'enemy'
           ? aim.kind === 'gambit' && aim.cardId === 'siege'
-            ? 'Tap a Black Bastion or the Black Throne'
-            : 'Tap a Black piece'
+            ? `Tap a ${courtName('B')} Bastion or the ${courtName('B')} Throne`
+            : `Tap a ${courtName('B')} piece`
           : 'Choose a lane';
   return (
     <div class={`aim glass ${kind}`} data-testid="aim" role="group" aria-label={`Aim ${title}`}>

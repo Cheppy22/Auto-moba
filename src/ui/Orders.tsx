@@ -16,6 +16,7 @@ import {
 } from './pieces';
 import { Term, Terms } from './glossary';
 import { useSession } from './session';
+import { courtPossessive } from '../analysis/text';
 
 export function whitePieces(s: ReturnType<typeof useSession>): Unit[] {
   const m = s.match!;
@@ -81,7 +82,7 @@ function BlackCourt() {
     .sort((a, b) => PIECE_ORDER.indexOf(a.hero!.defId) - PIECE_ORDER.indexOf(b.hero!.defId));
   return (
     <div class="card col black-court" data-testid="black-court">
-      <b class="small">Black’s court</b>
+      <b class="small">{courtPossessive('B')} court</b>
       {units.map((u) => {
         const h = u.hero!;
         return (

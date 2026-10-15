@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { Fight } from '../../analysis';
+import { courtName } from '../../analysis/text';
 import { drawReplay, replayHit, type ReplayData } from '../../render';
 import { useSession } from '../session';
 import { mmss, n0 } from '../format';
@@ -214,9 +215,9 @@ export function ReplayPanel(props: { data: ReportData; id: number; active: boole
             </b>
             <div class="tiny">
               Damage: <span class="teamA">{n0(selected.damageA)}</span> from White,{' '}
-              <span class="teamB">{n0(selected.damageB)}</span> from Black. Pieces fallen:{' '}
-              <span class="teamA">{selected.deathsA}</span> White,{' '}
-              <span class="teamB">{selected.deathsB}</span> Black.
+              <span class="teamB">{n0(selected.damageB)}</span> from {courtName('B')}. Pieces
+              fallen: <span class="teamA">{selected.deathsA}</span> White,{' '}
+              <span class="teamB">{selected.deathsB}</span> {courtName('B')}.
             </div>
             <table class="stats">
               <thead>
@@ -234,7 +235,7 @@ export function ReplayPanel(props: { data: ReportData; id: number; active: boole
                   return (
                     <tr key={id} style={{ fontWeight: id === h.id ? 700 : 400 }}>
                       <td class={p.team === 'A' ? 'teamA' : 'teamB'}>
-                        {p.team === 'A' ? 'White' : 'Black'} {heroName(s.content, p.def)}
+                        {courtName(p.team)} {heroName(s.content, p.def)}
                       </td>
                       <td>{n0(d.dealt)}</td>
                       <td>{n0(d.taken)}</td>

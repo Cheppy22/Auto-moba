@@ -3,6 +3,7 @@ import type { Snapshot } from '../../sim';
 import { LANE_NOW_LABEL, LaneMark, PieceGlyph, pieceLabel, shownLane } from '../pieces';
 import { useSession } from '../session';
 import { courtUnits } from './courtUnits';
+import { courtName } from '../../analysis/text';
 
 /**
  * Black's five pieces as small tokens in the top bar: icon, health ring, rank, alive or down.
@@ -12,7 +13,12 @@ export function BlackCourt(props: { snap: Snapshot }) {
   const s = useSession();
   const m = s.match!;
   return (
-    <div class="bcourt" data-testid="roster-enemy" role="group" aria-label="Black pieces">
+    <div
+      class="bcourt"
+      data-testid="roster-enemy"
+      role="group"
+      aria-label={`${courtName('B')} pieces`}
+    >
       {courtUnits(m, 'B').map((u) => {
         const h = u.hero!;
         const frac = u.alive ? u.hp / u.stats.maxHp : 0;
@@ -28,9 +34,9 @@ export function BlackCourt(props: { snap: Snapshot }) {
             data-testid={`roster-B-${h.defId}`}
             data-rank={h.rank}
             data-lane-now={lane}
-            aria-label={`Black ${name}, rank ${h.rank}, ${LANE_NOW_LABEL[lane]}${u.alive ? '' : ', down'}`}
+            aria-label={`${courtName('B')} ${name}, rank ${h.rank}, ${LANE_NOW_LABEL[lane]}${u.alive ? '' : ', down'}`}
             aria-expanded={open}
-            title={`Black ${name} · Rank ${h.rank}${u.alive ? '' : ' · down'} (tap for details)`}
+            title={`${courtName('B')} ${name} · Rank ${h.rank}${u.alive ? '' : ' · down'} (tap for details)`}
             onClick={() => s.openCard(u.id)}
           >
             <HpRing frac={frac} color={hurt ? 'var(--clock-hi)' : 'var(--b)'} alive={u.alive}>

@@ -3,6 +3,7 @@ import { mmss } from '../format';
 import { PieceGlyph, pieceLabel } from '../pieces';
 import { useSession } from '../session';
 import { courtUnits } from './courtUnits';
+import { courtName } from '../../analysis/text';
 
 /** How long a piece lingers in the tray after it respawns, for its slide out. */
 const LEAVE_MS = 320;
@@ -16,8 +17,8 @@ export function CaptureTray(props: { fallen: 'A' | 'B' }) {
   const s = useSession();
   const m = s.match!;
   const { fallen } = props;
-  const owner = fallen === 'A' ? 'White' : 'Black';
-  const taker = fallen === 'A' ? 'Black' : 'White';
+  const owner = courtName(fallen);
+  const taker = courtName(fallen === 'A' ? 'B' : 'A');
   const kept = useRef<{ order: number[]; leaving: Map<number, number> }>({
     order: [],
     leaving: new Map(),

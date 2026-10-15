@@ -14,6 +14,7 @@ import {
 } from '../pieces';
 import { forkOptionName, useEscape, useSession } from '../session';
 import { shownItems } from './blackItems';
+import { courtName } from '../../analysis/text';
 
 const RANKS = [1, 2, 3, 4, 5, 6, 7, 8];
 
@@ -72,7 +73,7 @@ export function PieceCard() {
         <div class="ucard-name">
           <b data-testid="unit-card-piece">
             {pieceLabel(s.content, h.defId)}
-            <span class="dim"> · {team === 'A' ? 'White' : 'Black'}</span>
+            <span class="dim"> · {courtName(team)}</span>
           </b>
           <span class="ucard-style" data-testid="unit-card-style">
             {h.style ? (

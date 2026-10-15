@@ -12,6 +12,7 @@ import { RelicRow } from './RelicRow';
 import { Roster } from './Roster';
 import { CaptureTray } from './Trays';
 import type { HudShape } from './hudMode';
+import { courtName } from '../../analysis/text';
 
 /** The room the HUD takes, in CSS px, for the 3D camera (also exposed as `--hud-*`). */
 interface Insets {
@@ -116,7 +117,7 @@ export function CourtLayout(props: {
           <CaptureTray fallen="A" />
         </div>
         <div class="v2-black">
-          <span class="v2-label">Black</span>
+          <span class="v2-label">{courtName('B')}</span>
           <BlackCourt snap={snap} />
           <RelicRow team="B" snap={snap} />
         </div>

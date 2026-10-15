@@ -31,7 +31,7 @@ import {
   type School,
 } from '../sim';
 import type { CamMode } from '../render/broadcast/types';
-import { courtName } from '../analysis/text';
+import { courtName, setOpposingCourt } from '../analysis/text';
 import { inputFromMatch } from '../analysis';
 import { buildSummary } from '../analysis/summary';
 import { loadBest, loadRun, saveBest, saveRun } from './run/save';
@@ -290,6 +290,8 @@ export class Session {
       ...(this.longMap ? { map: 'long' as const } : {}),
       ...config,
     });
+    // Black reads as the opposing court's name in a run (see `courtName`), "Black" in an Exhibition
+    setOpposingCourt(this.run?.opponents[this.run.round]?.name ?? null);
     this.seenSeq = -1;
     this.lastLeft = null;
     this.forkCam = null;
@@ -761,7 +763,11 @@ export class Session {
       const wantStructure = card.cardId === 'siege';
       const targetId = this.pickEnemy(clientX, clientY, wantStructure);
       if (targetId === null)
-        return this.toast(wantStructure ? 'Tap a Black Bastion or Throne' : 'Tap a Black piece');
+        return this.toast(
+          wantStructure
+            ? `Tap a ${courtName('B')} Bastion or Throne`
+            : `Tap a ${courtName('B')} piece`,
+        );
       r = this.issue({ type: 'playGambit', slot: aim.slot, targetId });
     }
     if (r?.ok) this.setUi({ aim: null });
@@ -949,7 +955,7 @@ export class Session {
             this.chip(
               {
                 kind: 'relic',
-                title: `Black took ${name}`,
+                title: `${courtName('B')} took ${name}`,
                 detail: 'Tap their relic seal',
                 team: 'B',
               },

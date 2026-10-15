@@ -1,10 +1,10 @@
 import type { LaneId } from '../../sim';
-import { laneName } from '../../analysis/text';
 import { LANES, LANE_TAG } from '../pieces';
+import { courtName, laneName } from '../../analysis/text';
 
 function words(v: number): string {
   if (v > 0.15) return 'White pushing';
-  if (v < -0.15) return 'Black pushing';
+  if (v < -0.15) return `${courtName('B')} pushing`;
   return 'even';
 }
 

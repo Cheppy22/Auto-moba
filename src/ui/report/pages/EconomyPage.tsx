@@ -9,6 +9,7 @@ import {
   full,
   type Marker,
 } from '../../charts';
+import { courtName } from '../../../analysis/text';
 import { PieceGlyph } from '../../pieces';
 import type { PieceId } from '../../../sim';
 import { GuideKey } from '../Guides';
@@ -49,14 +50,14 @@ export function EconomyPage(props: { data: ReportData }) {
       v: leadAt(b.tick / tickRate),
       shape: 'diamond',
       color: TEAM_COLOR[b.team],
-      label: `${b.team === 'A' ? 'White' : 'Black'} Bastion fell`,
+      label: `${courtName(b.team)} Bastion fell`,
     })),
     ...sum.objectives.checks.map<Marker>((c) => ({
       t: c.fromTick / tickRate,
       v: leadAt(c.fromTick / tickRate),
       shape: 'tri',
       color: TEAM_COLOR[c.team],
-      label: `${c.team === 'A' ? 'White' : 'Black'} in Check`,
+      label: `${courtName(c.team)} in Check`,
     })),
   ];
   const sorted = [...sum.rows].sort((a, b) => b.goldEarned - a.goldEarned);
@@ -91,10 +92,10 @@ export function EconomyPage(props: { data: ReportData }) {
         testid="chart-lead"
         wide
         title="Gold lead over time"
-        note="White above the line, Black below"
+        note={`White above the line, ${courtName('B')} below`}
         legend={[
           { label: 'White ahead', color: TEAM_COLOR.A, shape: 'box' },
-          { label: 'Black ahead', color: TEAM_COLOR.B, shape: 'box' },
+          { label: `${courtName('B')} ahead`, color: TEAM_COLOR.B, shape: 'box' },
           { label: 'Bastion fell', color: '#b9b2a2', shape: 'diamond' },
           { label: 'Check', color: '#b9b2a2', shape: 'tri' },
         ]}
@@ -109,7 +110,7 @@ export function EconomyPage(props: { data: ReportData }) {
         }}
       >
         <TimeChart
-          label="Gold lead over time, White above zero and Black below"
+          label={`Gold lead over time, White above zero and ${courtName('B')} below`}
           xMax={endSec}
           series={[
             {
@@ -118,7 +119,7 @@ export function EconomyPage(props: { data: ReportData }) {
               color: '#efe6d2',
               pts: lead,
               mode: 'line',
-              fmt: (v) => (v >= 0 ? `White +${full(v)}` : `Black +${full(-v)}`),
+              fmt: (v) => (v >= 0 ? `White +${full(v)}` : `${courtName('B')} +${full(-v)}`),
             },
           ]}
           diverge={{ pos: TEAM_COLOR.A, neg: TEAM_COLOR.B }}
@@ -137,7 +138,7 @@ export function EconomyPage(props: { data: ReportData }) {
         title="Gold earned, by team"
         legend={[
           { label: 'White', color: TEAM_COLOR.A, shape: 'line' },
-          { label: 'Black', color: TEAM_COLOR.B, shape: 'line' },
+          { label: courtName('B'), color: TEAM_COLOR.B, shape: 'line' },
         ]}
       >
         <TimeChart
@@ -153,7 +154,7 @@ export function EconomyPage(props: { data: ReportData }) {
             },
             {
               id: 'B',
-              label: 'Black',
+              label: courtName('B'),
               color: TEAM_COLOR.B,
               pts: toPts(sum.series.gold.B, 'total', tickRate),
               mode: 'line',
@@ -184,7 +185,7 @@ export function EconomyPage(props: { data: ReportData }) {
         title="Rank over time"
         legend={[
           { label: 'White', color: TEAM_COLOR.A, shape: 'line' },
-          { label: 'Black', color: TEAM_COLOR.B, shape: 'line' },
+          { label: courtName('B'), color: TEAM_COLOR.B, shape: 'line' },
         ]}
       >
         <Strips
