@@ -310,7 +310,9 @@ test('Run kit choices reach the match: a carried relic is held from Act 1, the c
   const forks = await page.evaluate(() => {
     const s = (window as unknown as Sess).__session;
     const opened: string[] = [];
-    for (let i = 0; i < 300 && s.match.state.tick < 8200; i++) {
+    const locked = () => s.match.events.filter((e) => e.type === 'fork' && e.payload.locked).length;
+    // play until both locked pieces reached Rank 4 (or about 11 minutes)
+    for (let i = 0; i < 500 && s.match.state.tick < 13200 && locked() < 2; i++) {
       s.match.step(30);
       if (s.match.state.bell.stage === 'break') {
         s.match.issue({ type: 'autoRelic' });
@@ -324,10 +326,7 @@ test('Run kit choices reach the match: a carried relic is held from Act 1, the c
         s.match.issue({ type: 'autoForks' });
       }
     }
-    return {
-      opened,
-      locked: s.match.events.filter((e) => e.type === 'fork' && e.payload.locked).length,
-    };
+    return { opened, locked: locked() };
   });
   // both locked pieces resolved at Rank 4 without a sheet; the others still asked
   expect(forks.locked).toBe(2);
