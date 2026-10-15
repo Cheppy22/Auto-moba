@@ -1,5 +1,6 @@
 import type { PieceId } from '../../sim';
 import type { PieceRow } from '../../analysis/summary';
+import { courtName } from '../../analysis/text';
 import { PieceGlyph, StyleBadge } from '../pieces';
 
 export const reducedMotion = (): boolean => {
@@ -9,8 +10,6 @@ export const reducedMotion = (): boolean => {
     return false;
   }
 };
-
-export const teamWord = (t: 'A' | 'B'): string => (t === 'A' ? 'White' : 'Black');
 
 /** The match MVP's crown. */
 export function Crown(props: { size?: number }) {
@@ -45,7 +44,7 @@ export function TeamStar(props: { size?: number; team: 'A' | 'B' }) {
       height={s}
       viewBox="0 0 24 24"
       role="img"
-      aria-label={`${teamWord(props.team)} best piece`}
+      aria-label={`${courtName(props.team)} best piece`}
     >
       <path
         d="M12 2.2l2.9 6.2 6.7.8-4.9 4.6 1.3 6.7L12 17l-6 3.5 1.3-6.7L2.4 9.2l6.7-.8z"

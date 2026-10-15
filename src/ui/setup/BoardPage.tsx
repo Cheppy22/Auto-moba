@@ -1,6 +1,7 @@
 import { useRef, useState } from 'preact/hooks';
 import type { Content, LaneId, PieceId, SetupEntry } from '../../sim';
 import { Term, Terms } from '../glossary';
+import { courtPossessive } from '../../analysis/text';
 import { moveToLane, swapLanes } from '../LaneBoard';
 import { LANES, LANE_SLOTS, PieceGlyph } from '../pieces';
 import { DISPOSITION_LABEL, DISPOSITION_NOTE, LANE_FULL, laneNotes, passiveParts } from './data';
@@ -90,7 +91,7 @@ export function BoardPage(props: {
         <div class="bp-left">
           <div class="bd" data-testid="lane-board" ref={bd}>
             <div class="bd-side bd-black">
-              Black’s <Term id="court">court</Term> (hidden)
+              {courtPossessive('B')} <Term id="court">court</Term> (hidden)
             </div>
             <div class="bd-lanes">
               {lanes.map(({ lane, here }) => (

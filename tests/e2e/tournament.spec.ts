@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { overflow, viewReady, watchErrors } from './helpers';
+import { overflow, startLive, viewReady, watchErrors } from './helpers';
 
 const shots = process.env.SHOTS_DIR;
 
@@ -28,7 +28,7 @@ const views = [
 async function shot(page: Page, name: string): Promise<void> {
   if (!shots) return;
   // the Title fades its parts in over about 2.5 s
-  await page.waitForTimeout(name.startsWith('title') ? 3000 : 500);
+  if (!name.endsWith('banner')) await page.waitForTimeout(name.startsWith('title') ? 3000 : 500);
   await page.screenshot({ path: `${shots}/tournament-${name}.png` });
 }
 
@@ -292,6 +292,76 @@ test('four wins make a Champion; a points win says so', async ({ page }) => {
   await shot(page, 'champion-phone');
   await page.getByTestId('summary-new').click();
   await expect(page.getByTestId('draw')).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+/** Plays a Check on Black through the sim's own event stream, so the session raises its banner. */
+async function checkBlack(page: Page, hold = false): Promise<void> {
+  // for a screenshot: hold the page clock and the animations, so the banner stays up while it is taken
+  if (hold) {
+    await page.addStyleTag({ content: '.banner { animation: none !important; }' });
+    await page.evaluate(() => {
+      const w = window as unknown as { __now: () => number };
+      w.__now = performance.now.bind(performance);
+      const t = performance.now();
+      performance.now = () => t;
+    });
+  }
+  await page.evaluate(() => {
+    const m = (window as unknown as Sess).__session.match as unknown as {
+      ctx: { emit(t: string, p: unknown): void };
+      step(n: number): number;
+    };
+    m.ctx.emit('check', { team: 'B' });
+    m.step(1);
+  });
+}
+
+test('Black reads as the opposing court in a run', async ({ page }) => {
+  test.setTimeout(120_000);
+  const errors = watchErrors(page);
+  await openSetup(page, '7');
+  const court = await page.evaluate(() => {
+    const r = (window as unknown as Sess).__session.run as unknown as {
+      opponents: { name: string }[];
+      round: number;
+    };
+    return r.opponents[r.round].name;
+  });
+  await beginMatch(page);
+  // the court's short name ("The Brasswick Club" -> "Brasswick") labels its row and pieces
+  const label = (await page.locator('.v2-label').innerText()).trim();
+  expect(label).not.toBe('Black');
+  expect(court).toContain(label);
+  await expect(page.getByTestId('roster-enemy').first()).toHaveAttribute(
+    'aria-label',
+    new RegExp(`^${label}`),
+  );
+  await checkBlack(page, !!shots);
+  await expect(page.getByText(`${label} in Check`).first()).toBeVisible();
+  await shot(page, 'courtname-banner');
+  await page.evaluate(() => {
+    const w = window as unknown as { __now?: () => number };
+    if (w.__now) performance.now = w.__now;
+  });
+  await endMatch(page, 'B');
+  await expect(page.getByTestId('winner')).toContainText(`${label} wins`);
+  await expect(page.getByTestId('team-B')).toHaveAttribute('aria-label', `${label} scoreboard`);
+  await shot(page, 'courtname-report');
+  expect(errors).toEqual([]);
+});
+
+test('an Exhibition still says Black', async ({ page }) => {
+  test.setTimeout(120_000);
+  const errors = watchErrors(page);
+  await startLive(page, '42');
+  await expect(page.locator('.v2-label')).toHaveText('Black');
+  await expect(page.getByTestId('roster-enemy').first()).toHaveAttribute(
+    'aria-label',
+    'Black pieces',
+  );
+  await checkBlack(page);
+  await expect(page.getByText('Black in Check').first()).toBeVisible();
   expect(errors).toEqual([]);
 });
 

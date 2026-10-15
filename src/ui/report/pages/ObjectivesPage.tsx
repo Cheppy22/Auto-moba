@@ -10,11 +10,10 @@ import {
   full,
   type GanttRow,
 } from '../../charts';
-import { laneName } from '../../../analysis/text';
+import { courtName, laneName } from '../../../analysis/text';
 import { useSession } from '../../session';
 import { toPts, type ReportData } from '../data';
 import { GuideKey } from '../Guides';
-import { teamWord } from '../parts';
 
 const LANES = ['top', 'mid', 'bot'] as const;
 const PAWN_COLOR = CAT.blue;
@@ -35,7 +34,7 @@ export function ObjectivesPage(props: { data: ReportData }) {
           t0: at(b.tick),
           color: TEAM_COLOR[b.team],
           shape: 'diamond' as const,
-          label: `${teamWord(b.team)} ${b.index === 0 ? 'outer' : 'inner'} Bastion fell`,
+          label: `${courtName(b.team)} ${b.index === 0 ? 'outer' : 'inner'} Bastion fell`,
         })),
     })),
     {
@@ -45,19 +44,19 @@ export function ObjectivesPage(props: { data: ReportData }) {
         t0: at(t.tick),
         color: TEAM_COLOR[t.team],
         shape: 'square' as const,
-        label: `${teamWord(t.team)} Throne fell`,
+        label: `${courtName(t.team)} Throne fell`,
       })),
     },
     ...(['A', 'B'] as const).map((team) => ({
       id: `check${team}`,
-      label: `${teamWord(team)} Check`,
+      label: `${courtName(team)} Check`,
       items: o.checks
         .filter((c) => c.team === team)
         .map((c) => ({
           t0: at(c.fromTick),
           t1: Math.max(at(c.toTick), at(c.fromTick) + 1),
           color: TEAM_COLOR[team],
-          label: `${teamWord(team)} King down`,
+          label: `${courtName(team)} King down`,
         })),
     })),
   ];
@@ -85,7 +84,7 @@ export function ObjectivesPage(props: { data: ReportData }) {
     label: r.label,
     segs: [
       { key: 'A', label: 'White', value: r.a, color: TEAM_COLOR.A },
-      { key: 'B', label: 'Black', value: r.b, color: TEAM_COLOR.B },
+      { key: 'B', label: courtName('B'), value: r.b, color: TEAM_COLOR.B },
     ],
   }));
   const pressure = report.special.pressure;
@@ -102,7 +101,7 @@ export function ObjectivesPage(props: { data: ReportData }) {
           { label: 'Throne fell', color: '#b9b2a2', shape: 'square' },
           { label: 'King down (Check)', color: '#b9b2a2', shape: 'box' },
           { label: 'White', color: TEAM_COLOR.A, shape: 'line' },
-          { label: 'Black', color: TEAM_COLOR.B, shape: 'line' },
+          { label: courtName('B'), color: TEAM_COLOR.B, shape: 'line' },
         ]}
         table={{
           head: ['Time', 'What', 'Side'],
@@ -110,13 +109,13 @@ export function ObjectivesPage(props: { data: ReportData }) {
             ...o.bastions.map((b) => [
               clock(at(b.tick)),
               `Bastion fell (${laneName(b.lane)})`,
-              teamWord(b.team),
+              courtName(b.team),
             ]),
-            ...o.throne.map((t) => [clock(at(t.tick)), 'Throne fell', teamWord(t.team)]),
+            ...o.throne.map((t) => [clock(at(t.tick)), 'Throne fell', courtName(t.team)]),
             ...o.checks.map((c) => [
               clock(at(c.fromTick)),
               `Check until ${clock(at(c.toTick))}`,
-              teamWord(c.team),
+              courtName(c.team),
             ]),
           ].sort((x, y) => String(x[0]).localeCompare(String(y[0]), undefined, { numeric: true })),
         }}
@@ -135,10 +134,10 @@ export function ObjectivesPage(props: { data: ReportData }) {
         title="Pawns fielded and gambits played"
         legend={[
           { label: 'White', color: TEAM_COLOR.A },
-          { label: 'Black', color: TEAM_COLOR.B },
+          { label: courtName('B'), color: TEAM_COLOR.B },
         ]}
         table={{
-          head: ['Order', 'White', 'Black'],
+          head: ['Order', 'White', courtName('B')],
           rows: orders.map((r) => [r.label, r.a, r.b]),
         }}
       >
@@ -160,9 +159,9 @@ export function ObjectivesPage(props: { data: ReportData }) {
       >
         {(['A', 'B'] as const).map((t) => (
           <div class="rp-tempo" key={t}>
-            <b class={`team${t}`}>{teamWord(t)}</b>
+            <b class={`team${t}`}>{courtName(t)}</b>
             <SplitBar
-              label={`${teamWord(t)} Tempo: pawns and gambits`}
+              label={`${courtName(t)} Tempo: pawns and gambits`}
               testid={`tempo-${t}`}
               parts={[
                 {
@@ -187,7 +186,7 @@ export function ObjectivesPage(props: { data: ReportData }) {
         title="Pawns fielded over time"
         legend={[
           { label: 'White', color: TEAM_COLOR.A, shape: 'line' },
-          { label: 'Black', color: TEAM_COLOR.B, shape: 'line' },
+          { label: courtName('B'), color: TEAM_COLOR.B, shape: 'line' },
         ]}
       >
         <TimeChart
@@ -203,7 +202,7 @@ export function ObjectivesPage(props: { data: ReportData }) {
             },
             {
               id: 'B',
-              label: 'Black',
+              label: courtName('B'),
               color: TEAM_COLOR.B,
               pts: toPts(sum.series.pawnsFielded.B, 'count', tickRate),
               mode: 'step',

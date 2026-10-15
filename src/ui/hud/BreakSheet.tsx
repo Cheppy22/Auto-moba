@@ -10,7 +10,7 @@ import {
   pieceWord,
   summarizeFights,
 } from '../../analysis/feedback';
-import { courtName } from '../../analysis/text';
+import { courtName, courtPossessive } from '../../analysis/text';
 import { n0 } from '../format';
 import { Term, Terms } from '../glossary';
 import { Orders, whitePieces } from '../Orders';
@@ -176,7 +176,7 @@ function BlackRelics(props: { snap: Snapshot }) {
   return (
     <section class="bs-sec" data-testid="break-black-relics">
       <h3 class="bs-h">
-        Black’s <Term id="relic">relics</Term>
+        {courtPossessive('B')} <Term id="relic">relics</Term>
       </h3>
       <ul class="bs-list relics">
         {held.map((h) => {

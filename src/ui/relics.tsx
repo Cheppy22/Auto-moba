@@ -10,6 +10,7 @@ import type {
   Unit,
 } from '../sim';
 import { LANES, LANE_LABEL, LANE_TAG, pieceLabel } from './pieces';
+import { courtName, courtPossessive } from '../analysis/text';
 
 /** Sealed Move triggers in full (the picker) and in brief (the seal row and held card). */
 export const TRIGGER_LABEL: Record<SealedTrigger, string> = {
@@ -111,13 +112,16 @@ export function relicText(
 ): string {
   let text = relicDesc(def);
   if (team === 'B') {
-    const name = content.openingById.get(opening)?.name ?? "Black's";
+    const name = content.openingById.get(opening)?.name ?? courtPossessive('B', "'");
     text = text
       .replace(/your Opening's/g, `${name}'s`)
       .replace(/your Opening/g, name)
-      .replace(/\b[Yy]ou are\b/g, 'Black is')
-      .replace(/\b[Yy]ou (give up|start|gain|hold|earn)\b/g, (_m, v: string) => `Black ${THIRD[v]}`)
-      .replace(/\b[Yy]our\b/g, "Black's");
+      .replace(/\b[Yy]ou are\b/g, `${courtName('B')} is`)
+      .replace(
+        /\b[Yy]ou (give up|start|gain|hold|earn)\b/g,
+        (_m, v: string) => `${courtName('B')} ${THIRD[v]}`,
+      )
+      .replace(/\b[Yy]our\b/g, courtPossessive('B', "'"));
   }
   if (opening !== 'italian')
     text = text

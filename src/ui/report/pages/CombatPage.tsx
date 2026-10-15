@@ -1,5 +1,6 @@
 import { useState } from 'preact/hooks';
 import type { Fight } from '../../../analysis';
+import { courtName } from '../../../analysis/text';
 import type { PieceId } from '../../../sim';
 import {
   BarsH,
@@ -44,7 +45,9 @@ function FightList(props: { data: ReportData }) {
                 Fight {i + 1} · {f.sideA.length} v {f.sideB.length}
               </span>
               <span class="tiny rp-fight-falls">
-                {f.deaths.length === 0 ? 'No falls' : `${f.deathsA} White, ${f.deathsB} Black fell`}
+                {f.deaths.length === 0
+                  ? 'No falls'
+                  : `${f.deathsA} White, ${f.deathsB} ${courtName('B')} fell`}
               </span>
             </div>
             <div class="rp-fight-sides">
@@ -64,7 +67,7 @@ function FightList(props: { data: ReportData }) {
             </div>
             <div
               class="rp-fight-dmg"
-              title={`Damage: White ${full(f.damageA)}, Black ${full(f.damageB)}`}
+              title={`Damage: White ${full(f.damageA)}, ${courtName('B')} ${full(f.damageB)}`}
             >
               <span class="tiny">{compact(f.damageA)}</span>
               <span class="rp-split-mini" aria-hidden="true">
@@ -188,7 +191,7 @@ export function CombatPage(props: { data: ReportData }) {
         title="Damage mitigated over time"
         legend={[
           { label: 'White', color: TEAM_COLOR.A, shape: 'line' },
-          { label: 'Black', color: TEAM_COLOR.B, shape: 'line' },
+          { label: courtName('B'), color: TEAM_COLOR.B, shape: 'line' },
         ]}
       >
         <TimeChart
@@ -204,7 +207,7 @@ export function CombatPage(props: { data: ReportData }) {
             },
             {
               id: 'B',
-              label: 'Black mitigated',
+              label: `${courtName('B')} mitigated`,
               color: TEAM_COLOR.B,
               pts: toPts(sum.series.mitigated.B, 'total', tickRate),
               mode: 'line',
@@ -222,7 +225,7 @@ export function CombatPage(props: { data: ReportData }) {
         title="Kills over time"
         legend={[
           { label: 'White', color: TEAM_COLOR.A, shape: 'line' },
-          { label: 'Black', color: TEAM_COLOR.B, shape: 'line' },
+          { label: courtName('B'), color: TEAM_COLOR.B, shape: 'line' },
         ]}
       >
         <TimeChart
@@ -238,7 +241,7 @@ export function CombatPage(props: { data: ReportData }) {
             },
             {
               id: 'B',
-              label: 'Black kills',
+              label: `${courtName('B')} kills`,
               color: TEAM_COLOR.B,
               pts: toPts(sum.series.kills.B, 'total', tickRate),
               mode: 'step',
@@ -256,7 +259,7 @@ export function CombatPage(props: { data: ReportData }) {
         title="Pieces alive"
         legend={[
           { label: 'White', color: TEAM_COLOR.A, shape: 'line' },
-          { label: 'Black', color: TEAM_COLOR.B, shape: 'line' },
+          { label: courtName('B'), color: TEAM_COLOR.B, shape: 'line' },
         ]}
       >
         <TimeChart
@@ -272,7 +275,7 @@ export function CombatPage(props: { data: ReportData }) {
             },
             {
               id: 'B',
-              label: 'Black alive',
+              label: `${courtName('B')} alive`,
               color: TEAM_COLOR.B,
               pts: toPts(sum.series.alive.B, 'count', tickRate),
               mode: 'step',

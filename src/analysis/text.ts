@@ -14,12 +14,39 @@ export function teamLabel(team: string, viewer: PlayTeam = 'A'): string {
   return team === viewer ? 'your team' : 'the enemy';
 }
 
-/** The two sides of the board: Team A is White, Team B is Black. */
-export const courtName = teamWord;
+/** The opposing court's full name in a Tournament run (set by the session per match); null in an Exhibition. */
+let opposingCourt: string | null = null;
+
+export function setOpposingCourt(name: string | null): void {
+  opposingCourt = name;
+}
+
+/** "Brasswick" for "The Brasswick Club": no leading "The", no trailing club-word (short for phones). */
+function shortCourt(full: string): string {
+  const short = full
+    .replace(/^The\s+/, '')
+    .replace(/\s+(Club|Court|Society|Hall|Circle|Rooms)$/, '')
+    .replace(/\s+Chess$/, '');
+  return short || full;
+}
+
+/**
+ * The one place a side's display name comes from: White is "White"; Black is "Black" in an
+ * Exhibition and the opposing court's short name in a Tournament run ("Wexmoor Gambit").
+ */
+export function courtName(team: string): string {
+  return team === 'B' && opposingCourt ? shortCourt(opposingCourt) : teamWord(team);
+}
+
+/** "Black’s" / "Brasswick’s" ("Lady Marlow's" stays as it is); `apos` is the apostrophe to use. */
+export function courtPossessive(team: string, apos = '’'): string {
+  const n = courtName(team);
+  return /['’]s$/.test(n) ? n : `${n}${apos}s`;
+}
 
 /** The base structure's display name: each side has a Throne. */
 function throneName(team: string): string {
-  return team === 'A' ? 'White Throne' : team === 'B' ? 'Black Throne' : 'Throne';
+  return team === 'A' || team === 'B' ? `${courtName(team)} Throne` : 'Throne';
 }
 
 export const cap = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
@@ -58,11 +85,11 @@ const SLOT_NAMES: Record<string, string> = {
   ford_l: 'the Left ford',
   ford_r: 'the Right ford',
   way_w: "White's Sally Path",
-  way_b: "Black's Sally Path",
 };
 
 /** Slot or obelisk-node id -> a readable place name. */
 export function slotName(id: string): string {
+  if (id === 'way_b') return `${courtPossessive('B', "'")} Sally Path`;
   const direct = SLOT_NAMES[id];
   if (direct) return direct;
   if (id.startsWith('ob_') && SLOT_NAMES[id.slice(3)]) return SLOT_NAMES[id.slice(3)];

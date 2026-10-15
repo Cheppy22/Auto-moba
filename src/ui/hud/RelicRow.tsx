@@ -2,6 +2,7 @@ import { useState } from 'preact/hooks';
 import type { PlayTeam, Snapshot } from '../../sim';
 import { FamilyChip, RelicSeal, aimText, relicText, shownRelics } from '../relics';
 import { useEscape, useSession } from '../session';
+import { courtName } from '../../analysis/text';
 
 /**
  * A team's held relics as a small row of seals under its roster; tap one for its text. Calm: no
@@ -15,7 +16,7 @@ export function RelicRow(props: { team: PlayTeam; snap: Snapshot }) {
   if (held.length === 0) return null;
   const shown = held.find((h) => h.id === open);
   const def = shown ? s.content.relicById.get(shown.id) : undefined;
-  const side = props.team === 'A' ? 'White' : 'Black';
+  const side = courtName(props.team);
   return (
     <div class={`relic-row side-${props.team}`} data-testid={`relic-row-${props.team}`}>
       {held.map((h) => {

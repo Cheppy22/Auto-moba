@@ -119,7 +119,7 @@ export function Side(props: { team: 'A' | 'B'; snap: Snapshot; counts?: boolean 
       <b class={`pts ${team === 'A' ? 'a' : 'b'} ${state}`} data-testid={`points-${team}`}>
         {snap.points[team]}
       </b>
-      <span class={`pts-label ${state}`}>{label}</span>
+      <span class={`pts-label ${state} ${label.length > 10 ? 'long' : ''}`}>{label}</span>
     </div>
   );
 }

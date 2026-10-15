@@ -509,6 +509,12 @@ html[data-layout='desktop'] .hud.v2 {
   letter-spacing: 0.03em;
   white-space: nowrap;
 }
+/* a long court name (Tournament run) is cut short rather than pushing the top bar */
+.hud.v2 .pts-label.long {
+  max-width: calc(56px * var(--u));
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .hud.v2 .clockface b {
   white-space: nowrap;
 }
