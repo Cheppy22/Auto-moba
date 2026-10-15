@@ -1,6 +1,8 @@
 import { useState } from 'preact/hooks';
 import type {
   HeldRelic,
+  PawnQuota,
+  PieceId,
   LaneId,
   RelicAim,
   RelicDef,
@@ -24,10 +26,10 @@ import {
 import { SCHOOL_NAME } from '../schools';
 import { useSession } from '../session';
 
-type Pick = Partial<RelicAim>;
+type AimPatch = Partial<RelicAim>;
 
 /** Left / Mid / Right chips for a lane-bound relic. */
-function LaneChips(props: {
+export function LaneChips(props: {
   value: LaneId | null;
   onChange: (lane: LaneId) => void;
   testid: string;
@@ -53,10 +55,14 @@ function LaneChips(props: {
   );
 }
 
-/** One chip per White piece for a piece-bound relic. */
-function PieceChips(props: {
-  value: number | null;
-  onChange: (piece: number) => void;
+/**
+ * One chip per White piece for a piece-bound relic. In a match a piece is its unit id; in the Run
+ * kit (between matches) it is the piece type.
+ */
+export function PieceChips<T extends number | string>(props: {
+  options: { id: T; piece: PieceId }[];
+  value: T | null;
+  onChange: (piece: T) => void;
   testid: string;
   label: string;
 }) {
@@ -64,28 +70,25 @@ function PieceChips(props: {
   return (
     <div class="rl-aim" role="radiogroup" aria-label={props.label}>
       <span class="rl-aim-label">Piece</span>
-      {whitePieces(s).map((u) => {
-        const piece = u.hero!.defId;
-        return (
-          <button
-            key={u.id}
-            class={`rl-chip piece ${props.value === u.id ? 'on' : ''}`}
-            role="radio"
-            aria-checked={props.value === u.id}
-            aria-label={pieceLabel(s.content, piece)}
-            title={pieceLabel(s.content, piece)}
-            data-testid={`${props.testid}-${piece}`}
-            onClick={() => props.onChange(u.id)}
-          >
-            <PieceGlyph piece={piece} team="A" size={22} />
-          </button>
-        );
-      })}
+      {props.options.map(({ id, piece }) => (
+        <button
+          key={id}
+          class={`rl-chip piece ${props.value === id ? 'on' : ''}`}
+          role="radio"
+          aria-checked={props.value === id}
+          aria-label={pieceLabel(s.content, piece)}
+          title={pieceLabel(s.content, piece)}
+          data-testid={`${props.testid}-${piece}`}
+          onClick={() => props.onChange(id)}
+        >
+          <PieceGlyph piece={piece} team="A" size={22} />
+        </button>
+      ))}
     </div>
   );
 }
 
-function CardChips(props: {
+export function CardChips(props: {
   def: RelicDef;
   value: string | null;
   onChange: (card: string) => void;
@@ -112,14 +115,18 @@ function CardChips(props: {
 }
 
 /** Sealed Move: a card from the Opening's schools and a trigger, as two compact pickers. */
-function SealedControls(props: {
-  aim: RelicAim;
+export function SealedControls(props: {
+  aim: { card: string | null; trigger: SealedTrigger | null };
   guardedOk: boolean;
-  onChange: (patch: Pick) => void;
+  /** The Opening the cards come from (a match's, or the run court's). */
+  opening: string;
+  /** A card's Tempo cost with the relic's discount; absent between matches. */
+  costOf?: (cardId: string, discount: number) => number;
+  onChange: (patch: { card?: string; trigger?: SealedTrigger }) => void;
   testid: string;
 }) {
   const s = useSession();
-  const schools = s.content.openingById.get(s.match!.state.opening.A)?.schools ?? [];
+  const schools = s.content.openingById.get(props.opening)?.schools ?? [];
   const cards = s.content.gambits.filter(
     (g) => g.weight > 0 && (schools.length === 0 || schools.includes(g.school)),
   );
@@ -141,7 +148,8 @@ function SealedControls(props: {
                 .filter((g) => g.school === school)
                 .map((g) => (
                   <option key={g.id} value={g.id}>
-                    {g.name} ({s.match!.cardCost(g.id, discount)} Tempo)
+                    {g.name}
+                    {props.costOf ? ` (${props.costOf(g.id, discount)} Tempo)` : ''}
                   </option>
                 ))}
             </optgroup>
@@ -168,11 +176,11 @@ function SealedControls(props: {
 }
 
 /** Pawn Structure: a stepper per lane (at most the pawn cap in all) and three Tempo reserves. */
-function QuotaControls(props: {
-  aim: RelicAim;
+export function QuotaControls(props: {
+  aim: { quota: PawnQuota | null; reserve: number | null };
   cap: number;
   reserves: number[];
-  onChange: (patch: Pick) => void;
+  onChange: (patch: { quota?: PawnQuota; reserve?: number }) => void;
   testid: string;
 }) {
   const quota = props.aim.quota ?? { top: 0, mid: 0, bot: 0 };
@@ -237,7 +245,7 @@ function AimControl(props: {
   def: RelicDef;
   aim: RelicAim;
   snap: Snapshot;
-  onChange: (patch: Pick) => void;
+  onChange: (patch: AimPatch) => void;
   testid: string;
 }) {
   const s = useSession();
@@ -251,6 +259,8 @@ function AimControl(props: {
         <SealedControls
           aim={aim}
           guardedOk={guardedOk}
+          opening={s.match!.state.opening.A}
+          costOf={(id, discount) => s.match!.cardCost(id, discount)}
           onChange={props.onChange}
           testid={`${props.testid}-sealed`}
         />
@@ -285,6 +295,7 @@ function AimControl(props: {
       )}
       {def.bind === 'piece' && (
         <PieceChips
+          options={whitePieces(s).map((u) => ({ id: u.id, piece: u.hero!.defId }))}
           value={aim.piece}
           onChange={(piece) => props.onChange({ piece })}
           testid={`${props.testid}-piece`}
@@ -300,7 +311,7 @@ function OfferCard(props: {
   def: RelicDef;
   aim: RelicAim;
   snap: Snapshot;
-  onAim: (patch: Pick) => void;
+  onAim: (patch: AimPatch) => void;
   take: { label: string; disabled: boolean; onTake: () => void };
 }) {
   const { offer, def } = props;
@@ -413,7 +424,8 @@ function HeldCard(props: { held: HeldRelic; def: RelicDef; snap: Snapshot }) {
 export function RelicsTab(props: { snap: Snapshot }) {
   const s = useSession();
   const { offers, settled, held } = props.snap.relics;
-  const max = s.content.tuning.relics.max;
+  // a Tournament run raises the cap (the snapshot carries it); an Exhibition uses the tuning value
+  const max = props.snap.relics.max ?? s.content.tuning.relics.max;
   const full = held.A.length >= max;
   const [aims, setAims] = useState<Record<string, RelicAim>>({});
   const [replace, setReplace] = useState<string | null>(null);

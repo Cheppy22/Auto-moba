@@ -3,6 +3,8 @@ import type { LaneId, PlayTeam } from '../../sim';
 import { courtName, laneName } from '../../analysis/text';
 import { introOutMs, type IntroPiece, type IntroState } from '../intro';
 import { LANE_SLOTS, LANES, PIECE_ORDER, PieceGlyph, pieceLabel } from '../pieces';
+import { RelicSeal } from '../relics';
+import { roundLine } from '../run/parts';
 import { SchoolChip } from '../schools';
 import { useSession } from '../session';
 
@@ -17,9 +19,14 @@ function Opening(props: { team: PlayTeam }) {
   const s = useSession();
   const { team } = props;
   const o = s.content.openingById.get(s.match!.state.opening[team]);
+  // in a tournament run Black is a named court that starts with relics (shown as seals)
+  const named = team === 'B' && s.run ? s.run.opponents[s.run.round].name : null;
+  const relics = team === 'B' && s.run ? s.match!.state.relics.held.B : [];
   return (
     <div class={`vs-opening ${team === 'A' ? 'a' : 'b'}`} data-testid={`intro-opening-${team}`}>
-      <span class="vs-court">{courtName(team)}</span>
+      <span class="vs-court" data-testid={named ? 'intro-court-name' : undefined}>
+        {named ?? courtName(team)}
+      </span>
       <b class="vs-opening-name">{o?.name ?? ''}</b>
       <span class="vs-schools">
         {o && o.schools.length > 0 ? (
@@ -28,6 +35,19 @@ function Opening(props: { team: PlayTeam }) {
           <span class="school-chip balanced">Balanced</span>
         )}
       </span>
+      {relics.length > 0 && (
+        <span class="vs-relics" data-testid="intro-relics-B" aria-label="Starting relics">
+          {relics.map((h) => {
+            const def = s.content.relicById.get(h.id);
+            return def ? (
+              <span key={h.id} title={def.name} class="vs-relic">
+                <RelicSeal family={def.family} size={18} />
+                <span class="vs-relic-name">{def.name}</span>
+              </span>
+            ) : null;
+          })}
+        </span>
+      )}
     </div>
   );
 }
@@ -90,7 +110,12 @@ export function Intro() {
       style={{ '--out-ms': `${introOutMs(intro.reduced)}ms` }}
       onClick={tap}
     >
-      <div class="vs">
+      <div class={`vs ${s.run ? 'in-run' : ''}`}>
+        {s.run && (
+          <div class="vs-round" data-testid="intro-round">
+            {roundLine(s.content, s.run)}
+          </div>
+        )}
         <header class="vs-head">
           <Opening team="A" />
           <span class="vs-vs">vs</span>

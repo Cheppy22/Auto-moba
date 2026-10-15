@@ -2,6 +2,8 @@ import { useEffect, useState } from 'preact/hooks';
 import { naturalPath, type Path, type PieceId, type SetupEntry } from '../sim';
 import { PIECE_ORDER } from './pieces';
 import { useSession } from './session';
+import { RunKit } from './run/RunKit';
+import { RunStrip } from './run/RunStrip';
 import { BoardPage } from './setup/BoardPage';
 import { OpeningPage } from './setup/OpeningPage';
 import { Pager } from './setup/Pager';
@@ -16,20 +18,25 @@ const STEPS = ['Paths', 'Board', 'Opening'];
 export function Setup() {
   const s = useSession();
   const m = s.match!;
+  // in a run, from the second match on, the court starts as the last match's; otherwise the lanes
+  // come from the AI's setup but each piece starts on its natural build path (the Queen, "The
+  // Carry", on Offense), not on the AI's random pick
+  const carried = s.run !== null && s.run.results.length > 0;
   const [entries, setEntries] = useState<SetupEntry[]>(() => {
-    // the default lanes come from the AI's setup, but each piece starts on its natural build path
-    // (the Queen, "The Carry", on Offense), not on the AI's random pick
-    const d = m.defaultSetup();
+    const d = carried ? s.setupDefaults()! : m.defaultSetup();
     return PIECE_ORDER.map((p) => {
       const e = d.pieces.find((x) => x.piece === p)!;
-      return { ...e, path: naturalPath(s.content.pieceById.get(p)!) };
+      return carried ? { ...e } : { ...e, path: naturalPath(s.content.pieceById.get(p)!) };
     });
   });
   const [selected, setSelected] = useState<PieceId | null>(null);
   const openings = s.content.openings;
-  const [opening, setOpening] = useState<string>(
-    () => (openings.find((o) => o.id === 'italian') ?? openings[0])?.id ?? 'italian',
+  const [opening, setOpening] = useState<string>(() =>
+    carried
+      ? s.setupDefaults()!.opening
+      : ((openings.find((o) => o.id === 'italian') ?? openings[0])?.id ?? 'italian'),
   );
+  const [kit, setKit] = useState(false);
   const [page, setPage] = useState(0);
   const last = STEPS.length - 1;
   const go = (n: number): void => setPage(Math.max(0, Math.min(last, n)));
@@ -61,9 +68,10 @@ export function Setup() {
 
   return (
     <div class="overlay setup" data-testid="setup">
-      <div class="sp">
+      <div class={`sp ${s.run ? 'in-run' : ''}`}>
         <header class="sp-head">
           <h2>Set the board</h2>
+          {s.run && <RunStrip onOpen={() => setKit(true)} />}
           <ol class="steps" aria-label="Setup steps">
             {STEPS.map((label, i) => (
               <li key={label}>
@@ -126,6 +134,7 @@ export function Setup() {
           )}
         </footer>
       </div>
+      {kit && s.run && <RunKit onClose={() => setKit(false)} />}
     </div>
   );
 }

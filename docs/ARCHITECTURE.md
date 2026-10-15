@@ -43,7 +43,9 @@ src/analysis/    pure: event log -> report models (stats, fights, badges, paths)
 src/render/      theme, emblems, report replay (Canvas 2D);
                  table/ = the three.js game view (board, pieces, effects, free camera);
                  broadcast/ = the play director and effects the view shares
-src/ui/          Preact screens: setup board, live HUD (gambits, forks), Adjourn, reports
+src/ui/          Preact screens: setup board, live HUD (gambits, forks), Adjourn, reports;
+                 run/ = the Tournament run's screens (Draw, Spoils, run strip and kit, summary)
+                 and its device save; session.tsx holds the run between matches
 src/app/         wiring: frame clock, speed control, screen state machine
 tools/           Node: headless match, batch balance runner
 tests/           cross-layer tests: determinism, golden match, content, e2e

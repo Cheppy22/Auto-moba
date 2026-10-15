@@ -185,6 +185,8 @@ export class Session {
   run: RunState | null = null;
   /** The best-finish line kept on this device after runs end (no power; decision 8). */
   best: BestFinish | null = loadBest();
+  /** The run that just ended set a new best finish (the Run summary says so). */
+  runBestNew = false;
   ui: UiState = freshUi();
   version = 0;
   alpha = 1;
@@ -201,6 +203,10 @@ export class Session {
   private prewarming = false;
   /** The last running speed, which the Act clock's hold returns to. */
   private runSpeed: Speed = 1;
+  /** The run as it stood when the open Setup's match was built (see `issue`). */
+  private matchRun: RunState | null = null;
+  /** `?run=test` turns on `testEnd` (end-to-end tests). */
+  private runTestHook = new URLSearchParams(window.location.search).get('run') === 'test';
   /** `?intro=off` skips the match intro (end-to-end tests). */
   private introOn = new URLSearchParams(window.location.search).get('intro') !== 'off';
   private seenSeq = -1;
@@ -294,6 +300,14 @@ export class Session {
 
   issue(cmd: Command): CommandResult {
     if (!this.match) return { ok: false, reason: 'no match' };
+    // the Run kit may have changed archetypes or relic aims since this Setup opened: the match is
+    // built again from the run as it stands (nothing has happened in it yet)
+    if (cmd.type === 'setupTeam' && this.run?.status === 'between' && this.matchRun !== this.run) {
+      const ui = this.ui;
+      this.newMatch(nextMatchConfig(this.content, this.run));
+      this.ui = ui;
+      this.matchRun = this.run;
+    }
     const r = this.match.issue(cmd);
     if (!r.ok) this.toast(r.reason ?? 'rejected');
     else {
@@ -313,9 +327,14 @@ export class Session {
   }
 
   reset(): void {
-    this.match = null;
     // a run in memory is on the device's save; the Title offers Continue
     this.run = null;
+    this.leaveMatch();
+  }
+
+  /** Closes the match and its screens but keeps the run: the next run screen (Spoils, summary) shows. */
+  leaveMatch(): void {
+    this.match = null;
     this.forkCam = null;
     this.blackQueue = [];
     this.ui = freshUi();
@@ -422,6 +441,7 @@ export class Session {
   /** A new run (the Draw comes next); it replaces any saved run. */
   startRun(seed = Math.floor(Math.random() * 1e9)): void {
     this.match = null;
+    this.runBestNew = false;
     this.run = newRun(this.content, seed);
     saveRun(this.run);
     this.notify();
@@ -436,10 +456,12 @@ export class Session {
     const run = this.savedRun();
     if (!run) return false;
     this.run = run;
+    this.runBestNew = false;
     if (run.status === 'playing') {
       this.newMatch(nextMatchConfig(this.content, run));
       this.issue({ type: 'setupTeam', ...run.court });
-    } else this.notify();
+    } else if (run.status === 'between' && !run.offers && run.results.length > 0) this.playRound();
+    else this.notify();
     return true;
   }
 
@@ -447,6 +469,7 @@ export class Session {
   playRound(): void {
     if (!this.run) return;
     this.newMatch(nextMatchConfig(this.content, this.run));
+    this.matchRun = this.run;
   }
 
   /** What Setup pre-fills: the run's court, else the match's seeded default. */
@@ -455,13 +478,16 @@ export class Session {
     return this.match ? this.match.defaultSetup() : null;
   }
 
-  /** Spoils: takes one reward ('auto' = Let the AI choose). */
+  /** Spoils: takes one reward ('auto' = Let the AI choose) and goes on to Setup for the next round. */
   pickReward(reward: Reward | 'auto'): CommandResult {
     if (!this.run) return { ok: false, reason: 'no run' };
     const pick = reward === 'auto' ? aiReward(this.content, this.run) : reward;
     if (!pick) return { ok: false, reason: 'no reward to take' };
     const r = this.applyRun(applyReward(this.content, this.run, pick));
-    if (r.ok) play('chime');
+    if (r.ok) {
+      play('chime');
+      this.playRound();
+    }
     return r;
   }
 
@@ -477,10 +503,38 @@ export class Session {
     return this.applyRun(aimRunRelic(this.content, this.run, relicId, aim));
   }
 
-  /** Leaves the run: its save is deleted (the Run summary's buttons, or abandoning it). */
+  /**
+   * Test hook (`?run=test`): ends the match at once with a set winner, as a Checkmate would (or
+   * as an adjudication would, when asked), so end-to-end tests walk a whole run without playing
+   * four matches.
+   */
+  testEnd(winner: PlayTeam | null, adjudicated = false): void {
+    const m = this.match;
+    if (!m || !this.runTestHook || m.state.phase.kind === 'end') return;
+    const ctx = m.ctx;
+    ctx.s.winner = winner;
+    ctx.s.phase = { kind: 'end', n: ctx.s.phase.n, startTick: ctx.s.tick };
+    ctx.emit('matchEnd', {
+      winner,
+      phase: ctx.s.phase.n,
+      ...(adjudicated ? { adjudicated: true as const } : {}),
+    });
+    this.notify();
+  }
+
+  /**
+   * Leaves the run, the one in memory or else the one saved on the device: its save is deleted.
+   * Abandoning a run that got past the Club round still counts for the best-finish line.
+   */
   endRun(): void {
+    const run = this.run ?? this.savedRun();
+    if (run && (run.status === 'between' || run.status === 'playing') && run.round > 0) {
+      this.best = betterFinish(this.best, { v: 1, round: run.round, champion: false });
+      saveBest(this.best);
+    }
     saveRun(null);
     this.run = null;
+    this.runBestNew = false;
     this.notify();
   }
 
@@ -508,7 +562,9 @@ export class Session {
     this.run = recordResult(this.content, this.run, outcomeOf(m, mvp));
     const done = finishOf(this.run);
     if (done) {
-      this.best = betterFinish(this.best, done);
+      const before = this.best;
+      this.best = betterFinish(before, done);
+      this.runBestNew = this.best !== before && this.best === done;
       saveBest(this.best);
     }
     saveRun(this.run);
@@ -1006,7 +1062,9 @@ export class Session {
               {
                 kind: 'rank',
                 title: `${piece} · Rank ${e.payload.rank}`,
-                detail: name + (e.payload.auto ? ' (court’s pick)' : ''),
+                detail:
+                  name +
+                  (e.payload.locked ? ' (your run)' : e.payload.auto ? ' (court’s pick)' : ''),
                 team: 'A',
               },
               RANK_CHIP_MS,
