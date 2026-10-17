@@ -383,8 +383,14 @@ test('Run kit choices reach the match: a carried relic is held from Act 1, the c
     const s = (window as unknown as Sess).__session;
     const opened: string[] = [];
     const locked = () => s.match.events.filter((e) => e.type === 'fork' && e.payload.locked).length;
-    // play until both locked pieces reached Rank 4 (or about 11 minutes)
-    for (let i = 0; i < 500 && s.match.state.tick < 13200 && locked() < 2; i++) {
+    const white = (s.match.state as unknown as { teams: { A: { heroIds: number[] } } }).teams.A
+      .heroIds;
+    const rank4 = () =>
+      s.match.events.filter(
+        (e) => e.type === 'fork' && e.payload.rank === 4 && white.includes(e.payload.id as number),
+      ).length;
+    // play until every White piece reached Rank 4 (or about 11 minutes)
+    for (let i = 0; i < 500 && s.match.state.tick < 13200 && rank4() < 5; i++) {
       s.match.step(30);
       if (s.match.state.bell.stage === 'break') {
         s.match.issue({ type: 'autoRelic' });
