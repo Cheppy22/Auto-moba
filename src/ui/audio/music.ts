@@ -299,8 +299,8 @@ export class MusicPlayer {
   /** Offline rendering (docs samples): schedules `seconds` of music from time 0 at a fixed tension. */
   scheduleOffline(seconds: number, tension: number): void {
     this.cur = this.target = tension;
-    this.padGain.gain.setValueAtTime(0.036 * (1 - 0.45 * tension), 0);
-    this.tenseGain.gain.setValueAtTime(0.055 * tension * tension, 0);
+    this.padGain.gain.setValueAtTime(0.03 * (1 - 0.45 * tension), 0);
+    this.tenseGain.gain.setValueAtTime(0.085 * tension * tension, 0);
     for (let t = 0.2; t < seconds; t += BAR_SEC) this.scheduleBar(t);
   }
 
@@ -319,8 +319,8 @@ export class MusicPlayer {
       this.nextBar += BAR_SEC;
     }
     const T = this.cur;
-    this.padGain.gain.setTargetAtTime(0.036 * (1 - 0.45 * T), now, 1.2);
-    this.tenseGain.gain.setTargetAtTime(0.055 * T * T, now, 1.2);
+    this.padGain.gain.setTargetAtTime(0.03 * (1 - 0.45 * T), now, 1.2);
+    this.tenseGain.gain.setTargetAtTime(0.085 * T * T, now, 1.2);
   }
 
   private scheduleBar(t0: number): void {
@@ -338,7 +338,7 @@ export class MusicPlayer {
     this.tenseOscs[1].frequency.setTargetAtTime(low * 1.5 * Math.pow(2, 6 / 12), t0, 0.6);
     for (const n of plan.melody) {
       const pan = (this.rng() - 0.5) * 0.7;
-      pluck(e, t0 + n.beat * beat, midiHz(n.midi), 0.063 * n.vel, 1.5, 0.45, e.musicIn, pan);
+      pluck(e, t0 + n.beat * beat, midiHz(n.midi), 0.1 * n.vel, 1.5, 0.45, e.musicIn, pan);
     }
     for (const n of plan.bass)
       pluck(

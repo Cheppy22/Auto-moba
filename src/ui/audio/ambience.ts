@@ -105,7 +105,7 @@ export class Ambience {
       const o = ctx.createOscillator();
       o.frequency.value = f;
       const g = ctx.createGain();
-      g.gain.value = 0.011;
+      g.gain.value = 0.006;
       o.connect(g).connect(this.lamp);
       lfo(g.gain, 0.17 + f / 1000, 0.004);
       o.start();
@@ -113,8 +113,8 @@ export class Ambience {
 
     // --- lamplit: the fountain
     for (const [kind, hz, q, level, ripple] of [
-      ['highpass', 2600, 0.7, 0.014, 11],
-      ['bandpass', 4800, 0.5, 0.012, 7.3],
+      ['highpass', 2600, 0.7, 0.022, 11],
+      ['bandpass', 4800, 0.5, 0.018, 7.3],
     ] as const) {
       const f = ctx.createBiquadFilter();
       f.type = kind;

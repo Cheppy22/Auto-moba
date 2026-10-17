@@ -47,6 +47,7 @@ export function unlock(): void {
     music.setTension(tension);
     music.start();
     ambience.start();
+    syncSleep();
   } catch (err) {
     console.error('Music could not start', err);
     music?.stop();

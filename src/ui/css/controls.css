@@ -198,6 +198,16 @@
   left: auto;
   right: 0;
   transform: none;
+  width: min(280px, calc(100vw - 56px));
+}
+/* on the Title the sliders open in the flow, pushing the board picker and seed down */
+.title-wrap .sound-box .sound-panel {
+  position: relative;
+  top: auto;
+  left: auto;
+  transform: none;
+  margin-top: 6px;
+  width: min(300px, calc(100vw - 32px));
 }
 .mixer {
   display: grid;

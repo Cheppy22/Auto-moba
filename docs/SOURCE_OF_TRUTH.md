@@ -185,7 +185,7 @@ Each hero re-plans about once per second and scores goals (farm lane, push tower
 - **Untested:** real phones and iOS Safari. The Pages blank-page report from early on was never confirmed resolved.
 - **Undecided:** a sixth hero per team so Mid also has a pair; ability text using the same color markup (recommended).
 - **Engagement:** the in-phase decision space is still thin: suggestions, recall, farm toggle, event prompts. Does the player feel in control?
-- **Missing:** audio, keyboard shortcuts, save and load, a download button for replay export.
+- **Missing:** keyboard shortcuts, save and load, a download button for replay export.
 
 ## Shelved on purpose
 
