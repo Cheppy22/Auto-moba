@@ -293,7 +293,11 @@ for (const v of views) {
 
       // ---- the end screen
       await stepUntil(page, { kind: 'end' }, 1500, 80);
-      await expect(page.getByTestId('report')).toBeVisible();
+      // the Checkmate beat plays first (the King topples); a tap skips it to the report
+      const beat = page.getByTestId('mate-beat');
+      await expect(beat.or(page.getByTestId('report')).first()).toBeVisible();
+      if (await beat.isVisible()) await beat.click({ force: true }).catch(() => undefined);
+      await expect(page.getByTestId('report')).toBeVisible({ timeout: 15_000 });
       await expect(page.getByTestId('winner')).toHaveText(/Checkmate · (White|Black) wins/);
       await shot(page, `${v.name}-end`);
       expect(await overflow(page)).toBeLessThanOrEqual(0);
