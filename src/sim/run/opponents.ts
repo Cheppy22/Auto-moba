@@ -2,7 +2,12 @@
 // round from `content/courts.json` (seeded); how hard the round is stays in the round table of
 // `content/tournament.json`. Without courts content the old generator stands in.
 import type { Content } from '../content/loader';
-import { RELIC_FAMILIES, type CourtDef, type RelicDef, type TournamentDef } from '../content/schema';
+import {
+  RELIC_FAMILIES,
+  type CourtDef,
+  type RelicDef,
+  type TournamentDef,
+} from '../content/schema';
 import { mixSeed, pick, rand, seedStreams, shuffle, type RngState } from '../core/rng';
 import { defaultAim } from '../runRules';
 import { openingEdge } from '../schools';

@@ -1,6 +1,6 @@
 import type { ComponentChildren } from 'preact';
 import { useState } from 'preact/hooks';
-import { roundName, type Reward } from '../../sim';
+import { courtOf, roundName, type Reward } from '../../sim';
 import { Term, Terms } from '../glossary';
 import { ItemIcon } from '../ItemIcon';
 import { PieceGlyph, pieceLabel } from '../pieces';
@@ -8,7 +8,8 @@ import { RichText } from '../richtext';
 import { FamilyChip, RelicSeal, relicText } from '../relics';
 import { SchoolChip } from '../schools';
 import { useSession } from '../session';
-import { CourtSeal, OpeningLine, RelicNames, startsWith } from './parts';
+import { CourtSeal, laneLine, OpeningLine, RelicNames, SignatureRelic, startsWith } from './parts';
+import { CourtPortrait } from './seals';
 
 type Kind = Reward['kind'];
 
@@ -49,6 +50,8 @@ export function Spoils() {
   const c = s.content;
   const [swapping, setSwapping] = useState(false);
   const opp = run.opponents[run.round];
+  const court = courtOf(c, opp);
+  const finalRound = run.round === run.opponents.length - 1;
   const full = run.relics.length >= (c.tournament?.relicMax ?? 5);
   const offers = run.offers ?? [];
   const take = (r: Reward): void => {
@@ -66,16 +69,37 @@ export function Spoils() {
           </div>
         </header>
 
-        <section class="next-court" data-testid="next-court" aria-label="Next opponent">
-          <CourtSeal name={opp.name} final={run.round === run.opponents.length - 1} size={52} />
+        <section
+          class={`next-court ${court ? 'named' : ''}`}
+          data-testid="next-court"
+          aria-label="Next opponent"
+        >
+          {court ? (
+            <span class="rung-art">
+              <CourtPortrait court={court} width={84} final={finalRound} />
+              <CourtSeal name={opp.name} court={court} final={finalRound} size={38} />
+            </span>
+          ) : (
+            <CourtSeal name={opp.name} final={finalRound} size={52} />
+          )}
           <div class="next-body">
             <span class="rung-round">
               Next: round {run.round + 1}, {roundName(c, run.round)}
             </span>
             <b class="rung-name">{opp.name}</b>
+            {court && (
+              <i class="rung-motto" data-testid="court-motto">
+                {court.motto}
+              </i>
+            )}
             <OpeningLine c={c} opening={opp.setup.opening} />
+            {court && <span class="rung-lanes">{laneLine(c, court)}.</span>}
             <span class="rung-note">{startsWith(c, opp)}</span>
-            {opp.relics.length > 0 && <RelicNames c={c} relics={opp.relics} />}
+            {court ? (
+              <SignatureRelic c={c} court={court} />
+            ) : (
+              opp.relics.length > 0 && <RelicNames c={c} relics={opp.relics} />
+            )}
           </div>
         </section>
 

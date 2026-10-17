@@ -1,5 +1,12 @@
 import { expect, test, type Page } from '@playwright/test';
+import { readFileSync } from 'node:fs';
 import { overflow, startLive, viewReady, watchErrors } from './helpers';
+
+const COURTS = (
+  JSON.parse(readFileSync('content/courts.json', 'utf8')) as {
+    courts: { name: string; round: number; motto: string }[];
+  }
+).courts;
 
 const shots = process.env.SHOTS_DIR;
 
@@ -123,14 +130,22 @@ test('a run on a phone: draw, kit, win, Spoils, reload, Continue, lose, summary,
   await page.waitForTimeout(3000);
   await shot(page, 'title-phone');
 
-  // ---- the draw: four named rounds, the first court's Opening shown
+  // ---- the draw: four named courts, one from each round's pool; the first court's Opening shown
   await page.getByTestId('seed').fill('7');
   await page.getByTestId('tournament').click();
   await expect(page.getByTestId('draw')).toBeVisible();
   await expect(page.locator('[data-testid^="rung-name-"]')).toHaveCount(4);
-  await expect(page.getByTestId('rung-name-4')).toHaveText("The Black Queen's Court");
+  for (const round of [1, 2, 3, 4]) {
+    const name = await page.getByTestId(`rung-name-${round}`).innerText();
+    const court = COURTS.find((k) => k.name === name);
+    expect(court, `round ${round}: ${name}`).toBeDefined();
+    expect(court!.round).toBe(round);
+    await expect(page.getByTestId(`rung-motto-${round}`)).toHaveText(court!.motto);
+  }
   await expect(page.getByTestId('rung-1')).toHaveAttribute('aria-current', 'step');
-  await expect(page.getByTestId('rung-1')).toContainText('Starts with no relics');
+  await expect(page.getByTestId('rung-1').getByTestId('signature-relic')).toBeVisible();
+  // every court starts with at least its signature relic
+  await expect(page.getByTestId('rung-1')).toContainText('Starts with 1 relic');
   await expect(page.getByTestId('rung-2')).toContainText('Starts with 1 relic and +5 Tempo');
   await shot(page, 'draw-phone');
   await fits(page, 'draw');
@@ -380,7 +395,12 @@ test('Run kit choices reach the match: a carried relic is held from Act 1, the c
   const forks = await page.evaluate(() => {
     const s = (window as unknown as Sess).__session;
     const opened: string[] = [];
-    for (let i = 0; i < 300 && s.match.state.tick < 8200; i++) {
+    const lockedNow = (): number =>
+      s.match.events.filter((e) => e.type === 'fork' && e.payload.locked).length;
+    const rank4 = (): number =>
+      s.match.events.filter((e) => e.type === 'fork' && e.payload.rank === 4).length;
+    // until all five pieces have an archetype (the Rank 4 times depend on how the court plays)
+    for (let i = 0; i < 600 && s.match.state.tick < 16000 && rank4() < 5; i++) {
       s.match.step(30);
       if (s.match.state.bell.stage === 'break') {
         s.match.issue({ type: 'autoRelic' });
@@ -396,7 +416,7 @@ test('Run kit choices reach the match: a carried relic is held from Act 1, the c
     }
     return {
       opened,
-      locked: s.match.events.filter((e) => e.type === 'fork' && e.payload.locked).length,
+      locked: lockedNow(),
     };
   });
   // both locked pieces resolved at Rank 4 without a sheet; the others still asked

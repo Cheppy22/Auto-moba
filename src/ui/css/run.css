@@ -947,3 +947,154 @@ html[data-layout='landscape'] .sum-foot .rs-cta {
 .btn.small.sound-toggle {
   min-height: 44px;
 }
+
+/* ---- 3B: named courts: heraldic seal, portrait niche, motto and dossier ---- */
+.heraldic-seal {
+  flex: none;
+  display: block;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6));
+}
+.heraldic-seal.final {
+  filter: drop-shadow(0 0 6px rgba(226, 189, 106, 0.45)) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6));
+}
+.rung.ahead .heraldic-seal {
+  filter: saturate(0.7) brightness(0.88) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6));
+}
+
+/* the portrait: the court's own 3D figure in an arched niche lit in its seal colours */
+.court-portrait {
+  --p-a: #444;
+  --p-b: #222;
+  --p-charge: #ccc;
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: end center;
+  overflow: hidden;
+  border-radius: 999px 999px 6px 6px;
+  border: 1px solid color-mix(in srgb, var(--p-charge) 70%, #000);
+  background: radial-gradient(
+    ellipse at 50% 30%,
+    color-mix(in srgb, var(--p-a) 70%, #fff) 0%,
+    var(--p-a) 38%,
+    color-mix(in srgb, var(--p-b) 55%, #0d0b09) 100%
+  );
+  box-shadow:
+    inset 0 0 0 2px rgba(13, 11, 9, 0.6),
+    inset 0 -14px 18px rgba(0, 0, 0, 0.45),
+    0 3px 8px rgba(0, 0, 0, 0.55);
+}
+.court-portrait.final {
+  border-color: var(--brass-hi);
+  box-shadow:
+    inset 0 0 0 2px rgba(13, 11, 9, 0.6),
+    inset 0 -14px 18px rgba(0, 0, 0, 0.45),
+    var(--glow-brass);
+}
+.court-portrait img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 100%;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.5));
+}
+.rung-art {
+  position: relative;
+  justify-self: center;
+  width: 84px;
+  height: 105px;
+}
+.rung-art .heraldic-seal {
+  position: absolute;
+  right: -10px;
+  bottom: -8px;
+}
+.rung.has-art {
+  grid-template-columns: 28px 84px minmax(0, 1fr);
+  align-items: start;
+}
+.rung.has-art .rung-node {
+  margin-top: 4px;
+}
+.rung-motto {
+  font-family: var(--font-body);
+  font-size: var(--fs-md);
+  line-height: 1.35;
+  color: var(--brass-hi);
+}
+.rung.ahead .rung-motto {
+  font-size: var(--fs-sm);
+  color: var(--dim);
+}
+.rung-manner {
+  font-size: var(--fs-sm);
+  line-height: 1.4;
+  color: var(--ivory-2);
+}
+.rung-dossier {
+  grid-column: 2 / -1;
+  display: grid;
+  gap: 8px;
+  padding-top: 4px;
+}
+.rung-lanes {
+  font-size: var(--fs-sm);
+  line-height: 1.4;
+  color: var(--dim);
+}
+.court-styles {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+.court-styles li {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--fs-sm);
+  color: var(--ivory-2);
+}
+.court-styles .cs-piece {
+  color: var(--dim);
+}
+.signature-relic {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: var(--fs-sm);
+  line-height: 1.4;
+  color: var(--ivory-2);
+}
+.signature-relic svg {
+  flex: none;
+  margin-top: 1px;
+}
+.signature-relic b {
+  font-weight: 600;
+  color: var(--ivory);
+}
+.sig-text {
+  color: var(--dim);
+}
+
+/* the Set up button stays at the bottom of the screen while the long draw scrolls under it */
+.draw .rs-foot {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  margin-inline: -16px;
+  padding: 18px 16px calc(12px + env(safe-area-inset-bottom));
+  background: linear-gradient(180deg, rgba(13, 11, 9, 0) 0, rgba(13, 11, 9, 0.94) 34%);
+}
+html[data-layout='landscape'] .draw .rs-foot {
+  position: static;
+  margin: 0;
+  padding: 0;
+  background: none;
+}
+html[data-layout='landscape'] .draw .draw-fine {
+  grid-area: 3 / 1;
+}

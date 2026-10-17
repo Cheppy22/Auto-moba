@@ -330,3 +330,41 @@
     animation-duration: 0.01ms;
   }
 }
+
+/* ---------- 3B: Black as a named court: portrait and seal beside its Opening ---------- */
+.vs-opening.named {
+  --vs-art: max(46px, calc(var(--pic) * 0.78));
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+.vs-opening.named .vs-text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+}
+.vs-opening.named .vs-art {
+  position: relative;
+  flex: none;
+  display: block;
+}
+.vs-opening.named .vs-art .heraldic-seal {
+  position: absolute;
+  right: -8px;
+  bottom: -6px;
+}
+.vs-motto {
+  font-family: var(--font-body);
+  font-size: calc(var(--vs-fs) * 0.9);
+  line-height: 1.3;
+  color: var(--brass-hi);
+  text-wrap: balance;
+}
+@media (max-height: 460px) {
+  .vs-motto {
+    display: none;
+  }
+}
