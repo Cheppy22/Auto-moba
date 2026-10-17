@@ -1,5 +1,6 @@
 import { courtOf, roundName } from '../../sim';
 import { Term } from '../glossary';
+import { PacePicker } from '../PacePicker';
 import { PieceGlyph } from '../pieces';
 import { useSession } from '../session';
 import {
@@ -91,6 +92,11 @@ export function Draw() {
           carry on; items, gold and Ranks start fresh.
         </p>
         <footer class="rs-foot">
+          <PacePicker
+            value={run.pace}
+            onPick={(p) => s.setPace(p)}
+            note="every match of this run plays at this pace."
+          />
           <button class="btn primary rs-cta" data-testid="draw-setup" onClick={() => s.playRound()}>
             Set up your court
           </button>

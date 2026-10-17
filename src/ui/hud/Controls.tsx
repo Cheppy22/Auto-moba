@@ -189,7 +189,12 @@ export function ClockBlock(props: { snap: Snapshot; held: boolean; counts?: bool
         <svg class="hold-ring" aria-hidden="true">
           <rect x="1" y="1" rx="7" ry="7" pathLength="1" />
         </svg>
-        <b data-testid="phase">Act {snap.act.n}</b>
+        <b data-testid="phase">
+          Act {snap.act.n}
+          {s.match?.config.pace === 'blitz' && (
+            <small class="act-of">/{s.match.content.tuning.maxPhases}</small>
+          )}
+        </b>
         <span key={fx.key} data-testid="clock" data-fx={fx.fx} style={{ '--k': fx.k }}>
           {clockSec(snap.act.remainingSec)}
         </span>

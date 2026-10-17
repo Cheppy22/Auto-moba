@@ -126,8 +126,8 @@
   min-height: 44px;
 }
 
-/* the Title and Adjourn switch */
-.replay-tutorial {
+/* the Title and Adjourn switch (beats the phone rule that shrinks .btn.small to 40 px) */
+.btn.small.replay-tutorial {
   align-self: flex-start;
   white-space: nowrap;
   min-height: 44px;

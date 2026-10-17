@@ -46,6 +46,13 @@ export function report(
   lines.push(
     `- White win rate: ${pct(finished.filter((r) => r.winner === 'A').length, finished.length)}`,
   );
+  const adj = finished.filter((r) => r.adjudicated);
+  if (results.some((r) => r.adjudicated)) {
+    const mated = finished.filter((r) => !r.adjudicated);
+    lines.push(
+      `- Adjudicated (no Checkmate when the last Act ended): ${pct(results.filter((r) => r.adjudicated).length, n)} of matches, White won ${pct(adj.filter((r) => r.winner === 'A').length, adj.length)} of those; true Checkmates ${pct(mated.length, n)}, White won ${pct(mated.filter((r) => r.winner === 'A').length, mated.length)} of those`,
+    );
+  }
   lines.push(
     `- Match length (min): median ${median(lengths).toFixed(1)}, p10 ${quant(lengths, 0.1).toFixed(1)}, p90 ${quant(lengths, 0.9).toFixed(1)}, max ${Math.max(0, ...lengths).toFixed(1)}`,
   );

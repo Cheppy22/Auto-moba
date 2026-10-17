@@ -25,7 +25,7 @@ const copySetup = (t: TeamSetup): TeamSetup => ({
 
 /**
  * A new run: the draw of four courts and, as White's court, the same default the first match's
- * Setup would pre-fill. Classical only until 2B (the pace is kept for it).
+ * Setup would pre-fill. `pace` is picked once at the Draw and every match of the run plays it.
  */
 export function newRun(c: Content, seed: number, pace: RunPace = 'classical'): RunState {
   tournamentOf(c);
@@ -79,7 +79,7 @@ export function nextMatchConfig(c: Content, run: RunState, withCourt = false): M
     ...(capB !== undefined ? { relicMaxB: capB } : {}),
     ...(shareB !== undefined ? { aiPawnShareB: shareB } : {}),
     ...(opp.styles ? { forceStyles: { B: { ...opp.styles } } } : {}),
-    // 2B (Blitz) adds its pace settings here from `run.pace`; Classical uses the defaults.
+    ...(run.pace === 'blitz' ? { pace: 'blitz' as const } : {}),
   };
 }
 

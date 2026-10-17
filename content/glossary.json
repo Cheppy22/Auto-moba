@@ -4,7 +4,7 @@
     "term": "Act",
     "aliases": ["Act", "Acts"],
     "short": "A timed stretch of the match; each one ends with the bell and a break sheet where you give orders and draft a relic.",
-    "more": "Later Acts open more jungle clearings and switch on pressure events, and from Act 7 the game pushes toward an ending.",
+    "more": "Later Acts open more jungle clearings and switch on pressure events, and from Act 7 (Act 2 in Blitz) the game pushes toward an ending.",
     "see": ["bell", "relic"],
     "group": "Match"
   },
@@ -317,9 +317,27 @@
     "id": "adjudication",
     "term": "Adjudication",
     "aliases": ["Adjudication", "adjudication", "Adjudicated", "adjudicated"],
-    "short": "A match that ends without Checkmate is decided on points: the side that destroyed more Bastions wins.",
+    "short": "A tournament or Blitz match that ends without Checkmate is decided on points: the side that destroyed more Bastions wins.",
     "more": "If Bastions are level, the Throne with more health left wins. A dead tie counts as a loss in a tournament.",
     "see": ["checkmate", "bastion"],
     "group": "Run"
+  },
+  {
+    "id": "blitz",
+    "term": "Blitz",
+    "aliases": ["Blitz", "blitz"],
+    "short": "The short pace: at most 3 Acts of the usual length, with the Endgame rule from Act 2 and weaker Thrones.",
+    "more": "Thrones have 3000 health instead of 3800. If Act 3 ends without Checkmate the match is decided on points. Phones start on Blitz.",
+    "see": ["classical", "adjudication", "act"],
+    "group": "Match"
+  },
+  {
+    "id": "classical",
+    "term": "Classical",
+    "aliases": ["Classical", "classical"],
+    "short": "The full pace: Acts go on until a King is checkmated, with the Endgame rule from Act 7.",
+    "more": "A Classical match usually lasts 12 to 16 minutes. Desktops start on Classical; you can switch before each Exhibition or tournament.",
+    "see": ["blitz", "act"],
+    "group": "Match"
   }
 ]

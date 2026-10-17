@@ -81,7 +81,8 @@ export function resumeFromBreak(ctx: Ctx): void {
 
 /**
  * Act boundary check, run at the end of every tick. At 0:00 the board waits for calm, tolls three
- * times, halts and breaks. Past `maxPhases` Acts the match is a draw (no break).
+ * times, halts and breaks. Past `maxPhases` Acts the match is a draw (no break), or adjudicated in
+ * a run or a Blitz match.
  */
 export function tickBell(ctx: Ctx): void {
   const s = ctx.s;
@@ -94,7 +95,7 @@ export function tickBell(ctx: Ctx): void {
       if (s.phase.n >= ctx.t.maxPhases) {
         endAct(ctx);
         s.phase = { kind: 'end', n: s.phase.n, startTick: s.tick };
-        if (s.run?.adjudicate) {
+        if (s.run?.adjudicate || s.pace === 'blitz') {
           s.winner = adjudicate(ctx);
           ctx.emit('matchEnd', { winner: s.winner, phase: s.phase.n, adjudicated: true });
         } else ctx.emit('matchEnd', { winner: null, phase: s.phase.n });

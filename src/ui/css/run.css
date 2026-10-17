@@ -1110,3 +1110,11 @@ html[data-layout='landscape'] .draw .rs-foot {
 html[data-layout='landscape'] .draw .draw-fine {
   grid-area: 3 / 1;
 }
+/* portrait Draw: the pace switch and Set up your court stay on screen while the ladder scrolls */
+html[data-layout='portrait'] .draw .rs-foot {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  padding: 10px 0 calc(10px + env(safe-area-inset-bottom));
+  background: linear-gradient(180deg, rgba(20, 17, 14, 0), rgba(20, 17, 14, 0.94) 18px);
+}

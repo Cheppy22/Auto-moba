@@ -68,6 +68,8 @@ export interface MatchSummary {
   breaks: BreakRead[];
   /** Masterwork purchases (any time), by item id. */
   masterworks: Record<string, number>;
+  /** No Checkmate: the winner came from adjudication (a run or Blitz). */
+  adjudicated: boolean;
 }
 
 /** One piece at one Act break (gold before and after the break shop, items after it). */
@@ -139,6 +141,8 @@ export interface SimOptions {
   whiteEvery?: number;
   /** White's pieces buy by a fixed greedy plan from the start (see `PLAN_PRESETS`). */
   plans?: PlanPreset;
+  /** `blitz`: the short pace (at most 3 Acts, adjudicated without Checkmate). */
+  pace?: 'blitz';
 }
 
 const TPS = 20;
@@ -179,6 +183,7 @@ export function simulateMatch(content: Content, seed: number, opts: SimOptions =
     forceStyles: opts.forceStyles,
     relics: opts.relics,
     map: opts.map,
+    ...(opts.pace ? { pace: opts.pace } : {}),
     autoGambits: { A: !opts.noGambitsA && !opts.whitePlayer, B: !opts.noGambitsB },
     // The baseline removes Tempo spending only; forks still pick at once as the AI does.
     autoForks: { A: true, B: true },
@@ -346,6 +351,7 @@ export function simulateMatch(content: Content, seed: number, opts: SimOptions =
     eye: reads.eye,
     breaks,
     masterworks,
+    adjudicated: m.events.some((e) => e.type === 'matchEnd' && !!e.payload.adjudicated),
   };
 }
 

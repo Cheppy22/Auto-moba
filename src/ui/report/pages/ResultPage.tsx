@@ -23,7 +23,7 @@ function Banner(props: { data: ReportData; onSame: () => void; onNew: () => void
   const { sum } = props.data;
   const win = sum.winner;
   const run = s.run;
-  // a match with no Checkmate is decided on points only when the run asks for it
+  // a match with no Checkmate is decided on points in a run and in Blitz
   let adjudicated = false;
   for (const e of s.match!.events) if (e.type === 'matchEnd') adjudicated = !!e.payload.adjudicated;
   const kicker = adjudicated ? (
@@ -62,6 +62,12 @@ function Banner(props: { data: ReportData; onSame: () => void; onNew: () => void
         </span>
         <span>
           <b>{acts}</b>
+          {s.match!.config.pace === 'blitz' && (
+            <>
+              {' '}
+              of <Term id="blitz">Blitz</Term>
+            </>
+          )}
         </span>
         <span class="dim">
           White (you) vs{' '}

@@ -1,5 +1,6 @@
 export { Match } from './match';
 export { contentFor, deepMerge, loadContent, validateRefs } from './content/loader';
+export type { MatchPace } from './content/loader';
 export type { Content, MapVariant, RawContentFiles } from './content/loader';
 export * from './types';
 export { actCallouts, allCallouts } from './callouts';

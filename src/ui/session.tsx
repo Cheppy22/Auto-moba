@@ -27,6 +27,7 @@ import {
   type GameEvent,
   type LaneId,
   type MatchConfig,
+  type MatchPace,
   type PlayTeam,
   type School,
 } from '../sim';
@@ -54,6 +55,7 @@ import {
   laneNear,
 } from '../analysis/feedback';
 import { mmss } from './format';
+import { readPace, storePace } from './pace';
 import { Tutorial } from './tutorial';
 import { introOutMs, type IntroPiece, type IntroState } from './intro';
 import { cap, PIECE_ORDER, pieceLabel } from './pieces';
@@ -193,8 +195,9 @@ const MAX_NOTES = 2;
 const FIGHT_NOTE_MS = 4200;
 const NOTE_MS = 3200;
 const BLACK_PLAY_MS = 3000;
-/** The Act where the Endgame rule begins (content/pressure.json); the music turns tenser from here. */
-const ENDGAME_ACT = 7;
+/** The Act where the Endgame rule begins (content/pressure.json; Act 3 in Blitz); the music turns tenser from here. */
+const endgameAct = (c: Content): number =>
+  c.pressure.find((ev) => ev.rules.includes('endgame'))?.fromPhase ?? 7;
 /** A match is saved for Resume after its first 5 s of play, then every 5 s of wall clock. */
 const MIN_SAVE_TICK = 100;
 const SAVE_EVERY_MS = 5000;
@@ -390,6 +393,8 @@ export class Session {
       pauseForForks: true,
       pauseForBreak: true,
       ...(this.longMap ? { map: 'long' as const } : {}),
+      // an Exhibition plays the pace picked last (a run's config carries the run's own)
+      ...(!this.run && readPace() === 'blitz' ? { pace: 'blitz' as const } : {}),
       ...config,
     });
     // Black reads as the opposing court's name in a run (see `courtName`), "Black" in an Exhibition
@@ -405,6 +410,33 @@ export class Session {
     this.savedTick = -1;
     this.resumeNote = null;
     this.ui = { ...freshUi(), cam: this.ui.cam === 'auto' ? 'auto' : 'free' };
+    this.notify();
+  }
+
+  /** The pace of the match or run being set up: the run's, else the Exhibition match's. */
+  get pace(): MatchPace {
+    if (this.run) return this.run.pace;
+    return this.match?.config.pace ?? readPace();
+  }
+
+  /**
+   * Picks the pace (remembered on this device). A run takes it only at the Draw (before its first
+   * match); an Exhibition still in Setup is built again with the same seed at the new pace.
+   */
+  setPace(pace: MatchPace): void {
+    storePace(pace);
+    const run = this.run;
+    if (run) {
+      if (run.status !== 'between' || run.results.length > 0 || run.pace === pace) return;
+      this.run = { ...run, pace };
+      saveRun(this.run);
+    } else if (this.match && this.match.state.phase.kind === 'setup') {
+      const { pace: _old, ...rest } = this.match.config;
+      this.match = Match.create(this.content, {
+        ...rest,
+        ...(pace === 'blitz' ? { pace } : {}),
+      });
+    }
     this.notify();
   }
 
@@ -639,7 +671,7 @@ export class Session {
     this.match = null;
     this.runBestNew = false;
     this.dropRunMatchSave();
-    this.run = newRun(this.content, seed);
+    this.run = newRun(this.content, seed, readPace());
     saveRun(this.run);
     this.notify();
   }
@@ -1373,7 +1405,7 @@ export class Session {
       moodFor({
         screen,
         act: m && kind === 'live' ? m.state.phase.n : 0,
-        endgameAct: ENDGAME_ACT,
+        endgameAct: endgameAct(m?.content ?? this.content),
         heat: this.heat.read(now),
         check: !!m && (m.state.check.A || m.state.check.B),
         throneDown: !!m && (m.state.throneDown.A || m.state.throneDown.B),

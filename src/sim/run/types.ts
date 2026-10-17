@@ -30,7 +30,7 @@ export type Reward =
   | { kind: 'heirloom'; piece: PieceId; item: string }
   | { kind: 'book'; card: string };
 
-/** Classical only until 2B ships Blitz (the pace is chosen once at the Draw). */
+/** The run's pace, chosen once at the Draw; every match of the run plays it. */
 export type RunPace = 'classical' | 'blitz';
 
 /** `between`: on the Draw, Spoils or Setup; `playing`: a match is under way; then the run is over. */

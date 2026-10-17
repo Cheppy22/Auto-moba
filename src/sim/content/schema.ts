@@ -705,6 +705,16 @@ export const TuningSchema = z.object({
   startingGold: z.number(),
   passiveGoldPerSec: z.number(),
   maxPhases: z.number().int(),
+  /**
+   * Blitz pace (`MatchConfig.pace: 'blitz'`, review 4.2 item 2B): the same 240 s Acts, but at most
+   * `maxActs` of them, the Endgame rule from `endgameAct` and Thrones at `throneHp`. A match with
+   * no Checkmate when the last Act ends is adjudicated. Classical ignores this block.
+   */
+  blitz: z.object({
+    maxActs: z.number().int(),
+    endgameAct: z.number().int(),
+    throneHp: z.number(),
+  }),
   /** The Act break: countdown alerts, the grey wait for calm, the tolls and the slow halt. */
   bell: z.object({
     /** Seconds before the bell at which the clock flashes an alert. */

@@ -51,6 +51,10 @@ const whiteEvery = arg('white-every', 0);
 const mapIdx = process.argv.indexOf('--map');
 const map = mapIdx >= 0 && process.argv[mapIdx + 1] === 'long' ? ('long' as const) : undefined;
 
+// --pace blitz: every match plays Blitz (at most 3 Acts, adjudicated; output files get a -blitz suffix).
+const paceIdx = process.argv.indexOf('--pace');
+const pace = paceIdx >= 0 && process.argv[paceIdx + 1] === 'blitz' ? ('blitz' as const) : undefined;
+
 // --plans A=mind-queen|body-rook|stack: White's pieces buy by a fixed greedy plan (Black stays AI).
 const plansIdx = process.argv.indexOf('--plans');
 const plansSpec = plansIdx >= 0 ? process.argv[plansIdx + 1] : '';
@@ -82,6 +86,7 @@ async function main(): Promise<void> {
               whitePlayer,
               whiteEvery,
               plans,
+              pace,
             }),
           ],
           {
@@ -118,7 +123,8 @@ async function main(): Promise<void> {
     ? `${withPool}-relics-${relicsSpec.replace(/[^A-Za-z]/g, '')}`
     : withPool;
   const withPlans = plans ? `${withRelics}-plans-${plans}` : withRelics;
-  const withMap = map ? `${withPlans}-long` : withPlans;
+  const withMap0 = map ? `${withPlans}-long` : withPlans;
+  const withMap = pace ? `${withMap0}-blitz` : withMap0;
   // --tag NAME: appended to the output file name, so parallel runs do not overwrite each other.
   const tagIdx = process.argv.indexOf('--tag');
   const name = tagIdx >= 0 ? `${withMap}-${process.argv[tagIdx + 1]}` : withMap;
