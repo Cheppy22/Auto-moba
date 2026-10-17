@@ -172,10 +172,8 @@ export function Adjourn() {
             Resume
           </button>
         </div>
-        <div class="row">
-          <ThemePicker />
-          <ReplayTutorial />
-        </div>
+        <ThemePicker />
+        <ReplayTutorial />
         <Mini />
         <div class="tabs" role="tablist">
           {TABS.map((t) => (

@@ -19,6 +19,8 @@ interface Live {
   text: () => string;
   /** Eye nudge: the unit to ring on the board. */
   unit?: number;
+  /** True when the moment has passed (the captured piece is already back): drop it. */
+  stale?: () => boolean;
   until: number;
   shown: string;
 }
@@ -142,7 +144,7 @@ export function Tutor(props: {
           id: 'eye',
           unit: u.id,
           text: () =>
-            `Look at the ${pieceLabel(s.content, u.piece!)}: the eye over its health bar is the high-ground badge. It is hitting a target on lower ground, so it hits 20% harder.`,
+            `Look at the ${pieceLabel(s.content, u.piece!)}: the eye over its health bar means it holds the high ground. It is hitting a target on lower ground, so it hits 20% harder.`,
         });
     }
     // the first capture of a piece: who took whom, and why it matters
@@ -157,6 +159,7 @@ export function Tutor(props: {
       const taker = e.payload.team === 'A' ? 'B' : 'A';
       enqueue({
         id: 'capture',
+        stale: () => victim.alive,
         text: () => {
           const h = victim.hero!;
           const left =
@@ -182,7 +185,11 @@ export function Tutor(props: {
   if (x.cur && (now >= x.cur.until || props.held || props.stopped)) x.cur = null;
   if (x.cur?.id === 'tempo' && props.drawerOpen) x.cur = null;
   if (!x.cur && calm && t.active) {
-    const next = x.queue.shift();
+    let next = x.queue.shift();
+    while (next?.stale?.()) {
+      x.queued.delete(next.id);
+      next = x.queue.shift();
+    }
     if (next && t.canShow(next.id)) {
       t.seen(next.id);
       x.cur = { ...next, until: now + SHOW_MS[next.id], shown: next.text() };

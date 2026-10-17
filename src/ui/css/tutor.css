@@ -128,6 +128,8 @@
 
 /* the Title and Adjourn switch */
 .replay-tutorial {
+  align-self: flex-start;
+  white-space: nowrap;
   min-height: 44px;
   font-size: var(--fs-sm);
 }

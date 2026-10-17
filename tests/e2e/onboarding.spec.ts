@@ -27,6 +27,11 @@ async function begin(page: Page, seed = '42', query = ''): Promise<void> {
   await clearPawnPlan(page);
 }
 
+/** Screenshots for the docs, only when asked for (`SHOTS=1`), so a normal run leaves docs/img alone. */
+const shot = async (page: Page, path: string): Promise<void> => {
+  if (process.env.SHOTS) await page.screenshot({ path });
+};
+
 const tutorStore = (page: Page): Promise<{ seen: string[]; off: boolean } | null> =>
   page.evaluate(() => {
     const t = window.localStorage.getItem('automoba.tutorial');
@@ -85,7 +90,7 @@ test.describe('first match', () => {
     await expect(tutor).toHaveAttribute('data-tutor', 'tempo');
     await expect(page.getByTestId('tutor-text')).toContainText('Tempo is full');
     await expect(page.getByTestId('tutor-text')).toContainText('Gambits');
-    await page.screenshot({ path: 'docs/img/aaa-onboarding-1-tempo.png' });
+    await shot(page, 'docs/img/aaa-onboarding-1-tempo.png');
     await page.getByTestId('tutor-ok').click();
     await expect(tutor).toHaveCount(0);
     expect((await tutorStore(page))?.seen).toContain('tempo');
@@ -93,9 +98,11 @@ test.describe('first match', () => {
     // 2. the first high-ground eye badge
     await giveHighGround(page);
     await expect(tutor).toHaveAttribute('data-tutor', 'eye');
-    await expect(page.getByTestId('tutor-text')).toContainText('high-ground');
+    await expect(page.getByTestId('tutor-text')).toContainText('high ground');
     await expect(page.getByTestId('tutor-ring')).toBeAttached();
-    await page.screenshot({ path: 'docs/img/aaa-onboarding-2-eye.png' });
+    await step(page, 3); // the Queen's drawn place catches up with the move, for the screenshot
+    await page.waitForTimeout(400);
+    await shot(page, 'docs/img/aaa-onboarding-2-eye.png');
     await page.getByTestId('tutor-ok').click();
 
     // 3. the first capture: who took whom
@@ -122,7 +129,7 @@ test.describe('first match', () => {
     });
     await expect(tutor).toHaveAttribute('data-tutor', 'capture');
     await expect(page.getByTestId('tutor-text')).toContainText(/took/);
-    await page.screenshot({ path: 'docs/img/aaa-onboarding-3-capture.png' });
+    await shot(page, 'docs/img/aaa-onboarding-3-capture.png');
     await page.getByTestId('tutor-ok').click();
     expect((await tutorStore(page))?.seen).toEqual(
       expect.arrayContaining(['tempo', 'eye', 'capture']),
@@ -152,7 +159,7 @@ test.describe('first match', () => {
     const tour = page.getByTestId('tutor-break');
     await expect(tour).toHaveAttribute('data-step', 'report');
     await page.waitForTimeout(700); // the sheet slides up
-    await page.screenshot({ path: 'docs/img/aaa-onboarding-5-break.png' });
+    await shot(page, 'docs/img/aaa-onboarding-5-break.png');
     for (const tab of ['orders', 'armory', 'relics']) {
       await page.getByTestId('tutor-ok').click();
       await expect(tour).toHaveAttribute('data-step', tab);
@@ -166,7 +173,7 @@ test.describe('first match', () => {
     await stepUntil(page, { kind: 'fork' });
     await expect(page.getByTestId('forks')).toBeVisible();
     await expect(page.getByTestId('tutor-fork')).toContainText('archetype');
-    await page.screenshot({ path: 'docs/img/aaa-onboarding-4-fork.png' });
+    await shot(page, 'docs/img/aaa-onboarding-4-fork.png');
     await page.getByTestId('tutor-ok').click();
     await expect(page.getByTestId('tutor-fork')).toHaveCount(0);
     await page.getByTestId('fork-auto').click();
@@ -263,6 +270,6 @@ test.describe('on a phone', () => {
       expect(b.width, id).toBeGreaterThanOrEqual(44);
     }
     expect(await overflow(page)).toBeLessThanOrEqual(0);
-    await page.screenshot({ path: 'docs/img/aaa-onboarding-phone-360.png' });
+    await shot(page, 'docs/img/aaa-onboarding-phone-360.png');
   });
 });
