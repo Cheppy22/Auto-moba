@@ -127,7 +127,8 @@
 }
 
 /* the Title and Adjourn switch */
-.replay-tutorial {
+/* `.btn` too, so it outranks the touch rule for `.btn.small` (40 px) */
+.btn.replay-tutorial {
   align-self: flex-start;
   white-space: nowrap;
   min-height: 44px;

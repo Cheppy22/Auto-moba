@@ -358,6 +358,18 @@ export async function playToEnd(page: Page): Promise<void> {
     }
     s.notify();
   });
+  await skipMateBeat(page);
+}
+
+/**
+ * After a Checkmate the beat (letterbox, the King's topple) plays before the result splash; a
+ * player can tap it away, and so does this, so a slow software-GL frame rate cannot hold the report.
+ */
+export async function skipMateBeat(page: Page): Promise<void> {
+  const beat = page.getByTestId('mate-beat');
+  await expect(beat.or(page.getByTestId('report')).first()).toBeVisible({ timeout: 15_000 });
+  if (await beat.isVisible()) await beat.click({ force: true }).catch(() => undefined);
+  await expect(page.getByTestId('report')).toBeVisible({ timeout: 15_000 });
 }
 
 /** Leaves the Act break like a player: "Let the AI choose" a relic, then Resume. */

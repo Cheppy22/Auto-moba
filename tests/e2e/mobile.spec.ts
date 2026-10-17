@@ -8,6 +8,7 @@ import {
   pauseAtStart,
   playPast,
   setSpeed,
+  skipMateBeat,
   setTempo,
   snap,
   stepUntil,
@@ -289,7 +290,7 @@ for (const v of views) {
 
       // ---- the end screen
       await stepUntil(page, { kind: 'end' }, 1500, 80);
-      await expect(page.getByTestId('report')).toBeVisible();
+      await skipMateBeat(page);
       await expect(page.getByTestId('winner')).toHaveText(/Checkmate · (White|Black) wins/);
       await shot(page, `${v.name}-end`);
       expect(await overflow(page)).toBeLessThanOrEqual(0);
