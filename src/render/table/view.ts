@@ -29,6 +29,8 @@ import { LaneCam } from './lanecam';
 import { Crowd, crowdInk, facetMaterial, hullOf } from './crowd';
 import { FIG_HEIGHT, type PieceId } from './figures';
 import { CombatFx } from './combatfx';
+import { Life } from './life';
+import type { LongRelief } from './relief';
 import { newEyeHold, stepEyeHold } from './eyehold';
 import { Bolts, Chips, Tags } from './fx';
 import {
@@ -60,8 +62,20 @@ const GOLD = '#ffd35a';
 const PICK_PX = 36;
 /** The old view's pieces were about this tall in world units; HUD lifts scale by the ratio. */
 const OLD_PIECE_H = 57;
-/** Seconds a captured piece takes to topple and sink. */
+/** Seconds a captured piece takes to topple and sink (reduced motion: no flight). */
 const FALL_SEC = 0.9;
+/** A captured piece knocked flying: seconds in all, in the air, and before it fades away. */
+const FLY_SEC = 1.5;
+const FLY_AIR = 0.5;
+const FLY_FADE = 1.05;
+/** Hit-stop on a capture (real seconds the effect clock nearly stops) and how slow it runs. */
+const HIT_STOP_SEC = 0.12;
+const HIT_STOP_K = 0.08;
+/** Checkmate beat (real seconds): push-in, the King's slow topple, the gold burst. */
+const MATE_PUSH = 0.5;
+const MATE_TOPPLE = 1.5;
+const MATE_SEC = 3.2;
+const MATE_SEC_REDUCED = 1.2;
 /** Seconds a returning piece takes to drop onto the board. */
 const DROP_SEC = 0.42;
 /** Seconds a teleporting piece takes to beam out, and to condense at its destination. */
@@ -148,6 +162,13 @@ class Rec {
   /** The high-ground eye's minimum on-screen time. */
   readonly eye = newEyeHold();
   fall = 0;
+  /** Capture flight: the blow's direction (unit), distance, roll side; landing and token sent. */
+  flyX = 0;
+  flyZ = 1;
+  flyD = 0;
+  flyRoll = 1;
+  landed = false;
+  faded = false;
   drop = 1;
   placed = false;
   live = false;
@@ -213,6 +234,11 @@ export class TableView {
   private readonly chips: Chips;
   private readonly bolts: Bolts;
   private readonly fx: CombatFx;
+  /** The Long Board's life pass (weather, ripples, birds, banners); null on the square board. */
+  private readonly life: Life | null;
+  /** The key and rim lights' set intensities (the light drifts slowly round them). */
+  private readonly keyK: number;
+  private readonly backK: number;
   private readonly hits: PendingHit[] = [];
   private readonly hitPool: PendingHit[] = [];
   private readonly order: Rec[] = [];
@@ -265,6 +291,10 @@ export class TableView {
   private readonly lineup: 'board' | 'close' | 'closeb' | null;
   private lineupUnits: ChessUnit[] | null = null;
   private time = 0;
+  /** Real seconds of capture hit-stop left (the effect clock runs at HIT_STOP_K meanwhile). */
+  private stopT = 0;
+  /** The Checkmate beat on the losing King: real seconds since it began, and the burst done. */
+  private mate: { id: number; t: number; boomed: boolean; done: boolean } | null = null;
   private insetClock = 0;
   private stamp = 0;
   private lastTick = -1;
@@ -339,6 +369,8 @@ export class TableView {
       this.key.shadow.normalBias = 1.5;
     }
     this.scene.add(sky, this.key, this.key.target, this.back, this.back.target);
+    this.keyK = this.key.intensity;
+    this.backK = this.back.intensity;
 
     this.board = new Board(content, coarse ? 2048 : 3072, theme);
     this.applyHaze();
@@ -349,6 +381,8 @@ export class TableView {
       THRONE_H * THRONE_S + ground.dais,
     );
     this.scene.add(this.board.group);
+    this.life = this.long ? new Life(content.map, ground as LongRelief, theme) : null;
+    if (this.life) this.scene.add(this.life.group);
 
     // instanced crowds: one draw call per kind and side
     const crowd = (
@@ -495,12 +529,20 @@ export class TableView {
       };
       // dev: set the free camera (zoom: a factor of the distance, 99 = all the way out; yaw: radians
       // added; tilt: degrees; home: back to the default pose), for screenshots
-      w.__tvCam = (o: { zoom?: number; yaw?: number; tilt?: number; home?: boolean }) => {
+      w.__tvCam = (o: {
+        zoom?: number;
+        yaw?: number;
+        tilt?: number;
+        home?: boolean;
+        /** Aim at a sim point. */
+        at?: { x: number; y: number };
+      }) => {
         const g = this.cam.goal;
         if (o.home) this.cam.goHome();
         if (o.zoom !== undefined) g.d = o.zoom >= 99 ? this.cam.maxD : g.d * o.zoom;
         if (o.yaw !== undefined) g.yaw += o.yaw;
         if (o.tilt !== undefined) g.tilt = MathUtils.degToRad(o.tilt);
+        if (o.at) this.cam.centred({ x: o.at.x - this.hx, z: o.at.y - this.hz }, g.d, g);
         return { ...this.cam.pose, min: this.cam.minD, max: this.cam.maxD };
       };
       w.__tvBoard = () => {
@@ -614,7 +656,19 @@ export class TableView {
         }
       }
     }
-    const dt = dtRaw * frame.timeScale;
+    // a capture's hit-stop: the effect clock nearly stops for a beat (the sim never does)
+    const stopK = this.stopT > 0 ? HIT_STOP_K : 1;
+    this.stopT = Math.max(0, this.stopT - dtRaw);
+    if (this.mate) {
+      this.mate.t += dtRaw;
+      // the beat is over: the page shows the result splash
+      const end = this.motion?.matches === true ? MATE_SEC_REDUCED : MATE_SEC;
+      if (!this.mate.done && this.mate.t >= end) {
+        this.mate.done = true;
+        this.canvas.dispatchEvent(new Event('mate-done'));
+      }
+    }
+    const dt = dtRaw * frame.timeScale * stopK;
     this.time += dt;
     if (snap.tick < this.lastTick) this.reset();
     this.lastTick = snap.tick;
@@ -653,6 +707,7 @@ export class TableView {
     this.bolts.update(dt);
     this.fx.update(dt);
     this.chips.update(dt);
+    this.drift();
     this.renderer.render(this.scene, camera);
     this.drawn++;
   }
@@ -674,6 +729,8 @@ export class TableView {
       mode = 'free';
     }
     if (this.lineup) mode = 'free';
+    const mk = this.mate && this.motion?.matches !== true ? this.recs.get(this.mate.id) : undefined;
+    if (mk) mode = 'free';
     if (mode !== was) {
       if (mode === 'follow') this.followD = Math.min(cam.pose.d, cam.followDist);
       else if (mode === 'free') cam.holdHere();
@@ -683,7 +740,13 @@ export class TableView {
     let rate: number;
     const lane = mode === 'lane' ? this.laneCam.update(frame.laneFocus ?? null) : null;
     if (mode !== 'lane') this.laneCam.update(null);
-    if (mode === 'lane' && lane) {
+    if (mk) {
+      // Checkmate: push in on the losing King, a little lower, and hold there
+      g.d = MathUtils.clamp(cam.followDist * 0.62, cam.minD, cam.maxD);
+      g.tilt = Math.max(cam.home.tilt - MathUtils.degToRad(8), MathUtils.degToRad(30));
+      cam.centred(mk, g.d, g);
+      rate = 2.4;
+    } else if (mode === 'lane' && lane) {
       g.d = cam.laneDist(this.laneCam.zoom);
       cam.centred(lane, g.d, g);
       rate = this.laneCam.active ? 10 : 4;
@@ -727,6 +790,19 @@ export class TableView {
     }
   }
 
+  /**
+   * The life pass: weather round the camera's target, and a slow drift in the light (as if thin
+   * cloud crossed the lamps), both on the effect clock; still when the player prefers less motion.
+   */
+  private drift(): void {
+    const reduced = this.motion?.matches === true;
+    const t = this.time;
+    this.life?.update(t, this.cam.pose.x, this.cam.pose.z, reduced || !!this.lineup);
+    const k = reduced ? 1 : 1 + 0.06 * Math.sin(t * 0.11) + 0.035 * Math.sin(t * 0.29 + 1.3);
+    this.key.intensity = this.keyK * k;
+    this.back.intensity = this.backK * (2 - k);
+  }
+
   /** The Long Board's haze: the background and the fog take the theme's colour. */
   private applyHaze(): void {
     const haze = this.board.haze;
@@ -738,6 +814,7 @@ export class TableView {
   /** Switches the Long Board's theme in place (the camera keeps its pose). */
   setTheme(theme: MapStyleId): void {
     this.board.setTheme(theme);
+    this.life?.setTheme(theme);
     this.applyHaze();
   }
 
@@ -991,13 +1068,15 @@ export class TableView {
           v.recallT = -1;
           Object.assign(v.eye, newEyeHold());
         }
-        v.fall = Math.min(1, v.fall + dt / FALL_SEC);
+        const flying = v.flyD > 0 && this.motion?.matches !== true;
+        v.fall = Math.min(1, v.fall + dt / (flying ? FLY_SEC : FALL_SEC));
         v.live = false;
         return;
       }
       if (!v.alive) {
         v.alive = true;
         v.fall = 0;
+        v.flyD = 0;
         v.drop = 0;
         v.placed = false;
       }
@@ -1200,7 +1279,16 @@ export class TableView {
     const markCol = u.team === 'neutral' ? '#c9a0e6' : T.mark;
     if (v.fig) {
       const f = v.fig;
+      // the Checkmate beat takes the losing King, standing or fallen
+      if (this.mate?.id === v.id) {
+        this.mateKing(v, f);
+        return;
+      }
       if (!v.alive) {
+        if (v.flyD > 0 && this.motion?.matches !== true) {
+          this.flight(v, f);
+          return;
+        }
         f.setVisible(v.fall < 1);
         if (v.fall < 1) {
           f.pose({
@@ -1471,6 +1559,156 @@ export class TableView {
   }
 
   /** The Rank 4 moment: the new look swells in with a burst of the style colour. */
+  /* ------------------------------ capture spectacle ------------------------------ */
+
+  /** A fallen piece in flight: knocked away from the blow, tumbling, a dusty landing, then gone. */
+  private flight(v: Rec, f: PieceFigure): void {
+    const T = v.fall * FLY_SEC;
+    const a = Math.min(1, T / FLY_AIR);
+    const after = Math.max(0, T - FLY_AIR);
+    const H = f.height;
+    const d = v.flyD * (easeOut(a) * 0.85 + 0.15 * easeOut(Math.min(1, after / 0.35)));
+    const x = v.x + v.flyX * d;
+    const z = v.z + v.flyZ * d;
+    const gy = this.board.relief.at(x, z);
+    const pivot = H * 0.45;
+    const lie = v.halfW * 0.7;
+    const arc = 4 * a * (1 - a) * H * 1.15;
+    const b = Math.min(1, after / 0.26);
+    const bounce = after > 0 ? Math.sin(b * Math.PI) * H * 0.14 * (1 - b * 0.5) : 0;
+    const cy = gy + lerp(pivot, lie, easeIn(a)) + arc + bounce;
+    // one and a quarter turns head over heels, ending on its face; a little roll in the air
+    const pitch = easeOut(a) * Math.PI * 2.5 - Math.sin(b * Math.PI) * 0.15;
+    const roll = Math.sin(a * Math.PI) * 0.45 * v.flyRoll;
+    const sc = T < FLY_FADE ? 1 : 1 - easeIn(Math.min(1, (T - FLY_FADE) / (FLY_SEC - FLY_FADE)));
+    const yaw = Math.atan2(v.flyX, v.flyZ);
+    f.setVisible(v.fall < 1 && sc > 0.02);
+    if (v.fall >= 1) return;
+    f.pose({
+      move: 0,
+      phase: v.phase,
+      attack: 0,
+      windup: 0,
+      flinch: 1 - a,
+      time: this.time,
+      fall: 0,
+      drop: 1,
+      hit: Math.max(0, 1 - T * 2),
+    });
+    f.fling(x, cy, z, yaw, pitch, roll, pivot, Math.max(0.02, sc));
+    const team = v.team === 'B' ? 'B' : 'A';
+    if (!v.landed && a >= 1) {
+      // the landing: a puff of dust and grit, a pale ring on the ground, a small jolt
+      v.landed = true;
+      this.chips.burst(x, gy + 6, z, team === 'B' ? '#6b6a70' : '#c9bb98', 9, 0.55, 3.2);
+      this.chips.burst(x, gy + 4, z, '#9c8e72', 6, 0.4, 2.4);
+      this.fx.ring(x, gy + 2, z, '#e6dcc4', v.halfW * 0.8, v.halfW * 3.6, 0.45, 0.55);
+      this.cam.kick(0.06);
+      this.capture('capture-land', v, x, gy + lie, z);
+    }
+    if (!v.faded && T >= FLY_FADE) {
+      v.faded = true;
+      this.chips.rise(x, gy + lie, z, team === 'B' ? TEAM.B.mark : TEAM.A.mark, 8, v.halfW, 3);
+    }
+  }
+
+  /** Tells the page (the HUD's capture tray) where a capture is on screen. */
+  private capture(
+    type: 'capture-start' | 'capture-land',
+    v: Rec,
+    x: number,
+    y: number,
+    z: number,
+  ): void {
+    const r = this.canvas.getBoundingClientRect();
+    const q = this.tmp.set(x, y, z).project(this.cam.camera);
+    const detail = {
+      id: v.id,
+      team: v.team,
+      piece: v.pieceId,
+      x: r.left + MathUtils.clamp((q.x + 1) / 2, 0, 1) * r.width,
+      y: r.top + MathUtils.clamp((1 - q.y) / 2, 0, 1) * r.height,
+    };
+    this.canvas.dispatchEvent(new CustomEvent(type, { detail }));
+  }
+
+  /** The Checkmate beat: the losing King stands where he fell, then topples slowly; a gold burst. */
+  private mateKing(v: Rec, f: PieceFigure): void {
+    const m = this.mate!;
+    const reduced = this.motion?.matches === true;
+    const gy = (v.gy = this.board.relief.at(v.x, v.z));
+    const p = reduced ? 0 : MathUtils.clamp((m.t - MATE_PUSH) / MATE_TOPPLE, 0, 1);
+    // a slow tip that gathers speed (a toppled chess king), a small rebound when it hits
+    const k = p * p * p;
+    const reb = p >= 1 ? Math.sin(Math.min(1, (m.t - MATE_PUSH - MATE_TOPPLE) / 0.3) * Math.PI) : 0;
+    const ang = k * (Math.PI / 2 - 0.06) - reb * 0.08;
+    const yaw = Math.atan2(this.camRight.x, this.camRight.z);
+    f.setVisible(true);
+    f.pose({
+      move: 0,
+      phase: v.phase,
+      attack: 0,
+      windup: 0,
+      flinch: 0,
+      time: this.time,
+      fall: 0,
+      drop: 1,
+      still: true,
+    });
+    f.fling(v.x, gy + Math.sin(ang) * v.halfW * 0.6, v.z, yaw, ang, 0, 0, 1);
+    if (!m.boomed && (p >= 1 || reduced)) {
+      m.boomed = true;
+      this.canvas.dispatchEvent(new Event('mate-fall'));
+      const br = Math.max(22, v.halfW * 0.92);
+      const x = v.x + this.camRight.x * f.height * 0.6;
+      const z = v.z + this.camRight.z * f.height * 0.6;
+      this.gambits.flare(x, gy + 1, z, GOLD, 210, 2.4, 420);
+      this.gambits.flare(x, gy + 1, z, '#fff3c8', 90, 1.2, 0);
+      if (reduced) return;
+      this.fx.ring(x, gy + 2, z, GOLD, br, br * 9, 1.1, 1.3);
+      this.fx.ring(x, gy + 2, z, '#fff3c8', br * 0.6, br * 5, 0.7, 1, 0.12);
+      this.fx.column(x, gy, z, GOLD, br * 0.8, br * 0.5, f.height * 4, 1.2, 0, 1);
+      this.chips.burst(x, gy + 10, z, GOLD, 26, 1.5, 4.5);
+      this.chips.burst(x, gy + 10, z, '#fff3c8', 12, 1.1, 3);
+      this.cam.kick(0.55);
+      this.stopT = HIT_STOP_SEC * 1.4;
+    }
+  }
+
+  /** True while the Checkmate beat needs every frame drawn (the match has ended). */
+  get cinematic(): boolean {
+    return this.mate !== null && this.mate.t < MATE_SEC + 0.6;
+  }
+
+  /** Rank-up flare: a gold ring and sparks; Ranks 4 and 8 add a tall pillar and a wider burst. */
+  private rankFlare(v: Rec, rank: number): void {
+    const f = v.fig;
+    if (!f || !v.live || this.motion?.matches === true) return;
+    const big = rank === 4 || rank === 8;
+    const br = Math.max(22, v.halfW * 0.92);
+    const gy = v.gy;
+    const h = f.height;
+    this.fx.ring(v.x, gy + 2, v.z, GOLD, br * 1.1, br * (big ? 5.2 : 3), big ? 0.9 : 0.6, 1);
+    this.fx.column(
+      v.x,
+      gy,
+      v.z,
+      GOLD,
+      br * 0.55,
+      br * 0.3,
+      h * (big ? 3.4 : 1.7),
+      big ? 1 : 0.6,
+      0,
+      0.85,
+    );
+    this.chips.rise(v.x, gy + h * 0.25, v.z, GOLD, big ? 14 : 6, br * 0.8, big ? 3.4 : 2.6);
+    if (!big) return;
+    this.gambits.flare(v.x, gy + 1, v.z, GOLD, rank === 8 ? 120 : 90, 1.3, 260);
+    this.fx.ring(v.x, gy + 2, v.z, '#fff3c8', br, br * 3.6, 0.6, 1, 0.18);
+    if (rank === 8) this.fx.ring(v.x, gy + 2, v.z, GOLD, br * 1.4, br * 7, 1.2, 0.8, 0.35);
+    this.cam.kick(rank === 8 ? 0.16 : 0.1);
+  }
+
   private transform(u: ChessUnit, v: Rec, from: Rec): void {
     v.placed = true;
     v.sx = from.sx;
@@ -1484,9 +1722,22 @@ export class TableView {
     v.fig?.transform();
     if (this.drawn === 0 || !u.style) return;
     const color = styleEmblem(u.style).color;
-    this.gambits.flare(from.x, 1 + this.up(from.x, from.z), from.z, color, 70, 1.1, 160);
-    this.gambits.flare(from.x, 1 + this.up(from.x, from.z), from.z, '#ffffff', 40, 0.6, 0);
-    this.chips.burst(from.x, 60 + this.up(from.x, from.z), from.z, color, 10, 1.2, 5);
+    const gy = this.up(from.x, from.z);
+    this.gambits.flare(from.x, 1 + gy, from.z, color, 70, 1.1, 160);
+    this.gambits.flare(from.x, 1 + gy, from.z, '#ffffff', 40, 0.6, 0);
+    this.chips.burst(from.x, 60 + gy, from.z, color, 10, 1.2, 5);
+    if (this.motion?.matches === true) return;
+    // the Rank 4 transformation: the generic piece shatters in its team colour inside a pillar of
+    // the new style's light, and the new figure swells out of it
+    const h = v.fig?.height ?? 80;
+    const br = Math.max(22, from.halfW * 0.92);
+    const team = from.team === 'B' ? 'B' : 'A';
+    this.chips.burst(from.x, gy + h * 0.5, from.z, TEAM[team].body, 18, 1.05, 5.5);
+    this.chips.burst(from.x, gy + h * 0.8, from.z, TEAM[team].rim, 8, 0.9, 4);
+    this.fx.column(from.x, gy, from.z, color, br * 1.1, br * 0.7, h * 4.5, 1.3, 0, 1);
+    this.fx.column(from.x, gy, from.z, '#ffffff', br * 0.5, br * 0.3, h * 3, 0.7, 0, 0.8);
+    this.fx.ring(from.x, gy + 2, from.z, color, br, br * 6, 1, 1.2);
+    this.cam.kick(0.12);
   }
 
   private spawnFlare(u: SnapUnit): void {
@@ -1786,6 +2037,27 @@ export class TableView {
             0,
           );
           this.cam.kick(0.12);
+          if (v?.fig && this.motion?.matches !== true) {
+            // knocked flying away from the blow (or backwards when there is no killer)
+            const k = this.recs.get(p.killer);
+            let dx = k ? v.x - k.x : 0;
+            let dz = k ? v.z - k.z : 0;
+            let l = Math.hypot(dx, dz);
+            if (l < 1) {
+              dx = -Math.sin(v.yaw);
+              dz = -Math.cos(v.yaw);
+              l = 1;
+            }
+            v.flyX = dx / l;
+            v.flyZ = dz / l;
+            v.flyD = v.fig.height * (1.5 + ((p.id * 37) % 10) / 20);
+            v.flyRoll = p.id % 2 === 0 ? 1 : -1;
+            v.landed = false;
+            v.faded = false;
+            this.stopT = HIT_STOP_SEC;
+            this.fx.ring(v.x, v.gy + 2, v.z, '#ffffff', v.halfW, v.halfW * 4, 0.25, 1);
+            this.capture('capture-start', v, v.x, v.gy + v.fig.height * 0.5, v.z);
+          }
         } else if (p.kind === 'minion') {
           this.chips.burst(
             x,
@@ -1799,6 +2071,11 @@ export class TableView {
         } else if (p.kind === 'camp') {
           this.chips.burst(x, 24 + this.up(x, z), z, CLAY.body, 7, 0.9, 5);
         }
+        break;
+      }
+      case 'rankUp': {
+        const v = this.recs.get(e.payload.id);
+        if (v && this.drawn > 0) this.rankFlare(v, e.payload.rank);
         break;
       }
       case 'structureDown': {
@@ -1913,6 +2190,15 @@ export class TableView {
         break;
       case 'checkmate': {
         const winner = p.winner === 'B' ? 'B' : 'A';
+        for (const v of this.recs.values())
+          if (v.pieceId === 'king' && v.team !== winner && v.fig)
+            this.mate = { id: v.id, t: 0, boomed: false, done: false };
+        if (this.mate) {
+          const v = this.recs.get(this.mate.id)!;
+          // a gold shaft comes down on the King as the camera pushes in
+          this.fx.column(v.x, v.gy, v.z, GOLD, 60, 30, 900, 1.4, 1, 0.9);
+          this.gambits.crown(v.id, MATE_SEC);
+        }
         for (const v of this.recs.values()) {
           if (v.team === winner || !v.live) continue;
           if (v.pieceId === 'king') this.gambits.crown(v.id, 3);
@@ -2047,6 +2333,8 @@ export class TableView {
     this.gambits.clear();
     this.zones.clear();
     this.drawn = 0;
+    this.mate = null;
+    this.stopT = 0;
   }
 
   dispose(): void {
@@ -2057,6 +2345,7 @@ export class TableView {
     this.canvas.removeEventListener('webglcontextrestored', this.onRestored);
     this.reset();
     this.board.dispose();
+    this.life?.dispose();
     this.lib.dispose();
     for (const c of Object.values(this.crowds)) c.dispose();
     this.blobs.dispose();

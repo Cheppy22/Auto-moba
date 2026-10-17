@@ -88,6 +88,15 @@ export interface BlackPlay {
   ms: number;
 }
 
+/** How long a tray item waits for its flying token before it shows anyway (ms). */
+const TRAY_WAIT_MS = 2600;
+/**
+ * The Checkmate beat's longest wait (ms): the 3D view ends it when the King has fallen (about
+ * 3.2 s); without a 3D view the word shows at once and the splash follows after a short hold.
+ */
+const MATE_BEAT_MAX_MS = 7000;
+const MATE_BEAT_BARE_MS = 1400;
+
 export interface UiState {
   speed: Speed;
   /** Camera: free (the default), auto (the director), follow (a unit) or lane (a lane leaned in on). */
@@ -120,6 +129,12 @@ export interface UiState {
   intro: IntroState | null;
   /** The Black gambit banner on screen; the next one waits in the session's queue. */
   blackPlay: BlackPlay | null;
+  /**
+   * The Checkmate beat: for about 3 s after Checkmate the 3D view pushes in on the losing King
+   * as he topples (`fallen` once he hits the ground); the result splash waits until the view
+   * says the beat is over, 7 s at most (a tap skips it).
+   */
+  mateBeat: { winner: 'A' | 'B'; fallen: boolean } | null;
 }
 
 const freshUi = (): UiState => ({
@@ -142,6 +157,7 @@ const freshUi = (): UiState => ({
   clockFlash: 0,
   intro: null,
   blackPlay: null,
+  mateBeat: null,
 });
 
 /** The 3D view's picking calls, set by the game view while it exists. */
@@ -215,6 +231,12 @@ export class Session {
   private forkCam: { cam: CamMode; follow: number | null } | null = null;
   /** When the gambit sheet opened (ms), so the lifting finger cannot close it at once. */
   infoAt = 0;
+  /**
+   * Captures whose token is flying from the board to the HUD tray: piece id -> the time (ms)
+   * the tray stops waiting for it (the item shows when the token lands, or then at the latest).
+   */
+  private readonly trayWait = new Map<number, number>();
+  private mateTimer = 0;
   private escapes: (() => void)[] = [];
   private listeners = new Set<() => void>();
   private frameListeners = new Set<(alpha: number) => void>();
@@ -259,6 +281,51 @@ export class Session {
     this.notify();
   }
 
+  /** The 3D view knocked a captured piece flying: its tray item waits for the token. */
+  captureStart(id: number): void {
+    this.trayWait.set(id, performance.now() + TRAY_WAIT_MS);
+  }
+
+  /** The capture token reached the tray (or could not fly): the tray item shows. */
+  captureLanded(id: number): void {
+    if (this.trayWait.delete(id)) this.notify();
+  }
+
+  /** True while a captured piece's token is still on its way to the tray. */
+  trayWaiting(id: number): boolean {
+    const until = this.trayWait.get(id);
+    if (until === undefined) return false;
+    if (performance.now() < until) return true;
+    this.trayWait.delete(id);
+    return false;
+  }
+
+  /** Starts the Checkmate beat (the result splash waits for it). */
+  private startMateBeat(winner: 'A' | 'B'): void {
+    window.clearTimeout(this.mateTimer);
+    const m = this.match;
+    const view = !!this.view;
+    this.setUi({ mateBeat: { winner, fallen: !view } });
+    this.mateTimer = window.setTimeout(
+      () => {
+        if (this.match === m) this.endMateBeat();
+      },
+      view ? MATE_BEAT_MAX_MS : MATE_BEAT_BARE_MS,
+    );
+  }
+
+  /** The King has hit the ground: the word lands. */
+  mateFell(): void {
+    const b = this.ui.mateBeat;
+    if (b && !b.fallen) this.setUi({ mateBeat: { ...b, fallen: true } });
+  }
+
+  /** Ends the Checkmate beat at once (its timer, or a tap to skip). */
+  endMateBeat(): void {
+    window.clearTimeout(this.mateTimer);
+    if (this.ui.mateBeat) this.setUi({ mateBeat: null });
+  }
+
   /** A short message near the hand (the sim's refusals, small hints). */
   toast(message: string, ms = 2600): void {
     window.clearTimeout(this.toastTimer);
@@ -295,6 +362,8 @@ export class Session {
     this.seenSeq = -1;
     this.lastLeft = null;
     this.forkCam = null;
+    this.trayWait.clear();
+    window.clearTimeout(this.mateTimer);
     this.blackQueue = [];
     this.ui = { ...freshUi(), cam: this.ui.cam === 'auto' ? 'auto' : 'free' };
     this.notify();
@@ -510,12 +579,14 @@ export class Session {
    * as an adjudication would, when asked), so end-to-end tests walk a whole run without playing
    * four matches.
    */
-  testEnd(winner: PlayTeam | null, adjudicated = false): void {
+  testEnd(winner: PlayTeam | null, adjudicated = false, mate = false): void {
     const m = this.match;
     if (!m || !this.runTestHook || m.state.phase.kind === 'end') return;
     const ctx = m.ctx;
     ctx.s.winner = winner;
     ctx.s.phase = { kind: 'end', n: ctx.s.phase.n, startTick: ctx.s.tick };
+    // `mate`: as a real Checkmate, so the view plays the Checkmate beat before the splash
+    if (mate && winner) ctx.emit('checkmate', { winner });
     ctx.emit('matchEnd', {
       winner,
       phase: ctx.s.phase.n,
@@ -974,6 +1045,8 @@ export class Session {
           },
           FIGHT_NOTE_MS,
         );
+      } else if (e.type === 'checkmate') {
+        this.startMateBeat(e.payload.winner);
       } else if (e.type === 'death') {
         const piece = m.unitById(e.payload.id)?.hero?.defId;
         if (e.payload.team !== 'A' || !e.payload.fall || !piece) continue;
