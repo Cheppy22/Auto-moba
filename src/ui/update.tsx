@@ -28,7 +28,8 @@ function useOffer(): Apply | null {
 export function UpdateNotice() {
   const apply = useOffer();
   const s = useSession();
-  const quiet = !s.match || s.match.state.phase.kind === 'end';
+  // not over the Checkmate beat either: the bar would sit on the word in the lower letterbox
+  const quiet = !s.match || (s.match.state.phase.kind === 'end' && !s.ui.mateBeat);
   if (!apply || !quiet) return null;
   return (
     <div class="update-notice" role="status" data-testid="update-notice">
