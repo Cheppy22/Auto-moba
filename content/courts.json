@@ -41,7 +41,7 @@
         },
         {
           "piece": "knight",
-          "path": "offense",
+          "path": "utility",
           "lane": "bot"
         }
       ],
@@ -126,7 +126,7 @@
       },
       "portrait": {
         "piece": "king",
-        "style": "warlord",
+        "style": "sovereign",
         "pose": "left"
       },
       "opening": "french",
@@ -158,7 +158,7 @@
         }
       ],
       "styles": {
-        "king": "warlord",
+        "king": "sovereign",
         "queen": "regent",
         "rook": "ram",
         "bishop": "light",
@@ -182,7 +182,7 @@
       },
       "portrait": {
         "piece": "queen",
-        "style": "huntress",
+        "style": "regent",
         "pose": "left"
       },
       "opening": "italian",
@@ -215,7 +215,7 @@
       ],
       "styles": {
         "king": "sovereign",
-        "queen": "huntress",
+        "queen": "regent",
         "rook": "bastion",
         "bishop": "light",
         "knight": "lancer"
@@ -333,7 +333,8 @@
         "knight": "errant"
       },
       "signature": {
-        "relic": "knights_tour"
+        "relic": "development",
+        "piece": "knight"
       }
     },
     {
@@ -453,7 +454,7 @@
       "round": 4,
       "name": "The Black Queen's Court",
       "motto": "Kneel, or be taken.",
-      "manner": "Every piece is a blade and the Queen leads: it wins fast or not at all.",
+      "manner": "The Queen leads and her guard never moves: it wins slowly, then all at once.",
       "seal": {
         "field": ["#16110f", "#8a1a2c"],
         "charge": "#e3bd62",
@@ -469,7 +470,7 @@
       "pieces": [
         {
           "piece": "rook",
-          "path": "offense",
+          "path": "defense",
           "lane": "top"
         },
         {
@@ -484,7 +485,7 @@
         },
         {
           "piece": "king",
-          "path": "offense",
+          "path": "defense",
           "lane": "bot"
         },
         {
@@ -494,9 +495,9 @@
         }
       ],
       "styles": {
-        "king": "usurper",
+        "king": "sovereign",
         "queen": "duelist",
-        "rook": "vanguard",
+        "rook": "bastion",
         "bishop": "zealot",
         "knight": "lancer"
       },
