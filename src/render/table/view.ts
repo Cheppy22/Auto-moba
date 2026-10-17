@@ -25,6 +25,7 @@ import { Board } from './board';
 import type { MapStyleId } from './longlook';
 import { TableCamera } from './camera';
 import { FreeControls } from './controls';
+import { InkPass } from './ink';
 import { LaneCam } from './lanecam';
 import { Crowd, crowdInk, facetMaterial, hullOf } from './crowd';
 import { FIG_HEIGHT, type PieceId } from './figures';
@@ -269,6 +270,8 @@ export class TableView {
   private stamp = 0;
   private lastTick = -1;
   private drawn = 0;
+  /** The ink-and-brass post-process, while it is switched on. */
+  private ink: InkPass | null = null;
   private zonesFromSnap = false;
   private cssW = 0;
   private cssH = 0;
@@ -487,6 +490,21 @@ export class TableView {
       const w = window as unknown as Record<string, unknown>;
       w.__tvStats = () => this.stats();
       w.__tvMeasure = () => this.measure();
+      // dev: renders the current frame `n` times, waiting for each to finish (ms per frame)
+      w.__tvBench = (n = 20) => {
+        const gl = this.renderer.getContext();
+        const px = new Uint8Array(4);
+        // reading a pixel back waits for the frame to finish drawing
+        const sync = (): void => gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
+        this.paint();
+        sync();
+        const t0 = performance.now();
+        for (let i = 0; i < n; i++) {
+          this.paint();
+          sync();
+        }
+        return (performance.now() - t0) / n;
+      };
       // dev: fire a blow between two units (ids), for screenshots of the hit effects
       w.__tvHit = (aid: number, vid: number, frac = 0.06, lethal = false, melee = true) => {
         const a = this.recs.get(aid);
@@ -653,8 +671,29 @@ export class TableView {
     this.bolts.update(dt);
     this.fx.update(dt);
     this.chips.update(dt);
-    this.renderer.render(this.scene, camera);
+    this.paint();
     this.drawn++;
+  }
+
+  /** Draws the scene (through the ink pass when it is on). */
+  private paint(): void {
+    if (this.ink) this.ink.render(this.scene, this.cam.camera, this.cam.pose.d);
+    else this.renderer.render(this.scene, this.cam.camera);
+  }
+
+  /** Turns the "Ink style" post-process on or off (the Title and Adjourn switch; `?fx=ink`). */
+  setInk(on: boolean): void {
+    if (on === !!this.ink) return;
+    if (on) this.ink = new InkPass(this.renderer);
+    else {
+      this.ink?.dispose();
+      this.ink = null;
+    }
+  }
+
+  /** True while the ink pass draws the frame. */
+  get inked(): boolean {
+    return !!this.ink;
   }
 
   /**
@@ -2050,6 +2089,7 @@ export class TableView {
   }
 
   dispose(): void {
+    this.setInk(false);
     this.laneCam.dispose();
     this.controls.dispose();
     document.documentElement.style.removeProperty('--cam-yaw');

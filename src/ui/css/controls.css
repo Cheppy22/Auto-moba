@@ -219,6 +219,18 @@
 .theme-swatch-b {
   background: linear-gradient(135deg, #352c24 0 38%, #21452f 38% 66%, #c4a87c 66% 74%, #2c241e 74%);
 }
+/* the Ink style switch: a swatch of paper crossed by an ink stroke */
+.ink-opt {
+  margin-left: 6px;
+}
+.ink-swatch {
+  background:
+    linear-gradient(118deg, transparent 0 44%, #1d140c 44% 56%, transparent 56%),
+    radial-gradient(circle at 30% 30%, #efe3c6, #c9b48a);
+}
+.ink-opt:not(.on) .ink-swatch {
+  opacity: 0.55;
+}
 .title-wrap .theme-pick {
   justify-content: center;
   animation: veil-in 1.2s 1.3s both;

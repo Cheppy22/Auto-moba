@@ -15,6 +15,7 @@ import {
 } from 'three';
 import type { Content } from '../../sim';
 import { buildTerrain } from '../../sim';
+import { groundTiles, woodsTiles } from './lod';
 import { LOOK, TABLE } from './palette';
 import {
   CAMP_BADGE,
@@ -26,7 +27,6 @@ import {
   paintCover,
   paintLake,
   paintLongStyled,
-  woods,
 } from './longlook';
 import { bastionSites, type Ground, LongRelief, Relief, RELIEF, TERRACE } from './relief';
 
@@ -96,7 +96,6 @@ export class Board {
   readonly long: boolean;
   /** Ground heights (raised squares, daises, court pits, Bastion tiles; terraces on the Long Board). */
   readonly relief: Ground;
-  private readonly top: Mesh;
   private readonly topMat: MeshLambertMaterial;
   private readonly owned: { dispose(): void }[] = [];
   private orient: Orient | null = null;
@@ -134,9 +133,16 @@ export class Board {
     // the painted top (board + frame or apron), lifted into relief; flat shading gives the
     // terraces crisp, faceted sides (low poly) while the flat tops stay one tone
     this.topMat = this.own(new MeshLambertMaterial({ color: '#ffffff', flatShading: true }));
-    this.top = new Mesh(this.own(this.reliefGeometry()), this.topMat);
-    this.top.receiveShadow = true;
-    this.group.add(this.top);
+    // the Long Board's ground comes in tiles (the frustum skips the ones off screen), its apron coarser
+    const tops =
+      this.relief instanceof LongRelief
+        ? groundTiles(this.relief, Math.round(APRON / this.relief.cell), TERRACE.lake)
+        : [this.reliefGeometry()];
+    for (const geo of tops) {
+      const top = new Mesh(this.own(geo), this.topMat);
+      top.receiveShadow = true;
+      this.group.add(top);
+    }
     if (this.long) this.buildLake();
     else this.buildTable(E);
 
@@ -292,9 +298,8 @@ export class Board {
       m.castShadow = true;
       this.props.push(m);
     }
-    this.props.push(
-      new Mesh(woods(this.content.map, this.relief, this.style, APRON), this.propsMat),
-    );
+    for (const geo of woodsTiles(this.content.map, this.relief, this.style, APRON))
+      this.props.push(new Mesh(geo, this.propsMat));
     this.group.add(...this.props);
   }
 

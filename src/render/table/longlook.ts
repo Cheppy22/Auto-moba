@@ -974,17 +974,18 @@ export function groveProps(map: MapDef, ground: Ground, st: MapStyle): BufferGeo
         const at = world(x, y, -2);
         const turn: [number, number, number] = [0, hash(n++) * Math.PI, 0];
         const dark = hash(n++) < 0.5;
+        // open shapes: the trunk's ends and the cones' bases are never seen from above
         parts.push(
-          { g: prism(3, 4, 12, 5), c: st.trunk, p: at, r: turn, s: k },
+          { g: prism(3, 4, 12, 5, true), c: st.trunk, p: at, r: turn, s: k },
           {
-            g: cone(17, 30, 6),
+            g: cone(17, 30, 6, true),
             c: dark ? st.pine[0] : st.pine[1],
             p: [at[0], at[1] + 9 * k, at[2]],
             r: turn,
             s: k,
           },
           {
-            g: cone(12, 24, 6),
+            g: cone(12, 24, 6, true),
             c: dark ? st.pine[2] : st.pine[3],
             p: [at[0], at[1] + 26 * k, at[2]],
             r: turn,
@@ -1045,56 +1046,4 @@ export function groveProps(map: MapDef, ground: Ground, st: MapStyle): BufferGeo
     );
   }
   return parts.length ? merge(parts) : null;
-}
-
-/**
- * The woods round the garden: pines in loose rows on the apron past the board's edge, out onto
- * the bank (two cones each, no trunk), darker toward the haze; never on the river's water, which
- * runs on out to the lake. One static mesh of open cones (no bases; it casts no shadow).
- */
-export function woods(map: MapDef, ground: Ground, st: MapStyle, apron: number): BufferGeometry {
-  const parts: Part[] = [];
-  const W = map.size;
-  const L = map.length ?? map.size;
-  const river = map.terraces?.river ?? 0;
-  const rows = [62, 104, 146, 188, 232, 272].filter((off) => off < apron - 40);
-  let n = 9000;
-  rows.forEach((off, row) => {
-    // the rectangle grown by `off`: walk its perimeter
-    const w = W + off * 2;
-    const l = L + off * 2;
-    const perim = 2 * (w + l);
-    for (let d = hash(n++) * 30; d < perim; d += 34 + hash(n++) * 14) {
-      let x: number;
-      let y: number;
-      if (d < w) [x, y] = [-off + d, -off];
-      else if (d < w + l) [x, y] = [W + off, -off + (d - w)];
-      else if (d < 2 * w + l) [x, y] = [W + off - (d - w - l), L + off];
-      else [x, y] = [-off, L + off - (d - 2 * w - l)];
-      x += (hash(n++) - 0.5) * 26;
-      y += (hash(n++) - 0.5) * 26;
-      // the river runs out through the woods to the lake
-      if ((x < 0 || x > W) && Math.abs(y - L / 2) < river + 30) continue;
-      // the corners are rounded off by the bank: no trees out in the water
-      const ox = Math.max(-x, x - W, 0);
-      const oy = Math.max(-y, y - L, 0);
-      if (Math.hypot(ox, oy) > apron - 40) continue;
-      const k = (1 + hash(n++) * 0.55) * 1.15 * (1 + row * 0.06);
-      const at: [number, number, number] = [x - W / 2, ground.atSim(x, y) - 3, y - L / 2];
-      const turn: [number, number, number] = [0, hash(n++) * Math.PI, 0];
-      const dim = 0.12 + row * 0.1;
-      const v = hash(n++) < 0.5 ? 0 : 1;
-      parts.push(
-        { g: cone(19, 34, 6, true), c: mix(st.pine[v], st.haze, dim), p: at, r: turn, s: k },
-        {
-          g: cone(13, 27, 6, true),
-          c: mix(st.pine[v + 2], st.haze, dim),
-          p: [at[0], at[1] + 19 * k, at[2]],
-          r: turn,
-          s: k,
-        },
-      );
-    }
-  });
-  return merge(parts);
 }
