@@ -397,8 +397,12 @@ test('Run kit choices reach the match: a carried relic is held from Act 1, the c
     const opened: string[] = [];
     const lockedNow = (): number =>
       s.match.events.filter((e) => e.type === 'fork' && e.payload.locked).length;
+    const white = (s.match.state as unknown as { teams: { A: { heroIds: number[] } } }).teams.A
+      .heroIds;
     const rank4 = (): number =>
-      s.match.events.filter((e) => e.type === 'fork' && e.payload.rank === 4).length;
+      s.match.events.filter(
+        (e) => e.type === 'fork' && e.payload.rank === 4 && white.includes(e.payload.id as number),
+      ).length;
     // until all five pieces have an archetype (the Rank 4 times depend on how the court plays)
     for (let i = 0; i < 600 && s.match.state.tick < 16000 && rank4() < 5; i++) {
       s.match.step(30);
