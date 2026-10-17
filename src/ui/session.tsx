@@ -49,7 +49,7 @@ import { introOutMs, type IntroPiece, type IntroState } from './intro';
 import { cap, PIECE_ORDER, pieceLabel } from './pieces';
 import { commandCue, eventCues, roundCue, type CueRequest } from './audio/cues';
 import { Heat, heatOf, moodFor } from './audio/mood';
-import { duckSound, play, setSoundMood } from './sound';
+import { play, setSoundMood } from './sound';
 
 export type Speed = 0 | 1 | 2 | 4 | 8;
 
@@ -1147,7 +1147,6 @@ export class Session {
       speed: this.ui.speed,
     });
     for (const r of requests) {
-      if (r.cue === 'toll') duckSound(5);
       play(r.cue, r.opts);
     }
   }

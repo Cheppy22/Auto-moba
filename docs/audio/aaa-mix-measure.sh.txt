@@ -1,0 +1,11 @@
+#!/bin/sh
+# usage: measure.sh <base> ; encodes <base>.wav -> <base>.m4a, measures LUFS/true peak (stereo and mono)
+B=$1
+/usr/bin/ffmpeg -y -loglevel error -i $B.wav -c:a aac -b:a 128k $B.m4a
+ls -l $B.m4a | awk '{print "m4a bytes", $5}'
+echo "--- stereo (encoded)"
+/usr/bin/ffmpeg -hide_banner -nostats -i $B.m4a -af ebur128=peak=true -f null - 2>&1 | grep -A16 "Summary" | grep -E "I:|LRA:|Peak:"
+echo "--- mono fold-down (encoded)"
+/usr/bin/ffmpeg -hide_banner -nostats -i $B.m4a -af "pan=mono|c0=0.5*c0+0.5*c1,ebur128=peak=true" -f null - 2>&1 | grep -A16 "Summary" | grep -E "I:|LRA:|Peak:"
+echo "--- wav (pre-encode) stereo"
+/usr/bin/ffmpeg -hide_banner -nostats -i $B.wav -af ebur128=peak=true -f null - 2>&1 | grep -A16 "Summary" | grep -E "I:|Peak:"
