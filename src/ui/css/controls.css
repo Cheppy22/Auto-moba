@@ -165,8 +165,77 @@
 .sound-toggle.off {
   color: var(--dim);
 }
-.title-wrap .sound-toggle {
+.title-wrap .sound-box {
   animation: veil-in 1.2s 1.3s both;
+}
+/* the sound switch plus a Mixer button; the four volume sliders open as a small panel under them */
+.sound-box {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+}
+.sound-row {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+.btn.small.sound-mix-btn {
+  min-height: 44px;
+  font-size: var(--fs-sm);
+}
+.sound-box .sound-panel {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(300px, calc(100vw - 32px));
+  padding: var(--sp-3) var(--sp-4);
+  animation: none;
+}
+.adjourn .sound-box .sound-panel {
+  left: auto;
+  right: 0;
+  transform: none;
+  width: min(280px, calc(100vw - 56px));
+}
+/* on the Title the sliders open in the flow, pushing the board picker and seed down */
+.title-wrap .sound-box .sound-panel {
+  position: relative;
+  top: auto;
+  left: auto;
+  transform: none;
+  margin-top: 6px;
+  width: min(300px, calc(100vw - 32px));
+}
+.mixer {
+  display: grid;
+  gap: 4px;
+}
+.mixer-row {
+  display: grid;
+  grid-template-columns: 76px 1fr 30px;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  font-size: var(--fs-sm);
+}
+.mixer-name {
+  color: var(--dim);
+  font-family: var(--font-display);
+  letter-spacing: 0.04em;
+}
+.mixer-val {
+  text-align: right;
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+}
+.mixer input[type='range'] {
+  width: 100%;
+  min-height: 44px;
+  accent-color: var(--brass);
+  background: transparent;
 }
 /* the board theme switch (Title, Adjourn): two options, each with a swatch of floor, felt and path */
 .theme-pick {

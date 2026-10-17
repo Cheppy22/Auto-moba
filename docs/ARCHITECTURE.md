@@ -45,7 +45,9 @@ src/render/      theme, emblems, report replay (Canvas 2D);
                  broadcast/ = the play director and effects the view shares
 src/ui/          Preact screens: setup board, live HUD (gambits, forks), Adjourn, reports;
                  run/ = the Tournament run's screens (Draw, Spoils, run strip and kit, summary)
-                 and its device save; session.tsx holds the run between matches
+                 and its device save; session.tsx holds the run between matches;
+                 sound.ts + audio/ = Web Audio synthesis (cues, music bed, garden ambience,
+                 mixer); cues.ts and mood.ts are pure and unit-tested
 src/app/         wiring: frame clock, speed control, screen state machine
 tools/           Node: headless match, batch balance runner
 tests/           cross-layer tests: determinism, golden match, content, e2e

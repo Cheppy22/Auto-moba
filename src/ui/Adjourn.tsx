@@ -8,7 +8,7 @@ import { itemCategory } from './itemInfo';
 import { PATH_LABEL, PieceGlyph, pieceLabel } from './pieces';
 import { n0 } from './format';
 import { SchoolChip } from './schools';
-import { SoundToggle } from './SoundToggle';
+import { SoundControls } from './SoundToggle';
 import { ThemePicker } from './ThemePicker';
 import { useEscape, useSession } from './session';
 
@@ -166,7 +166,7 @@ export function Adjourn() {
       <div class="panel col adjourn-panel">
         <div class="row">
           <h2 class="grow">Adjourned</h2>
-          <SoundToggle />
+          <SoundControls />
           <button class="btn primary" data-testid="resume" onClick={resume}>
             Resume
           </button>
