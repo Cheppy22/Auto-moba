@@ -1,0 +1,682 @@
+/* ---------- the two big decisions: the fork sheet's preview and the relic draft's cards ---------- */
+
+/* ===== fork sheet: tabs, the preview (model, plays like, numbers, skill), Choose ===== */
+.forksheet {
+  gap: 7px;
+}
+.fs-opts {
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  gap: 4px;
+}
+.fs-opt {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 46px;
+  padding: 4px 6px 6px;
+  cursor: pointer;
+  color: var(--bone);
+  background: linear-gradient(180deg, #33231a, #211812);
+  border: 1px solid #4f3f27;
+  border-radius: var(--r-1);
+  transition:
+    background-color var(--t-fast, 0.12s) var(--ease),
+    border-color var(--t-fast, 0.12s) var(--ease);
+}
+.fs-opt::after {
+  content: '';
+  position: absolute;
+  inset: auto 6px -1px;
+  height: 3px;
+  border-radius: 2px 2px 0 0;
+  background: var(--opt, var(--sty, var(--brass)));
+  opacity: 0;
+  transform: scaleX(0.4);
+  transition:
+    opacity 0.16s var(--ease),
+    transform 0.2s var(--ease);
+}
+.fs-opt:hover,
+.fs-opt:focus-visible {
+  border-color: var(--brass-hi);
+}
+.fs-opt.on {
+  color: #f6edd6;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--opt, var(--brass)) 26%, #3a281c),
+    #241a13
+  );
+  border-color: color-mix(in srgb, var(--opt, var(--brass)) 70%, var(--brass-dim));
+}
+.fs-opt.on::after {
+  opacity: 1;
+  transform: none;
+}
+.fs-opt-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+  line-height: 1.1;
+}
+.fs-opt b {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--fs-md);
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.fs-emblem {
+  flex: none;
+}
+.fs-tag {
+  font-style: normal;
+  font-size: 11px;
+  line-height: 14px;
+  letter-spacing: 0.02em;
+}
+.fs-tag.offense {
+  color: #f4aea4;
+}
+.fs-tag.defense {
+  color: #a4c8f4;
+}
+.fs-tag.utility {
+  color: #b2e096;
+}
+
+.fs-preview {
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr);
+  grid-template-areas:
+    'model read'
+    'deltas deltas'
+    'skill skill'
+    'rule rule';
+  gap: 6px 10px;
+  align-items: center;
+  animation: fs-swap 0.22s var(--ease) both;
+}
+@keyframes fs-swap {
+  from {
+    opacity: 0.35;
+    transform: translateY(3px);
+  }
+}
+.fs-model {
+  grid-area: model;
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 84px;
+  height: 84px;
+  margin: 0;
+}
+/* a lit pedestal in the style colour under the figure */
+.fs-model::before {
+  content: '';
+  position: absolute;
+  inset: 8px 4px 0;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    color-mix(in srgb, var(--sty) 46%, transparent),
+    color-mix(in srgb, var(--sty) 10%, transparent) 70%,
+    transparent
+  );
+}
+.fs-model::after {
+  content: '';
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 4px;
+  height: 9px;
+  border-radius: 50%;
+  border-top: 1.5px solid color-mix(in srgb, var(--sty) 80%, white);
+  background: rgba(0, 0, 0, 0.35);
+}
+.fs-model img,
+.fs-model svg {
+  position: relative;
+  z-index: 1;
+  width: 96px;
+  height: 96px;
+  margin-top: -14px;
+  object-fit: contain;
+  animation: fs-rise 0.34s var(--ease) both;
+}
+.fs-model svg {
+  width: 44px;
+  height: 44px;
+  margin: 0;
+}
+@keyframes fs-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.94);
+  }
+}
+.fs-read {
+  grid-area: read;
+  min-width: 0;
+}
+.fs-plays {
+  margin: 0;
+  font-size: var(--fs-md);
+  line-height: 1.32;
+  font-style: italic;
+  color: #f3e9d0;
+}
+.fs-deltas {
+  grid-area: deltas;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 3px;
+  margin: 0;
+}
+.fs-delta {
+  display: grid;
+  gap: 0;
+  padding: 3px 7px 4px;
+  background: rgba(255, 255, 255, 0.035);
+  border-left: 2px solid var(--baize-hi);
+  border-radius: 0 var(--r-1) var(--r-1) 0;
+}
+.fs-delta.down {
+  border-left-color: var(--clock-hi);
+}
+.fs-delta dt {
+  font-size: 11.5px;
+  line-height: 1.2;
+  color: var(--dim);
+}
+.fs-delta dd {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  margin: 0;
+  font-variant-numeric: tabular-nums lining-nums;
+  font-size: var(--fs-sm);
+  white-space: nowrap;
+}
+.fs-b {
+  color: var(--dim);
+}
+.fs-arrow {
+  font-size: 11px;
+  color: var(--brass);
+}
+.fs-delta b {
+  font-weight: 600;
+  color: #c8ecd7;
+}
+.fs-delta.down b {
+  color: #ffc4bb;
+}
+.fs-skill {
+  grid-area: skill;
+  margin: 0;
+  font-size: var(--fs-sm);
+  line-height: 1.3;
+  color: var(--bone);
+}
+.fs-skill b {
+  font-weight: 600;
+  color: var(--brass-hi);
+}
+.fs-rule {
+  grid-area: rule;
+  margin: 0;
+  font-size: var(--fs-xs);
+  line-height: 1.32;
+  color: var(--dim);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.fs-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: 6px;
+}
+.fs-choose,
+.fs-auto {
+  min-height: 44px;
+  font-size: var(--fs-md);
+}
+.fs-choose {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fs-auto {
+  color: var(--brass-hi);
+  border-color: var(--brass-dim);
+}
+
+/* a phone held upright: the sheet keeps to the lower half, so the rules line goes for archetypes */
+html[data-layout='portrait'] .forksheet[data-kind='archetype'] .fs-rule {
+  display: none;
+}
+
+/* landscape phones: docked right, below the top-right controls, sized to its content */
+html[data-layout='landscape'] .forksheet {
+  top: auto;
+  max-height: calc(100% - 112px - env(safe-area-inset-top));
+  gap: 5px;
+}
+html[data-layout='landscape'] .fs-opt {
+  min-height: 44px;
+  padding: 2px 4px 4px;
+}
+html[data-layout='landscape'] .fs-opt b {
+  font-size: var(--fs-sm);
+}
+html[data-layout='landscape'] .fs-preview {
+  grid-template-columns: 64px minmax(0, 1fr);
+  grid-template-areas:
+    'model read'
+    'model deltas'
+    'skill skill';
+  gap: 3px 8px;
+}
+html[data-layout='landscape'] .fs-delta {
+  padding: 1px 6px 2px;
+}
+html[data-layout='landscape'] .fs-model {
+  width: 64px;
+  height: 64px;
+}
+html[data-layout='landscape'] .fs-model img {
+  width: 76px;
+  height: 76px;
+  margin-top: -10px;
+}
+html[data-layout='landscape'] .fs-plays {
+  font-size: var(--fs-sm);
+}
+html[data-layout='landscape'] .fs-rule {
+  display: none;
+}
+html[data-layout='landscape'] .fs-choose,
+html[data-layout='landscape'] .fs-auto {
+  font-size: var(--fs-sm);
+}
+
+/* desktop: a wider card with a bigger model */
+html[data-layout='desktop'] .forksheet {
+  width: min(640px, calc(100% - 28px));
+  padding: 12px 14px 14px;
+  gap: 10px;
+}
+html[data-layout='desktop'] .fs-opt {
+  min-height: 52px;
+}
+html[data-layout='desktop'] .fs-preview {
+  grid-template-columns: 132px minmax(0, 1fr);
+  grid-template-areas:
+    'model read'
+    'model deltas'
+    'model skill'
+    'model rule';
+  align-items: start;
+  gap: 8px 16px;
+}
+html[data-layout='desktop'] .fs-model {
+  width: 132px;
+  height: 150px;
+  align-self: center;
+}
+html[data-layout='desktop'] .fs-model img {
+  width: 150px;
+  height: 150px;
+  margin-top: -20px;
+}
+html[data-layout='desktop'] .fs-plays {
+  font-size: var(--fs-lg);
+}
+html[data-layout='desktop'] .fs-rule {
+  -webkit-line-clamp: 3;
+  font-size: var(--fs-sm);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fs-preview,
+  .fs-model img {
+    animation: none;
+  }
+}
+
+/* ===== relic draft: three big cards (art, the plan, what changes), dealt face down, then taken ===== */
+.rcard.offer {
+  gap: 9px;
+  padding: 0 14px 14px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--family) 9%, transparent), transparent 46%),
+    rgba(255, 255, 255, 0.03);
+  border: 1px solid color-mix(in srgb, var(--family) 38%, var(--rule));
+  border-radius: 6px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 8px 20px rgba(0, 0, 0, 0.35);
+}
+.rcard.offer::before {
+  inset: 0 0 auto;
+  width: auto;
+  height: 3px;
+}
+.rcard.offer.tailored {
+  border-color: color-mix(in srgb, var(--family) 72%, var(--brass-dim));
+}
+/* the plate: the medallion on a lit, finely engraved ground, the name under it */
+.rcard-plate {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  margin: 0 -14px;
+  padding: 16px 14px 10px;
+  text-align: center;
+  background:
+    radial-gradient(
+      circle at 50% 38%,
+      color-mix(in srgb, var(--family) 30%, transparent),
+      transparent 62%
+    ),
+    repeating-radial-gradient(
+      circle at 50% 38%,
+      rgba(240, 213, 138, 0.05) 0 1px,
+      transparent 1px 7px
+    );
+  border-bottom: 1px solid color-mix(in srgb, var(--family) 30%, var(--rule));
+}
+.rcard-art {
+  filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.5));
+}
+.rcard-name {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 23px;
+  line-height: 1.1;
+  letter-spacing: 0.04em;
+  color: #f6edd6;
+}
+.rcard-plate .rcard-tags {
+  justify-content: center;
+}
+.rcard-headline {
+  margin: 2px 0 0;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.32;
+  color: #f6edd6;
+  text-wrap: pretty;
+}
+.rcard-change {
+  display: grid;
+  gap: 4px;
+  padding: 8px 10px 9px;
+  background: rgba(10, 8, 6, 0.35);
+  border: 1px solid rgba(201, 163, 90, 0.18);
+  border-radius: 4px;
+}
+.rcard-change header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2px 8px;
+}
+.rcard-change-h {
+  font-family: var(--font-display);
+  font-size: var(--fs-md);
+  letter-spacing: 0.04em;
+  color: var(--brass-hi);
+}
+.rcard-target {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 1px 8px;
+  font-size: var(--fs-sm);
+  color: #f3e9d0;
+  background: color-mix(in srgb, var(--family) 20%, transparent);
+  border: 1px solid color-mix(in srgb, var(--family) 55%, transparent);
+  border-radius: 10px;
+}
+.rcard-change dl {
+  display: grid;
+  gap: 3px;
+  margin: 0;
+}
+.rrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0 10px;
+  padding: 2px 0;
+  border-bottom: 1px dotted rgba(203, 189, 159, 0.16);
+}
+.rrow:last-child {
+  border-bottom: 0;
+}
+.rrow dt {
+  font-size: var(--fs-sm);
+  color: var(--bone);
+}
+.rrow dd {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  margin: 0 0 0 auto;
+  font-variant-numeric: tabular-nums lining-nums;
+  font-size: var(--fs-md);
+  white-space: nowrap;
+}
+/* desktop: the relic cards get a wider sheet than the other tabs */
+html[data-layout='desktop'] .breaksheet:has(.rl-offers) {
+  padding-left: max(calc(12px + env(safe-area-inset-left)), calc((100% - 1040px) / 2));
+  padding-right: max(calc(12px + env(safe-area-inset-right)), calc((100% - 1040px) / 2));
+}
+.rrow-b {
+  color: var(--dim);
+}
+.rrow-arrow {
+  font-size: 12px;
+  color: var(--brass);
+}
+.rrow b {
+  font-weight: 700;
+  color: #f6edd6;
+}
+.rrow.gain b {
+  color: #b9ecd0;
+}
+.rrow.cost b {
+  color: #ffbfb5;
+}
+.rcard-change-empty {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--dim);
+}
+.rcard.offer > * {
+  min-width: 0;
+}
+.rcard-held-plan {
+  margin: 0;
+  font-size: var(--fs-md);
+  font-weight: 600;
+  line-height: 1.3;
+  color: #f6edd6;
+}
+.rcard.held .rcard-desc {
+  font-size: var(--fs-sm);
+  color: var(--bone);
+}
+.rcard.offer .rcard-more summary {
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+}
+.rcard.offer .rcard-more summary::before {
+  content: '▸';
+  margin-right: 6px;
+  font-size: 12px;
+  color: var(--brass);
+  transition: transform 0.15s var(--ease);
+}
+.rcard.offer .rcard-more[open] summary::before {
+  transform: rotate(90deg);
+}
+.rcard.offer .rcard-desc {
+  margin: 4px 0 6px;
+  font-size: var(--fs-sm);
+}
+
+/* the deal: each card turns over in turn when the tab first opens at a break */
+.rl-offers.deal .rcard.offer {
+  animation: rl-deal 0.62s cubic-bezier(0.2, 0.9, 0.25, 1) both;
+  animation-delay: calc(var(--i, 0) * 0.13s + 0.08s);
+  transform-origin: 50% 60%;
+  backface-visibility: hidden;
+}
+@keyframes rl-deal {
+  0% {
+    opacity: 0;
+    transform: perspective(900px) translateY(28px) rotateY(88deg) scale(0.9);
+    filter: brightness(1.8) saturate(0.4);
+  }
+  55% {
+    opacity: 1;
+    transform: perspective(900px) translateY(-4px) rotateY(-8deg) scale(1.01);
+    filter: brightness(1.15);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+.rl-offers.deal .rcard-art {
+  animation: rl-medal 0.9s var(--ease) both;
+  animation-delay: calc(var(--i, 0) * 0.13s + 0.38s);
+}
+@keyframes rl-medal {
+  0% {
+    transform: scale(0.6) rotate(-40deg);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(1.06) rotate(4deg);
+    opacity: 1;
+  }
+  100% {
+    transform: none;
+  }
+}
+
+/* the pick: the taken card flies into the held row, which lands with a stamp */
+.rflight {
+  position: fixed;
+  z-index: 50;
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 6px;
+  padding: 14px;
+  text-align: center;
+  pointer-events: none;
+  transform-origin: 0 0;
+  background:
+    radial-gradient(
+      circle at 50% 22%,
+      color-mix(in srgb, var(--family) 36%, transparent),
+      transparent 60%
+    ),
+    linear-gradient(180deg, #33261b, #1e1610);
+  border: 1px solid var(--brass);
+  border-radius: 6px;
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--family) 60%, transparent),
+    0 18px 40px rgba(0, 0, 0, 0.55),
+    0 0 28px color-mix(in srgb, var(--family) 45%, transparent);
+}
+.rflight b {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 22px;
+  color: #f6edd6;
+}
+.rflight span {
+  font-size: var(--fs-md);
+  line-height: 1.3;
+  color: var(--ivory);
+}
+
+/* a phone held upright: the three cards sit side by side and swipe, the next one peeking in */
+html[data-layout='portrait'] .rl-offers {
+  display: flex;
+  gap: 10px;
+  margin: 0 -12px;
+  padding: 2px 12px 10px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scroll-padding: 0 12px;
+  scrollbar-width: none;
+}
+html[data-layout='portrait'] .rl-offers::-webkit-scrollbar {
+  display: none;
+}
+html[data-layout='portrait'] .rcard.offer {
+  flex: 0 0 86%;
+  scroll-snap-align: center;
+  align-content: start;
+}
+
+/* landscape phones: three narrow columns, a smaller plate */
+html[data-layout='landscape'] .rcard.offer {
+  padding: 0 10px 10px;
+  gap: 7px;
+}
+html[data-layout='landscape'] .rcard-plate {
+  margin: 0 -10px;
+  padding: 10px 8px 6px;
+}
+html[data-layout='landscape'] .rcard-art {
+  width: 56px;
+  height: 56px;
+}
+html[data-layout='landscape'] .rcard-name {
+  font-size: var(--fs-lg);
+}
+html[data-layout='landscape'] .rcard-headline {
+  font-size: var(--fs-md);
+}
+html[data-layout='landscape'] .rrow dd {
+  font-size: var(--fs-sm);
+}
+
+/* desktop: three tall cards */
+html[data-layout='desktop'] .rcard-art {
+  width: 96px;
+  height: 96px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rl-offers.deal .rcard.offer,
+  .rl-offers.deal .rcard-art {
+    animation: none;
+  }
+}

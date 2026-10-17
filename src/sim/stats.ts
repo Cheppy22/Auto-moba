@@ -90,7 +90,12 @@ function tagFactor(ctx: Ctx, tags: string[]): number {
   return f;
 }
 
-export function recompute(ctx: Ctx, u: Unit): void {
+/**
+ * A unit's stats from its base, Rank growth, equipment, relics and live modifiers. Pure: it reads
+ * the unit and the match and changes neither (`recompute` stores the result; the fork preview
+ * calls it on a copy of the hero).
+ */
+export function computeStats(ctx: Ctx, u: Unit): { stats: Stats; trigs: TrigInst[] } {
   const out: Stats = { ...u.base };
   const growth = u.hero ? 1 + ctx.t.ranks.growth * (u.hero.rank - 1) : 1;
   if (growth !== 1) {
@@ -122,12 +127,17 @@ export function recompute(ctx: Ctx, u: Unit): void {
     out[k] = v;
   }
   out.cdr = Math.max(-0.5, Math.min(0.5, out.cdr));
+  return { stats: out, trigs: eq.trigs };
+}
+
+export function recompute(ctx: Ctx, u: Unit): void {
+  const { stats: out, trigs } = computeStats(ctx, u);
   const oldMax = u.stats.maxHp;
   u.stats = out;
   if (u.alive && oldMax > 0 && oldMax !== out.maxHp) {
     u.hp = Math.min(out.maxHp, (u.hp * out.maxHp) / oldMax);
   }
-  if (u.hero) trigCache.set(u, eq.trigs);
+  if (u.hero) trigCache.set(u, trigs);
   u.dirty = false;
 }
 

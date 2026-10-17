@@ -170,7 +170,11 @@ const PerkSchema = z.object({
   triggers: z.array(TriggerSchema).default([]),
 });
 
-const ForkOptionSchema = PerkSchema.extend({ id: z.string() });
+const ForkOptionSchema = PerkSchema.extend({
+  id: z.string(),
+  /** One plain line on how the piece plays with this option (the fork sheet). */
+  playsLike: z.string().default(''),
+});
 
 const PathListsSchema = z.object({
   offense: z.array(z.string()),
@@ -185,6 +189,8 @@ const StyleSchema = z.object({
   id: z.string(),
   name: z.string(),
   desc: z.string().default(''),
+  /** One plain line on how the piece plays in this style (the Rank 4 fork sheet). */
+  playsLike: z.string().default(''),
   /** Overrides the piece's attack kind (e.g. a melee style of a ranged piece). */
   attackKind: z.enum(['melee', 'ranged']).optional(),
   /** Overrides the piece's build lists for this style (any path left out uses the piece's). */
@@ -438,6 +444,11 @@ const RelicSchema = z.object({
   /** Comeback relics: their effect is off while the side is not behind. */
   rally: z.boolean().default(false),
   desc: z.string(),
+  /**
+   * The relic's plan in one line, with its real numbers (the draft card's headline). `{lane}` and
+   * `{piece}` read as the aimed lane or piece ("Your Left lane", "Your Queen").
+   */
+  headline: z.string(),
   rewards: z.string(),
   counter: z.string(),
   /** What the AI looks for: schools, styles, `pawn-heavy`, `gambit-heavy`, `opening`. */

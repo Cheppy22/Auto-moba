@@ -114,6 +114,7 @@
       "id": "lancer",
       "name": "Lancer",
       "desc": "The assassin. A huge lance charge onto the most exposed piece; every kill readies the next charge.",
+      "playsLike": "Plays like an assassin: one huge charge onto the most exposed piece.",
       "ability": {
         "id": "lance_through",
         "name": "Lance Through",
@@ -225,6 +226,7 @@
             "id": "lancer_skewer",
             "name": "Skewer",
             "desc": "Lance Through hits 20% harder.",
+            "playsLike": "The charge hits harder: more one-shot picks.",
             "ability": 3,
             "powerMul": 1.2
           },
@@ -232,6 +234,7 @@
             "id": "lancer_breakaway",
             "name": "Breakaway",
             "desc": "When a piece hits him below 40% health he leaps 120 away from it (16s). Also +8% max health, +8 armor.",
+            "playsLike": "Charges in, leaps out: he survives his own dives.",
             "triggers": [
               {
                 "on": "damaged",
@@ -295,6 +298,7 @@
       "id": "errant",
       "name": "Errant",
       "desc": "A wandering knight. Clears the jungle fastest, moves fastest out of combat and knocks down undefended Bastions while the enemy looks elsewhere.",
+      "playsLike": "Plays like a roamer: fast jungle clears and quiet Bastion raids.",
       "ability": {
         "id": "questing_blow",
         "name": "Questing Blow",
@@ -413,6 +417,7 @@
             "id": "errant_siegebreaker",
             "name": "Siegebreaker",
             "desc": "Enemies within 120, structures included, lose 10 armor. Also +2 move speed.",
+            "playsLike": "Strips armor around him, Bastions included: raids go faster.",
             "triggers": [
               {
                 "on": "periodic",
@@ -443,6 +448,7 @@
             "id": "errant_hunter",
             "name": "Hunter of Pieces",
             "desc": "Each enemy piece he kills cuts his cooldowns by 6s and heals 10% max health. Also +4% max health.",
+            "playsLike": "Each piece he kills reloads and heals him: hunt the next one.",
             "triggers": [
               {
                 "on": "kill",
@@ -500,6 +506,7 @@
       "id": "paladin",
       "name": "Paladin",
       "desc": "A protector. Leaps to the most wounded ally and shields it, and weakens whoever he hits.",
+      "playsLike": "Plays like a bodyguard: he leaps to the most wounded ally and shields it.",
       "ability": {
         "id": "gallant_leap",
         "name": "Gallant Leap",
@@ -623,6 +630,7 @@
             "id": "paladin_intercept",
             "name": "Intercept",
             "desc": "A piece that hits him is staggered for 1s (8s). Also +8 armor, +8 resist.",
+            "playsLike": "Whoever hits him stalls: a wall for the court behind him.",
             "triggers": [
               {
                 "on": "damaged",
@@ -665,6 +673,7 @@
             "id": "paladin_aegis",
             "name": "Aegis Knight",
             "desc": "Gallant Leap shields 20% more.",
+            "playsLike": "His leap shields more: the court survives the burst.",
             "ability": 3,
             "powerMul": 1.2,
             "cooldownMul": 1

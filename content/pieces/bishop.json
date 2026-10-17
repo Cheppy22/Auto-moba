@@ -111,6 +111,7 @@
       "id": "light",
       "name": "Light",
       "desc": "The healer. Keeps the court standing with big group heals, a regeneration halo and small heals that never stop.",
+      "playsLike": "Plays like a healer: big group heals keep the court standing.",
       "ability": {
         "id": "radiance",
         "name": "Radiance",
@@ -229,6 +230,7 @@
             "id": "light_miracle",
             "name": "Miracle",
             "desc": "Radiance recharges 15% faster.",
+            "playsLike": "Her group heal comes back sooner.",
             "ability": 3,
             "cooldownMul": 0.85
           },
@@ -236,6 +238,7 @@
             "id": "light_wrath",
             "name": "Wrath of Heaven",
             "desc": "Every 5s the nearest enemy piece within 250 takes 25 + 40% Soul damage. Some of the light burns. Also +15% Soul power.",
+            "playsLike": "She heals and also burns the nearest enemy piece on her own.",
             "triggers": [
               {
                 "on": "periodic",
@@ -295,6 +298,7 @@
       "id": "shadow",
       "name": "Shadow",
       "desc": "Damage over time from the far diagonal. Everything she touches keeps burning; kills bring her curses back sooner.",
+      "playsLike": "Plays like a curse-caster: everything she touches keeps burning.",
       "ability": {
         "id": "black_diagonal",
         "name": "Black Diagonal",
@@ -404,6 +408,7 @@
             "id": "shadow_endless",
             "name": "Unending Night",
             "desc": "Black Diagonal recharges 15% faster.",
+            "playsLike": "Her curse comes back sooner: more burns, more often.",
             "ability": 3,
             "cooldownMul": 0.85
           },
@@ -411,6 +416,7 @@
             "id": "shadow_harvest",
             "name": "Soul Harvest",
             "desc": "Every kill heals her 3% max health and grants +3 Soul power for 60s (up to 10 times). Also +15% Soul power.",
+            "playsLike": "Grows with every kill: late in a match she hits hardest.",
             "triggers": [
               {
                 "on": "kill",
@@ -473,6 +479,7 @@
       "id": "zealot",
       "name": "Zealot",
       "desc": "A battle priest who wades into melee. Every blow she lands heals the pieces around her.",
+      "playsLike": "Plays like a battle priest: she fights up close and heals as she hits.",
       "ability": {
         "id": "crusade",
         "name": "Crusade",
@@ -604,6 +611,7 @@
             "id": "zealot_vow",
             "name": "Crusader's Vow",
             "desc": "Each enemy piece she kills heals allies within 200 for 10% max health. Also +6% Soul power.",
+            "playsLike": "Each piece she kills heals the court around her.",
             "triggers": [
               {
                 "on": "kill",
@@ -631,6 +639,7 @@
             "id": "zealot_unbowed",
             "name": "Unbowed",
             "desc": "Below 30% health she takes 50% less damage for 3s (50s). Also +6 armor.",
+            "playsLike": "Hard to finish: she survives the burst and keeps swinging.",
             "triggers": [
               {
                 "on": "lowHp",

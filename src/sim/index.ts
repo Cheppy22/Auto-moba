@@ -36,6 +36,7 @@ export {
 export { CUSTOM_BEHAVIORS, TPS } from './combat';
 export { naturalPath, validateSetup } from './setup';
 export { armoryView, armoryQuote, planError } from './armory';
+export type { AbilityNumbers, ForkPreview } from './preview';
 export { pathListOf } from './pieces';
 export { LANE_NAME, PIECE_NAME, PLAY_TEAMS, TEAM_NAME, teamWord } from './names';
 export { hashContent } from './core/rng';

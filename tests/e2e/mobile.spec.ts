@@ -243,7 +243,11 @@ for (const v of views) {
       await page.waitForTimeout(700);
       expect((await snap(page)).tick).toBe(held);
       const first = (await snap(page)).forks[0];
-      await page.getByTestId(`fork-opt-${first.heroId}-${first.options[0].id}`).tap();
+      // a tab shows that option's preview; Choose takes it
+      await page.getByTestId(`fork-opt-${first.heroId}-${first.options[1].id}`).tap();
+      await expect(page.getByTestId('fork-preview')).toBeInViewport({ ratio: 1 });
+      await bigEnough(page, 'fork-choose');
+      await page.getByTestId('fork-choose').tap();
       await expect
         .poll(async () =>
           (await snap(page)).forks.some((f) => f.heroId === first.heroId && f.rank === first.rank),
@@ -289,7 +293,11 @@ for (const v of views) {
 
       // ---- the end screen
       await stepUntil(page, { kind: 'end' }, 1500, 80);
-      await expect(page.getByTestId('report')).toBeVisible();
+      // the Checkmate beat plays first (the King topples); a tap skips it to the report
+      const beat = page.getByTestId('mate-beat');
+      await expect(beat.or(page.getByTestId('report')).first()).toBeVisible();
+      if (await beat.isVisible()) await beat.click({ force: true }).catch(() => undefined);
+      await expect(page.getByTestId('report')).toBeVisible({ timeout: 15_000 });
       await expect(page.getByTestId('winner')).toHaveText(/Checkmate · (White|Black) wins/);
       await shot(page, `${v.name}-end`);
       expect(await overflow(page)).toBeLessThanOrEqual(0);

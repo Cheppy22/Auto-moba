@@ -230,8 +230,10 @@ test('title, setup, gambits, pawn, fork, adjourn, checkmate and report', async (
   await expect(page.getByTestId('forks')).toBeVisible();
   await page.waitForTimeout(500);
   expect((await snap(page)).tick).toBe(held);
-  // choosing the second option takes it and resumes play
+  // choosing the second option (its tab, then Choose) takes it and resumes play
   await page.getByTestId(`fork-opt-${fork.heroId}-${fork.options[1].id}`).click();
+  await expect(page.getByTestId('fork-preview')).toBeVisible();
+  await page.getByTestId('fork-choose').click();
   const picked = await page.evaluate(
     (id) =>
       (

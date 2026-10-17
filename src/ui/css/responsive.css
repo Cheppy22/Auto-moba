@@ -120,18 +120,6 @@ html[data-layout='landscape'] .fs-title {
   align-items: baseline;
   column-gap: 10px;
 }
-html[data-layout='landscape'] .fs-opts {
-  grid-template-columns: 1fr;
-  gap: 3px;
-}
-/* the three archetype cards (3-line text) plus header and button must fit 332 px without scrolling */
-html[data-layout='landscape'] .fs-opt {
-  min-height: 52px;
-  padding: 3px 8px 4px;
-}
-html[data-layout='landscape'] .fs-auto {
-  min-height: 40px;
-}
 html[data-layout='landscape'] .ucard {
   max-height: calc(100% - 120px);
 }

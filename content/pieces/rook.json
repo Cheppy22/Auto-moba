@@ -117,6 +117,7 @@
       "id": "bastion",
       "name": "Bastion",
       "desc": "A wall. Enemies near him hit softer and move slower, anyone who strikes him gets stuck, and his lane does not fall.",
+      "playsLike": "Plays like a wall: his lane does not fall while he stands in it.",
       "ability": {
         "id": "hold_the_line",
         "name": "Hold the Line",
@@ -244,6 +245,7 @@
             "id": "bastion_immovable",
             "name": "Immovable",
             "desc": "Below 40% health he takes 50% less damage for 4s (60s). Also +8% max health, +6 armor.",
+            "playsLike": "Tougher still: diving him wastes the enemy court.",
             "triggers": [
               {
                 "on": "lowHp",
@@ -279,6 +281,7 @@
             "id": "bastion_keep",
             "name": "Great Keep",
             "desc": "Hold the Line covers 25% more ground.",
+            "playsLike": "His slow and weakening field covers more ground.",
             "ability": 3,
             "radiusMul": 1.25,
             "cooldownMul": 1
@@ -316,6 +319,7 @@
       "id": "ram",
       "name": "Battering Ram",
       "desc": "Built to knock down Bastions and the Throne. Strips the armor of everything around him, structures included, and splinters waves.",
+      "playsLike": "Plays like a siege engine: Bastions and the Throne come down fast.",
       "ability": {
         "id": "ram",
         "name": "Ram",
@@ -435,6 +439,7 @@
             "id": "ram_breach",
             "name": "Breach",
             "desc": "Enemies within 140, structures included, also lose 15 resist: the whole team sieges with him. Also +2 move speed.",
+            "playsLike": "The whole lane sieges with him: enemies near him lose resist too.",
             "triggers": [
               {
                 "on": "periodic",
@@ -465,6 +470,7 @@
             "id": "ram_lone",
             "name": "Lone Siege",
             "desc": "After 3s out of combat he regenerates 2% max health per second. Split push forever. Also +4% max health.",
+            "playsLike": "Heals between fights: he split-pushes a lane alone, forever.",
             "triggers": [
               {
                 "on": "periodic",
@@ -522,6 +528,7 @@
       "id": "vanguard",
       "name": "Vanguard",
       "desc": "Starts the fight. Crashes into an enemy piece from far away, staggers it, and the team that follows him hits harder.",
+      "playsLike": "Plays like an engage: he charges first and the court follows.",
       "ability": {
         "id": "breakthrough",
         "name": "Breakthrough",
@@ -656,6 +663,7 @@
             "id": "vanguard_shockwave",
             "name": "Shockwave",
             "desc": "Every 5th hit on a piece shakes every enemy within 110: 40% Blade damage and 30% slow for 1.5s. Also +4% Blade damage.",
+            "playsLike": "Every few hits shake the crowd around his target.",
             "triggers": [
               {
                 "on": "hit",
@@ -694,6 +702,7 @@
             "id": "vanguard_spearhead",
             "name": "Spearhead",
             "desc": "Each enemy piece he kills gives allies within 200 +15% attack speed for 4s and heals them 5% max health. Also +1.5 health regeneration.",
+            "playsLike": "Each kill speeds and heals the court near him: snowball fights.",
             "triggers": [
               {
                 "on": "kill",

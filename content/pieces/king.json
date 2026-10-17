@@ -132,6 +132,7 @@
       "id": "warlord",
       "name": "Warlord",
       "desc": "Leads from the front. Everyone near him, pawns included, hits harder; he opens enemies up for his court.",
+      "playsLike": "Plays like a war banner: he walks in front and the whole lane hits harder.",
       "ability": {
         "id": "banner_of_war",
         "name": "Banner of War",
@@ -252,6 +253,7 @@
             "id": "warlord_conquest",
             "name": "Conquest",
             "desc": "Allies within 170 attack 10% faster. Pure team damage. Also +4% Blade damage.",
+            "playsLike": "The court around him swings faster; stand him in the middle of the fight.",
             "triggers": [
               {
                 "on": "periodic",
@@ -282,6 +284,7 @@
             "id": "warlord_stand",
             "name": "Last Stand",
             "desc": "Below 35% health he takes 40% less damage for 5s (60s). He holds the line himself. Also +5 armor.",
+            "playsLike": "Hard to finish: he survives the dive and keeps the lane.",
             "triggers": [
               {
                 "on": "lowHp",
@@ -341,6 +344,7 @@
       "id": "sovereign",
       "name": "Sovereign",
       "desc": "Rules from behind the line with a ranged scepter. Shields the court and makes allies near him take less damage. Scales with Soul.",
+      "playsLike": "Plays like a shield-caster: he stays back and keeps the court alive.",
       "ability": {
         "id": "aegis_of_the_crown",
         "name": "Aegis of the Crown",
@@ -460,6 +464,7 @@
             "id": "sovereign_divine",
             "name": "Divine Sovereign",
             "desc": "Aegis of the Crown recharges 15% faster.",
+            "playsLike": "More shields, more often: the court survives longer fights.",
             "ability": 3,
             "cooldownMul": 0.85
           },
@@ -467,6 +472,7 @@
             "id": "sovereign_wrath",
             "name": "Royal Wrath",
             "desc": "Every 5s the nearest enemy piece within 220 is struck for 30 + 40% Soul damage. He stops being harmless. Also +15% Soul power.",
+            "playsLike": "He shields and also chips the nearest enemy piece on his own.",
             "triggers": [
               {
                 "on": "periodic",
@@ -526,6 +532,7 @@
       "id": "usurper",
       "name": "Usurper",
       "desc": "A pretender who fights for himself. Drains life with every blow, saps the strength of enemies around him and grows with each crown he takes.",
+      "playsLike": "Plays like a bruiser: he wades into crowds and steals their strength.",
       "ability": {
         "id": "seize_the_crown",
         "name": "Seize the Crown",
@@ -652,6 +659,7 @@
             "id": "usurper_regicide",
             "name": "Regicide",
             "desc": "Hits on a piece below 12% health execute it. Also +4% Blade damage.",
+            "playsLike": "Finishes low pieces outright: no one escapes at a sliver of health.",
             "triggers": [
               {
                 "on": "hit",
@@ -674,6 +682,7 @@
             "id": "usurper_luck",
             "name": "Usurper's Luck",
             "desc": "Once per life, lethal damage leaves him at 1 health and heals 25% max health. Also +4 armor.",
+            "playsLike": "Cheats death once a life: dive deeper than you should.",
             "triggers": [
               {
                 "on": "lowHp",
