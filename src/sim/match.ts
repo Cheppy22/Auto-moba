@@ -30,6 +30,7 @@ import { applyStart, runRulesFor } from './runRules';
 import { aiShop, nextTarget } from './ai/shopping';
 import { armoryOpen, nearBase } from './shop';
 import { armoryQuote, armoryView } from './armory';
+import { forkPreview, type ForkPreview } from './preview';
 import {
   passiveGold,
   processDeaths,
@@ -621,6 +622,11 @@ export class Match {
   cardCost(cardId: string, discount = 0): number {
     const def = this.ctx.c.gambitById.get(cardId);
     return def ? cardCost(this.ctx, 'A', def, discount) : 0;
+  }
+
+  /** What one option of a piece's pending fork would change: stats before and after, skills (read-only). */
+  forkPreview(heroId: number, optionId: string): ForkPreview | null {
+    return forkPreview(this.ctx, heroId, optionId);
   }
 
   unitById(id: number): Unit | undefined {
