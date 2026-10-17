@@ -995,3 +995,146 @@ html[data-layout='desktop'] .hud.v2 {
     display: none;
   }
 }
+
+/* ---------- stack shape (portrait): two top rows instead of three ----------
+ *   row 1: score, Act clock, score | Speed, Auto, Adjourn
+ *   row 2: Black's five tokens | the three lane buttons, joined as one segmented control
+ * Capture trays and Black's relic seals do not take a row: they hang just under the bar (out of
+ * its flow, so the camera does not reserve them) and a tray shows only while a piece is down.
+ * Every target stays 44 px; the two rows fit 360 px exactly (5 tokens and 3 lanes at 44 px each).
+ */
+.hud.v2[data-shape='stack'] .v2-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 0;
+  padding-left: calc(4px + env(safe-area-inset-left));
+  padding-right: calc(4px + env(safe-area-inset-right));
+  padding-bottom: 4px;
+}
+.hud.v2[data-shape='stack'] .v2-time {
+  order: 1;
+  flex: 1 1 0;
+  min-width: 0;
+}
+.hud.v2[data-shape='stack'] .v2-ctl {
+  order: 2;
+  flex: none;
+}
+/* the break between the rows */
+.hud.v2[data-shape='stack'] .v2-top::after {
+  content: '';
+  order: 3;
+  flex: 0 0 100%;
+  height: 0;
+}
+.hud.v2[data-shape='stack'] .v2-black {
+  order: 4;
+  flex: none;
+}
+.hud.v2[data-shape='stack'] .v2-lanes {
+  order: 5;
+  flex: none;
+  margin-left: auto;
+}
+.hud.v2[data-shape='stack'] .v2-board {
+  display: contents;
+}
+.hud.v2[data-shape='stack'] .v2-lanes {
+  width: auto;
+}
+.hud.v2[data-shape='stack'] .lanebars {
+  gap: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px var(--glass-line);
+}
+.hud.v2[data-shape='stack'] .lanebar.pick {
+  flex: none;
+  width: calc(44px * var(--u));
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  padding: 2px 6px;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+.hud.v2[data-shape='stack'] .lanebar.pick + .lanebar.pick {
+  border-left: 1px solid var(--glass-line);
+}
+.hud.v2[data-shape='stack'] .lanebar.pick.on {
+  background: rgba(60, 46, 22, 0.82);
+  box-shadow: inset 0 0 0 1.5px var(--brass-hi);
+}
+.hud.v2[data-shape='stack'] .lane-track {
+  width: 100%;
+  flex: none;
+}
+.hud.v2[data-shape='stack'] .v2-black {
+  padding: 0;
+  gap: 0;
+  position: relative;
+  border: 0;
+  box-shadow: inset 0 0 0 1px var(--glass-line);
+}
+.hud.v2[data-shape='stack'] .v2-label {
+  display: none;
+}
+/* the trays and Black's seals hang under the bar */
+.hud.v2[data-shape='stack'] .tray {
+  position: absolute;
+  top: calc(100% + 2px);
+  z-index: 1;
+  flex: none;
+  width: max-content;
+  min-width: calc(44px * var(--u));
+  max-width: calc(50% - 8px);
+  transition: opacity 0.25s ease;
+}
+.hud.v2[data-shape='stack'] .tray-B {
+  left: calc(4px + env(safe-area-inset-left));
+}
+.hud.v2[data-shape='stack'] .tray-A {
+  right: calc(4px + env(safe-area-inset-right));
+}
+.hud.v2[data-shape='stack'] .tray:has(> .tray-empty) {
+  opacity: 0;
+  pointer-events: none;
+}
+.hud.v2[data-shape='stack'] .v2-black .relic-row {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin: 4px 0 0;
+}
+.hud.v2[data-shape='stack'] .v2-top:has(.v2-black .relic-row) .tray {
+  top: calc(100% + 46px);
+}
+/* a banner waits below a tray that is showing */
+.hud.v2[data-shape='stack']:has(.tray-item) .notices {
+  top: calc(var(--hud-top, 110px) + 52px);
+}
+.hud.v2[data-shape='stack'] .notices {
+  transition: top 0.25s ease;
+}
+/* row 1 on a phone: the score labels drop " pts"; Auto and Adjourn hug their words */
+@media (max-width: 460px) {
+  .hud.v2[data-shape='stack'] .pts-tail {
+    display: none;
+  }
+  .hud.v2[data-shape='stack'] .side {
+    min-width: 40px;
+  }
+  .hud.v2[data-shape='stack'] .v2-ctl {
+    gap: 3px;
+  }
+  .hud.v2[data-shape='stack'] .auto-btn {
+    min-width: 48px;
+    padding: 2px 6px;
+  }
+  .hud.v2[data-shape='stack'] .adjourn {
+    padding: 4px 7px;
+  }
+}

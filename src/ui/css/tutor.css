@@ -1,0 +1,149 @@
+/*
+ * First-match nudges (src/ui/hud/Tutor.tsx). A margin note in the table's own materials: ebony
+ * glass, a brass hairline, ivory type. The floating card never takes a tap except on its own
+ * buttons and the glossary words in it; the inline notes sit inside the fork and break sheets.
+ */
+.tutor {
+  position: absolute;
+  z-index: 7;
+  left: 50%;
+  bottom: calc(var(--hud-bottom, 140px) + 52px);
+  width: min(calc(100% - 16px), calc(372px * var(--u, 1)));
+  translate: -50% 0;
+  padding: 10px 12px 6px;
+  color: var(--ivory);
+  background: rgba(20, 17, 14, 0.92);
+  border: 1px solid var(--brass);
+  border-radius: 8px;
+  box-shadow:
+    0 0 0 1px var(--ebony),
+    0 8px 22px rgba(0, 0, 0, 0.55);
+  pointer-events: none;
+  animation: tutor-in 0.35s var(--ease) both;
+}
+/* a notch pointing down at the gambit toggle, which pulses while the Tempo nudge is up */
+.tutor[data-tutor='tempo']::after {
+  content: '';
+  position: absolute;
+  left: 44px;
+  bottom: -7px;
+  width: 12px;
+  height: 12px;
+  rotate: 45deg;
+  background: rgba(20, 17, 14, 0.92);
+  border: solid var(--brass);
+  border-width: 0 1px 1px 0;
+}
+.hud:has(.tutor[data-tutor='tempo']) .dr-toggle {
+  animation: tempo-nudge 1.6s ease-in-out infinite;
+}
+.tutor-text {
+  margin: 0;
+  font-size: var(--fs-md);
+  line-height: 1.4;
+  text-shadow: none;
+}
+.tutor-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  margin-top: 4px;
+}
+.tutor .tutor-actions button,
+.tutor .term {
+  pointer-events: auto;
+}
+.tutor-actions .btn {
+  min-height: 44px;
+  min-width: 72px;
+}
+.tutor-skip {
+  min-height: 44px;
+  padding: 0 10px;
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--fs-sm);
+  color: var(--bone);
+  background: none;
+  border: 0;
+  text-decoration: underline;
+  text-decoration-color: var(--brass-dim);
+  text-underline-offset: 3px;
+}
+.tutor-skip:hover {
+  color: var(--ivory);
+}
+/* the eye nudge rings the piece on the board */
+.tutor-ring {
+  position: absolute;
+  z-index: 6;
+  left: 0;
+  top: 0;
+  width: 52px;
+  height: 52px;
+  margin: -26px 0 0 -26px;
+  border: 2px solid var(--brass-hi);
+  border-radius: 50%;
+  box-shadow:
+    0 0 12px rgba(240, 213, 138, 0.7),
+    inset 0 0 8px rgba(240, 213, 138, 0.4);
+  pointer-events: none;
+  opacity: 0;
+  animation: tutor-ring 1.4s ease-in-out infinite;
+}
+@keyframes tutor-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+@keyframes tutor-ring {
+  0%,
+  100% {
+    scale: 0.85;
+  }
+  50% {
+    scale: 1.1;
+  }
+}
+
+/* a note inside the fork sheet or the break sheet: stays until it is read */
+.tutor-inline {
+  flex: none;
+  margin: 8px 0 4px;
+  padding: 8px 10px 2px 12px;
+  background: rgba(240, 213, 138, 0.09);
+  border: 1px solid var(--brass-dim);
+  border-left: 3px solid var(--brass);
+  border-radius: 6px;
+  color: var(--ivory);
+}
+.tutor-inline .tutor-actions {
+  margin-top: 2px;
+}
+.tutor-inline .tutor-actions .btn {
+  min-height: 44px;
+}
+
+/* the Title and Adjourn switch */
+.replay-tutorial {
+  align-self: flex-start;
+  white-space: nowrap;
+  min-height: 44px;
+  font-size: var(--fs-sm);
+}
+.title-wrap .replay-tutorial {
+  animation: veil-in 1.2s 1.3s both;
+}
+
+/* wide windows: the gambit drawer is bottom-right, so the card sits above it */
+.hud[data-shape='side'] .tutor {
+  left: auto;
+  right: calc(8px + env(safe-area-inset-right));
+  translate: none;
+}
+.hud[data-shape='side'] .tutor[data-tutor='tempo']::after {
+  left: auto;
+  right: 150px;
+}

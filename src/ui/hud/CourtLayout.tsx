@@ -11,6 +11,7 @@ import { PieceCard } from './PieceCard';
 import { RelicRow } from './RelicRow';
 import { Roster } from './Roster';
 import { CaptureTray } from './Trays';
+import { Tutor } from './Tutor';
 import type { HudShape } from './hudMode';
 import { courtName } from '../../analysis/text';
 
@@ -128,6 +129,7 @@ export function CourtLayout(props: {
         margin={{ x: 24, top: insets.top + 14, bottom: insets.bottom + 14 }}
       />
       <PieceCard />
+      <Tutor snap={snap} held={held} stopped={props.stopped} drawerOpen={open} />
       <div class="v2-bottom" ref={bottom}>
         <Drawer snap={snap} open={open} onOpen={openDrawer} />
         <div class="v2-mine" ref={mine}>

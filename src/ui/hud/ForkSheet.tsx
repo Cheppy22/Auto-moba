@@ -11,6 +11,7 @@ import {
   styleLabel,
 } from '../pieces';
 import { useSession } from '../session';
+import { ForkTutor } from './Tutor';
 
 const OFFENSE_STATS = new Set(['bladeDmg', 'soulPower', 'atkSpeed']);
 const DEFENSE_STATS = new Set(['maxHp', 'armor', 'resist', 'hpRegen', 'damageTakenMult']);
@@ -93,6 +94,7 @@ export function ForkSheet(props: { forks: SnapFork[] }) {
             Paused
           </span>
         </header>
+        {archetype && <ForkTutor />}
         {!archetype && <p class="fs-style-desc">{styleDesc(s.content, f.piece, f.style)}</p>}
         <div class={`fs-opts ${archetype ? 'archetypes' : ''}`}>
           {f.options.map((o) => {

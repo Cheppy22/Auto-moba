@@ -45,6 +45,7 @@ import {
   laneNear,
 } from '../analysis/feedback';
 import { mmss } from './format';
+import { Tutorial } from './tutorial';
 import { introOutMs, type IntroPiece, type IntroState } from './intro';
 import { cap, PIECE_ORDER, pieceLabel } from './pieces';
 import { commandCue, eventCues, roundCue, type CueRequest } from './audio/cues';
@@ -229,6 +230,13 @@ export class Session {
   private runTestHook = new URLSearchParams(window.location.search).get('run') === 'test';
   /** `?intro=off` skips the match intro (end-to-end tests). */
   private introOn = new URLSearchParams(window.location.search).get('intro') !== 'off';
+  /**
+   * The first-match nudges. `?intro=off` (end-to-end tests) turns them off too, since every test
+   * match is a first match; `?tutorial=on` turns them back on for the tutorial's own tests.
+   */
+  readonly tutor = new Tutorial(
+    this.introOn || new URLSearchParams(window.location.search).get('tutorial') === 'on',
+  );
   private seenSeq = -1;
   private toastTimer = 0;
   /** Camera mode and target to restore when the fork sheet closes. */
