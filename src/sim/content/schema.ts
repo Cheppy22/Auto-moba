@@ -681,6 +681,8 @@ export const TuningSchema = z.object({
     planQuota: z.object({ top: z.number(), mid: z.number(), bot: z.number() }),
     /** Tempo the AI keeps after paying for a card, to refill its plan when a pawn falls. */
     aiCardReserve: z.number(),
+    /** Share of the AI's Tempo spending that goes to pawns; cards get the rest (`aiTempoTurn`). */
+    aiPawnShare: z.number().min(0).max(1),
   }),
   /** The relic draft at each Act break. */
   relics: z.object({

@@ -215,7 +215,7 @@ function curtain(ctx: Ctx, team: PlayTeam): void {
  * The lane with the biggest gap under a lane quota, or null when every lane is full or the team
  * is at its pawn cap.
  */
-function quotaGap(ctx: Ctx, team: PlayTeam, quota: PawnQuota): LaneId | null {
+export function quotaGap(ctx: Ctx, team: PlayTeam, quota: PawnQuota): LaneId | null {
   const have: Record<LaneId, number> = { top: 0, mid: 0, bot: 0 };
   for (const u of ctx.s.units) if (u.alive && u.pawn && u.team === team && u.lane) have[u.lane]++;
   let lane: LaneId | null = null;

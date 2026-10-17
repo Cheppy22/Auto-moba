@@ -132,6 +132,8 @@ test('a run on a phone: draw, kit, win, Spoils, reload, Continue, lose, summary,
   await expect(page.getByTestId('rung-1')).toHaveAttribute('aria-current', 'step');
   await expect(page.getByTestId('rung-1')).toContainText('Starts with no relics');
   await expect(page.getByTestId('rung-2')).toContainText('Starts with no relics and +5 Tempo');
+  await expect(page.getByTestId('rung-1')).toContainText('Takes no relics.');
+  await expect(page.getByTestId('rung-2')).toContainText('Holds at most 2 relics.');
   await shot(page, 'draw-phone');
   await fits(page, 'draw');
   const saved = (await stored(page, 'automoba.run')) as { round: number; status: string } | null;

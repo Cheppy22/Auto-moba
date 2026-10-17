@@ -2,7 +2,7 @@ import { roundName } from '../../sim';
 import { Term } from '../glossary';
 import { PieceGlyph } from '../pieces';
 import { useSession } from '../session';
-import { CourtSeal, OpeningLine, startsWith } from './parts';
+import { CourtSeal, OpeningLine, relicCapLine, startsWith } from './parts';
 
 /**
  * The tournament draw: the four rounds as a ladder. You know the first court (its name, Opening
@@ -49,11 +49,13 @@ export function Draw() {
                   {now ? (
                     <>
                       <OpeningLine c={c} opening={opp.setup.opening} />
-                      <span class="rung-note">{startsWith(c, opp)}</span>
+                      <span class="rung-note">
+                        {startsWith(c, opp)} {relicCapLine(c, opp)}
+                      </span>
                     </>
                   ) : (
                     <span class="rung-note">
-                      {startsWith(c, opp)}
+                      {startsWith(c, opp)} {relicCapLine(c, opp)}
                       {row?.counterOpening ? ' Its Opening answers yours.' : ''}
                     </span>
                   )}

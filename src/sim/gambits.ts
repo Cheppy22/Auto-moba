@@ -25,6 +25,7 @@ import type { CommandResult, GambitOrder, Modifier, PlayTeam, Unit, ZoneState } 
 import { other } from './types';
 import { PLAY_TEAMS } from './names';
 import { booksOf } from './runRules';
+import { aiTempoTurn } from './pawnPlan';
 
 /** The mod that marks a Poisoned Pawn (a no-op multiplier; its presence is the mark). */
 export const POISON_MOD = 'gambit:poisoned_pawn';
@@ -561,6 +562,7 @@ function cast(
   const t = validTarget(ctx, team, def, target);
   if (typeof t === 'string') return { ok: false, reason: t };
   ctx.s.tempo[team] -= cost;
+  ctx.s.tempoSpent[team].cards += cost;
   const run = startRun(ctx, team, def, t);
   const zones = ctx.s.zones.length;
   applyCard(ctx, team, def, t);
@@ -1037,12 +1039,14 @@ function plan(ctx: Ctx, team: PlayTeam, def: GambitDef): Plan | null {
 }
 
 /**
- * The AI's card pick: the best-fitting affordable card in the hand and its cost, or null. Also
- * drives the balance tool's stand-in player (`tools/simulate.ts`).
+ * The AI's card pick: the best-fitting affordable card in the hand and its cost, or null (with
+ * `anyCost`, the best-fitting card whatever the Tempo). Also drives the balance tool's stand-in
+ * player (`tools/simulate.ts`).
  */
 export function aiCardPick(
   ctx: Ctx,
   team: PlayTeam,
+  anyCost = false,
 ): { slot: number; plan: Plan; cost: number } | null {
   const s = ctx.s;
   const hand = s.hands[team];
@@ -1055,7 +1059,7 @@ export function aiCardPick(
     const pl = plan(ctx, team, def);
     if (!pl || pl.score < 1) continue;
     const cost = cardCost(ctx, team, def);
-    if (s.tempo[team] < cost) continue;
+    if (!anyCost && s.tempo[team] < cost) continue;
     if (!best || pl.score > best.plan.score) best = { slot: i, plan: pl, cost };
   }
   return best;
@@ -1063,10 +1067,11 @@ export function aiCardPick(
 
 /**
  * The AI's cards: it plays its best-fitting card if it keeps `pawns.aiCardReserve` Tempo after
- * paying. Its pawns come from the standing pawn plan (`pawnPlan.ts`, the same rule and counts as
- * the player's), which spends what the cards leave.
+ * paying, except while its pawns are behind their share (`aiTempoTurn` in `pawnPlan.ts`). Its
+ * pawns come from the standing pawn plan (the same counts and reserve as the player's).
  */
 function aiGambits(ctx: Ctx, team: PlayTeam): void {
+  if (aiTempoTurn(ctx, team) === 'pawns') return;
   const best = aiCardPick(ctx, team);
   if (!best) return;
   if (ctx.s.tempo[team] - best.cost < ctx.t.pawns.aiCardReserve) return;

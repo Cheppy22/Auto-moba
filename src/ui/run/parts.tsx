@@ -84,6 +84,14 @@ export function startsWith(c: Content, opp: OpponentDef): string {
   return `Starts with ${parts.join(' and ')}.`;
 }
 
+/** The court's relic cap in that match (`rounds[].relicMax`): "Holds at most 2 relics." */
+export function relicCapLine(c: Content, opp: OpponentDef): string {
+  const max = c.tournament?.rounds[opp.round - 1]?.relicMax ?? c.tournament?.relicMax ?? 5;
+  return max === 0
+    ? 'Takes no relics.'
+    : `Holds at most ${max === 1 ? '1 relic' : `${max} relics`}.`;
+}
+
 /** The best-finish line: "Best: reached the Final". */
 export function bestText(c: Content, best: BestFinish): string {
   const label = finishLabel(c, best);

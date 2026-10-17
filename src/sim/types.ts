@@ -648,6 +648,8 @@ export interface MatchState {
   autoGambits: Record<PlayTeam, boolean>;
   autoForks: Record<PlayTeam, boolean>;
   tempo: Record<PlayTeam, number>;
+  /** Tempo each side has spent this match on pawns and on cards (the AI splits by it). */
+  tempoSpent: Record<PlayTeam, { pawns: number; cards: number }>;
   hands: Record<PlayTeam, HandSlot[]>;
   forks: PendingFork[];
   check: Record<PlayTeam, boolean>;
