@@ -1,9 +1,10 @@
 name: pages
-# One site, two builds: test-product at the root, test-product-2 under /v2/.
+# One site, three builds: test-product at the root, test-product-2 under /v2/,
+# the overnight proposal branch under /proposal/ (for owner review).
 # Keep this file identical on both branches.
 on:
   push:
-    branches: [test-product, test-product-2]
+    branches: [test-product, test-product-2, proposal/aaa-overnight]
   workflow_dispatch:
 permissions:
   contents: read
@@ -12,8 +13,8 @@ permissions:
   actions: write
 jobs:
   relay:
-    # Pages deploys from test-product only, so a push to test-product-2 asks it to rebuild both.
-    if: github.ref == 'refs/heads/test-product-2'
+    # Pages deploys from test-product only, so a push to another branch asks it to rebuild all.
+    if: github.ref == 'refs/heads/test-product-2' || github.ref == 'refs/heads/proposal/aaa-overnight'
     runs-on: ubuntu-latest
     steps:
       - run: gh workflow run pages.yml --ref test-product --repo "$GITHUB_REPOSITORY"
@@ -37,6 +38,11 @@ jobs:
           ref: test-product-2
           path: v2
         continue-on-error: true
+      - uses: actions/checkout@v4
+        with:
+          ref: proposal/aaa-overnight
+          path: proposal
+        continue-on-error: true
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -48,6 +54,11 @@ jobs:
         working-directory: v2
         continue-on-error: true
         run: npm ci && npm run build
+      - name: Build proposal
+        id: proposal
+        working-directory: proposal
+        continue-on-error: true
+        run: npm ci && npm run build
       - name: Assemble site
         run: |
           mkdir -p site
@@ -55,6 +66,10 @@ jobs:
           if [ "${{ steps.v2.outcome }}" = "success" ]; then
             mkdir -p site/v2
             cp -r v2/dist/. site/v2/
+          fi
+          if [ "${{ steps.proposal.outcome }}" = "success" ]; then
+            mkdir -p site/proposal
+            cp -r proposal/dist/. site/proposal/
           fi
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
