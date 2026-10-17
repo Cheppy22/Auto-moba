@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'preact/hooks';
 import { naturalPath, type Path, type PieceId, type SetupEntry } from '../sim';
+import { PacePicker } from './PacePicker';
 import { PIECE_ORDER } from './pieces';
 import { useSession } from './session';
 import { RunKit } from './run/RunKit';
@@ -111,6 +112,7 @@ export function Setup() {
             />,
           ]}
         </Pager>
+        {page === last && !s.run && <PacePicker value={s.pace} onPick={(p) => s.setPace(p)} />}
         <footer class="sp-foot">
           <button
             class="btn back"
