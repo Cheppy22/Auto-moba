@@ -3,6 +3,7 @@ import { Adjourn } from './Adjourn';
 import { GlossaryPopover } from './glossary';
 import { Hud } from './Hud';
 import { Intro } from './hud/Intro';
+import { MateBeat } from './MateBeat';
 import { Report } from './Report';
 import { Setup } from './Setup';
 import { Stage } from './Stage';
@@ -50,7 +51,7 @@ export function App() {
       {kind === 'live' && <Hud />}
       {kind === 'live' && <Intro />}
       {kind === 'live' && s.ui.adjourned && <Adjourn />}
-      {kind === 'end' && <Report />}
+      {kind === 'end' && (s.ui.mateBeat ? <MateBeat /> : <Report />)}
       <GlossaryPopover />
     </div>
   );

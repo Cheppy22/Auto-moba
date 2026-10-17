@@ -1396,3 +1396,83 @@ html[data-layout='landscape'] .rp-chip {
     transition: none;
   }
 }
+
+/* The Checkmate beat: letterbox bars over the 3D view; the word lands as the King falls */
+.mate-beat {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  cursor: pointer;
+  pointer-events: auto;
+}
+.mate-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: max(64px, 12vh);
+  background: var(--ebony-0);
+  animation: mate-bar 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.mate-top {
+  top: 0;
+  transform-origin: top;
+  box-shadow: 0 1px 0 rgba(201, 163, 90, 0.35);
+}
+.mate-bottom {
+  bottom: 0;
+  transform-origin: bottom;
+  box-shadow: 0 -1px 0 rgba(201, 163, 90, 0.35);
+  display: grid;
+  place-items: center;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+@keyframes mate-bar {
+  from {
+    transform: scaleY(0);
+  }
+}
+.mate-words {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  visibility: hidden;
+}
+.mate-beat[data-fallen='true'] .mate-words {
+  visibility: visible;
+  animation: mate-words 0.8s cubic-bezier(0.2, 0.9, 0.25, 1) both;
+}
+.mate-word {
+  font-family: var(--font-display);
+  font-size: clamp(30px, 6vh, 48px);
+  line-height: 1;
+  letter-spacing: 0.04em;
+  color: var(--brass-hi);
+  text-shadow:
+    0 0 18px rgba(240, 213, 138, 0.45),
+    0 2px 0 #000;
+}
+.mate-sub {
+  font-family: var(--font-body);
+  font-style: italic;
+  font-size: var(--fs-md);
+  color: var(--bone);
+}
+@keyframes mate-words {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(1.12);
+    filter: blur(3px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mate-bar,
+  .mate-beat[data-fallen='true'] .mate-words {
+    animation: mate-fade 0.4s both;
+  }
+}
+@keyframes mate-fade {
+  from {
+    opacity: 0;
+  }
+}

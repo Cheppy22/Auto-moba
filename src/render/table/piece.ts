@@ -271,8 +271,39 @@ transformed = (uBones[int(aBone + 0.5)] * vec4(transformed, 1.0)).xyz;`,
   }
 
   place(x: number, y: number, z: number, yaw: number): void {
+    this.upright();
     this.root.position.set(x, y, z);
     this.root.rotation.y = yaw;
+  }
+
+  /**
+   * A captured piece knocked flying: the figure tumbles about its middle (`pivot` world units above
+   * its feet), which travels to (x, cy, z); `pitch` tips it toward `yaw`, `roll` sideways.
+   */
+  fling(
+    x: number,
+    cy: number,
+    z: number,
+    yaw: number,
+    pitch: number,
+    roll: number,
+    pivot: number,
+    scale: number,
+  ): void {
+    const r = this.root;
+    r.rotation.set(pitch, yaw, roll, 'YXZ');
+    r.scale.setScalar(scale);
+    _p.set(0, pivot * scale, 0).applyEuler(r.rotation);
+    r.position.set(x - _p.x, cy - _p.y, z - _p.z);
+  }
+
+  /** Back to standing upright (after a fling). */
+  private upright(): void {
+    const r = this.root;
+    if (r.rotation.x !== 0 || r.rotation.z !== 0 || r.scale.x !== 1) {
+      r.rotation.set(0, r.rotation.y, 0, 'XYZ');
+      r.scale.setScalar(1);
+    }
   }
 
   setVisible(v: boolean): void {

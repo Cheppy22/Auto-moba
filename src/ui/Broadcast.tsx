@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import type { GameEvent, Match } from '../sim';
 import { laneNear } from '../analysis/feedback';
 import { inkStyle, subscribeInkStyle } from './inkStyle';
+import { flyToken, type CaptureDetail } from './hud/tokenFlight';
 import { mapTheme, subscribeMapTheme } from './mapTheme';
 import { useSession } from './session';
 
@@ -71,6 +72,22 @@ export function Broadcast() {
         canvas.addEventListener('table-sitback', onFree);
         canvas.addEventListener('cam-manual', onFree);
         canvas.addEventListener('cam-angle', onAngle);
+        // a captured piece knocked flying: its tray item waits, then a token flies into the tray
+        const onCapStart = (e: Event): void => {
+          const d = (e as CustomEvent<CaptureDetail>).detail;
+          if (d) s.captureStart(d.id);
+        };
+        const onCapLand = (e: Event): void => {
+          const d = (e as CustomEvent<CaptureDetail>).detail;
+          if (d) flyToken(s, d);
+        };
+        // the Checkmate beat: the word lands as the King falls; the splash follows the beat's end
+        const onMateFall = (): void => s.mateFell();
+        const onMateDone = (): void => s.endMateBeat();
+        canvas.addEventListener('mate-fall', onMateFall);
+        canvas.addEventListener('mate-done', onMateDone);
+        canvas.addEventListener('capture-start', onCapStart);
+        canvas.addEventListener('capture-land', onCapLand);
         // the board's theme (the Title and Adjourn switch it; the board repaints in place)
         canvas.dataset.theme = mapTheme();
         const offTheme = subscribeMapTheme(() => {
@@ -134,9 +151,14 @@ export function Broadcast() {
           if (!m || m.state.phase.kind === 'setup') return;
           const live = m.state.phase.kind === 'live';
           const now = performance.now();
-          const still = !live || s.ui.adjourned || m.state.bell.stage === 'break';
-          if (still && now - last < IDLE_FRAME_MS) return;
           const ev = m.events;
+          // after the match ends the view still draws every frame through the Checkmate beat
+          const fresh0 = ev.length > 0 && ev[ev.length - 1].seq > seq;
+          const still =
+            (!live && !view.cinematic && !fresh0) ||
+            s.ui.adjourned ||
+            m.state.bell.stage === 'break';
+          if (still && now - last < IDLE_FRAME_MS) return;
           if (ev.length === 0 || ev[ev.length - 1].seq < seq) {
             seq = -1;
             director.reset();
@@ -174,6 +196,10 @@ export function Broadcast() {
           canvas.removeEventListener('table-sitback', onFree);
           canvas.removeEventListener('cam-manual', onFree);
           canvas.removeEventListener('cam-angle', onAngle);
+          canvas.removeEventListener('capture-start', onCapStart);
+          canvas.removeEventListener('mate-fall', onMateFall);
+          canvas.removeEventListener('mate-done', onMateDone);
+          canvas.removeEventListener('capture-land', onCapLand);
           offTheme();
           offInk();
           watch.disconnect();

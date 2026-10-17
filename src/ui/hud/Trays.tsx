@@ -19,11 +19,12 @@ export function CaptureTray(props: { fallen: 'A' | 'B' }) {
   const { fallen } = props;
   const owner = courtName(fallen);
   const taker = courtName(fallen === 'A' ? 'B' : 'A');
-  const kept = useRef<{ order: number[]; leaving: Map<number, number> }>({
+  const kept = useRef<{ order: number[]; leaving: Map<number, number>; waited: Set<string> }>({
     order: [],
     leaving: new Map(),
+    waited: new Set(),
   });
-  const { order, leaving } = kept.current;
+  const { order, leaving, waited } = kept.current;
   const now = performance.now();
   const units = courtUnits(m, fallen);
   const down = new Set(units.filter((u) => !u.alive).map((u) => u.id));
@@ -37,6 +38,7 @@ export function CaptureTray(props: { fallen: 'A' | 'B' }) {
     if (now - at > LEAVE_MS) {
       leaving.delete(id);
       order.splice(order.indexOf(id), 1);
+      for (const k of waited) if (k.startsWith(`${id}:`)) waited.delete(k);
     }
   }
   const tick = m.state.tick;
@@ -56,10 +58,16 @@ export function CaptureTray(props: { fallen: 'A' | 'B' }) {
         if (!u || !h) return null;
         const left = h.respawnAt === null ? null : Math.max(0, h.respawnAt - tick);
         const gone = !down.has(id);
+        // a capture's token is flying here from the board: the item waits for it, then is caught
+        const key = `${id}:${h.deaths}`;
+        const waiting = !gone && s.trayWaiting(id);
+        if (waiting) waited.add(key);
+        const caught = !waiting && waited.has(key);
         return (
           <span
-            key={`${id}:${h.deaths}`}
-            class={`tray-item ${gone ? 'leaving' : ''}`}
+            key={key}
+            class={`tray-item ${gone ? 'leaving' : waiting ? 'awaiting' : caught ? 'caught' : ''}`}
+            data-flight={waiting ? 'await' : caught ? 'landed' : undefined}
             data-testid={`tray-item-${fallen}-${h.defId}`}
             title={`${pieceLabel(s.content, h.defId)}: ${left === null ? 'out for good' : `back in ${mmss(left)}`}`}
           >

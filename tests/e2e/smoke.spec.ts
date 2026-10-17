@@ -313,7 +313,11 @@ test('title, setup, gambits, pawn, fork, adjourn, checkmate and report', async (
   // ---- to checkmate: the end screen and the report
   await setSpeed(page, 0);
   await stepUntil(page, { kind: 'end' }, 1500, 80);
-  await expect(page.getByTestId('report')).toBeVisible();
+  // the Checkmate beat plays first (the King topples); a tap skips it to the splash
+  const beat = page.getByTestId('mate-beat');
+  await expect(beat.or(page.getByTestId('report')).first()).toBeVisible();
+  if (await beat.isVisible()) await beat.click({ force: true }).catch(() => undefined);
+  await expect(page.getByTestId('report')).toBeVisible({ timeout: 15_000 });
   await expect(page.getByTestId('winner')).toHaveText(/Checkmate · (White|Black) wins/);
   await expect(page.getByTestId('report-page-result')).toBeVisible();
   await expect(page.locator('[data-testid^="report-hero-"]')).toHaveCount(10);
