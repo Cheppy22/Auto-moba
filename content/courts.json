@@ -12,14 +12,38 @@
         "division": "fess",
         "emblem": "bell"
       },
-      "portrait": { "piece": "rook", "style": "bastion", "pose": "front" },
+      "portrait": {
+        "piece": "rook",
+        "style": "bastion",
+        "pose": "front"
+      },
       "opening": "italian",
       "pieces": [
-        { "piece": "king", "path": "defense", "lane": "top" },
-        { "piece": "rook", "path": "defense", "lane": "top" },
-        { "piece": "queen", "path": "offense", "lane": "mid" },
-        { "piece": "bishop", "path": "utility", "lane": "bot" },
-        { "piece": "knight", "path": "offense", "lane": "bot" }
+        {
+          "piece": "king",
+          "path": "defense",
+          "lane": "top"
+        },
+        {
+          "piece": "rook",
+          "path": "defense",
+          "lane": "top"
+        },
+        {
+          "piece": "queen",
+          "path": "utility",
+          "lane": "mid"
+        },
+        {
+          "piece": "bishop",
+          "path": "utility",
+          "lane": "bot"
+        },
+        {
+          "piece": "knight",
+          "path": "offense",
+          "lane": "bot"
+        }
       ],
       "styles": {
         "king": "sovereign",
@@ -28,37 +52,65 @@
         "bishop": "light",
         "knight": "paladin"
       },
-      "signature": { "relic": "curtain_wall" }
+      "signature": {
+        "relic": "curtain_wall"
+      }
     },
     {
       "id": "lantern-street",
       "round": 1,
       "name": "The Lantern Street Circle",
       "motto": "We play the moves you sleep through.",
-      "manner": "Two lanes, no patience: it picks fights early and keeps them going.",
+      "manner": "Two lanes, no patience: it picks fights early, then runs out of ideas.",
       "seal": {
         "field": ["#1f2f55", "#0d1426"],
         "charge": "#f0b64a",
         "division": "chief",
         "emblem": "lantern"
       },
-      "portrait": { "piece": "bishop", "style": "shadow", "pose": "profile-right" },
+      "portrait": {
+        "piece": "bishop",
+        "style": "light",
+        "pose": "profile-right"
+      },
       "opening": "sicilian",
       "pieces": [
-        { "piece": "knight", "path": "offense", "lane": "top" },
-        { "piece": "bishop", "path": "utility", "lane": "top" },
-        { "piece": "queen", "path": "offense", "lane": "mid" },
-        { "piece": "king", "path": "offense", "lane": "bot" },
-        { "piece": "rook", "path": "offense", "lane": "bot" }
+        {
+          "piece": "knight",
+          "path": "offense",
+          "lane": "top"
+        },
+        {
+          "piece": "bishop",
+          "path": "utility",
+          "lane": "top"
+        },
+        {
+          "piece": "queen",
+          "path": "utility",
+          "lane": "mid"
+        },
+        {
+          "piece": "king",
+          "path": "offense",
+          "lane": "bot"
+        },
+        {
+          "piece": "rook",
+          "path": "offense",
+          "lane": "bot"
+        }
       ],
       "styles": {
-        "king": "warlord",
+        "king": "sovereign",
         "queen": "duelist",
-        "rook": "vanguard",
-        "bishop": "shadow",
+        "rook": "bastion",
+        "bishop": "light",
         "knight": "lancer"
       },
-      "signature": { "relic": "half_open_file" }
+      "signature": {
+        "relic": "half_open_file"
+      }
     },
     {
       "id": "old-tenby",
@@ -72,23 +124,49 @@
         "division": "pale",
         "emblem": "oak"
       },
-      "portrait": { "piece": "king", "style": "warlord", "pose": "left" },
+      "portrait": {
+        "piece": "king",
+        "style": "warlord",
+        "pose": "left"
+      },
       "opening": "french",
       "pieces": [
-        { "piece": "rook", "path": "offense", "lane": "top" },
-        { "piece": "knight", "path": "offense", "lane": "top" },
-        { "piece": "queen", "path": "offense", "lane": "mid" },
-        { "piece": "king", "path": "defense", "lane": "bot" },
-        { "piece": "bishop", "path": "utility", "lane": "bot" }
+        {
+          "piece": "rook",
+          "path": "defense",
+          "lane": "top"
+        },
+        {
+          "piece": "knight",
+          "path": "utility",
+          "lane": "top"
+        },
+        {
+          "piece": "queen",
+          "path": "utility",
+          "lane": "mid"
+        },
+        {
+          "piece": "king",
+          "path": "defense",
+          "lane": "bot"
+        },
+        {
+          "piece": "bishop",
+          "path": "utility",
+          "lane": "bot"
+        }
       ],
       "styles": {
         "king": "warlord",
-        "queen": "huntress",
+        "queen": "regent",
         "rook": "ram",
         "bishop": "light",
         "knight": "errant"
       },
-      "signature": { "relic": "pawn_chain" }
+      "signature": {
+        "relic": "pawn_chain"
+      }
     },
     {
       "id": "lady-marlow",
@@ -102,14 +180,38 @@
         "division": "bend",
         "emblem": "rose"
       },
-      "portrait": { "piece": "queen", "style": "huntress", "pose": "left" },
+      "portrait": {
+        "piece": "queen",
+        "style": "huntress",
+        "pose": "left"
+      },
       "opening": "italian",
       "pieces": [
-        { "piece": "rook", "path": "defense", "lane": "top" },
-        { "piece": "knight", "path": "offense", "lane": "top" },
-        { "piece": "queen", "path": "offense", "lane": "mid" },
-        { "piece": "king", "path": "defense", "lane": "bot" },
-        { "piece": "bishop", "path": "utility", "lane": "bot" }
+        {
+          "piece": "rook",
+          "path": "defense",
+          "lane": "top"
+        },
+        {
+          "piece": "knight",
+          "path": "offense",
+          "lane": "top"
+        },
+        {
+          "piece": "queen",
+          "path": "offense",
+          "lane": "mid"
+        },
+        {
+          "piece": "king",
+          "path": "defense",
+          "lane": "bot"
+        },
+        {
+          "piece": "bishop",
+          "path": "utility",
+          "lane": "bot"
+        }
       ],
       "styles": {
         "king": "sovereign",
@@ -118,37 +220,65 @@
         "bishop": "light",
         "knight": "lancer"
       },
-      "signature": { "relic": "opening_theory" }
+      "signature": {
+        "relic": "opening_theory"
+      }
     },
     {
       "id": "wexmoor",
       "round": 2,
       "name": "Wexmoor Gambit Society",
       "motto": "A sacrifice is only a loan.",
-      "manner": "Gives up the Right lane on purpose and pushes everything into the Left.",
+      "manner": "Throws its King and Rook at the Left lane and trusts the Tempo to last.",
       "seal": {
         "field": ["#5b3a8c", "#18101f"],
         "charge": "#f2a64a",
         "division": "quarterly",
         "emblem": "flame"
       },
-      "portrait": { "piece": "knight", "style": "lancer", "pose": "right" },
+      "portrait": {
+        "piece": "knight",
+        "style": "lancer",
+        "pose": "right"
+      },
       "opening": "kings_gambit",
       "pieces": [
-        { "piece": "king", "path": "offense", "lane": "top" },
-        { "piece": "rook", "path": "offense", "lane": "top" },
-        { "piece": "queen", "path": "offense", "lane": "mid" },
-        { "piece": "knight", "path": "offense", "lane": "bot" },
-        { "piece": "bishop", "path": "offense", "lane": "bot" }
+        {
+          "piece": "king",
+          "path": "offense",
+          "lane": "top"
+        },
+        {
+          "piece": "rook",
+          "path": "offense",
+          "lane": "top"
+        },
+        {
+          "piece": "queen",
+          "path": "offense",
+          "lane": "mid"
+        },
+        {
+          "piece": "knight",
+          "path": "offense",
+          "lane": "bot"
+        },
+        {
+          "piece": "bishop",
+          "path": "utility",
+          "lane": "bot"
+        }
       ],
       "styles": {
         "king": "usurper",
         "queen": "duelist",
-        "rook": "ram",
+        "rook": "vanguard",
         "bishop": "shadow",
         "knight": "lancer"
       },
-      "signature": { "relic": "wing_gambit", "lane": "bot" }
+      "signature": {
+        "relic": "spare_tempo"
+      }
     },
     {
       "id": "hollowmere",
@@ -162,14 +292,38 @@
         "division": "fess",
         "emblem": "compass"
       },
-      "portrait": { "piece": "knight", "style": "errant", "pose": "profile-right" },
+      "portrait": {
+        "piece": "knight",
+        "style": "errant",
+        "pose": "profile-right"
+      },
       "opening": "sicilian",
       "pieces": [
-        { "piece": "king", "path": "defense", "lane": "top" },
-        { "piece": "bishop", "path": "utility", "lane": "top" },
-        { "piece": "queen", "path": "offense", "lane": "mid" },
-        { "piece": "knight", "path": "offense", "lane": "bot" },
-        { "piece": "rook", "path": "offense", "lane": "bot" }
+        {
+          "piece": "king",
+          "path": "defense",
+          "lane": "top"
+        },
+        {
+          "piece": "bishop",
+          "path": "utility",
+          "lane": "top"
+        },
+        {
+          "piece": "queen",
+          "path": "offense",
+          "lane": "mid"
+        },
+        {
+          "piece": "knight",
+          "path": "offense",
+          "lane": "bot"
+        },
+        {
+          "piece": "rook",
+          "path": "offense",
+          "lane": "bot"
+        }
       ],
       "styles": {
         "king": "warlord",
@@ -178,7 +332,9 @@
         "bishop": "zealot",
         "knight": "errant"
       },
-      "signature": { "relic": "knights_tour" }
+      "signature": {
+        "relic": "knights_tour"
+      }
     },
     {
       "id": "clockmaker",
@@ -192,14 +348,38 @@
         "division": "quarterly",
         "emblem": "gear"
       },
-      "portrait": { "piece": "bishop", "style": "light", "pose": "front" },
+      "portrait": {
+        "piece": "bishop",
+        "style": "light",
+        "pose": "front"
+      },
       "opening": "italian",
       "pieces": [
-        { "piece": "rook", "path": "defense", "lane": "top" },
-        { "piece": "bishop", "path": "utility", "lane": "top" },
-        { "piece": "queen", "path": "offense", "lane": "mid" },
-        { "piece": "king", "path": "defense", "lane": "bot" },
-        { "piece": "knight", "path": "offense", "lane": "bot" }
+        {
+          "piece": "rook",
+          "path": "defense",
+          "lane": "top"
+        },
+        {
+          "piece": "bishop",
+          "path": "utility",
+          "lane": "top"
+        },
+        {
+          "piece": "queen",
+          "path": "offense",
+          "lane": "mid"
+        },
+        {
+          "piece": "king",
+          "path": "defense",
+          "lane": "bot"
+        },
+        {
+          "piece": "knight",
+          "path": "offense",
+          "lane": "bot"
+        }
       ],
       "styles": {
         "king": "sovereign",
@@ -208,7 +388,9 @@
         "bishop": "light",
         "knight": "errant"
       },
-      "signature": { "relic": "quiet_move" }
+      "signature": {
+        "relic": "quiet_move"
+      }
     },
     {
       "id": "duchess-avenell",
@@ -222,14 +404,38 @@
         "division": "pale",
         "emblem": "tower"
       },
-      "portrait": { "piece": "king", "style": "sovereign", "pose": "left" },
+      "portrait": {
+        "piece": "king",
+        "style": "sovereign",
+        "pose": "left"
+      },
       "opening": "french",
       "pieces": [
-        { "piece": "queen", "path": "offense", "lane": "top" },
-        { "piece": "bishop", "path": "utility", "lane": "top" },
-        { "piece": "king", "path": "defense", "lane": "mid" },
-        { "piece": "rook", "path": "offense", "lane": "bot" },
-        { "piece": "knight", "path": "offense", "lane": "bot" }
+        {
+          "piece": "queen",
+          "path": "offense",
+          "lane": "top"
+        },
+        {
+          "piece": "bishop",
+          "path": "utility",
+          "lane": "top"
+        },
+        {
+          "piece": "king",
+          "path": "defense",
+          "lane": "mid"
+        },
+        {
+          "piece": "rook",
+          "path": "offense",
+          "lane": "bot"
+        },
+        {
+          "piece": "knight",
+          "path": "offense",
+          "lane": "bot"
+        }
       ],
       "styles": {
         "king": "sovereign",
@@ -238,7 +444,9 @@
         "bishop": "light",
         "knight": "lancer"
       },
-      "signature": { "relic": "royal_keep" }
+      "signature": {
+        "relic": "royal_keep"
+      }
     },
     {
       "id": "black-queen",
@@ -252,14 +460,38 @@
         "division": "chief",
         "emblem": "crown"
       },
-      "portrait": { "piece": "queen", "style": "duelist", "pose": "front" },
+      "portrait": {
+        "piece": "queen",
+        "style": "duelist",
+        "pose": "front"
+      },
       "opening": "sicilian",
       "pieces": [
-        { "piece": "rook", "path": "offense", "lane": "top" },
-        { "piece": "bishop", "path": "offense", "lane": "top" },
-        { "piece": "queen", "path": "offense", "lane": "mid" },
-        { "piece": "king", "path": "offense", "lane": "bot" },
-        { "piece": "knight", "path": "offense", "lane": "bot" }
+        {
+          "piece": "rook",
+          "path": "offense",
+          "lane": "top"
+        },
+        {
+          "piece": "bishop",
+          "path": "offense",
+          "lane": "top"
+        },
+        {
+          "piece": "queen",
+          "path": "offense",
+          "lane": "mid"
+        },
+        {
+          "piece": "king",
+          "path": "offense",
+          "lane": "bot"
+        },
+        {
+          "piece": "knight",
+          "path": "offense",
+          "lane": "bot"
+        }
       ],
       "styles": {
         "king": "usurper",
@@ -268,7 +500,10 @@
         "bishop": "zealot",
         "knight": "lancer"
       },
-      "signature": { "relic": "crown_jewel", "piece": "queen" }
+      "signature": {
+        "relic": "crown_jewel",
+        "piece": "queen"
+      }
     },
     {
       "id": "mirrorgate",
@@ -282,14 +517,38 @@
         "division": "bend",
         "emblem": "mirror"
       },
-      "portrait": { "piece": "bishop", "style": "zealot", "pose": "profile-left" },
+      "portrait": {
+        "piece": "bishop",
+        "style": "zealot",
+        "pose": "profile-left"
+      },
       "opening": "kings_gambit",
       "pieces": [
-        { "piece": "king", "path": "defense", "lane": "top" },
-        { "piece": "rook", "path": "defense", "lane": "top" },
-        { "piece": "knight", "path": "offense", "lane": "mid" },
-        { "piece": "queen", "path": "offense", "lane": "bot" },
-        { "piece": "bishop", "path": "offense", "lane": "bot" }
+        {
+          "piece": "king",
+          "path": "defense",
+          "lane": "top"
+        },
+        {
+          "piece": "rook",
+          "path": "defense",
+          "lane": "top"
+        },
+        {
+          "piece": "knight",
+          "path": "offense",
+          "lane": "mid"
+        },
+        {
+          "piece": "queen",
+          "path": "offense",
+          "lane": "bot"
+        },
+        {
+          "piece": "bishop",
+          "path": "offense",
+          "lane": "bot"
+        }
       ],
       "styles": {
         "king": "sovereign",
@@ -298,7 +557,9 @@
         "bishop": "zealot",
         "knight": "paladin"
       },
-      "signature": { "relic": "kings_ransom" }
+      "signature": {
+        "relic": "kings_ransom"
+      }
     }
   ]
 }
