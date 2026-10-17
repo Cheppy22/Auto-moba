@@ -10,7 +10,7 @@ export type {
   RunStatus,
   RunStep,
 } from './types';
-export { generateOpponents, revealOpponent } from './opponents';
+export { courtOf, generateOpponents, revealOpponent } from './opponents';
 export { aiReward, applyReward, rewardOffers } from './rewards';
 export {
   aimRunRelic,
