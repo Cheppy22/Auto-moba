@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { deepMerge, loadContent, type Content, type RawContentFiles } from '../src/sim';
@@ -73,6 +73,7 @@ export function readRawContent(): RawContentFiles {
     map: readJson(join(root, 'map.json')),
     mapLong: readJson(join(root, 'map-long.json')),
     tournament: readJson(join(root, 'tournament.json')),
+    courts: existsSync(join(root, 'courts.json')) ? readJson(join(root, 'courts.json')) : undefined,
     tuning: readJson(join(root, 'tuning.json')),
   });
 }

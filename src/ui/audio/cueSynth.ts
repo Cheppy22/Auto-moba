@@ -2,7 +2,7 @@
  * How each cue sounds. Every cue is a few short oscillator and noise voices from `synth.ts`;
  * `t` is when it starts (audio-clock seconds). Wood, brass, glass and stone: the chess room.
  */
-import type { Cue, CueOpts } from './cues';
+import { CUE_TRIM, type Cue, type CueOpts } from './cues';
 import { bell, burst, tone, type BurstSpec, type Engine, type ToneSpec } from './synth';
 
 type Voice = (e: Engine, t: number, o: CueOpts) => void;
@@ -411,3 +411,29 @@ export const VOICES: Record<Cue, Voice> = {
   position,
   clock,
 };
+
+const trims = new WeakMap<Engine, Map<Cue, GainNode>>();
+
+/** Sounds one cue on an engine at audio-clock time `t`, through its own level trim. */
+export function voiceCue(e: Engine, cue: Cue, t: number, opts: CueOpts): void {
+  const gain = CUE_TRIM[cue] ?? 1;
+  let dest: AudioNode = e.fx;
+  if (gain !== 1) {
+    let map = trims.get(e);
+    if (!map) trims.set(e, (map = new Map()));
+    let node = map.get(cue);
+    if (!node) {
+      node = e.ctx.createGain();
+      node.gain.value = gain;
+      node.connect(e.fx);
+      map.set(cue, node);
+    }
+    dest = node;
+  }
+  e.cueDest = dest;
+  try {
+    VOICES[cue](e, t, opts);
+  } finally {
+    e.cueDest = e.fx;
+  }
+}

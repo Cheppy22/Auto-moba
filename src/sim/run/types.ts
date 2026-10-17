@@ -6,22 +6,22 @@ import type { CarriedRelic, PlayTeam, TeamSetup } from '../types';
 /** 1 Club, 2 County, 3 Semifinal, 4 Final. */
 export type RoundNo = 1 | 2 | 3 | 4;
 
-/** One opponent court. The stand-in generator builds these; 3B's hand-made courts use the same shape. */
+/** One opponent court: a hand-made court of `content/courts.json` (`courtId`), or a generated stand-in. */
 export interface OpponentDef {
   id: string;
   name: string;
   round: RoundNo;
   /** Black's Opening and five pieces (path and lane each). */
   setup: TeamSetup;
-  /** 3B: fixed archetypes (`forceStyles.B`); absent means the AI chooses. */
+  /** The hand-made court this was drawn from (`Content.courtById`); absent for a generated stand-in. */
+  courtId?: string;
+  /** Fixed archetypes (`forceStyles.B`); absent means the AI chooses. */
   styles?: Partial<Record<PieceId, string>>;
   /** Relics the court starts with. */
   relics: CarriedRelic[];
   /** Extra Tempo at the start. */
   tempoBonus: number;
-  /** 3B. */
-  portrait?: string;
-  /** 3B. */
+  /** The relic id the court always starts with (it is also the first of `relics`). */
   signatureRelic?: string;
 }
 

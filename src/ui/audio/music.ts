@@ -6,7 +6,7 @@
  *
  * `Composer` is pure (notes in, no Web Audio) so it can be tested; `MusicPlayer` plays it.
  */
-import { lcg, midiHz, pluck, type Engine } from './synth';
+import { duckParam, lcg, midiHz, pluck, type Engine } from './synth';
 
 /** D3, the tonic every chord is measured from. */
 export const TONIC = 50;
@@ -287,21 +287,24 @@ export class MusicPlayer {
     this.target = Math.min(1, Math.max(0, t));
   }
 
-  /** The bell: the music steps back for `sec` seconds. */
-  duck(sec: number): void {
-    const g = this.e.musicIn.gain;
-    const now = this.e.ctx.currentTime;
-    g.cancelScheduledValues(now);
-    g.setTargetAtTime(0.3, now, 0.06);
-    g.setTargetAtTime(1, now + sec, 1.2);
+  /** A big stinger: the music steps back to `depth` for `sec` seconds (`at`: audio-clock time, default now). */
+  duck(sec: number, depth = 0.3, at = this.e.ctx.currentTime): void {
+    duckParam(this.e.musicIn.gain, at, sec, depth, 1.2);
   }
 
-  /** Offline rendering (docs samples): schedules `seconds` of music from time 0 at a fixed tension. */
-  scheduleOffline(seconds: number, tension: number): void {
-    this.cur = this.target = tension;
-    this.padGain.gain.setValueAtTime(0.03 * (1 - 0.45 * tension), 0);
-    this.tenseGain.gain.setValueAtTime(0.085 * tension * tension, 0);
-    for (let t = 0.2; t < seconds; t += BAR_SEC) this.scheduleBar(t);
+  /**
+   * Offline rendering (docs samples): schedules `seconds` of music from time 0. `tension` is a
+   * fixed value or a function of time (seconds), so a render can run calm to tense.
+   */
+  scheduleOffline(seconds: number, tension: number | ((t: number) => number)): void {
+    const at = (t: number): number => (typeof tension === 'number' ? tension : tension(t));
+    for (let t = 0.2; t < seconds; t += BAR_SEC) {
+      const T = at(t);
+      this.cur = this.target = T;
+      this.padGain.gain.setTargetAtTime(0.03 * (1 - 0.45 * T), t, 0.3);
+      this.tenseGain.gain.setTargetAtTime(0.085 * T * T, t, 0.3);
+      this.scheduleBar(t);
+    }
   }
 
   private tick(): void {

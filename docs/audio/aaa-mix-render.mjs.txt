@@ -1,0 +1,89 @@
+import { createRequire } from 'node:module';
+import { writeFileSync, existsSync } from 'node:fs';
+const require = createRequire('/home/user/Auto-moba/.claude/worktrees/agent-a5dad959f7757e34d/package.json');
+const { chromium } = require('@playwright/test');
+const out = process.argv[2];
+const local = '/opt/pw-browsers/chromium';
+const browser = await chromium.launch(existsSync(local) ? { executablePath: local, args: ['--no-sandbox'] } : {});
+const page = await browser.newPage();
+page.on('pageerror', (e) => console.log('[pageerror]', e.message));
+await page.goto('http://localhost:4203/?intro=off');
+
+const result = await page.evaluate(async ([MODE, CH]) => {
+  const synth = await import('/src/ui/audio/synth.ts');
+  const cuesMod = await import('/src/ui/audio/cues.ts');
+  const { voiceCue } = await import('/src/ui/audio/cueSynth.ts');
+  const { MusicPlayer } = await import('/src/ui/audio/music.ts');
+  const { Ambience } = await import('/src/ui/audio/ambience.ts');
+  const SR = 44100;
+  const SECS = 60;
+  const ctx = new OfflineAudioContext(2, SR * SECS, SR);
+  if (MODE.endsWith('raw')) Object.assign(synth.CHAIN, { glueThreshold: 0, limitThreshold: 0, ceiling: 100 });
+  if (CH) Object.assign(synth.CHAIN, JSON.parse(CH));
+  const e = synth.createEngine(ctx);
+  synth.applyMixer(e);
+
+  // calm for 18 s, rising to tense by 40 s, held (Check at 31 s lifts it a little more)
+  const tension = (t) => (t < 18 ? 0.05 : t < 40 ? 0.05 + 0.8 * ((t - 18) / 22) : 0.9);
+  const music = new MusicPlayer(e, 4242);
+  if (!MODE.startsWith('cues')) music.scheduleOffline(SECS, tension);
+  const amb = new Ambience(e, 99);
+  amb.setTheme('a');
+  for (const [t, v] of [[0, 0], [18, 0.2], [30, 0.5], [38, 0.8], [50, 0.7]]) amb.setIntensity(v, t);
+  if (!MODE.startsWith('cues')) amb.scheduleOffline(SECS);
+
+  const script = [
+    [4, 'march', {}],
+    [9, 'initiative', {}],
+    [14, 'fortress', {}],
+    [19, 'clack', { team: 'B' }],
+    [23, 'rank', {}],
+    [27, 'rankBig', {}],
+    [31, 'check', { team: 'A' }],
+    [35, 'sacrifice', { dark: true }],
+    [36.5, 'clack', { team: 'B' }],
+    [37.2, 'fall', { team: 'A' }],
+    [39, 'position', {}],
+    [41, 'toll', { n: 1 }],
+    [43.5, 'toll', { n: 2 }],
+    [46, 'toll', { n: 3 }],
+    [49, 'bastion', { team: 'B' }],
+    [51, 'march', {}],
+    [52.2, 'clack', { team: 'B' }],
+    [54, 'checkmateWin', {}],
+    [58, 'tap', {}],
+  ];
+  const duck = cuesMod.DUCK;
+  for (const [t, cue, o] of script) {
+    if (!MODE.startsWith('bed')) voiceCue(e, cue, t, o);
+    const d = duck[cue];
+    if (d && MODE.startsWith('full')) {
+      music.duck(d.sec, d.depth, t);
+      amb.duck(d.sec, Math.max(d.depth, 0.4), t);
+    }
+  }
+  const buf = await ctx.startRendering();
+  const n = buf.length;
+  const L = buf.getChannelData(0), R = buf.getChannelData(1);
+  const ab = new ArrayBuffer(44 + n * 4);
+  const dv = new DataView(ab);
+  const w = (o, s) => [...s].forEach((c, i) => dv.setUint8(o + i, c.charCodeAt(0)));
+  w(0, 'RIFF'); dv.setUint32(4, 36 + n * 4, true); w(8, 'WAVEfmt ');
+  dv.setUint32(16, 16, true); dv.setUint16(20, 1, true); dv.setUint16(22, 2, true);
+  dv.setUint32(24, SR, true); dv.setUint32(28, SR * 4, true); dv.setUint16(32, 4, true); dv.setUint16(34, 16, true);
+  w(36, 'data'); dv.setUint32(40, n * 4, true);
+  let peak = 0;
+  for (let i = 0; i < n; i++) {
+    peak = Math.max(peak, Math.abs(L[i]), Math.abs(R[i]));
+    dv.setInt16(44 + i * 4, Math.max(-1, Math.min(1, L[i])) * 32767, true);
+    dv.setInt16(46 + i * 4, Math.max(-1, Math.min(1, R[i])) * 32767, true);
+  }
+  const bytes = new Uint8Array(ab);
+  let bin = '';
+  for (let i = 0; i < bytes.length; i += 32768) bin += String.fromCharCode(...bytes.subarray(i, i + 32768));
+  return { wav: btoa(bin), script, peak };
+}, [process.env.MODE || 'full', process.env.CHAIN || '']);
+writeFileSync(out + '.wav', Buffer.from(result.wav, 'base64'));
+writeFileSync(out + '.json', JSON.stringify(result.script));
+console.log('sample peak', result.peak.toFixed(3));
+await browser.close();

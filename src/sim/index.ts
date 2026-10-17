@@ -8,6 +8,8 @@ export type {
   AbilityDef,
   BadgeDef,
   BiomeDef,
+  CourtDef,
+  CourtEmblem,
   CursedItemDef,
   ForkOptionDef,
   GambitDef,
@@ -21,9 +23,17 @@ export type {
   TournamentDef,
   Tuning,
 } from './content/schema';
-export { PATHS, PIECE_IDS, RELIC_FAMILIES, SEALED_TRIGGERS } from './content/schema';
+export {
+  COURT_EMBLEMS,
+  CourtFileSchema,
+  PATHS,
+  PIECE_IDS,
+  PORTRAIT_POSES,
+  RELIC_FAMILIES,
+  SEALED_TRIGGERS,
+} from './content/schema';
 export { CUSTOM_BEHAVIORS, TPS } from './combat';
-export { naturalPath } from './setup';
+export { naturalPath, validateSetup } from './setup';
 export { armoryView, armoryQuote, planError } from './armory';
 export type { AbilityNumbers, ForkPreview } from './preview';
 export { pathListOf } from './pieces';

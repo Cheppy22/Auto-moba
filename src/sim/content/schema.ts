@@ -319,6 +319,82 @@ export const TournamentSchema = z.object({
   names: z.array(z.string()).min(3),
 });
 
+/** Heraldic emblems a court's seal can carry (drawn in code by `src/ui/run/seals.tsx`). */
+export const COURT_EMBLEMS = [
+  'bell',
+  'lantern',
+  'oak',
+  'rose',
+  'flame',
+  'compass',
+  'gear',
+  'tower',
+  'crown',
+  'mirror',
+] as const;
+/** How a seal's field is divided between its two colours. */
+export const SEAL_DIVISIONS = ['plain', 'pale', 'fess', 'bend', 'chief', 'quarterly'] as const;
+/** Where a portrait's figure is turned: toward the viewer, or away to one side. */
+export const PORTRAIT_POSES = ['front', 'left', 'right', 'profile-left', 'profile-right'] as const;
+
+const HexSchema = z.string().regex(/^#[0-9a-fA-F]{6}$/);
+
+/**
+ * `content/courts.json` (3B): the hand-authored Black courts of a Tournament run. A run draws one
+ * court per round from the courts of that round (`round` 1 Club .. 4 Final), seeded. A court owns
+ * identity (name, motto, seal, portrait, fixed Opening, lanes, archetypes, one signature relic);
+ * how hard its round is stays in `content/tournament.json`.
+ */
+export const CourtSchema = z.object({
+  id: z.string().regex(/^[a-z0-9-]+$/),
+  round: z.number().int().min(1).max(4),
+  name: z.string().min(3),
+  /** The line printed under the name. */
+  motto: z.string().min(3),
+  /** One sentence on how the court plays (shown on the Draw). */
+  manner: z.string().min(3),
+  seal: z.object({
+    /** The two field colours and the colour the emblem is drawn in. */
+    field: z.tuple([HexSchema, HexSchema]),
+    charge: HexSchema,
+    division: z.enum(SEAL_DIVISIONS),
+    emblem: z.enum(COURT_EMBLEMS),
+  }),
+  portrait: z.object({
+    piece: z.enum(PIECE_IDS),
+    /** The archetype the figure wears (cloth colour and emblem); must be the court's own for that piece. */
+    style: z.string(),
+    pose: z.enum(PORTRAIT_POSES),
+  }),
+  opening: z.string(),
+  /** The five pieces: build path and lane each (2 Left, 2 Right, 1 Mid). */
+  pieces: z
+    .array(
+      z.object({
+        piece: z.enum(PIECE_IDS),
+        path: z.enum(['offense', 'defense', 'utility']),
+        lane: z.enum(['top', 'mid', 'bot']),
+      }),
+    )
+    .length(5),
+  /** The archetype each piece takes at Rank 4. */
+  styles: z.object({
+    king: z.string(),
+    queen: z.string(),
+    rook: z.string(),
+    bishop: z.string(),
+    knight: z.string(),
+  }),
+  /** The relic the court always starts with; `lane` / `piece` aim it when its default aim is not the court's idea. */
+  signature: z.object({
+    relic: z.string(),
+    lane: z.enum(['top', 'mid', 'bot']).optional(),
+    piece: z.enum(PIECE_IDS).optional(),
+  }),
+});
+
+export const CourtFileSchema = z.object({ courts: z.array(CourtSchema).min(1) });
+
 export const RELIC_FAMILIES = ['lane', 'carry', 'pawns', 'siege', 'orders'] as const;
 const RelicFamilySchema = z.enum(RELIC_FAMILIES);
 
@@ -1068,6 +1144,8 @@ export type GambitTarget = z.infer<typeof GambitTargetSchema>;
 export type School = z.infer<typeof SchoolSchema>;
 export type OpeningDef = z.infer<typeof OpeningSchema>;
 export type TournamentDef = z.infer<typeof TournamentSchema>;
+export type CourtDef = z.infer<typeof CourtSchema>;
+export type CourtEmblem = (typeof COURT_EMBLEMS)[number];
 export type RelicDef = z.infer<typeof RelicSchema>;
 export type RelicFamily = z.infer<typeof RelicFamilySchema>;
 export type RelicEffect = (typeof RELIC_EFFECTS)[number];

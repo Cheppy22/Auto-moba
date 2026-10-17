@@ -100,6 +100,42 @@ export const CUE_INFO: Record<Cue, { cooldownMs: number; desc: string }> = {
   clock: { cooldownMs: 120, desc: 'Clock gambit: a quick double tick and a small chime' },
 };
 
+/**
+ * Big stingers push the music (and a little of the garden) down so they stand clear: how long
+ * and how far (the music's gain drops to `depth`).
+ */
+export const DUCK: Partial<Record<Cue, { sec: number; depth: number }>> = {
+  toll: { sec: 5, depth: 0.3 },
+  checkmateWin: { sec: 4, depth: 0.25 },
+  checkmateLoss: { sec: 4, depth: 0.25 },
+  throneDown: { sec: 3, depth: 0.3 },
+  clack: { sec: 0.7, depth: 0.5 },
+  fall: { sec: 0.7, depth: 0.5 },
+  rankBig: { sec: 1.5, depth: 0.6 },
+};
+
+/**
+ * Per-cue level trim (linear, default 1). Small everyday sounds are made louder so the effects sit
+ * above the music in a mix (measured: docs/audio/aaa-mix.m4a); the very subtle eye stays quiet.
+ */
+export const CUE_TRIM: Partial<Record<Cue, number>> = {
+  clack: 2.6,
+  fall: 2.2,
+  tap: 2,
+  tab: 2,
+  tick: 1.6,
+  deny: 1.8,
+  rank: 1.6,
+  buy: 2,
+  sell: 2,
+  seal: 2,
+  throneHit: 1.5,
+  initiative: 1.7,
+  position: 1.7,
+  clock: 2.2,
+  march: 1.3,
+};
+
 export const CUES = Object.keys(CUE_INFO) as Cue[];
 
 /** Each gambit school has its own cue. */

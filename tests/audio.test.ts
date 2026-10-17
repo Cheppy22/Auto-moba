@@ -3,6 +3,8 @@ import type { GameEvent } from '../src/sim';
 import {
   CUES,
   CUE_INFO,
+  CUE_TRIM,
+  DUCK,
   SCHOOL_CUE,
   Throttle,
   commandCue,
@@ -53,6 +55,23 @@ describe('the cue set', () => {
       expect(typeof VOICES[c]).toBe('function');
     }
     expect(Object.keys(VOICES).sort()).toEqual([...CUES].sort());
+  });
+
+  it('level trims and ducks only name real cues, with sane numbers', () => {
+    for (const [cue, g] of Object.entries(CUE_TRIM)) {
+      expect(CUES).toContain(cue);
+      expect(g).toBeGreaterThan(0.5);
+      expect(g).toBeLessThanOrEqual(3);
+    }
+    for (const [cue, d] of Object.entries(DUCK)) {
+      expect(CUES).toContain(cue);
+      expect(d.depth).toBeGreaterThan(0);
+      expect(d.depth).toBeLessThan(1);
+      expect(d.sec).toBeGreaterThan(0);
+    }
+    // the big stingers all push the music down
+    for (const c of ['toll', 'checkmateWin', 'checkmateLoss', 'clack'] as const)
+      expect(DUCK[c]).toBeDefined();
   });
 
   it('gives every gambit school its own cue', () => {

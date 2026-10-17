@@ -2,12 +2,14 @@ import { hashContent } from '../core/rng';
 import {
   BadgesSchema,
   BiomeSchema,
+  CourtFileSchema,
   EventFileSchema,
   GAMBIT_EFFECTS,
   GambitFileSchema,
   ItemFileSchema,
   MapSchema,
   OpeningFileSchema,
+  PIECE_IDS,
   PressureSchema,
   PieceSchema,
   RelicFileSchema,
@@ -16,6 +18,7 @@ import {
   TuningSchema,
   type BadgeDef,
   type BiomeDef,
+  type CourtDef,
   type CursedItemDef,
   type EventDef,
   type AbilityDef,
@@ -49,6 +52,8 @@ export interface RawContentFiles {
   mapLong?: unknown;
   /** The Tournament run's round table and court names (`content/tournament.json`). */
   tournament?: unknown;
+  /** The Tournament run's hand-made Black courts (`content/courts.json`, 3B). */
+  courts?: unknown;
   tuning: unknown;
 }
 
@@ -88,6 +93,9 @@ export interface Content {
   longBoard: MapVariant | null;
   /** The Tournament run's table (`src/sim/run`); null when its file is missing. */
   tournament: TournamentDef | null;
+  /** The hand-made courts (3B); empty when `content/courts.json` is missing (the run then falls back to generated courts). */
+  courts: CourtDef[];
+  courtById: Map<string, CourtDef>;
 }
 
 /** Deep-merges a JSON patch into a copy of `base` (objects merge, everything else is replaced). */
@@ -114,6 +122,41 @@ function byId<T extends { id: string }>(list: T[], label: string): Map<string, T
     m.set(it.id, it);
   }
   return m;
+}
+
+/** The hand-made courts of `content/courts.json`: every reference resolves and every court is a legal setup. */
+function validateCourts(c: Content): string[] {
+  const errs: string[] = [];
+  if (c.courts.length === 0) return errs;
+  const lanes = { top: 2, bot: 2, mid: 1 };
+  for (const k of c.courts) {
+    const at = `court ${k.id}`;
+    if (!c.openingById.has(k.opening)) errs.push(`${at}: unknown opening ${k.opening}`);
+    const relic = c.relicById.get(k.signature.relic);
+    if (!relic) errs.push(`${at}: unknown signature relic ${k.signature.relic}`);
+    else {
+      const needsLane = relic.bind === 'lane' || relic.bind === 'laneCard';
+      if (k.signature.lane && !needsLane) errs.push(`${at}: ${relic.id} is not aimed at a lane`);
+      if (k.signature.piece && relic.bind !== 'piece')
+        errs.push(`${at}: ${relic.id} is not aimed at a piece`);
+    }
+    for (const id of PIECE_IDS) {
+      if (!c.styleByKey.has(`${id}/${k.styles[id]}`))
+        errs.push(`${at}: ${id} has no archetype ${k.styles[id]}`);
+    }
+    if (k.styles[k.portrait.piece] !== k.portrait.style)
+      errs.push(`${at}: the portrait wears ${k.portrait.style}, not the court's archetype`);
+    if (new Set(k.pieces.map((p) => p.piece)).size !== 5) errs.push(`${at}: needs each piece once`);
+    for (const lane of ['top', 'bot', 'mid'] as const)
+      if (k.pieces.filter((p) => p.lane === lane).length !== lanes[lane])
+        errs.push(`${at}: lanes need 2 Left, 2 Right and 1 Mid`);
+  }
+  for (const r of [1, 2, 3, 4])
+    if (!c.courts.some((k) => k.round === r)) errs.push(`courts: round ${r} has no court`);
+  const finalName = c.tournament?.finalName;
+  if (finalName && !c.courts.some((k) => k.round === 4 && k.name === finalName))
+    errs.push(`courts: the Final pool needs ${finalName}`);
+  return errs;
 }
 
 export function validateRefs(c: Content): string[] {
@@ -172,6 +215,7 @@ export function validateRefs(c: Content): string[] {
       for (const card of cards)
         if (!c.gambitById.has(card)) errs.push(`relic ${r.id}: unknown trigger card ${card}`);
   }
+  errs.push(...validateCourts(c));
   if (!c.openingById.has('italian')) errs.push('openings: needs the balanced "italian" opening');
   if (!c.gambits.some((g) => g.piece === null && g.weight > 0))
     errs.push('gambits: needs at least one universal card');
@@ -209,6 +253,7 @@ export function loadContent(raw: RawContentFiles): Content {
   const gambits = GambitFileSchema.parse(raw.gambits).gambits;
   const openings = OpeningFileSchema.parse(raw.openings);
   const relics = RelicFileSchema.parse(raw.relics).relics;
+  const courts = raw.courts === undefined ? [] : CourtFileSchema.parse(raw.courts).courts;
   const itemFiles = raw.items.map((f) => ItemFileSchema.parse(f));
   const items = itemFiles.flatMap((f) => f.items);
   const cursed = itemFiles.flatMap((f) => f.cursed);
@@ -260,6 +305,8 @@ export function loadContent(raw: RawContentFiles): Content {
     tuning,
     longBoard,
     tournament: raw.tournament === undefined ? null : TournamentSchema.parse(raw.tournament),
+    courts,
+    courtById: byId(courts, 'court'),
   };
   const errs = validateRefs(content);
   if (longBoard) {
