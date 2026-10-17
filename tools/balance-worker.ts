@@ -12,6 +12,7 @@ const job = JSON.parse(process.argv[2] ?? '{}') as {
   whitePlayer?: boolean;
   whiteEvery?: number;
   plans?: PlanPreset;
+  pace?: 'blitz';
 };
 for (const seed of job.seeds ?? []) {
   const r = simulateMatch(content, seed, {
@@ -22,6 +23,7 @@ for (const seed of job.seeds ?? []) {
     whitePlayer: job.whitePlayer,
     whiteEvery: job.whiteEvery,
     plans: job.plans,
+    pace: job.pace,
   });
   process.stdout.write(JSON.stringify(r) + '\n');
 }

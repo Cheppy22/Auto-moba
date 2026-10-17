@@ -146,6 +146,7 @@ function initialState(content: Content, config: MatchConfig): MatchState {
       mode: relicModes(config),
     },
     ...(run ? { run } : {}),
+    ...(config.pace === 'blitz' ? { pace: 'blitz' as const } : {}),
   };
 }
 
@@ -279,7 +280,7 @@ export class Match {
     loaded: Content,
     readonly config: MatchConfig,
   ) {
-    const content = contentFor(loaded, config.map);
+    const content = contentFor(loaded, config.map, config.pace);
     this.content = content;
     this.ctx = buildCtx(
       content,

@@ -101,10 +101,36 @@ export function deepMerge(base: unknown, patch: unknown): unknown {
 }
 
 /** The content a match plays with: the default map, or the Long Board with its tuning. */
-export function contentFor(c: Content, map: 'default' | 'long' | undefined): Content {
-  if (map !== 'long') return c;
-  if (!c.longBoard) throw new Error('The Long Board map is not loaded');
-  return { ...c, map: c.longBoard.map, tuning: c.longBoard.tuning };
+export function contentFor(
+  c: Content,
+  map: 'default' | 'long' | undefined,
+  pace: MatchPace = 'classical',
+): Content {
+  let out = c;
+  if (map === 'long') {
+    if (!c.longBoard) throw new Error('The Long Board map is not loaded');
+    out = { ...c, map: c.longBoard.map, tuning: c.longBoard.tuning };
+  }
+  return pace === 'blitz' ? blitzContent(out) : out;
+}
+
+/** A match's pace: Classical is the full match, Blitz the short one (`tuning.blitz`). */
+export type MatchPace = 'classical' | 'blitz';
+
+/** Blitz: at most `blitz.maxActs` Acts, the Endgame rule from `blitz.endgameAct`, `blitz.throneHp` Thrones. */
+function blitzContent(c: Content): Content {
+  const b = c.tuning.blitz;
+  return {
+    ...c,
+    tuning: {
+      ...c.tuning,
+      maxPhases: b.maxActs,
+      guardian: { ...c.tuning.guardian, hp: b.throneHp },
+    },
+    pressure: c.pressure.map((ev) =>
+      ev.rules.includes('endgame') ? { ...ev, fromPhase: b.endgameAct } : ev,
+    ),
+  };
 }
 
 function byId<T extends { id: string }>(list: T[], label: string): Map<string, T> {

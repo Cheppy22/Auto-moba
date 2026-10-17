@@ -672,6 +672,8 @@ export interface MatchState {
   relics: RelicState;
   /** Tournament-run rules for this match (`MatchConfig.start`, `lockStyles`, `adjudicate`, `relicMax`); absent otherwise. */
   run?: RunRules;
+  /** Set only for a Blitz match (`MatchConfig.pace`); absent in Classical, so its state is unchanged. */
+  pace?: 'blitz';
 }
 
 /** The in-match part of a Tournament run (absent in an Exhibition match). */
@@ -1046,6 +1048,11 @@ export interface MatchConfig {
   relicMaxB?: number;
   /** Black's AI Tempo split (default `pawns.aiPawnShare`; a run's round table can set it). */
   aiPawnShareB?: number;
+  /**
+   * `blitz`: at most 3 Acts, the Endgame rule from Act 3, Thrones at 3000 (`tuning.blitz`), and a
+   * match with no Checkmate when Act 3 ends is adjudicated. Default `classical`: the full match.
+   */
+  pace?: 'classical' | 'blitz';
 }
 
 export interface Replay {

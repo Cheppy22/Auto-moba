@@ -36,6 +36,9 @@ const quiet = process.argv.includes('--quiet');
 // --ladder: a loss does not end the run; White carries on as if it had won (Spoils included), so
 // every round is played by every run. The real run (up to its first loss) is reported as well.
 const ladder = process.argv.includes('--ladder');
+// --pace blitz: the run plays Blitz (at most 3 Acts, adjudicated without Checkmate).
+const paceAt = process.argv.indexOf('--pace');
+const pace = paceAt >= 0 && process.argv[paceAt + 1] === 'blitz' ? 'blitz' : 'classical';
 const content = loadNodeContent();
 const TPS = content.tuning.tickRate;
 
@@ -90,7 +93,7 @@ function playMatch(run: RunState): { m: Match; capAct: number | null } {
 }
 
 function playRun(seed: number): RunRead {
-  let run = newRun(content, seed);
+  let run = newRun(content, seed, pace);
   const matches: MatchRead[] = [];
   const picks: string[] = [];
   while (run.status === 'between') {
@@ -145,7 +148,7 @@ function report(all: RunRead[], secs: number): void {
     : noCards
       ? 'idle stand-in (no cards)'
       : `stand-in (a card at most every ${every || 1} s)`;
-  console.log(`\n${all.length} runs, ${who} White, seeds from ${seed0}`);
+  console.log(`\n${all.length} runs, ${who} White, ${pace} pace, seeds from ${seed0}`);
   roundTable(
     all.map((r) => realMatches(r)),
     cap,
