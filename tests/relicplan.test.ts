@@ -80,7 +80,8 @@ describe('relic headlines', () => {
     for (const r of content.relics) {
       const found = (r.headline.match(/\d+(\.\d+)?/g) ?? []).map(Number);
       const ok = allowed(r);
-      for (const n of found) expect(ok.has(n), `${r.id}: ${n} is not one of its numbers`).toBe(true);
+      for (const n of found)
+        expect(ok.has(n), `${r.id}: ${n} is not one of its numbers`).toBe(true);
     }
   });
 

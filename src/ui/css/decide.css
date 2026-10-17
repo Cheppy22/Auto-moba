@@ -356,3 +356,327 @@ html[data-layout='desktop'] .fs-rule {
     animation: none;
   }
 }
+
+/* ===== relic draft: three big cards (art, the plan, what changes), dealt face down, then taken ===== */
+.rcard.offer {
+  gap: 9px;
+  padding: 0 14px 14px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--family) 9%, transparent), transparent 46%),
+    rgba(255, 255, 255, 0.03);
+  border: 1px solid color-mix(in srgb, var(--family) 38%, var(--rule));
+  border-radius: 6px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 8px 20px rgba(0, 0, 0, 0.35);
+}
+.rcard.offer::before {
+  inset: 0 0 auto;
+  width: auto;
+  height: 3px;
+}
+.rcard.offer.tailored {
+  border-color: color-mix(in srgb, var(--family) 72%, var(--brass-dim));
+}
+/* the plate: the medallion on a lit, finely engraved ground, the name under it */
+.rcard-plate {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  margin: 0 -14px;
+  padding: 16px 14px 10px;
+  text-align: center;
+  background:
+    radial-gradient(
+      circle at 50% 38%,
+      color-mix(in srgb, var(--family) 30%, transparent),
+      transparent 62%
+    ),
+    repeating-radial-gradient(
+      circle at 50% 38%,
+      rgba(240, 213, 138, 0.05) 0 1px,
+      transparent 1px 7px
+    );
+  border-bottom: 1px solid color-mix(in srgb, var(--family) 30%, var(--rule));
+}
+.rcard-art {
+  filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.5));
+}
+.rcard-name {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 23px;
+  line-height: 1.1;
+  letter-spacing: 0.04em;
+  color: #f6edd6;
+}
+.rcard-plate .rcard-tags {
+  justify-content: center;
+}
+.rcard-headline {
+  margin: 2px 0 0;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.32;
+  color: #f6edd6;
+  text-wrap: pretty;
+}
+.rcard-change {
+  display: grid;
+  gap: 4px;
+  padding: 8px 10px 9px;
+  background: rgba(10, 8, 6, 0.35);
+  border: 1px solid rgba(201, 163, 90, 0.18);
+  border-radius: 4px;
+}
+.rcard-change header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2px 8px;
+}
+.rcard-change-h {
+  font-family: var(--font-display);
+  font-size: var(--fs-md);
+  letter-spacing: 0.04em;
+  color: var(--brass-hi);
+}
+.rcard-target {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 1px 8px;
+  font-size: var(--fs-sm);
+  color: #f3e9d0;
+  background: color-mix(in srgb, var(--family) 20%, transparent);
+  border: 1px solid color-mix(in srgb, var(--family) 55%, transparent);
+  border-radius: 10px;
+}
+.rcard-change dl {
+  display: grid;
+  gap: 3px;
+  margin: 0;
+}
+.rrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0 10px;
+  padding: 2px 0;
+  border-bottom: 1px dotted rgba(203, 189, 159, 0.16);
+}
+.rrow:last-child {
+  border-bottom: 0;
+}
+.rrow dt {
+  font-size: var(--fs-sm);
+  color: var(--bone);
+}
+.rrow dd {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  margin: 0 0 0 auto;
+  font-variant-numeric: tabular-nums lining-nums;
+  font-size: var(--fs-md);
+  white-space: nowrap;
+}
+/* desktop: the relic cards get a wider sheet than the other tabs */
+html[data-layout='desktop'] .breaksheet:has(.rl-offers) {
+  padding-left: max(calc(12px + env(safe-area-inset-left)), calc((100% - 1040px) / 2));
+  padding-right: max(calc(12px + env(safe-area-inset-right)), calc((100% - 1040px) / 2));
+}
+.rrow-b {
+  color: var(--dim);
+}
+.rrow-arrow {
+  font-size: 12px;
+  color: var(--brass);
+}
+.rrow b {
+  font-weight: 700;
+  color: #f6edd6;
+}
+.rrow.gain b {
+  color: #b9ecd0;
+}
+.rrow.cost b {
+  color: #ffbfb5;
+}
+.rcard-change-empty {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--dim);
+}
+.rcard.offer > * {
+  min-width: 0;
+}
+.rcard-held-plan {
+  margin: 0;
+  font-size: var(--fs-md);
+  font-weight: 600;
+  line-height: 1.3;
+  color: #f6edd6;
+}
+.rcard.held .rcard-desc {
+  font-size: var(--fs-sm);
+  color: var(--bone);
+}
+.rcard.offer .rcard-more summary {
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+}
+.rcard.offer .rcard-more summary::before {
+  content: '▸';
+  margin-right: 6px;
+  font-size: 12px;
+  color: var(--brass);
+  transition: transform 0.15s var(--ease);
+}
+.rcard.offer .rcard-more[open] summary::before {
+  transform: rotate(90deg);
+}
+.rcard.offer .rcard-desc {
+  margin: 4px 0 6px;
+  font-size: var(--fs-sm);
+}
+
+/* the deal: each card turns over in turn when the tab first opens at a break */
+.rl-offers.deal .rcard.offer {
+  animation: rl-deal 0.62s cubic-bezier(0.2, 0.9, 0.25, 1) both;
+  animation-delay: calc(var(--i, 0) * 0.13s + 0.08s);
+  transform-origin: 50% 60%;
+  backface-visibility: hidden;
+}
+@keyframes rl-deal {
+  0% {
+    opacity: 0;
+    transform: perspective(900px) translateY(28px) rotateY(88deg) scale(0.9);
+    filter: brightness(1.8) saturate(0.4);
+  }
+  55% {
+    opacity: 1;
+    transform: perspective(900px) translateY(-4px) rotateY(-8deg) scale(1.01);
+    filter: brightness(1.15);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+.rl-offers.deal .rcard-art {
+  animation: rl-medal 0.9s var(--ease) both;
+  animation-delay: calc(var(--i, 0) * 0.13s + 0.38s);
+}
+@keyframes rl-medal {
+  0% {
+    transform: scale(0.6) rotate(-40deg);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(1.06) rotate(4deg);
+    opacity: 1;
+  }
+  100% {
+    transform: none;
+  }
+}
+
+/* the pick: the taken card flies into the held row, which lands with a stamp */
+.rflight {
+  position: fixed;
+  z-index: 50;
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 6px;
+  padding: 14px;
+  text-align: center;
+  pointer-events: none;
+  transform-origin: 0 0;
+  background:
+    radial-gradient(
+      circle at 50% 22%,
+      color-mix(in srgb, var(--family) 36%, transparent),
+      transparent 60%
+    ),
+    linear-gradient(180deg, #33261b, #1e1610);
+  border: 1px solid var(--brass);
+  border-radius: 6px;
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--family) 60%, transparent),
+    0 18px 40px rgba(0, 0, 0, 0.55),
+    0 0 28px color-mix(in srgb, var(--family) 45%, transparent);
+}
+.rflight b {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 22px;
+  color: #f6edd6;
+}
+.rflight span {
+  font-size: var(--fs-md);
+  line-height: 1.3;
+  color: var(--ivory);
+}
+
+/* a phone held upright: the three cards sit side by side and swipe, the next one peeking in */
+html[data-layout='portrait'] .rl-offers {
+  display: flex;
+  gap: 10px;
+  margin: 0 -12px;
+  padding: 2px 12px 10px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scroll-padding: 0 12px;
+  scrollbar-width: none;
+}
+html[data-layout='portrait'] .rl-offers::-webkit-scrollbar {
+  display: none;
+}
+html[data-layout='portrait'] .rcard.offer {
+  flex: 0 0 86%;
+  scroll-snap-align: center;
+  align-content: start;
+}
+
+/* landscape phones: three narrow columns, a smaller plate */
+html[data-layout='landscape'] .rcard.offer {
+  padding: 0 10px 10px;
+  gap: 7px;
+}
+html[data-layout='landscape'] .rcard-plate {
+  margin: 0 -10px;
+  padding: 10px 8px 6px;
+}
+html[data-layout='landscape'] .rcard-art {
+  width: 56px;
+  height: 56px;
+}
+html[data-layout='landscape'] .rcard-name {
+  font-size: var(--fs-lg);
+}
+html[data-layout='landscape'] .rcard-headline {
+  font-size: var(--fs-md);
+}
+html[data-layout='landscape'] .rrow dd {
+  font-size: var(--fs-sm);
+}
+
+/* desktop: three tall cards */
+html[data-layout='desktop'] .rcard-art {
+  width: 96px;
+  height: 96px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rl-offers.deal .rcard.offer,
+  .rl-offers.deal .rcard-art {
+    animation: none;
+  }
+}

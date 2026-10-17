@@ -1,4 +1,5 @@
-import { useState } from 'preact/hooks';
+import { createPortal } from 'preact/compat';
+import { useLayoutEffect, useRef, useState } from 'preact/hooks';
 import type {
   HeldRelic,
   PawnQuota,
@@ -6,6 +7,7 @@ import type {
   LaneId,
   RelicAim,
   RelicDef,
+  RelicFamily,
   RelicOffer,
   SealedTrigger,
   Snapshot,
@@ -14,6 +16,8 @@ import { SEALED_TRIGGERS } from '../../sim';
 import { Term, Terms } from '../glossary';
 import { whitePieces } from '../Orders';
 import { LANES, LANE_LABEL, LANE_TAG, PieceGlyph, pieceLabel } from '../pieces';
+import { RelicEmblem } from '../relicArt';
+import { relicHeadline, relicPlan, type PlanInput, type RelicPlan } from '../relicPlan';
 import {
   FAMILY_COLOR,
   FamilyChip,
@@ -306,49 +310,101 @@ function AimControl(props: {
   );
 }
 
+/** What the relic plan reads from the match: White's pieces, Tempo, pawns and cards. */
+function planInput(s: ReturnType<typeof useSession>, snap: Snapshot): PlanInput {
+  const m = s.match!;
+  return {
+    content: s.content,
+    pieces: whitePieces(s).map((u) => ({
+      id: u.id,
+      piece: u.hero!.defId,
+      lane: u.hero!.lane,
+      stats: u.stats,
+    })),
+    nextAct: snap.phase.n + 1,
+    tempo: snap.tempo.A,
+    tempoMax: snap.tempoMax,
+    pawnCap: snap.relics.pawnCap,
+    pawnCost: snap.pawns.A.cost,
+    handRefillSec: snap.handRefillSec,
+    opening: m.state.opening.A,
+    cardCost: (id, discount) => m.cardCost(id, discount),
+  };
+}
+
+/** The "what changes" ledger: what the relic aims at, then each number before → after. */
+function ChangeTable(props: { plan: RelicPlan; id: string }) {
+  const { plan } = props;
+  return (
+    <section class="rcard-change" data-testid={`relic-change-${props.id}`}>
+      <header>
+        <span class="rcard-change-h">What changes</span>
+        <span class="rcard-target">
+          {plan.piece && <PieceGlyph piece={plan.piece} team="A" size={16} />}
+          {plan.target}
+        </span>
+      </header>
+      {plan.rows.length > 0 ? (
+        <dl>
+          {plan.rows.map((r) => (
+            <div
+              key={r.label}
+              class={`rrow ${r.better === true ? 'gain' : r.better === false ? 'cost' : ''}`}
+            >
+              <dt>{r.label}</dt>
+              <dd>
+                <span class="rrow-b">{r.before}</span>
+                <span class="rrow-arrow" aria-label="becomes">
+                  →
+                </span>
+                <b>{r.after}</b>
+              </dd>
+            </div>
+          ))}
+        </dl>
+      ) : (
+        <p class="rcard-change-empty">Aim it below to see the numbers.</p>
+      )}
+    </section>
+  );
+}
+
 function OfferCard(props: {
   offer: RelicOffer;
   def: RelicDef;
   aim: RelicAim;
   snap: Snapshot;
+  input: PlanInput;
+  index: number;
   onAim: (patch: AimPatch) => void;
-  take: { label: string; disabled: boolean; onTake: () => void };
+  take: { label: string; disabled: boolean; onTake: (el: HTMLElement) => void };
 }) {
   const { offer, def } = props;
   const s = useSession();
+  const plan = relicPlan(props.input, def, props.aim);
   return (
     <article
-      class={`rcard ${offer.tailored ? 'tailored' : ''} ${def.rally ? 'rally' : ''}`}
+      class={`rcard offer ${offer.tailored ? 'tailored' : ''} ${def.rally ? 'rally' : ''}`}
       data-family={def.family}
       data-testid={`relic-offer-${def.id}`}
-      style={{ '--family': FAMILY_COLOR[def.family] }}
+      style={{ '--family': FAMILY_COLOR[def.family], '--i': props.index }}
     >
-      <header class="rcard-head">
-        <RelicSeal family={def.family} size={34} />
-        <div class="rcard-title">
-          <b>{def.name}</b>
-          <span class="rcard-tags">
-            <FamilyChip family={def.family} />
-            {def.rally && (
-              <span class="rally-chip" title="Works only while you are behind">
-                <Term id="rally">Rally</Term>
-              </span>
-            )}
-          </span>
-        </div>
+      <header class="rcard-plate">
+        <RelicEmblem family={def.family} size={84} class="rcard-art" />
+        <b class="rcard-name">{def.name}</b>
+        <span class="rcard-tags">
+          <FamilyChip family={def.family} />
+          {def.rally && (
+            <span class="rally-chip" title="Works only while you are behind">
+              <Term id="rally">Rally</Term>
+            </span>
+          )}
+        </span>
       </header>
-      <p class="rcard-desc">
-        <Terms text={relicText(s.content, def, 'A', s.match!.state.opening.A)} max={1} />
+      <p class="rcard-headline" data-testid={`relic-headline-${def.id}`}>
+        {relicHeadline(s.content, def, props.aim, plan.piece)}
       </p>
-      <details class="rcard-more">
-        <summary>Rewards and counter</summary>
-        <dl class="rcard-facts">
-          <dt>Rewards</dt>
-          <dd>{def.rewards}</dd>
-          <dt>Counter</dt>
-          <dd>{def.counter}</dd>
-        </dl>
-      </details>
+      <ChangeTable plan={plan} id={def.id} />
       {offer.why && (
         <p class="rcard-why" data-testid={`relic-why-${def.id}`}>
           <i>Offered because</i> {offer.why}
@@ -363,11 +419,23 @@ function OfferCard(props: {
           testid={`relic-aim-${def.id}`}
         />
       )}
+      <details class="rcard-more">
+        <summary>Rules, reward and counter</summary>
+        <p class="rcard-desc">
+          <Terms text={relicText(s.content, def, 'A', s.match!.state.opening.A)} max={1} />
+        </p>
+        <dl class="rcard-facts">
+          <dt>Rewards</dt>
+          <dd>{def.rewards}</dd>
+          <dt>Counter</dt>
+          <dd>{def.counter}</dd>
+        </dl>
+      </details>
       <button
         class="btn primary rcard-take"
         disabled={props.take.disabled}
         data-testid={`relic-take-${def.id}`}
-        onClick={props.take.onTake}
+        onClick={(e) => props.take.onTake(e.currentTarget)}
       >
         {props.take.label}
       </button>
@@ -396,7 +464,7 @@ function HeldCard(props: { held: HeldRelic; def: RelicDef; snap: Snapshot }) {
       style={{ '--family': FAMILY_COLOR[def.family] }}
     >
       <header class="rcard-head">
-        <RelicSeal family={def.family} size={30} />
+        <RelicEmblem family={def.family} size={44} />
         <div class="rcard-title">
           <b>{def.name}</b>
           <span class="rcard-tags">
@@ -406,6 +474,14 @@ function HeldCard(props: { held: HeldRelic; def: RelicDef; snap: Snapshot }) {
           </span>
         </div>
       </header>
+      <p class="rcard-held-plan">
+        {relicHeadline(
+          s.content,
+          def,
+          aim,
+          aim.piece !== null ? (m.unitById(aim.piece)?.hero?.defId ?? null) : null,
+        )}
+      </p>
       <p class="rcard-desc">{relicText(s.content, def, 'A', s.match!.state.opening.A)}</p>
       {def.bind !== 'none' && (
         <AimControl
@@ -420,6 +496,117 @@ function HeldCard(props: { held: HeldRelic; def: RelicDef; snap: Snapshot }) {
   );
 }
 
+/** A taken card on its way into the held row. */
+interface Flight {
+  id: string;
+  family: RelicFamily;
+  name: string;
+  headline: string;
+  from: DOMRect;
+}
+
+/** The break (its tick) whose cards were last dealt, so they turn over once per break. */
+let dealtAt = -1;
+
+const reducedMotion = (): boolean =>
+  typeof window.matchMedia === 'function' &&
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/**
+ * The pick: the taken card lifts, shrinks and flies into its place among the held relics, which
+ * lands with a stamp (the `relic` sound plays as the pick is made). With reduced motion only the
+ * stamp shows.
+ */
+function RelicFlight(props: { flight: Flight; onDone: () => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const { flight } = props;
+  const done = useRef(props.onDone);
+  done.current = props.onDone;
+  useLayoutEffect(() => {
+    let anim: Animation | null = null;
+    let frame = 0;
+    let tries = 0;
+    // the landing, as an animation so a re-render of the held card cannot cut it short
+    const stamp = (target: HTMLElement | null): void => {
+      if (target && typeof target.animate === 'function' && !reducedMotion()) {
+        const glow = getComputedStyle(target).getPropertyValue('--family').trim() || '#c9a35a';
+        target.animate(
+          [
+            {
+              transform: 'scale(1.05)',
+              boxShadow: `0 0 0 3px ${glow}, 0 0 34px ${glow}`,
+            },
+            { transform: 'scale(0.985)', offset: 0.4 },
+            { transform: 'none', boxShadow: '0 0 0 0 transparent' },
+          ],
+          { duration: 620, easing: 'cubic-bezier(0.2, 0.9, 0.3, 1.2)' },
+        );
+      }
+      target?.setAttribute('data-stamped', 'true');
+      done.current();
+    };
+    // the held card appears with the next snapshot, a frame or two after the pick
+    const fly = (): void => {
+      const ghost = ref.current;
+      const target = document.querySelector<HTMLElement>(`[data-testid="relic-held-${flight.id}"]`);
+      if (!target && tries++ < 30) {
+        frame = requestAnimationFrame(fly);
+        return;
+      }
+      if (!ghost || !target || reducedMotion() || typeof ghost.animate !== 'function') {
+        stamp(target);
+        return;
+      }
+      target.scrollIntoView({ block: 'nearest' });
+      const to = target.getBoundingClientRect();
+      const from = flight.from;
+      const k = Math.max(
+        0.2,
+        Math.min(1, to.width / from.width, to.height / Math.max(1, ghost.offsetHeight)),
+      );
+      anim = ghost.animate(
+        [
+          { transform: 'none', opacity: 1, offset: 0 },
+          { transform: 'translateY(-12px) scale(1.05)', opacity: 1, offset: 0.24 },
+          {
+            transform: `translate(${to.left - from.left}px, ${to.top - from.top}px) scale(${k})`,
+            opacity: 0.55,
+            offset: 1,
+          },
+        ],
+        { duration: 640, easing: 'cubic-bezier(0.55, 0, 0.25, 1)', fill: 'forwards' },
+      );
+      anim.onfinish = () => stamp(target);
+    };
+    fly();
+    return () => {
+      cancelAnimationFrame(frame);
+      if (anim) anim.onfinish = null;
+    };
+  }, [flight]);
+  const f = flight.from;
+  // on the page itself: the sheet's transform would otherwise shift a fixed position
+  return createPortal(
+    <div
+      ref={ref}
+      class="rflight"
+      aria-hidden="true"
+      style={{
+        left: `${f.left}px`,
+        top: `${f.top}px`,
+        width: `${f.width}px`,
+        minHeight: `${Math.min(f.height, 220)}px`,
+        '--family': FAMILY_COLOR[flight.family],
+      }}
+    >
+      <RelicEmblem family={flight.family} size={64} />
+      <b>{flight.name}</b>
+      <span>{flight.headline}</span>
+    </div>,
+    document.body,
+  );
+}
+
 /** The Relics tab of the Act break sheet: pick one of three, aim it, and re-aim the ones you hold. */
 export function RelicsTab(props: { snap: Snapshot }) {
   const s = useSession();
@@ -429,16 +616,34 @@ export function RelicsTab(props: { snap: Snapshot }) {
   const full = held.A.length >= max;
   const [aims, setAims] = useState<Record<string, RelicAim>>({});
   const [replace, setReplace] = useState<string | null>(null);
+  const [flight, setFlight] = useState<Flight | null>(null);
   const open = !settled && offers.length > 0;
+  // the cards are dealt face down and turn over once per break, not on every visit to the tab
+  const [deal] = useState(() => {
+    const first = dealtAt !== props.snap.tick;
+    dealtAt = props.snap.tick;
+    return first;
+  });
+  const input = planInput(s, props.snap);
   const aimOf = (o: RelicOffer): RelicAim => aims[o.id] ?? o.aim;
-  const take = (o: RelicOffer): void => {
+  const take = (o: RelicOffer, el: HTMLElement): void => {
     const aim = aimOf(o);
-    s.issue({
+    const card = el.closest('article');
+    const def = s.content.relicById.get(o.id)!;
+    const ok = s.issue({
       type: 'pickRelic',
       relicId: o.id,
       ...aim,
       ...(full && replace ? { replace } : {}),
-    });
+    }).ok;
+    if (ok && card)
+      setFlight({
+        id: o.id,
+        family: def.family,
+        name: def.name,
+        headline: relicHeadline(s.content, def, aim, relicPlan(input, def, aim).piece),
+        from: card.getBoundingClientRect(),
+      });
     setReplace(null);
   };
   return (
@@ -497,7 +702,7 @@ export function RelicsTab(props: { snap: Snapshot }) {
                   onClick={() =>
                     document
                       .querySelector(`[data-testid="relic-offer-${def.id}"]`)
-                      ?.scrollIntoView({ block: 'start', behavior: 'smooth' })
+                      ?.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' })
                   }
                 >
                   <RelicSeal family={def.family} size={18} />
@@ -506,8 +711,8 @@ export function RelicsTab(props: { snap: Snapshot }) {
               );
             })}
           </nav>
-          <div class="rl-offers" data-testid="relic-offers">
-            {offers.map((o) => {
+          <div class={`rl-offers ${deal ? 'deal' : ''}`} data-testid="relic-offers">
+            {offers.map((o, i) => {
               const def = s.content.relicById.get(o.id)!;
               return (
                 <OfferCard
@@ -516,11 +721,13 @@ export function RelicsTab(props: { snap: Snapshot }) {
                   def={def}
                   aim={aimOf(o)}
                   snap={props.snap}
+                  input={input}
+                  index={i}
                   onAim={(patch) => setAims({ ...aims, [o.id]: { ...aimOf(o), ...patch } })}
                   take={{
                     label: full ? 'Replace and take' : 'Take this relic',
                     disabled: full && !replace,
-                    onTake: () => take(o),
+                    onTake: (el) => take(o, el),
                   }}
                 />
               );
@@ -543,6 +750,7 @@ export function RelicsTab(props: { snap: Snapshot }) {
               : 'Your relics are unchanged.'}
         </p>
       )}
+      {flight && <RelicFlight flight={flight} onDone={() => setFlight(null)} />}
       <section class="rl-held" data-testid="relic-held">
         <h3 class="bs-h">
           Your <Term id="relic">relics</Term> ({held.A.length}/{max})
