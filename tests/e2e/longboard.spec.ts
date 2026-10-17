@@ -125,7 +125,9 @@ async function pieceSpot(page: Page, defId: string): Promise<{ x: number; y: num
 test.describe('the Long Board, desktop', () => {
   test.use({ viewport: { width: 1280, height: 800 } });
 
-  test('is the default map and fills the screen, White nearest the camera', async ({ page }) => {
+  test('is the default map and fills the screen, side-on with White on the left', async ({
+    page,
+  }) => {
     test.setTimeout(300_000);
     const errors = watchErrors(page);
     await startLive(page, '42');
@@ -143,16 +145,19 @@ test.describe('the Long Board, desktop', () => {
     await settle(page);
     const lit = await page.getByTestId('stage').screenshot();
     expect(lit.byteLength).toBeGreaterThan(20_000);
-    // White's base low on the screen, the board running away from the camera; both side lanes in view
+    // a wide screen sees the board side-on: White's base on the left, Black's on the right, level
     const white = await screenOf(page, 1000, 3740);
     const black = await screenOf(page, 1000, 260);
-    expect(white.y).toBeGreaterThan(400);
-    expect(white.y).toBeLessThan(800);
-    expect(black.y).toBeLessThan(white.y - 300);
+    expect(white.x).toBeGreaterThan(102);
+    expect(white.x).toBeLessThan(400);
+    expect(black.x).toBeGreaterThan(880);
+    expect(black.x).toBeLessThan(1280);
+    expect(Math.abs(white.y - black.y)).toBeLessThan(60);
+    // both side lanes in view
     for (const x of [300, 1700]) {
-      const p = await screenOf(page, x, 3100);
-      expect(p.x).toBeGreaterThan(0);
-      expect(p.x).toBeLessThan(1280);
+      const p = await screenOf(page, x, 2000);
+      expect(p.y).toBeGreaterThan(0);
+      expect(p.y).toBeLessThan(800);
     }
     expect(await camMode(page)).toBe('free');
     await expect(page.getByTestId('compass')).toHaveCount(0);
@@ -200,11 +205,12 @@ test.describe('the Long Board, desktop', () => {
     await page.keyboard.press('e');
     await settle(page);
     expect(Math.abs((await pose(page)).yaw - p1.yaw)).toBeGreaterThan(0.2);
-    // the compass eases back to the default angle and hides
+    // the compass eases back to the default angle (side-on on a wide screen) and hides
     await page.getByTestId('compass').click();
     await settle(page);
     const p2 = await pose(page);
-    expect(Math.abs(Math.atan2(Math.sin(p2.yaw), Math.cos(p2.yaw)))).toBeLessThan(0.05);
+    const off = p2.yaw - Math.PI / 2;
+    expect(Math.abs(Math.atan2(Math.sin(off), Math.cos(off)))).toBeLessThan(0.05);
     await expect(page.getByTestId('compass')).toHaveCount(0);
     expect(errors).toEqual([]);
   });

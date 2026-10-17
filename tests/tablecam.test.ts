@@ -2,7 +2,14 @@ import { describe, expect, it } from 'vitest';
 import { contentFor, shapeDist } from '../src/sim';
 import { buildWorld } from '../src/sim/world/map';
 import { tierAt } from '../src/sim/world/height';
-import { LANE_CLOSE, LANE_LEAN, TableCamera, TILT_MAX, TILT_MIN } from '../src/render/table/camera';
+import {
+  LANE_CLOSE,
+  LANE_LEAN,
+  SIDE_ASPECT,
+  TableCamera,
+  TILT_MAX,
+  TILT_MIN,
+} from '../src/render/table/camera';
 import { LaneCam } from '../src/render/table/lanecam';
 import { APRON } from '../src/render/table/board';
 import { groveGates, LIP } from '../src/render/table/longlook';
@@ -242,7 +249,7 @@ describe('the Long Board in the table view', () => {
     ).toBeLessThan(1);
   });
 
-  it('starts behind White, the full width across the screen; zooming out frames the whole board', () => {
+  it('portrait starts behind White, wide screens side-on (White left); zooming out frames the whole board', () => {
     const cam = new TableCamera(long, 200, 400);
     const toScreen = (x: number, y: number, w: number, h: number): [number, number] => {
       const v = cam.camera.position
@@ -251,23 +258,38 @@ describe('the Long Board in the table view', () => {
         .project(cam.camera);
       return [((v.x + 1) / 2) * w, ((1 - v.y) / 2) * h];
     };
+    const bases = (w: number, h: number) => ({
+      a: toScreen(...(map.bases.A as [number, number]), w, h),
+      b: toScreen(...(map.bases.B as [number, number]), w, h),
+    });
     for (const [w, h, bottom] of [
       [390, 844, 136],
       [844, 390, 0],
       [1280, 800, 0],
     ] as const) {
       cam.fit(w, h);
-      // White's base low on the screen, above the bottom HUD; Black's base farther up the screen
-      const [, ay] = toScreen(...(map.bases.A as [number, number]), w, h);
-      const [, by] = toScreen(...(map.bases.B as [number, number]), w, h);
-      expect(ay, `${w}x${h}`).toBeLessThan(h - bottom);
-      expect(ay, `${w}x${h}`).toBeGreaterThan(h * 0.45);
-      expect(by, `${w}x${h}`).toBeLessThan(ay - 100);
-      // both outer lanes, where they turn up the board, are on screen
-      for (const x of [375 - 90, 1625 + 90]) {
-        const [sx] = toScreen(x, 3150, w, h);
-        expect(sx, `${w}x${h} lane at ${x}`).toBeGreaterThan(0);
-        expect(sx, `${w}x${h} lane at ${x}`).toBeLessThan(w);
+      const { a, b } = bases(w, h);
+      if (w / h < SIDE_ASPECT) {
+        // White's base low on the screen, above the bottom HUD; Black's base farther up the screen
+        expect(a[1], `${w}x${h}`).toBeLessThan(h - bottom);
+        expect(a[1], `${w}x${h}`).toBeGreaterThan(h * 0.45);
+        expect(b[1], `${w}x${h}`).toBeLessThan(a[1] - 100);
+        // both outer lanes, where they turn up the board, are on screen
+        for (const x of [375 - 90, 1625 + 90]) {
+          const [sx] = toScreen(x, 3150, w, h);
+          expect(sx, `${w}x${h} lane at ${x}`).toBeGreaterThan(0);
+          expect(sx, `${w}x${h} lane at ${x}`).toBeLessThan(w);
+        }
+      } else {
+        // side-on: White's base on the left, Black's on the right, level with each other, both in view
+        expect(cam.home.yaw).toBeCloseTo(Math.PI / 2, 5);
+        expect(a[0], `${w}x${h}`).toBeGreaterThan(0);
+        expect(a[0], `${w}x${h}`).toBeLessThan(w * 0.3);
+        expect(b[0], `${w}x${h}`).toBeGreaterThan(w * 0.7);
+        expect(b[0], `${w}x${h}`).toBeLessThan(w);
+        expect(Math.abs(a[1] - b[1]), `${w}x${h}`).toBeLessThan(h * 0.08);
+        // lean-ins keep the end-on distances
+        expect(cam.laneDist(0.5)).toBeGreaterThan(cam.wholeDist * 0.5);
       }
       expect(cam.turned).toBe(false);
       // pinched all the way out over the middle, both bases are in view
@@ -283,6 +305,24 @@ describe('the Long Board in the table view', () => {
       cam.goHome();
       cam.update(10, 100);
     }
+  });
+
+  it('a phone turned to landscape follows the side-on default; the compass returns to it', () => {
+    const cam = new TableCamera(long, 200, 400);
+    cam.fit(390, 844);
+    expect(cam.home.yaw).toBe(0);
+    expect(cam.orient).toBe('portrait');
+    cam.fit(844, 390);
+    expect(cam.goal.yaw).toBeCloseTo(Math.PI / 2, 5);
+    expect(cam.orient).toBe('landscape');
+    cam.update(10, 100);
+    cam.goal.yaw += 0.8;
+    cam.goal.tilt -= 0.2;
+    expect(cam.turned).toBe(true);
+    cam.resetAngle();
+    cam.update(10, 100);
+    expect(cam.turned).toBe(false);
+    expect(cam.pose.yaw).toBeCloseTo(Math.PI / 2, 3);
   });
 
   it('the camera stays on the map and in its tilt range; the compass resets the angle', () => {

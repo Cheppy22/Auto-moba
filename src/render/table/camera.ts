@@ -52,6 +52,30 @@ const LONG_WIDTH = 1560;
 const LONG_UPX = { phone: 3.3, desktop: 2.3 } as const;
 /** Long Board default tilt (degrees): portrait, landscape phone, desktop. */
 const LONG_TILT = { portrait: 52, landscape: 44, desktop: 48 } as const;
+/**
+ * Wide screens (aspect above this) frame the Long Board side-on: White on the left, Black on the
+ * right, so the 1:2 board uses the width (Fable review 4D). Portrait phones keep the end-on view.
+ */
+export const SIDE_ASPECT = 1.3;
+/**
+ * The side-on default's yaw (radians): `side` looks straight across the board from the Right
+ * lane's side; `angle` swings 25° round toward White's end (a three-quarter view). `end` keeps the
+ * end-on view on every screen. `?wide=side|angle|end` picks one (the default is `side`).
+ */
+export type WideFrame = 'side' | 'angle' | 'end';
+const WIDE_YAW: Record<Exclude<WideFrame, 'end'>, number> = {
+  side: Math.PI / 2,
+  angle: MathUtils.degToRad(65),
+};
+/** Side-on default tilt (degrees): landscape phone, desktop. */
+const SIDE_TILT = { landscape: 50, desktop: 52 } as const;
+
+function wideFrame(): WideFrame {
+  if (typeof location === 'undefined') return 'side';
+  const v = new URLSearchParams(location.search).get('wide');
+  return v === 'angle' || v === 'end' ? v : 'side';
+}
+
 /** The closest the camera may come (world units of distance). */
 const MIN_DIST = 1300;
 /** A yaw or tilt this far (degrees) from the default shows the compass. */
@@ -81,8 +105,12 @@ export class TableCamera {
   /** Distance range: the closest, and the whole board in view. */
   minD = MIN_DIST;
   maxD = 9000;
-  /** Distance that frames the whole board at the default angle (lean-ins are shares of it). */
+  /** Distance that frames the whole board at the default angle (the director's wide shot). */
   private boardD = 6000;
+  /** The whole board seen end-on: lean-ins are shares of it, whatever the default angle. */
+  private leanD = 6000;
+  /** Which side-on default wide screens get (`end`: none). */
+  readonly wide: WideFrame = wideFrame();
   private shake = 0;
   private time = 0;
   private settled = false;
@@ -180,7 +208,14 @@ export class TableCamera {
     this.cssH = h;
     this.cssW = w;
     // the Long Board's paint faces White's end (the camera's default seat) on every screen
-    this.orient = this.long || h > w ? 'portrait' : 'landscape';
+    // (side-on on wide screens: the paint turns to face the camera on the Right lane's side)
+    this.orient = this.long
+      ? this.sideOn(w, h)
+        ? 'landscape'
+        : 'portrait'
+      : h > w
+        ? 'portrait'
+        : 'landscape';
     const ins = this.insets(w, h);
     this.fitted = `${ins.top},${ins.bottom},${ins.left},${ins.right}`;
     this.freeShift = (ins.bottom - ins.top) / 2;
@@ -235,6 +270,7 @@ export class TableCamera {
     const f = this.solve(ins, w, h, yaw, tilt, 48);
     Object.assign(this.home, { x: f.x, z: f.z, d: f.d, yaw, tilt });
     this.boardD = f.d;
+    this.leanD = f.d;
     this.minD = Math.min(MIN_DIST, f.d * 0.3);
     this.maxD = f.d * 1.25;
   }
@@ -245,6 +281,10 @@ export class TableCamera {
    * bottom HUD. Pinching out reaches the whole board.
    */
   private fitLong(w: number, h: number, ins: Insets): void {
+    if (this.sideOn(w, h)) {
+      this.fitSide(w, h, ins);
+      return;
+    }
     const deg = h > w ? LONG_TILT.portrait : h < 520 ? LONG_TILT.landscape : LONG_TILT.desktop;
     this.tiltDeg = deg;
     const tilt = MathUtils.degToRad(deg);
@@ -271,8 +311,33 @@ export class TableCamera {
     Object.assign(this.home, pose);
     const whole = this.solve(ins, w, h, 0, tilt, 48);
     this.boardD = whole.d;
+    this.leanD = whole.d;
     this.minD = MIN_DIST;
     this.maxD = Math.max(whole.d * 1.12, d * 1.2);
+  }
+
+  /** True when this screen gets the Long Board's side-on default. */
+  sideOn(w: number, h: number): boolean {
+    return this.long && this.wide !== 'end' && w / h > SIDE_ASPECT;
+  }
+
+  /**
+   * The Long Board on a wide screen: side-on, White on the left and Black on the right, the whole
+   * board fitted inside the HUD. Lean-ins keep the end-on view's distances, and zooming out still
+   * reaches the whole board end-on (turn the camera and pinch out).
+   */
+  private fitSide(w: number, h: number, ins: Insets): void {
+    const deg = h < 520 ? SIDE_TILT.landscape : SIDE_TILT.desktop;
+    this.tiltDeg = deg;
+    const tilt = MathUtils.degToRad(deg);
+    const yaw = WIDE_YAW[this.wide === 'angle' ? 'angle' : 'side'];
+    const f = this.solve(ins, w, h, yaw, tilt, 48);
+    Object.assign(this.home, { x: f.x, z: f.z, d: f.d, yaw, tilt });
+    this.boardD = f.d;
+    const end = this.solve(ins, w, h, 0, tilt, 48);
+    this.leanD = end.d;
+    this.minD = MIN_DIST;
+    this.maxD = Math.max(end.d * 1.12, f.d * 1.2);
   }
 
   /** Camera target and distance that fit the board inside the insets at a yaw and tilt. */
@@ -368,12 +433,12 @@ export class TableCamera {
 
   /** Follow distance: about the old lean-in on a piece. */
   get followDist(): number {
-    return this.boardD * LEAN * this.leanK;
+    return this.leanD * LEAN * this.leanK;
   }
 
   /** Lane lean-in distance for a lane camera zoom (a share of the whole-board distance). */
   laneDist(zoom: number): number {
-    return this.boardD * zoom * this.leanK;
+    return this.leanD * zoom * this.leanK;
   }
 
   /**
