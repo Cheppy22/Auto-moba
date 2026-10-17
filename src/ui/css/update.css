@@ -7,6 +7,8 @@
   display: flex;
   align-items: center;
   gap: var(--sp-3);
+  /* left: 50% leaves it only half the screen to shrink into: size it to its words instead */
+  width: max-content;
   max-width: calc(100vw - 32px);
   padding: 6px 8px 6px 16px;
   transform: translateX(-50%);
@@ -48,4 +50,8 @@
 }
 .title-actions[hidden] {
   display: none;
+}
+/* on the report it sits above the page dots instead of on them */
+.shell[data-phase='end'] .update-notice {
+  bottom: calc(52px + env(safe-area-inset-bottom));
 }

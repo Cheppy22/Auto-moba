@@ -684,6 +684,8 @@ export interface RunRules {
   relicMaxB: number;
   /** Black's AI Tempo split for this match, when the round table sets one. */
   aiPawnShareB?: number;
+  /** Black's signature relic: its AI never replaces it at a break. */
+  signatureB?: string;
   /** Book moves: cards drawn twice as often for this side. */
   books: Record<PlayTeam, string[]>;
   /** White's carried archetypes: Rank 4 resolves at once to these. */
@@ -713,6 +715,8 @@ export interface TeamStart {
   books?: string[];
   /** Extra Tempo at the start (on top of `gambits.tempoStart`). */
   tempoBonus?: number;
+  /** A starting relic the side's AI never trades away at a break (a named court's signature). */
+  signature?: string;
 }
 
 export interface PositionSample {

@@ -440,7 +440,7 @@
       ],
       "styles": {
         "king": "sovereign",
-        "queen": "huntress",
+        "queen": "regent",
         "rook": "vanguard",
         "bishop": "light",
         "knight": "lancer"
@@ -498,7 +498,7 @@
         "king": "sovereign",
         "queen": "duelist",
         "rook": "bastion",
-        "bishop": "zealot",
+        "bishop": "light",
         "knight": "lancer"
       },
       "signature": {

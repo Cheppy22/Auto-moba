@@ -160,4 +160,25 @@ describe('Named courts (3B): in a match', () => {
       }
     }
   });
+
+  it('keeps its signature relic through the Act breaks (the AI trades other relics, never it)', () => {
+    // Club (cap 0: drafts nothing) and County (cap 2: drafts one, then may only swap that one)
+    for (const seed of [5001, 5002]) {
+      for (const round of [0, 1]) {
+        const run = newRun(content, seed);
+        run.round = round;
+        const sig = run.opponents[round].signatureRelic!;
+        const m = Match.create(content, {
+          ...nextMatchConfig(content, run, true),
+          map: 'long',
+          autoGambits: { A: true, B: true },
+          autoForks: { A: true, B: true },
+        });
+        while (m.state.phase.kind === 'live' && m.state.phase.n <= 4) m.step(20 * 60);
+        const held = m.state.relics.held.B.map((h) => h.id);
+        expect(held, `seed ${seed} round ${round}`).toContain(sig);
+        if (round === 0) expect(held).toHaveLength(1);
+      }
+    }
+  }, 120_000);
 });

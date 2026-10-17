@@ -348,10 +348,13 @@ describe('Tournament run: in the match', () => {
     m.issue({ type: 'autoRelic' });
     m.issue({ type: 'resumeAct' });
     expect(m.state.relics.held.B).toHaveLength(1);
-    // the round table passes it on, only for a round that sets one
+    // the round table passes it on, only for a round that sets one, and never below the relics
+    // the court starts with (a Club court drafts none but keeps its signature relic)
     const run = newRun(content, 35);
     const rows = T.rounds.map((r) => r.relicMax);
-    expect(nextMatchConfig(content, run).relicMaxB).toBe(rows[0]);
+    expect(nextMatchConfig(content, run).relicMaxB).toBe(
+      Math.max(rows[0]!, run.opponents[0].relics.length),
+    );
   });
 
   it("the round table's aiPawnShare sets Black's Tempo split for that match only", () => {
