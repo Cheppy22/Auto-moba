@@ -12,8 +12,21 @@
  */
 import { BUSES, busGain, mixer, sliderToGain, subscribeMixer, type Bus } from './mixer';
 
-/** Overall level: modest, so the bell (the loudest cue) never startles. */
-const OUTPUT = 0.75;
+/**
+ * Overall level into the master chain. Measured on an encoded 60 s mix (docs/audio/aaa-mix.m4a):
+ * the chain is tuned for about -16 LUFS integrated and true peaks under -4 dBFS.
+ */
+/**
+ * The master chain: gain into it, glue compressor threshold (dB) and ratio, limiter threshold (dB),
+ * and the soft ceiling (linear).
+ */
+export const CHAIN = {
+  output: 2.8,
+  glueThreshold: -22,
+  glueRatio: 3,
+  limitThreshold: -10,
+  ceiling: 0.45,
+};
 /** Most one-shot voices alive at once; past it new ones are skipped. */
 const MAX_VOICES = 44;
 
@@ -21,6 +34,8 @@ export interface Engine {
   ctx: AudioContext;
   /** Where cue voices connect (dry to the effects bus, a little to the hall). */
   fx: GainNode;
+  /** Where the cue being made right now connects: `fx`, or its own trim node (see `voiceCue`). */
+  cueDest: AudioNode;
   /** Where music voices connect (ducks around the bell). */
   musicIn: GainNode;
   /** Where garden voices connect. */
@@ -31,6 +46,8 @@ export interface Engine {
   pink: AudioBuffer;
   buses: Record<Bus, GainNode>;
   voices: number;
+  /** Cap on one-shot voices alive at once (unlimited for offline renders, which schedule everything up front). */
+  maxVoices: number;
 }
 
 let engine: Engine | null = null;
@@ -105,15 +122,33 @@ function build(): Engine | null {
  * renderer in `tools/` passes an OfflineAudioContext (it has the same graph methods).
  */
 export function createEngine(context: BaseAudioContext): Engine {
+  const offline =
+    typeof OfflineAudioContext !== 'undefined' && context instanceof OfflineAudioContext;
   const ctx = context as AudioContext;
   const master = ctx.createGain();
+  // glue compressor, then a fast limiter, then a soft ceiling: a busy fight stays loud (about
+  // -16 LUFS) while true peaks stay under -4 dBFS (phone speakers, AAC)
   const comp = ctx.createDynamicsCompressor();
-  comp.threshold.value = -16;
-  comp.knee.value = 12;
-  comp.ratio.value = 4;
-  comp.attack.value = 0.004;
-  comp.release.value = 0.25;
-  master.connect(comp).connect(ctx.destination);
+  comp.threshold.value = CHAIN.glueThreshold;
+  comp.knee.value = 14;
+  comp.ratio.value = CHAIN.glueRatio;
+  comp.attack.value = 0.008;
+  comp.release.value = 0.3;
+  const limiter = ctx.createDynamicsCompressor();
+  limiter.threshold.value = CHAIN.limitThreshold;
+  limiter.knee.value = 0;
+  limiter.ratio.value = 20;
+  limiter.attack.value = 0.001;
+  limiter.release.value = 0.12;
+  const ceiling = ctx.createWaveShaper();
+  const curve = new Float32Array(2049);
+  for (let i = 0; i < curve.length; i++) {
+    const x = (i / (curve.length - 1)) * 2 - 1;
+    curve[i] = CHAIN.ceiling * Math.tanh(x / CHAIN.ceiling);
+  }
+  ceiling.curve = curve;
+  ceiling.oversample = '2x';
+  master.connect(comp).connect(limiter).connect(ceiling).connect(ctx.destination);
 
   const hall = ctx.createConvolver();
   hall.buffer = makeHall(ctx);
@@ -143,12 +178,14 @@ export function createEngine(context: BaseAudioContext): Engine {
   const e: Engine = {
     ctx,
     fx,
+    cueDest: fx,
     musicIn,
     ambienceIn,
     noise: makeNoise(ctx, 0.25, false),
     pink: makeNoise(ctx, 4, true),
     buses,
     voices: 0,
+    maxVoices: offline ? Infinity : MAX_VOICES,
   };
   return e;
 }
@@ -158,7 +195,7 @@ export function applyMixer(target: Engine | null = engine): void {
   if (!target) return;
   const m = mixer();
   const { ctx, buses } = target;
-  buses.master.gain.setTargetAtTime(busGain(m, 'master') * OUTPUT, ctx.currentTime, 0.03);
+  buses.master.gain.setTargetAtTime(busGain(m, 'master') * CHAIN.output, ctx.currentTime, 0.03);
   for (const b of ['music', 'ambience', 'effects'] as const)
     buses[b].gain.setTargetAtTime(sliderToGain(m.volume[b]), ctx.currentTime, 0.05);
 }
@@ -196,7 +233,7 @@ export function liveEngine(): Engine | null {
 // ------------------------------------------------------------------ building blocks
 
 function claim(e: Engine, priority: boolean): boolean {
-  if (e.voices >= MAX_VOICES && !priority) return false;
+  if (e.voices >= e.maxVoices && !priority) return false;
   e.voices++;
   return true;
 }
@@ -250,7 +287,7 @@ export function tone(e: Engine, s: ToneSpec): void {
     g.connect(p);
     out = p;
   }
-  out.connect(s.dest ?? e.fx);
+  out.connect(s.dest ?? e.cueDest);
   release(e, osc);
   osc.start(s.start);
   osc.stop(s.start + s.decay + 0.05);
@@ -374,3 +411,17 @@ export function pluck(
 
 /** Hz of a MIDI note. */
 export const midiHz = (n: number): number => 440 * Math.pow(2, (n - 69) / 12);
+
+/** Dips a gain to `depth` for `sec` seconds from `at`, then eases back (music and garden under a stinger). */
+export function duckParam(
+  g: AudioParam,
+  at: number,
+  sec: number,
+  depth: number,
+  back: number,
+): void {
+  if (typeof g.cancelAndHoldAtTime === 'function') g.cancelAndHoldAtTime(at);
+  else g.cancelScheduledValues(at);
+  g.setTargetAtTime(depth, at, 0.05);
+  g.setTargetAtTime(1, at + sec, back);
+}

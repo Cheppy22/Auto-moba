@@ -1,0 +1,26 @@
+aaa-mix.m4a: 60 s offline mix (44.1 kHz stereo, AAC 128 kb/s). Music bed calm (0-18 s) -> tension
+rising (18-40 s) -> tense (40-60 s); Slate garden ambience, intensity rising to 0.8 at 38 s.
+Default mixer levels (80 / 50 / 60 / 100). Waveform with the marks: docs/img/aaa-audio-waveform.png.
+Recipe: aaa-mix-render.mjs.txt (Chromium via Playwright against the dev server; rename to .mjs) then
+aaa-mix-measure.sh.txt (ffmpeg AAC encode and ebur128 true-peak measurement).
+
+Cue times (s)   cue            note
+  4.0           march          gambit, school March
+  9.0           initiative     gambit, school Initiative
+ 14.0           fortress       gambit, school Fortress
+ 19.0           clack          capture (music ducks to 50% for 0.7 s)
+ 23.0           rank           small rank up
+ 27.0           rankBig        Rank 4 / 8 (music ducks to 60% for 1.5 s)
+ 31.0           check          your King in Check
+ 35.0           sacrifice      Black's gambit, dark variant
+ 36.5           clack          capture
+ 37.2           fall           your piece falls
+ 39.0           position       gambit, school Position
+ 41.0           toll 1         Act bell (music to 30% for 5 s, garden to 40%)
+ 43.5           toll 2
+ 46.0           toll 3
+ 49.0           bastion        enemy Bastion falls
+ 51.0           march          gambit
+ 52.2           clack          capture
+ 54.0           checkmateWin   Checkmate, you win (music to 25% for 4 s)
+ 58.0           tap            UI tap

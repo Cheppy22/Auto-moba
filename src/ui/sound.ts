@@ -7,8 +7,8 @@
  * If the browser has no Web Audio, every call here is a quiet no-op.
  */
 import { Ambience, type Theme } from './audio/ambience';
-import { Throttle, type Cue, type CueOpts } from './audio/cues';
-import { VOICES } from './audio/cueSynth';
+import { DUCK, Throttle, type Cue, type CueOpts } from './audio/cues';
+import { voiceCue } from './audio/cueSynth';
 import { mixer, setMutedState, subscribeMixer } from './audio/mixer';
 import { MusicPlayer } from './audio/music';
 import { getEngine, liveEngine, startEngine } from './audio/synth';
@@ -60,8 +60,10 @@ export function play(cue: Cue, opts: CueOpts = {}): void {
   const e = liveEngine();
   if (!e || !throttle.allow(cue, performance.now())) return;
   try {
-    VOICES[cue](e, e.ctx.currentTime + 0.01 + (opts.delay ?? 0), opts);
+    voiceCue(e, cue, e.ctx.currentTime + 0.01 + (opts.delay ?? 0), opts);
     played++;
+    const duck = DUCK[cue];
+    if (duck) duckSound(duck.sec, duck.depth);
   } catch (err) {
     if (!warned) {
       warned = true;
@@ -85,9 +87,9 @@ export function setSoundMood(next: { tension: number; intensity: number }): void
 }
 
 /** Music and garden step back for a moment (the bell). */
-export function duckSound(sec: number): void {
-  music?.duck(sec);
-  ambience?.duck(sec);
+export function duckSound(sec: number, depth = 0.3): void {
+  music?.duck(sec, depth);
+  ambience?.duck(sec, Math.max(depth, 0.4));
 }
 
 /** What the end-to-end tests read: whether the audio started, and how busy it is. */

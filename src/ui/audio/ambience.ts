@@ -7,7 +7,7 @@
  * Switching theme crossfades the two. `intensity` (0..1, from the fighting) swells the wind and
  * adds a low rumble, and thins the birds and crickets; the bell ducks it for a moment.
  */
-import { lcg, tone, type Engine } from './synth';
+import { duckParam, lcg, tone, type Engine } from './synth';
 
 export type Theme = 'a' | 'b';
 
@@ -180,9 +180,9 @@ export class Ambience {
     this.lamp.gain.setTargetAtTime(theme === 'b' ? 1 : 0, now, 1.6);
   }
 
-  setIntensity(v: number): void {
+  setIntensity(v: number, at = this.e.ctx.currentTime): void {
     this.intensity = Math.min(1, Math.max(0, v));
-    const now = this.e.ctx.currentTime;
+    const now = at;
     const i = this.intensity;
     this.windGain.gain.setTargetAtTime(0.05 * (1 + 1.4 * i), now, 1.5);
     this.windFilter.frequency.setTargetAtTime(330 + 260 * i, now, 1.5);
@@ -190,13 +190,9 @@ export class Ambience {
     this.rumble.gain.setTargetAtTime(0.1 * i * i, now, 1.2);
   }
 
-  /** The bell: the garden steps back for `sec` seconds. */
-  duck(sec: number): void {
-    const g = this.e.ambienceIn.gain;
-    const now = this.e.ctx.currentTime;
-    g.cancelScheduledValues(now);
-    g.setTargetAtTime(0.45, now, 0.08);
-    g.setTargetAtTime(1, now + sec, 1.5);
+  /** A big stinger: the garden steps back to `depth` for `sec` seconds. */
+  duck(sec: number, depth = 0.45, at = this.e.ctx.currentTime): void {
+    duckParam(this.e.ambienceIn.gain, at, sec, depth, 1.5);
   }
 
   /** Offline rendering (docs samples): scripts `seconds` of birds, crickets and drops from time 0. */
