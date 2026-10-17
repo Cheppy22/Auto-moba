@@ -244,7 +244,7 @@ export function ForkTutor() {
     <div class="tutor-inline" data-testid="tutor-fork">
       <p class="tutor-text">
         <Terms
-          text="This piece reached Rank 4, so it picks an archetype: a fighting style it keeps for the rest of the match. Read the three, tap one, or let the AI choose. The game stays paused until you do."
+          text="This piece reached Rank 4, so it picks an archetype: a fighting style it keeps for the rest of the match. Tap each one to see its new look and numbers, then Choose, or let the AI choose. The game stays paused until you do."
           max={2}
         />
       </p>

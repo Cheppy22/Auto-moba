@@ -11,14 +11,17 @@ import { LOOK, TEAM } from './table/palette';
 import { FIG_HEIGHT } from './table/figures';
 import { FIG_SCALE, FigureLib, PieceFigure, SIZE } from './table/piece';
 
-/** One portrait to draw: a generic piece (no style yet) in a team's colours. */
+/** One portrait to draw: a piece in a team's colours, generic or (for the fork preview) in a style. */
 export interface PortraitKey {
   piece: PieceId;
   team: 'A' | 'B';
+  /** A style id (the Rank 4 look); absent or null for the generic piece. */
+  style?: string | null;
 }
 
 /** Cache key, also the key of the result map. */
-export const portraitKey = (k: PortraitKey): string => `${k.piece}:${k.team}`;
+export const portraitKey = (k: PortraitKey): string =>
+  k.style ? `${k.piece}:${k.team}:${k.style}` : `${k.piece}:${k.team}`;
 
 /** Camera framing: field of view, and how far the figure is turned toward its opponent. */
 const FOV = 24;
@@ -85,7 +88,7 @@ export function renderPortraits(keys: readonly PortraitKey[], px: number): Map<s
 
   try {
     for (const k of todo) {
-      const fig = new PieceFigure(lib, k.piece, k.team, null, false);
+      const fig = new PieceFigure(lib, k.piece, k.team, k.style ?? null, false);
       fig.place(0, 0, 0, YAW * (k.team === 'A' ? 1 : -1));
       const object = fig.root;
       frame(camera, tallest);

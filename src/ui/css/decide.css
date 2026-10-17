@@ -1,0 +1,358 @@
+/* ---------- the two big decisions: the fork sheet's preview and the relic draft's cards ---------- */
+
+/* ===== fork sheet: tabs, the preview (model, plays like, numbers, skill), Choose ===== */
+.forksheet {
+  gap: 7px;
+}
+.fs-opts {
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  gap: 4px;
+}
+.fs-opt {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 46px;
+  padding: 4px 6px 6px;
+  cursor: pointer;
+  color: var(--bone);
+  background: linear-gradient(180deg, #33231a, #211812);
+  border: 1px solid #4f3f27;
+  border-radius: var(--r-1);
+  transition:
+    background-color var(--t-fast, 0.12s) var(--ease),
+    border-color var(--t-fast, 0.12s) var(--ease);
+}
+.fs-opt::after {
+  content: '';
+  position: absolute;
+  inset: auto 6px -1px;
+  height: 3px;
+  border-radius: 2px 2px 0 0;
+  background: var(--opt, var(--sty, var(--brass)));
+  opacity: 0;
+  transform: scaleX(0.4);
+  transition:
+    opacity 0.16s var(--ease),
+    transform 0.2s var(--ease);
+}
+.fs-opt:hover,
+.fs-opt:focus-visible {
+  border-color: var(--brass-hi);
+}
+.fs-opt.on {
+  color: #f6edd6;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--opt, var(--brass)) 26%, #3a281c),
+    #241a13
+  );
+  border-color: color-mix(in srgb, var(--opt, var(--brass)) 70%, var(--brass-dim));
+}
+.fs-opt.on::after {
+  opacity: 1;
+  transform: none;
+}
+.fs-opt-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+  line-height: 1.1;
+}
+.fs-opt b {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--fs-md);
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.fs-emblem {
+  flex: none;
+}
+.fs-tag {
+  font-style: normal;
+  font-size: 11px;
+  line-height: 14px;
+  letter-spacing: 0.02em;
+}
+.fs-tag.offense {
+  color: #f4aea4;
+}
+.fs-tag.defense {
+  color: #a4c8f4;
+}
+.fs-tag.utility {
+  color: #b2e096;
+}
+
+.fs-preview {
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr);
+  grid-template-areas:
+    'model read'
+    'deltas deltas'
+    'skill skill'
+    'rule rule';
+  gap: 6px 10px;
+  align-items: center;
+  animation: fs-swap 0.22s var(--ease) both;
+}
+@keyframes fs-swap {
+  from {
+    opacity: 0.35;
+    transform: translateY(3px);
+  }
+}
+.fs-model {
+  grid-area: model;
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 84px;
+  height: 84px;
+  margin: 0;
+}
+/* a lit pedestal in the style colour under the figure */
+.fs-model::before {
+  content: '';
+  position: absolute;
+  inset: 8px 4px 0;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    color-mix(in srgb, var(--sty) 46%, transparent),
+    color-mix(in srgb, var(--sty) 10%, transparent) 70%,
+    transparent
+  );
+}
+.fs-model::after {
+  content: '';
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 4px;
+  height: 9px;
+  border-radius: 50%;
+  border-top: 1.5px solid color-mix(in srgb, var(--sty) 80%, white);
+  background: rgba(0, 0, 0, 0.35);
+}
+.fs-model img,
+.fs-model svg {
+  position: relative;
+  z-index: 1;
+  width: 96px;
+  height: 96px;
+  margin-top: -14px;
+  object-fit: contain;
+  animation: fs-rise 0.34s var(--ease) both;
+}
+.fs-model svg {
+  width: 44px;
+  height: 44px;
+  margin: 0;
+}
+@keyframes fs-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.94);
+  }
+}
+.fs-read {
+  grid-area: read;
+  min-width: 0;
+}
+.fs-plays {
+  margin: 0;
+  font-size: var(--fs-md);
+  line-height: 1.32;
+  font-style: italic;
+  color: #f3e9d0;
+}
+.fs-deltas {
+  grid-area: deltas;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 3px;
+  margin: 0;
+}
+.fs-delta {
+  display: grid;
+  gap: 0;
+  padding: 3px 7px 4px;
+  background: rgba(255, 255, 255, 0.035);
+  border-left: 2px solid var(--baize-hi);
+  border-radius: 0 var(--r-1) var(--r-1) 0;
+}
+.fs-delta.down {
+  border-left-color: var(--clock-hi);
+}
+.fs-delta dt {
+  font-size: 11.5px;
+  line-height: 1.2;
+  color: var(--dim);
+}
+.fs-delta dd {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  margin: 0;
+  font-variant-numeric: tabular-nums lining-nums;
+  font-size: var(--fs-sm);
+  white-space: nowrap;
+}
+.fs-b {
+  color: var(--dim);
+}
+.fs-arrow {
+  font-size: 11px;
+  color: var(--brass);
+}
+.fs-delta b {
+  font-weight: 600;
+  color: #c8ecd7;
+}
+.fs-delta.down b {
+  color: #ffc4bb;
+}
+.fs-skill {
+  grid-area: skill;
+  margin: 0;
+  font-size: var(--fs-sm);
+  line-height: 1.3;
+  color: var(--bone);
+}
+.fs-skill b {
+  font-weight: 600;
+  color: var(--brass-hi);
+}
+.fs-rule {
+  grid-area: rule;
+  margin: 0;
+  font-size: var(--fs-xs);
+  line-height: 1.32;
+  color: var(--dim);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.fs-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: 6px;
+}
+.fs-choose,
+.fs-auto {
+  min-height: 44px;
+  font-size: var(--fs-md);
+}
+.fs-choose {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fs-auto {
+  color: var(--brass-hi);
+  border-color: var(--brass-dim);
+}
+
+/* a phone held upright: the sheet keeps to the lower half, so the rules line goes for archetypes */
+html[data-layout='portrait'] .forksheet[data-kind='archetype'] .fs-rule {
+  display: none;
+}
+
+/* landscape phones: docked right, below the top-right controls, sized to its content */
+html[data-layout='landscape'] .forksheet {
+  top: auto;
+  max-height: calc(100% - 112px - env(safe-area-inset-top));
+  gap: 5px;
+}
+html[data-layout='landscape'] .fs-opt {
+  min-height: 44px;
+  padding: 2px 4px 4px;
+}
+html[data-layout='landscape'] .fs-opt b {
+  font-size: var(--fs-sm);
+}
+html[data-layout='landscape'] .fs-preview {
+  grid-template-columns: 64px minmax(0, 1fr);
+  grid-template-areas:
+    'model read'
+    'model deltas'
+    'skill skill';
+  gap: 3px 8px;
+}
+html[data-layout='landscape'] .fs-delta {
+  padding: 1px 6px 2px;
+}
+html[data-layout='landscape'] .fs-model {
+  width: 64px;
+  height: 64px;
+}
+html[data-layout='landscape'] .fs-model img {
+  width: 76px;
+  height: 76px;
+  margin-top: -10px;
+}
+html[data-layout='landscape'] .fs-plays {
+  font-size: var(--fs-sm);
+}
+html[data-layout='landscape'] .fs-rule {
+  display: none;
+}
+html[data-layout='landscape'] .fs-choose,
+html[data-layout='landscape'] .fs-auto {
+  font-size: var(--fs-sm);
+}
+
+/* desktop: a wider card with a bigger model */
+html[data-layout='desktop'] .forksheet {
+  width: min(640px, calc(100% - 28px));
+  padding: 12px 14px 14px;
+  gap: 10px;
+}
+html[data-layout='desktop'] .fs-opt {
+  min-height: 52px;
+}
+html[data-layout='desktop'] .fs-preview {
+  grid-template-columns: 132px minmax(0, 1fr);
+  grid-template-areas:
+    'model read'
+    'model deltas'
+    'model skill'
+    'model rule';
+  align-items: start;
+  gap: 8px 16px;
+}
+html[data-layout='desktop'] .fs-model {
+  width: 132px;
+  height: 150px;
+  align-self: center;
+}
+html[data-layout='desktop'] .fs-model img {
+  width: 150px;
+  height: 150px;
+  margin-top: -20px;
+}
+html[data-layout='desktop'] .fs-plays {
+  font-size: var(--fs-lg);
+}
+html[data-layout='desktop'] .fs-rule {
+  -webkit-line-clamp: 3;
+  font-size: var(--fs-sm);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fs-preview,
+  .fs-model img {
+    animation: none;
+  }
+}

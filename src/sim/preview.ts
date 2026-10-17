@@ -1,7 +1,7 @@
 import { abilityMods } from './combat';
 import type { Stats } from './content/schema';
 import type { Ctx } from './ctx';
-import { attackKindOf, kitOf, styleDef } from './pieces';
+import { kitOf, styleDef } from './pieces';
 import { computeStats } from './stats';
 import type { HeroState, Unit } from './types';
 
@@ -19,7 +19,6 @@ export interface AbilityNumbers {
 export interface ForkPreview {
   before: Stats;
   after: Stats;
-  attackKind: { before: 'melee' | 'ranged'; after: 'melee' | 'ranged' };
   /** Rank 4: the style's signature skill, the piece's new 4th ability. */
   signature: (AbilityNumbers & { desc: string }) | null;
   /** Rank 8: the ability the option tweaks, before and after (null when it tweaks none). */
@@ -74,11 +73,5 @@ export function forkPreview(ctx: Ctx, heroId: number, optionId: string): ForkPre
       if (b && a) ability = { before: b, after: a };
     }
   }
-  return {
-    before,
-    after,
-    attackKind: { before: attackKindOf(ctx.c, h), after: attackKindOf(ctx.c, hero) },
-    signature,
-    ability,
-  };
+  return { before, after, signature, ability };
 }
