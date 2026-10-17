@@ -60,7 +60,10 @@ export function nextMatchConfig(c: Content, run: RunState, withCourt = false): M
   if (run.offers) throw new Error('pick a reward first');
   const opp = run.opponents[run.round];
   const t = tournamentOf(c);
-  const capB = t.rounds[run.round]?.relicMax;
+  // the round's cap limits what the court drafts; it never drops a relic the court starts with
+  // (a Club court "drafts no relics" but keeps its signature relic)
+  const roundCap = t.rounds[run.round]?.relicMax;
+  const capB = roundCap === undefined ? undefined : Math.max(roundCap, opp.relics.length);
   const shareB = t.rounds[run.round]?.aiPawnShare;
   return {
     seed: matchSeed(run.seed, run.round),
@@ -71,7 +74,11 @@ export function nextMatchConfig(c: Content, run: RunState, withCourt = false): M
         heirlooms: { ...run.heirlooms },
         books: [...run.books],
       },
-      B: { relics: opp.relics.map((r) => ({ ...r })), tempoBonus: opp.tempoBonus },
+      B: {
+        relics: opp.relics.map((r) => ({ ...r })),
+        tempoBonus: opp.tempoBonus,
+        ...(opp.signatureRelic ? { signature: opp.signatureRelic } : {}),
+      },
     },
     lockStyles: { A: { ...run.archetypes } },
     adjudicate: true,

@@ -440,15 +440,25 @@ function tagScore(ctx: Ctx, def: RelicDef, tags: Set<string>): number {
   return score;
 }
 
-/** The weakest relic held by the AI's reckoning (the one a better offer replaces). */
-function weakest(ctx: Ctx, team: PlayTeam, tags: Set<string>): { held: HeldRelic; score: number } {
+/** A held relic the AI may trade away: anything but a named court's signature relic. */
+const tradable = (ctx: Ctx, team: PlayTeam): HeldRelic[] => {
+  const keep = team === 'B' ? ctx.s.run?.signatureB : undefined;
+  return ctx.s.relics.held[team].filter((h) => h.id !== keep);
+};
+
+/** The weakest tradable relic by the AI's reckoning (the one a better offer replaces). */
+function weakest(
+  ctx: Ctx,
+  team: PlayTeam,
+  tags: Set<string>,
+): { held: HeldRelic; score: number } | null {
   let best: { held: HeldRelic; score: number } | null = null;
-  for (const held of ctx.s.relics.held[team]) {
+  for (const held of tradable(ctx, team)) {
     const def = ctx.c.relicById.get(held.id);
     const score = def ? tagScore(ctx, def, tags) : 0;
     if (!best || score < best.score) best = { held, score };
   }
-  return best!;
+  return best;
 }
 
 /** Scores each offer (base, the tailored bonus, matching tags, seeded jitter), takes the best. */
@@ -475,7 +485,7 @@ function aiPick(
   if (full) {
     if (r.held[team].length === 0) return decline(ctx, team); // a cap of 0 (a run's round table)
     const weak = weakest(ctx, team, tags);
-    if (best.score <= weak.score) return decline(ctx, team);
+    if (!weak || best.score <= weak.score) return decline(ctx, team);
     take(ctx, team, best.def, best.offer.aim, weak.held.id, auto);
     return;
   }
@@ -488,9 +498,10 @@ function randomPick(ctx: Ctx, team: PlayTeam): void {
   const def = ctx.c.relicById.get(offer.id)!;
   if (r.held[team].length < relicMax(ctx, team))
     return take(ctx, team, def, offer.aim, null, false);
-  if (r.held[team].length === 0) return decline(ctx, team);
+  const swap = tradable(ctx, team);
+  if (swap.length === 0) return decline(ctx, team);
   if (rand(ctx.s.rng, 'relic') < 0.5) return decline(ctx, team);
-  take(ctx, team, def, offer.aim, pick(ctx.s.rng, 'relic', r.held[team]).id, false);
+  take(ctx, team, def, offer.aim, pick(ctx.s.rng, 'relic', swap).id, false);
 }
 
 /** The AI re-aims its lane relics at the lane the Act's report favours (a held relic's piece stays). */

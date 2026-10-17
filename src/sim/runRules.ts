@@ -45,6 +45,7 @@ export function runRulesFor(config: MatchConfig, c: Content): RunRules | undefin
     relicMax: max,
     relicMaxB: config.relicMaxB ?? max,
     ...(config.aiPawnShareB !== undefined ? { aiPawnShareB: config.aiPawnShareB } : {}),
+    ...(config.start?.B?.signature ? { signatureB: config.start.B.signature } : {}),
     books: { A: books(config.start?.A), B: books(config.start?.B) },
     locked: { ...(config.lockStyles?.A ?? {}) },
     adjudicate: config.adjudicate ?? false,

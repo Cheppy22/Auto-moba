@@ -42,6 +42,8 @@ const TPS = content.tuning.tickRate;
 /** One match of a run, as the report reads it. */
 interface MatchRead {
   round: number;
+  /** The opponent court's id (`courts.json`), or its name for a generated stand-in. */
+  court: string;
   won: boolean;
   adjudicated: boolean;
   minutes: number;
@@ -104,8 +106,10 @@ function playRun(seed: number): RunRead {
     const won = out.winner === 'A';
     run = recordResult(content, begun.run, ladder && !won ? { ...out, winner: 'A' } : out);
     const r = run.results[run.results.length - 1];
+    const opp = begun.run.opponents[round];
     matches.push({
       round,
+      court: opp?.courtId ?? opp?.name ?? '?',
       won,
       adjudicated: r.adjudicated,
       minutes: r.minutes,
@@ -157,6 +161,7 @@ function report(all: RunRead[], secs: number): void {
       cap,
       'Ladder (every run plays every round)',
     );
+  courtTable(ladder ? all.map((r) => r.matches) : all.map((r) => realMatches(r)));
   const champs = all.filter((r) => r.status === 'champion').length;
   console.log(`\nChampions: ${champs} of ${all.length} (${pct(champs, all.length)})`);
   // Snowball: of the runs that reached round 2 (County), how many held the cap at its start, and
@@ -178,6 +183,23 @@ function report(all: RunRead[], secs: number): void {
   );
   console.log(`Rewards picked (real runs): ${kinds.join(', ')}`);
   console.log(`${secs.toFixed(0)} s on ${workers} workers`);
+}
+
+function courtTable(runsMatches: MatchRead[][]): void {
+  const ms = runsMatches.flat();
+  const ids = [...new Set(ms.map((x) => `${x.round}|${x.court}`))].sort();
+  console.log(
+    `\nPer court (${ladder ? 'ladder' : 'real runs'})\n\n| Round | Court | Played | Won | Win % |`,
+  );
+  console.log('| --- | --- | --- | --- | --- |');
+  for (const key of ids) {
+    const [round, court] = key.split('|');
+    const xs = ms.filter((x) => `${x.round}|${x.court}` === key);
+    const won = xs.filter((x) => x.won).length;
+    console.log(
+      `| ${roundName(content, Number(round))} | ${court} | ${xs.length} | ${won} | ${pct(won, xs.length)} |`,
+    );
+  }
 }
 
 function roundTable(runsMatches: MatchRead[][], cap: number, title: string): void {
