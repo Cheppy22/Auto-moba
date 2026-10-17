@@ -157,6 +157,13 @@ Each hero re-plans about once per second and scores goals (farm lane, push tower
 - **Your hero** has a gold ring and a pulsing halo at phase start and on respawn; tapping your portrait flashes it.
 - **Map labels** are drawn last and nudged or skipped on collision.
 - **Title and menu flow (chess branch, 2026-10-14):** the Title's main button is **Tournament** (a four-round run: Draw, then Setup, match, Spoils, and so on; saved on this device between matches, so **Continue** appears after a reload); **Exhibition** is a single match as before; **Rules** opens the glossary. A **best finish** line ("Best: reached the Final") is kept on this device and gives no power. Rules and screens: [CHESS.md](CHESS.md) "Tournament run".
+- **Platform (chess branch, 2026-10-17):** the game is an installable, offline web app.
+  - **Install:** `manifest.webmanifest` (standalone, theme `#14110e`, brass King icon on dark slate; 192, 512 and maskable PNGs made by `tools/make-icons.ts`) with `start_url` and `scope` `./`, so it installs from `/` locally and from `/v2/` on Pages without edits.
+  - **Offline:** a hand-written service worker (`src/app/sw.js`, built into `dist/sw.js` by the plugin in `vite.config.ts`) stores the whole build (page, scripts, styles, fonts, icon) in a cache named for a hash of the build. After one online visit the game starts and plays with no network. It runs only in production builds; the dev server and the Playwright dev suite never register it.
+  - **Update:** a new deploy downloads in the background and waits. The title, the report and the screens between Tournament rounds then show **New version ready · Reload** (never during Setup or a live match). Reload swaps to it.
+  - **Fonts:** IM Fell English SC and Spectral are served from `public/fonts/` (SIL Open Font License, notes in `LICENSES.txt` there); nothing is fetched from another site.
+  - **Resume:** a live match is saved on this device every 5 s of play and whenever the page is hidden or closed (`localStorage['automoba.match']`: seed, setup, the command log and a fingerprint of the position). After a reload the Title offers **Resume match** (Exhibition or Tournament round, Act and clock): it plays the log back (a progress bar; about the same time as playing that stretch at top speed, a few seconds on a desktop, longer on a phone), checks the position against the fingerprint, and opens the match **paused**. A save that does not replay to the same position (another version of the game, damaged data) is dropped with a note, never half-resumed. A finished match, an abandoned run or a new run deletes it.
+  - **Load:** the match screens (HUD, Act intro, Adjourn) and the report load as their own scripts after the title is up; the 3D view (three.js) is its own script too, fetched while the player is on the setup screens.
 - **Glossary (chess branch, 2026-10-13):** game words carry a dotted brass underline where the player reads (first appearance per block of text); tap one for a one-sentence definition. A Rules list sits on the Title and in Adjourn. Words live in `content/glossary.json`; details in [CHESS.md](CHESS.md) "Interface".
 - Escape closes overlays; an unspent-gold reminder appears before starting a phase; the Shop tab shows your gold.
 - **View:** the three.js 3D view is the only game view, and it fills the whole screen; the HUD floats over it as glass panels (chess branch, 2026-10-12). The 2D map is removed. Jungle shops are tapped as HTML pins over the 3D view.
@@ -185,7 +192,7 @@ Each hero re-plans about once per second and scores goals (farm lane, push tower
 - **Untested:** real phones and iOS Safari. The Pages blank-page report from early on was never confirmed resolved.
 - **Undecided:** a sixth hero per team so Mid also has a pair; ability text using the same color markup (recommended).
 - **Engagement:** the in-phase decision space is still thin: suggestions, recall, farm toggle, event prompts. Does the player feel in control?
-- **Missing:** audio, keyboard shortcuts, save and load, a download button for replay export.
+- **Missing:** audio, keyboard shortcuts, a download button for replay export.
 
 ## Shelved on purpose
 

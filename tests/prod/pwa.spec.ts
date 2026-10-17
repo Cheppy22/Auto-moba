@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { viewReady, watchErrors } from '../e2e/helpers';
+import { snap, step, viewReady, watchErrors } from '../e2e/helpers';
 
 // GitHub Pages serves this branch under /v2/ and a local run serves it at the root: check both.
 const MOUNTS = ['/', '/v2/'];
@@ -70,22 +70,46 @@ for (const base of MOUNTS) {
 
     test('the service worker stores the game: it starts offline and plays a match offline', async ({
       page,
-      context,
+      request,
     }) => {
       test.setTimeout(300_000);
       const errors = watchErrors(page);
       await openAndInstall(page, base);
-      await context.setOffline(true);
-      // a cold start with no network: the page, its chunks and the fonts all come from the device
-      await page.reload();
-      await expect(page.getByTestId('title')).toBeVisible();
-      await expect(page.getByTestId('build-stamp')).toContainText('build');
-      // the worker (not luck) is answering: a file it does not hold is refused, not a network error
-      expect(await page.evaluate(() => fetch('not-stored.txt').then((r) => r.status))).toBe(503);
-      // and a whole screen flow that loads the lazy chunks (match screens, the 3D view)
-      await startMatch(page);
-      await context.setOffline(false);
+      // the network is really gone: the server drops every connection (see tools/serve-dist.ts)
+      await request.post('/__offline?on=1');
+      try {
+        // a cold start with no network: the page, its chunks and the fonts all come from the device
+        await page.reload();
+        await expect(page.getByTestId('title')).toBeVisible();
+        await expect(page.getByTestId('build-stamp')).toContainText('build');
+        // the worker (not luck) is answering: a file it does not hold is refused, not a network error
+        expect(await page.evaluate(() => fetch('not-stored.txt').then((r) => r.status))).toBe(503);
+        // and a whole screen flow that loads the lazy chunks (match screens, the 3D view)
+        await startMatch(page);
+      } finally {
+        await request.post('/__offline?on=0');
+      }
       expect(errors.filter((e) => !/Failed to load resource/.test(e))).toEqual([]);
+    });
+
+    test('a match resumes after a reload, and its save belongs to this folder', async ({
+      page,
+    }) => {
+      test.setTimeout(300_000);
+      await openAndInstall(page, base);
+      await startMatch(page);
+      await step(page, 400);
+      await page.evaluate(() => void window.dispatchEvent(new Event('pagehide')));
+      // the key names the folder (/ or /v2/), so the two games on one site never read each other's
+      const keys = await page.evaluate(() =>
+        Object.keys(window.localStorage).filter((k) => k.startsWith('automoba.match')),
+      );
+      expect(keys).toEqual([`automoba.match:${base}`]);
+      await page.reload();
+      await page.getByTestId('resume-match').click();
+      await expect(page.getByTestId('hud')).toBeVisible({ timeout: 60_000 });
+      await viewReady(page);
+      expect((await snap(page)).tick).toBe(400);
     });
 
     test('a new deployed version shows "New version ready" and reloads into it', async ({

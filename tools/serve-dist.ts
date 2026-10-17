@@ -1,6 +1,9 @@
 // Serves the built game (dist/) for the production browser tests, the way GitHub Pages does:
 // once at the root and once under /v2/. `POST /__bump` makes sw.js differ by one comment, which is
-// how the update test pretends a new build was deployed. Usage: tsx tools/serve-dist.ts <port>
+// how the update test pretends a new build was deployed. `POST /__offline?on=1` makes the server
+// drop every other connection (the network is gone), `?on=0` brings it back; Playwright's own
+// `setOffline` does not reach a service worker's requests, so the offline test uses this.
+// Usage: tsx tools/serve-dist.ts <port>
 import { readFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { extname, join, normalize, resolve } from 'node:path';
@@ -19,10 +22,20 @@ const types: Record<string, string> = {
   '.txt': 'text/plain; charset=utf-8',
 };
 let bump = 0;
+let offline = false;
 
 createServer((req, res) => {
   void (async () => {
     const url = new URL(req.url ?? '/', 'http://localhost');
+    if (req.method === 'POST' && url.pathname === '/__offline') {
+      offline = url.searchParams.get('on') === '1';
+      res.writeHead(204).end();
+      return;
+    }
+    if (offline) {
+      req.socket.destroy();
+      return;
+    }
     if (req.method === 'POST' && url.pathname === '/__bump') {
       bump += 1;
       res.writeHead(204).end();

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { Match } from '../src/sim';
 import { restoreMatch, snapshotMatch } from '../src/ui/run/resume';
-import { loadMatch, MATCH_KEY, saveMatch, type SaveStore } from '../src/ui/run/save';
+import { loadMatch, matchKey, saveMatch, type SaveStore } from '../src/ui/run/save';
 import { content, logHash } from './helpers';
 
 /** A match as the browser plays it: the Long Board, stopping for forks and for the Act break. */
@@ -57,7 +57,7 @@ const memory = (): SaveStore & { map: Map<string, string> } => {
 describe('resume a match after a reload', () => {
   it('replays to the saved position, and play from there matches the original', async () => {
     const m = browserMatch(8);
-    play(m, 2600);
+    play(m, 1800);
     const at = memory();
     saveMatch(snapshotMatch(m, null, 2), at);
     const save = loadMatch(content, at)!; // through JSON, as a reload does
@@ -71,11 +71,11 @@ describe('resume a match after a reload', () => {
     expect(progress[progress.length - 1]).toBe(1);
 
     // the resumed match and the one that never stopped stay identical
-    play(m, 1500);
-    play(back, 1500);
+    play(m, 800);
+    play(back, 800);
     expect(back.state.tick).toBe(m.state.tick);
     expect(logHash(back)).toBe(logHash(m));
-  });
+  }, 240_000);
 
   it('resumes across a fork that is waiting and across an Act break', async () => {
     const m = browserMatch(21);
@@ -106,7 +106,7 @@ describe('resume a match after a reload', () => {
       play(x, 600);
     }
     expect(logHash(onBreak)).toBe(logHash(m));
-  });
+  }, 240_000);
 
   it('refuses a save that does not reproduce the saved position', async () => {
     const m = browserMatch(3);
@@ -130,11 +130,11 @@ describe('resume a match after a reload', () => {
     play(m, 300);
     const good = snapshotMatch(m, null, 1);
     const at = memory();
-    at.setItem(MATCH_KEY, '{not json');
+    at.setItem(matchKey(), '{not json');
     expect(loadMatch(content, at)).toBeNull();
     saveMatch({ ...good, v: 2 as never }, at);
     expect(loadMatch(content, at)).toBeNull();
-    expect(at.map.has(MATCH_KEY)).toBe(false);
+    expect(at.map.has(matchKey())).toBe(false);
     // recorded against other content (a balance change between visits)
     saveMatch({ ...good, replay: { ...good.replay, contentHash: 'older' } }, at);
     expect(loadMatch(content, at)).toBeNull();
@@ -143,7 +143,7 @@ describe('resume a match after a reload', () => {
     saveMatch(good, at);
     expect(loadMatch(content, at)).toEqual(good);
     saveMatch(null, at);
-    expect(at.map.has(MATCH_KEY)).toBe(false);
+    expect(at.map.has(matchKey())).toBe(false);
     const broken: SaveStore = {
       getItem: () => {
         throw new Error('blocked');

@@ -9,7 +9,7 @@ import type { BestFinish, Content, Replay, RunState } from '../../sim';
 
 export const RUN_KEY = 'automoba.run';
 export const BEST_KEY = 'automoba.best';
-export const MATCH_KEY = 'automoba.match';
+const MATCH_KEY = 'automoba.match';
 
 /** The parts of `Storage` the save uses (tests pass a stand-in). */
 export type SaveStore = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
@@ -108,6 +108,19 @@ export interface MatchSave {
   check: string;
 }
 
+/**
+ * The match save's key. It names the folder the game is served from (`/` or `/v2/`): both games
+ * live on one site and so share one `localStorage`, and a match of the other game must never be
+ * read (or deleted) as this one's.
+ */
+export function matchKey(): string {
+  try {
+    return `${MATCH_KEY}:${new URL('./', document.baseURI).pathname}`;
+  } catch {
+    return MATCH_KEY; // no page (unit tests)
+  }
+}
+
 function validMatch(c: Content, x: unknown): x is MatchSave {
   const m = x as MatchSave | null;
   if (!m || typeof m !== 'object' || m.v !== 1) return false;
@@ -129,14 +142,14 @@ function validMatch(c: Content, x: unknown): x is MatchSave {
 
 /** The saved match in progress, or null (none, unreadable, or recorded against other content). */
 export function loadMatch(c: Content, at: SaveStore | null = store()): MatchSave | null {
-  const raw = read(MATCH_KEY, at);
+  const raw = read(matchKey(), at);
   if (raw === null) return null;
   if (validMatch(c, raw)) return raw;
   console.warn('The saved match does not fit this version of the game; it was dropped.');
-  write(MATCH_KEY, null, at);
+  write(matchKey(), null, at);
   return null;
 }
 
 export function saveMatch(match: MatchSave | null, at: SaveStore | null = store()): void {
-  write(MATCH_KEY, match, at);
+  write(matchKey(), match, at);
 }

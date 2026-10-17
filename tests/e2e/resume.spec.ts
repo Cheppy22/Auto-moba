@@ -1,6 +1,9 @@
 import { expect, test, type Page } from '@playwright/test';
 import { snap, startLive, step, viewReady, watchErrors } from './helpers';
 
+// the save's key names the folder the game is served from (the dev server serves it at /)
+const MATCH = 'automoba.match:/';
+
 /** The marks a resumed match must reproduce: where the clock stood and what had happened. */
 async function marks(page: Page): Promise<{ tick: number; events: number; hands: string }> {
   return page.evaluate(() => {
@@ -22,6 +25,10 @@ async function marks(page: Page): Promise<{ tick: number; events: number; hands:
     };
   });
 }
+
+/** The raw saved match on the device. */
+const stored = (page: Page): Promise<string | null> =>
+  page.evaluate((key) => window.localStorage.getItem(key), MATCH);
 
 /** What the page does when it is hidden or closed: saves the match for Resume. */
 const leave = (page: Page): Promise<void> =>
@@ -74,7 +81,7 @@ test('a finished match is not offered for Resume', async ({ page }) => {
   await expect(page.getByTestId('hud')).toBeVisible();
   await step(page, 200);
   await leave(page);
-  expect(await page.evaluate(() => window.localStorage.getItem('automoba.match'))).not.toBeNull();
+  expect(await stored(page)).not.toBeNull();
   await page.evaluate(
     () =>
       void (
@@ -82,7 +89,7 @@ test('a finished match is not offered for Resume', async ({ page }) => {
       ).__session.testEnd('A'),
   );
   await expect(page.getByTestId('report')).toBeVisible();
-  expect(await page.evaluate(() => window.localStorage.getItem('automoba.match'))).toBeNull();
+  expect(await stored(page)).toBeNull();
   await page.getByTestId('new-match').click();
   await expect(page.getByTestId('title')).toBeVisible();
   await expect(page.getByTestId('resume-match')).toHaveCount(0);
@@ -97,16 +104,16 @@ test('a damaged save is dropped with a note, and the game still starts', async (
   await step(page, 300);
   await leave(page);
   // tamper with the log so the replay cannot reach the saved position
-  await page.evaluate(() => {
-    const raw = JSON.parse(window.localStorage.getItem('automoba.match') ?? 'null');
+  await page.evaluate((key) => {
+    const raw = JSON.parse(window.localStorage.getItem(key) ?? 'null');
     raw.check = 'not-the-position';
-    window.localStorage.setItem('automoba.match', JSON.stringify(raw));
-  });
+    window.localStorage.setItem(key, JSON.stringify(raw));
+  }, MATCH);
   await page.reload();
   await page.getByTestId('resume-match').click();
   await expect(page.getByTestId('resume-note')).toBeVisible({ timeout: 60_000 });
   await expect(page.getByTestId('resume-match')).toHaveCount(0);
-  expect(await page.evaluate(() => window.localStorage.getItem('automoba.match'))).toBeNull();
+  expect(await stored(page)).toBeNull();
   expect(errors).toHaveLength(1);
   await expect(page.getByTestId('start')).toBeVisible();
 });
@@ -153,6 +160,6 @@ test('a Tournament match resumes in its run; abandoning the run drops it', async
   await page.getByTestId('tournament').click();
   await page.getByTestId('abandon-run').click();
   await expect(page.getByTestId('draw')).toBeVisible();
-  expect(await page.evaluate(() => window.localStorage.getItem('automoba.match'))).toBeNull();
+  expect(await stored(page)).toBeNull();
   expect(errors).toEqual([]);
 });
