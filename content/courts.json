@@ -368,7 +368,7 @@
         },
         {
           "piece": "queen",
-          "path": "offense",
+          "path": "utility",
           "lane": "mid"
         },
         {
