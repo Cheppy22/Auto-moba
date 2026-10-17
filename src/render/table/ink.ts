@@ -107,12 +107,13 @@ void main() {
   edge *= 1.0 - smoothstep(uFade.x, uFade.y, dist);
   edge *= step(d0, 0.99999);
 
-  // toon light: brightness pulled toward three soft bands (in perceptual space)
+  // toon light: the lit tones pulled toward three soft bands (in perceptual space)
   float lum = dot(col, vec3(0.2126, 0.7152, 0.0722));
   float lp = pow(max(lum, 1e-4), 1.0 / 2.2);
   float b = lp * 3.0;
   float band = (floor(b) + smoothstep(0.3, 0.7, fract(b))) / 3.0;
-  float lt = mix(lp, band, uToon);
+  // (the night-dark tones stay as they are: lifting them toward a band washes the board out)
+  float lt = mix(lp, band, uToon * smoothstep(0.24, 0.42, lp));
   col *= pow(lt, 2.2) / max(lum, 1e-4);
 
   // paper: a warm wash in the shadows, fibres and grain fixed to the screen, a soft vignette
@@ -122,10 +123,10 @@ void main() {
   float fib = vnoise(vec2(sp.x * 0.08 + sp.y * 0.03, sp.y * 0.6)) - 0.5;
   float grit = vnoise(sp * 0.7) - 0.5;
   float tooth = vnoise(sp * 0.18) - 0.5;
-  float grain = fib * 0.9 + grit * 0.7 + tooth * 0.8;
+  float grain = fib * 0.5 + grit * 0.7 + tooth * 0.6;
   // multiplied on the lit tones, and a touch added so it still shows on the night-dark floor
   col *= 1.0 + uGrain * grain;
-  col += uGrain * 0.12 * grain;
+  col += uGrain * 0.045 * grain;
   vec2 v = vUv - 0.5;
   col *= 1.0 - dot(v, v) * 0.35;
 
@@ -203,7 +204,7 @@ export class InkPass {
     u.uFar.value = camera.far;
     const t = Math.tan((camera.fov * Math.PI) / 360);
     u.uTan.value.set(t * camera.aspect, t);
-    u.uFade.value.set(focus + 1200, focus + 5200);
+    u.uFade.value.set(focus + 800, focus + 4200);
     // count both draws in renderer.info (the stats read the frame as a whole)
     r.info.autoReset = false;
     r.info.reset();
