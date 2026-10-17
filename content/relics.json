@@ -378,7 +378,7 @@
       "bind": "lane",
       "aim": "offense",
       "desc": "Your lanes may be 3/1/1, with three pieces in the bound lane (taking it moves your pieces). The two lone pieces gain 10% armor and resist.",
-      "headline": "{lane} takes 3 pieces, a hammer; the two lone pieces get 10% more armor and resist.",
+      "headline": "{lane} takes three pieces, a hammer; the two lone pieces get 10% more armor and resist.",
       "rewards": "A three-piece hammer in one lane.",
       "counter": "Area damage (Regent, Shadow) on the stack. March on a thin lane. Barricade.",
       "tags": ["march", "initiative", "vanguard", "warlord", "lancer"],
