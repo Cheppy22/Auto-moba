@@ -4,17 +4,17 @@ Branch `proposal/aaa-overnight`, built overnight by the lead session and nine ag
 
 ## What the branch adds
 
-| Area                     | What changed                                                                                                                                                       | Status                        |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------- |
-| Capture spectacle        | Hit-stop, knocked-flying captures, token into the capture tray, rank-up flares, Rank 4 transformation, Checkmate topple with letterbox; weather, birds, water life | Recommend ship                |
-| Audio                    | Generative music bed, two garden ambiences, 32 cues, four-slider mixer; mix measured on AAC: −15.3 LUFS busy, −6.0 dBTP                                            | Needs the owner's ears        |
-| Look                     | Woods 115.5k → 84.6k phone triangles; side-on default on wide screens; Ink style post-process behind a switch                                                      | Ship; Ink stays optional      |
-| Onboarding and HUD       | Five first-match hints, Replay tutorial; phone top bar three rows → two (19.2% → 13.5% of a 390 px screen)                                                         | Recommend ship                |
-| Platform                 | Manifest and icons, self-hosted fonts, offline service worker, update prompt, resume a match after reload, 16% less code before the Title                          | Recommend ship                |
-| Named courts (3B)        | Ten hand-made Tournament courts with seals, portraits, mottos, Openings and signature relics                                                                       | Recommend ship                |
-| Relic and fork picks     | Relic offers as big cards with a plan line and before → after numbers; fork tabs with model, stats before → after and skill numbers                                | Recommend ship                |
-| Blitz and Classical (2B) | Blitz: 3 Acts, Throne 3000, Endgame from Act 2, points decision; Classical unchanged; Blitz default on phones                                                      | Ship after its confirming run |
-| QA pass                  | Courts keep their signature relic; update bar placement; tap targets; tests aware of the Checkmate beat; court tuning                                              | Fixed                         |
+| Area                     | What changed                                                                                                                                                       | Status                   |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------ |
+| Capture spectacle        | Hit-stop, knocked-flying captures, token into the capture tray, rank-up flares, Rank 4 transformation, Checkmate topple with letterbox; weather, birds, water life | Recommend ship           |
+| Audio                    | Generative music bed, two garden ambiences, 32 cues, four-slider mixer; mix measured on AAC: −15.3 LUFS busy, −6.0 dBTP                                            | Needs the owner's ears   |
+| Look                     | Woods 115.5k → 84.6k phone triangles; side-on default on wide screens; Ink style post-process behind a switch                                                      | Ship; Ink stays optional |
+| Onboarding and HUD       | Five first-match hints, Replay tutorial; phone top bar three rows → two (19.2% → 13.5% of a 390 px screen)                                                         | Recommend ship           |
+| Platform                 | Manifest and icons, self-hosted fonts, offline service worker, update prompt, resume a match after reload, 16% less code before the Title                          | Recommend ship           |
+| Named courts (3B)        | Ten hand-made Tournament courts with seals, portraits, mottos, Openings and signature relics                                                                       | Recommend ship           |
+| Relic and fork picks     | Relic offers as big cards with a plan line and before → after numbers; fork tabs with model, stats before → after and skill numbers                                | Recommend ship           |
+| Blitz and Classical (2B) | Blitz: 3 Acts, Throne 3000, Endgame from Act 2, points decision; Classical unchanged; Blitz default on phones; 1600 matches: White 49.8%, median 10.3 min          | Recommend ship           |
+| QA pass                  | Courts keep their signature relic; update bar placement; tap targets; tests aware of the Checkmate beat; court tuning                                              | Fixed                    |
 
 Measured details: [BALANCE-2026-10-15.md](BALANCE-2026-10-15.md) (Blitz, AI Tempo split, courts), [CHANGELOG.md](CHANGELOG.md) (2026-10-17 entries), [CHESS.md](CHESS.md) (rules and interface).
 
