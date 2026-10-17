@@ -19,7 +19,7 @@ Playable chess auto-battler: 5 pieces per side, pawnlings/pawns, Bastions, Check
 
 ## Overnight AAA proposal (2026-10-17) — awaiting owner review
 
-Branch `proposal/aaa-overnight` (not live): capture spectacle + life pass, audio (music, ambience, 32 cues, mixer; mix measured −15.3 LUFS busy / −6.0 dBTP on AAC), look pass (woods budget, side-on wide view, Ink toggle), onboarding hints + two-row phone HUD, platform (PWA, offline, resume), 10 named courts, relic cards + fork previews, Blitz/Classical, QA fixes. 414 unit + 98 browser tests pass on the combined branch. Walkthrough with playable build: https://claude.ai/artifact/1kmZsGs9BsoSf4cUkNXH4L ; summary `docs/PROPOSAL-AAA-2026-10-17.md` (on the branch). Owner decisions listed there. To ship: merge `proposal/aaa-overnight` into `test-product-2` (it already contains everything live).
+Branch `proposal/aaa-overnight` (not live): capture spectacle + life pass, audio (music, ambience, 32 cues, mixer; mix measured −15.3 LUFS busy / −6.0 dBTP on AAC), look pass (woods budget, side-on wide view, Ink toggle), onboarding hints + two-row phone HUD, platform (PWA, offline, resume), 10 named courts, relic cards + fork previews, Blitz/Classical, QA fixes. 414 unit + 98 browser tests pass on the combined branch. Playable on Pages: https://cheppy22.github.io/Auto-moba/proposal/ (the Pages workflow now builds the proposal branch under /proposal/; drop it from `pages.yml` on all branches once the proposal ships or is closed). Walkthrough: https://claude.ai/artifact/1kmZsGs9BsoSf4cUkNXH4L ; summary `docs/PROPOSAL-AAA-2026-10-17.md` (on the branch). Owner decisions listed there. To ship: merge `proposal/aaa-overnight` into `test-product-2` (it already contains everything live).
 
 ## Next steps
 
