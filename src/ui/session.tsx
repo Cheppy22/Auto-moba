@@ -34,7 +34,16 @@ import type { CamMode } from '../render/broadcast/types';
 import { courtName, setOpposingCourt } from '../analysis/text';
 import { inputFromMatch } from '../analysis';
 import { buildSummary } from '../analysis/summary';
-import { loadBest, loadRun, saveBest, saveRun } from './run/save';
+import {
+  loadBest,
+  loadMatch,
+  loadRun,
+  saveBest,
+  saveMatch,
+  saveRun,
+  type MatchSave,
+} from './run/save';
+import { restoreMatch, snapshotMatch } from './run/resume';
 import {
   blackPlayLine,
   cardLine,
@@ -165,6 +174,9 @@ const MAX_NOTES = 2;
 const FIGHT_NOTE_MS = 4200;
 const NOTE_MS = 3200;
 const BLACK_PLAY_MS = 3000;
+/** A match is saved for Resume after its first 5 s of play, then every 5 s of wall clock. */
+const MIN_SAVE_TICK = 100;
+const SAVE_EVERY_MS = 5000;
 /** Banners waiting behind the visible one; at fast speeds the oldest are dropped. */
 const MAX_BLACK_QUEUE = 3;
 /** Size (px) of the intro's piece portraits: twice what the card shows, so they stay sharp on a phone. */
@@ -211,6 +223,17 @@ export class Session {
   private introOn = new URLSearchParams(window.location.search).get('intro') !== 'off';
   private seenSeq = -1;
   private toastTimer = 0;
+  /** Resume: 0..1 while a saved match is replayed back to where it stood, else null. */
+  resuming: number | null = null;
+  /** The match opened by Resume (the 3D view skips its history of events), else null. */
+  resumed: Match | null = null;
+  /** Why the last Resume was dropped (the Title says so), else null. */
+  resumeNote: string | null = null;
+  /** The last autosave of the live match: wall-clock ms and sim tick. */
+  private savedAt = 0;
+  private savedTick = -1;
+  /** The match whose end already deleted the save. */
+  private endCleared: Match | null = null;
   /** Camera mode and target to restore when the fork sheet closes. */
   private forkCam: { cam: CamMode; follow: number | null } | null = null;
   /** When the gambit sheet opened (ms), so the lifting finger cannot close it at once. */
@@ -296,8 +319,91 @@ export class Session {
     this.lastLeft = null;
     this.forkCam = null;
     this.blackQueue = [];
+    this.savedTick = -1;
+    this.resumeNote = null;
     this.ui = { ...freshUi(), cam: this.ui.cam === 'auto' ? 'auto' : 'free' };
     this.notify();
+  }
+
+  // ------------------------------------------------------------ resume a match after a reload
+
+  /**
+   * The match saved on this device that Resume would play back, or null. A Tournament match only
+   * counts while its run is still at that round.
+   */
+  savedMatch(): MatchSave | null {
+    const save = loadMatch(this.content);
+    if (!save?.run) return save;
+    const run = loadRun(this.content);
+    const same =
+      run?.status === 'playing' && run.seed === save.run.seed && run.round === save.run.round;
+    return same ? save : null;
+  }
+
+  /**
+   * Saves the live match: its command log and a fingerprint, at most every few seconds (this runs
+   * every frame) and at once when `force` (the page is being hidden or closed). Nothing is saved
+   * before the first second of play, while paused with nothing new, or once the match is over.
+   */
+  autosave(now: number, force = false): void {
+    const m = this.match;
+    if (!m || m.state.phase.kind !== 'live' || this.resuming !== null) return;
+    const tick = m.state.tick;
+    if (tick < MIN_SAVE_TICK || tick === this.savedTick) return;
+    if (!force && now - this.savedAt < SAVE_EVERY_MS) return;
+    this.savedAt = now;
+    this.savedTick = tick;
+    try {
+      const run =
+        this.run?.status === 'playing' ? { seed: this.run.seed, round: this.run.round } : null;
+      saveMatch(snapshotMatch(m, run, this.ui.speed > 0 ? this.ui.speed : this.runSpeed));
+    } catch (err) {
+      console.warn('The match could not be saved for resuming', err);
+    }
+  }
+
+  /**
+   * Title: plays the saved match back to where it stood (a progress bar shows meanwhile) and opens
+   * it paused. A save that does not replay to the same position is deleted, never half-resumed.
+   */
+  async resumeMatch(): Promise<void> {
+    const save = this.savedMatch();
+    if (!save || this.resuming !== null || this.match) return;
+    this.resuming = 0;
+    this.resumeNote = null;
+    this.notify();
+    try {
+      const m = await restoreMatch(this.content, save, (f) => {
+        this.resuming = f;
+        this.notify();
+      });
+      const run = save.run ? loadRun(this.content) : null;
+      if (save.run && !run) throw new Error('its Tournament run is gone');
+      this.run = run;
+      this.matchRun = run;
+      this.match = m;
+      this.resumed = m;
+      setOpposingCourt(run?.opponents[run.round]?.name ?? null);
+      // the sim's earlier events are history: no banners or camera shots for them
+      const ev = m.events;
+      this.seenSeq = ev.length ? ev[ev.length - 1].seq : -1;
+      this.lastLeft = null;
+      this.forkCam = null;
+      this.blackQueue = [];
+      this.runSpeed = ([1, 2, 4, 8] as const).find((v) => v === save.speed) ?? 1;
+      this.savedTick = m.state.tick;
+      this.savedAt = performance.now();
+      this.ui = { ...freshUi(), speed: 0 };
+      this.toast('Match resumed, paused. Press play when ready.', 4000);
+    } catch (err) {
+      console.error('The saved match could not be resumed; it was discarded.', err);
+      saveMatch(null);
+      this.resumeNote =
+        'That match could not be restored (it may be from another version), so it was discarded.';
+    } finally {
+      this.resuming = null;
+      this.notify();
+    }
   }
 
   issue(cmd: Command): CommandResult {
@@ -444,6 +550,7 @@ export class Session {
   startRun(seed = Math.floor(Math.random() * 1e9)): void {
     this.match = null;
     this.runBestNew = false;
+    this.dropRunMatchSave();
     this.run = newRun(this.content, seed);
     saveRun(this.run);
     this.notify();
@@ -535,9 +642,15 @@ export class Session {
       saveBest(this.best);
     }
     saveRun(null);
+    this.dropRunMatchSave();
     this.run = null;
     this.runBestNew = false;
     this.notify();
+  }
+
+  /** The saved match belongs to a Tournament run that is going away: delete it with the run. */
+  private dropRunMatchSave(): void {
+    if (loadMatch(this.content)?.run) saveMatch(null);
   }
 
   private applyRun(step: RunStep): CommandResult {
@@ -928,6 +1041,10 @@ export class Session {
   syncEvents(): void {
     const m = this.match;
     if (!m) return;
+    if (m.state.phase.kind === 'end' && this.endCleared !== m) {
+      this.endCleared = m;
+      saveMatch(null); // a finished match is not resumed
+    }
     if (m.state.phase.kind === 'end' && this.run?.status === 'playing') this.finishRunMatch(m);
     const ev = m.events;
     if (ev.length === 0 || ev[ev.length - 1].seq < this.seenSeq) this.seenSeq = -1;

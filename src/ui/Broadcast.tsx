@@ -118,7 +118,9 @@ export function Broadcast() {
         const watch = new ResizeObserver(() => view.resize());
         watch.observe(canvas);
         view.resize();
-        let seq = -1;
+        // a resumed match opens at a later tick: its earlier events are history, not new effects
+        const open = s.match;
+        let seq = open && open === s.resumed && open.events.length ? open.events.at(-1)!.seq : -1;
         let last = performance.now();
         let fresh: GameEvent[] = [];
         off = s.onFrame((alpha) => {

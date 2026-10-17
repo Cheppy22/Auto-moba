@@ -1,12 +1,15 @@
 // The Tournament run's save on this device (spec 1B, decision 8): the run between matches, and
-// one best-finish line that outlives it. A match in progress is not saved; a run saved as
-// `playing` restarts that round's match from its beginning. Every read and write is wrapped:
+// one best-finish line that outlives it. A match in progress is saved separately (see "A match in
+// progress" below): the command log and a fingerprint, so a reload can replay it back to where it
+// stood; without that save a run saved as `playing` restarts the round's match from its beginning.
+// Every read and write is wrapped:
 // storage can be missing or blocked (private windows, previews), and a bad or old save is dropped
 // with a warning, never a crash.
-import type { BestFinish, Content, RunState } from '../../sim';
+import type { BestFinish, Content, Replay, RunState } from '../../sim';
 
 export const RUN_KEY = 'automoba.run';
 export const BEST_KEY = 'automoba.best';
+export const MATCH_KEY = 'automoba.match';
 
 /** The parts of `Storage` the save uses (tests pass a stand-in). */
 export type SaveStore = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
@@ -83,4 +86,57 @@ export function loadBest(at: SaveStore | null = store()): BestFinish | null {
 
 export function saveBest(best: BestFinish | null, at: SaveStore | null = store()): void {
   write(BEST_KEY, best, at);
+}
+
+// ------------------------------------------------------------ a match in progress
+
+/**
+ * A live match on this device: the sim is deterministic, so its seed, setup and command log (the
+ * `Replay`) are enough to play it back to the same position. `check` is a fingerprint of that
+ * position; a replay that does not reproduce it is dropped, never resumed half-right.
+ */
+export interface MatchSave {
+  v: 1;
+  replay: Replay;
+  tick: number;
+  /** The Act, for the Title's "Resume" line. */
+  act: number;
+  /** The Tournament run this match belongs to (its seed and round), or null for an Exhibition. */
+  run: { seed: number; round: number } | null;
+  /** The speed the match was running at (1, 2, 4 or 8). */
+  speed: number;
+  check: string;
+}
+
+function validMatch(c: Content, x: unknown): x is MatchSave {
+  const m = x as MatchSave | null;
+  if (!m || typeof m !== 'object' || m.v !== 1) return false;
+  if (!Number.isInteger(m.tick) || m.tick < 1 || !Number.isInteger(m.act)) return false;
+  if (typeof m.check !== 'string' || !Number.isFinite(m.speed)) return false;
+  if (m.run !== null && (!Number.isFinite(m.run?.seed) || !Number.isInteger(m.run?.round)))
+    return false;
+  const r = m.replay;
+  if (!r || r.contentHash !== c.hash || !Number.isFinite(r.config?.seed)) return false;
+  return (
+    Array.isArray(r.ops) &&
+    r.ops.every((o) =>
+      o?.op === 'step'
+        ? Number.isInteger(o.ticks) && o.ticks > 0
+        : o?.op === 'issue' && typeof o.cmd?.type === 'string',
+    )
+  );
+}
+
+/** The saved match in progress, or null (none, unreadable, or recorded against other content). */
+export function loadMatch(c: Content, at: SaveStore | null = store()): MatchSave | null {
+  const raw = read(MATCH_KEY, at);
+  if (raw === null) return null;
+  if (validMatch(c, raw)) return raw;
+  console.warn('The saved match does not fit this version of the game; it was dropped.');
+  write(MATCH_KEY, null, at);
+  return null;
+}
+
+export function saveMatch(match: MatchSave | null, at: SaveStore | null = store()): void {
+  write(MATCH_KEY, match, at);
 }

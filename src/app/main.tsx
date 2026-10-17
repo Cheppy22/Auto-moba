@@ -31,6 +31,12 @@ window.addEventListener(
 );
 window.addEventListener('keydown', unlock);
 
+// a phone can kill a hidden page at any moment: save the match the moment the page is left
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') session.autosave(performance.now(), true);
+});
+window.addEventListener('pagehide', () => session.autosave(performance.now(), true));
+
 preloadViews();
 registerServiceWorker();
 
