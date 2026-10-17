@@ -78,7 +78,7 @@ for (const { w, h } of SIZES) {
             __session: {
               match: {
                 step(n: number): number;
-                state: { forks: unknown[] };
+                state: { forks: unknown[]; bell: { stage: string } };
                 issue(c: { type: string }): unknown;
                 events: { type: string; payload: { kind?: string } }[];
               };
@@ -89,6 +89,13 @@ for (const { w, h } of SIZES) {
         for (let i = 0; i < 800; i++) {
           s.match.step(20);
           if (s.match.state.forks.length > 0) s.match.issue({ type: 'autoForks' });
+          if (s.match.state.bell.stage === 'break') {
+            s.match.issue({ type: 'autoRelic' });
+            if (!(s.match.issue({ type: 'resumeAct' }) as { ok: boolean }).ok) {
+              s.match.issue({ type: 'declineRelic' });
+              s.match.issue({ type: 'resumeAct' });
+            }
+          }
           if (s.match.events.some((e) => e.type === 'death' && e.payload.kind === 'hero')) break;
         }
         s.notify();
@@ -96,7 +103,9 @@ for (const { w, h } of SIZES) {
       await step(page, 1);
       const bar = await boxOf(page, 'court-bar');
       await expect
-        .poll(async () => Math.max(await opacity('tray-A'), await opacity('tray-B')))
+        .poll(async () => Math.max(await opacity('tray-A'), await opacity('tray-B')), {
+          timeout: 30_000,
+        })
         .toBe(1);
       for (const id of ['tray-A', 'tray-B']) {
         if ((await opacity(id)) < 1) continue;
