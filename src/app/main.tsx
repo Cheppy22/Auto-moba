@@ -1,9 +1,11 @@
 import { render } from 'preact';
 import { App } from '../ui/App';
 import { Session, SessionContext } from '../ui/session';
+import { preloadViews } from '../ui/lazy';
 import { play, unlock } from '../ui/sound';
 import '../ui/styles.css';
 import { loadBrowserContent } from './content';
+import { registerServiceWorker } from './pwa';
 import { FrameClock } from './loop';
 
 const session = new Session(loadBrowserContent());
@@ -28,6 +30,9 @@ window.addEventListener(
   { capture: true },
 );
 window.addEventListener('keydown', unlock);
+
+preloadViews();
+registerServiceWorker();
 
 const root = document.getElementById('app');
 if (root) {

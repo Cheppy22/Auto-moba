@@ -1,15 +1,19 @@
 import { useEffect } from 'preact/hooks';
-import { Adjourn } from './Adjourn';
 import { GlossaryPopover } from './glossary';
-import { Hud } from './Hud';
-import { Intro } from './hud/Intro';
-import { Report } from './Report';
 import { Setup } from './Setup';
 import { Stage } from './Stage';
 import { Title } from './Title';
 import { RunScreen } from './run/RunScreen';
+import { lazyView } from './lazy';
 import { useLayout } from './layout';
 import { useSession } from './session';
+import { UpdateNotice } from './update';
+
+// the match screens and the report load as their own chunks (see lazy.tsx)
+const Hud = lazyView(() => import('./Hud').then((m) => m.Hud), 'match');
+const Intro = lazyView(() => import('./hud/Intro').then((m) => m.Intro), 'match intro');
+const Adjourn = lazyView(() => import('./Adjourn').then((m) => m.Adjourn), 'adjourn');
+const Report = lazyView(() => import('./Report').then((m) => m.Report), 'report');
 
 export function App() {
   const s = useSession();
@@ -28,6 +32,7 @@ export function App() {
       <>
         {s.run ? <RunScreen /> : <Title />}
         <GlossaryPopover />
+        <UpdateNotice />
       </>
     );
   const kind = m.state.phase.kind;
@@ -52,6 +57,7 @@ export function App() {
       {kind === 'live' && s.ui.adjourned && <Adjourn />}
       {kind === 'end' && <Report />}
       <GlossaryPopover />
+      <UpdateNotice />
     </div>
   );
 }

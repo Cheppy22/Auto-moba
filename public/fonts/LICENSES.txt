@@ -1,0 +1,14 @@
+Fonts bundled with Auto-MOBA (served from this folder so the game starts offline)
+
+IM Fell English SC (im-fell-english-sc-400.woff2)
+  Copyright (c) 2010 Igino Marini (www.ft-fontsfromspain.com / mail@iginomarini.com).
+  SIL Open Font License 1.1.
+
+Spectral (spectral-400.woff2, spectral-400-italic.woff2, spectral-600.woff2)
+  Copyright (c) 2017 Production Type (hello@productiontype.com).
+  SIL Open Font License 1.1.
+
+Both are licensed under the SIL Open Font License, Version 1.1: https://openfontlicense.org
+The fonts may be used, embedded, bundled and redistributed with software, including commercially,
+provided the copyright notice and this license are kept. They are the latin subsets as served by
+Google Fonts (fonts.google.com/specimen/IM+Fell+English+SC, fonts.google.com/specimen/Spectral).

@@ -1,0 +1,21 @@
+/* "New version ready" bar: bottom centre, above everything but the glossary */
+.update-notice {
+  position: fixed;
+  left: 50%;
+  bottom: calc(14px + env(safe-area-inset-bottom));
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  max-width: calc(100vw - 32px);
+  padding: 6px 8px 6px 16px;
+  transform: translateX(-50%);
+  font-family: var(--font-display);
+  letter-spacing: 0.04em;
+  color: var(--ivory);
+  background: linear-gradient(180deg, var(--walnut) 0%, #1d1510 100%);
+  border: 1px solid var(--brass);
+  border-radius: 999px;
+  box-shadow: var(--sh-2);
+  animation: toast-in var(--t-med) var(--ease) both;
+}
