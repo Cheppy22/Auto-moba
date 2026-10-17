@@ -117,12 +117,15 @@ void main() {
 
   // paper: a warm wash in the shadows, fibres and grain fixed to the screen, a soft vignette
   float shade = 1.0 - smoothstep(0.0, 0.55, lp);
-  col = mix(col, col * uWash, shade * 0.35);
+  col = mix(col, col * uWash, shade * 0.22);
   vec2 sp = gl_FragCoord.xy / uPx;
   float fib = vnoise(vec2(sp.x * 0.08 + sp.y * 0.03, sp.y * 0.6)) - 0.5;
   float grit = vnoise(sp * 0.7) - 0.5;
   float tooth = vnoise(sp * 0.18) - 0.5;
-  col *= 1.0 + uGrain * (fib * 0.9 + grit * 0.7 + tooth * 0.8);
+  float grain = fib * 0.9 + grit * 0.7 + tooth * 0.8;
+  // multiplied on the lit tones, and a touch added so it still shows on the night-dark floor
+  col *= 1.0 + uGrain * grain;
+  col += uGrain * 0.12 * grain;
   vec2 v = vUv - 0.5;
   col *= 1.0 - dot(v, v) * 0.35;
 
@@ -156,7 +159,7 @@ export class InkPass {
         uInk: { value: new Color('#1d140c').convertSRGBToLinear() },
         uWash: { value: new Color('#c9a77a').convertSRGBToLinear() },
         uToon: { value: 0.3 },
-        uGrain: { value: 0.07 },
+        uGrain: { value: 0.08 },
       },
       depthTest: false,
       depthWrite: false,
