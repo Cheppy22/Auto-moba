@@ -1,0 +1,70 @@
+{
+  "upgrades": [
+    {
+      "id": "rabbit_u1",
+      "hero": "rabbit",
+      "name": "Quicker Ticking",
+      "ability": 0,
+      "cooldownMul": 0.8,
+      "powerMul": 1.15,
+      "rangeMul": 1,
+      "radiusMul": 1,
+      "desc": "I'm Late! recharges faster and cuts deeper"
+    },
+    {
+      "id": "rabbit_u2",
+      "hero": "rabbit",
+      "name": "Sharp Hands",
+      "ability": 1,
+      "cooldownMul": 1,
+      "powerMul": 1.35,
+      "rangeMul": 1,
+      "radiusMul": 1,
+      "desc": "Pocket-Watch Strike deals 35% more"
+    },
+    {
+      "id": "rabbit_u3",
+      "hero": "rabbit",
+      "name": "Hurried Greeting",
+      "ability": 2,
+      "cooldownMul": 0.8,
+      "powerMul": 1,
+      "rangeMul": 1,
+      "radiusMul": 1,
+      "desc": "No Time to Say Hello recharges 20% faster"
+    },
+    {
+      "id": "rabbit_u4",
+      "hero": "rabbit",
+      "name": "Punctual",
+      "ability": 3,
+      "cooldownMul": 0.85,
+      "powerMul": 1.25,
+      "rangeMul": 1,
+      "radiusMul": 1,
+      "desc": "The Appointed Hour hits harder and recharges faster"
+    },
+    {
+      "id": "rabbit_u5",
+      "hero": "rabbit",
+      "name": "Down the Hole",
+      "ability": 0,
+      "cooldownMul": 1,
+      "powerMul": 1,
+      "rangeMul": 1.3,
+      "radiusMul": 1,
+      "desc": "I'm Late! reaches 30% farther"
+    },
+    {
+      "id": "rabbit_u6",
+      "hero": "rabbit",
+      "name": "Wound Spring",
+      "ability": 1,
+      "cooldownMul": 0.75,
+      "powerMul": 1,
+      "rangeMul": 1,
+      "radiusMul": 1,
+      "desc": "Pocket-Watch Strike recharges 25% faster"
+    }
+  ]
+}

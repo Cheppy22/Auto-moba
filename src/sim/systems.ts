@@ -1,3 +1,5 @@
+import { maybeSwapLane } from './ai/swap';
+import { teamNetWorth } from './curses';
 import {
   TPS,
   HERO_ASSIST_WINDOW,
@@ -18,6 +20,7 @@ import { LANES } from './world/map';
 import type { PlayTeam, Unit } from './types';
 import { other } from './types';
 import { onCampUnitDeath } from './camps';
+import { endAllEvents, onEventUnitDeath } from './events';
 import { removeBoardClaim } from './ai/claims';
 
 export function spawnWaves(ctx: Ctx): void {
@@ -31,11 +34,16 @@ export function spawnWaves(ctx: Ctx): void {
       ? w.extraMeleePerPhaseAfter * (phase - w.extraMeleeFromPhase + 1)
       : 0;
   const melee = w.melee + extra;
+  // The short mid lane would clash at the exact centre every wave; the team that "leads" alternates
+  // by wave (a deterministic stagger) so the clash point drifts to either side of the centre.
+  const waveNo = Math.round((ctx.s.nextWaveTick - w.firstSec * TPS) / (w.intervalSec * TPS));
+  const leader: PlayTeam = waveNo % 2 === 0 ? 'A' : 'B';
   for (const team of ['A', 'B'] as PlayTeam[]) {
     for (const lane of LANES) {
-      for (let i = 0; i < melee; i++) makeMinion(ctx, team, lane, 'melee', scale, i * 9);
+      const lead = lane === 'mid' && team === leader ? w.midLeadUnits : 0;
+      for (let i = 0; i < melee; i++) makeMinion(ctx, team, lane, 'melee', scale, i * 9 + lead);
       for (let i = 0; i < w.ranged; i++)
-        makeMinion(ctx, team, lane, 'ranged', scale, (melee + i) * 9);
+        makeMinion(ctx, team, lane, 'ranged', scale, (melee + i) * 9 + lead);
     }
   }
 }
@@ -122,7 +130,10 @@ function killUnit(ctx: Ctx, u: Unit): void {
     case 'hero': {
       const h = u.hero!;
       h.deaths++;
+      const victimStreak = h.streak;
       h.streak = 0;
+      h.lossStreak = ctx.s.tick - h.lastDeathTick > ctx.t.ai.lossWindowTicks ? 1 : h.lossStreak + 1;
+      h.lastDeathTick = ctx.s.tick;
       h.recall = null;
       h.goal = null;
       h.respawnAt = ctx.s.tick + respawnTicks(ctx, u);
@@ -131,11 +142,18 @@ function killUnit(ctx: Ctx, u: Unit): void {
       if (killerHero && killerTeam) {
         const kh = killerHero.hero!;
         kh.kills++;
+        kh.lossStreak = 0;
         kh.streak++;
+        const behind = Math.max(
+          0,
+          teamNetWorth(ctx, u.team as PlayTeam) - teamNetWorth(ctx, killerTeam),
+        );
         giveGold(
           ctx,
           killerHero,
-          ctx.t.gold.heroKill + ctx.t.gold.killBountyPerStreak * Math.min(5, h.streak),
+          ctx.t.gold.heroKill +
+            ctx.t.gold.killBountyPerStreak * Math.min(5, victimStreak) +
+            Math.round((ctx.t.gold.comebackBounty * Math.min(behind, 8000)) / 1000),
           'kill',
         );
         fireTriggers(ctx, killerHero, 'kill', { victim: u });
@@ -151,9 +169,14 @@ function killUnit(ctx: Ctx, u: Unit): void {
         x: u.x,
         y: u.y,
       });
+      maybeSwapLane(ctx, u);
       break;
     }
     case 'minion': {
+      if (u.ev) {
+        onEventUnitDeath(ctx, u, killer);
+        break;
+      }
       if (killerHero) {
         giveGold(ctx, killerHero, u.bounty, 'lasthit');
         shareNearby(ctx, u, killerTeam, killerHero.id, ctx.t.gold.minionShare);
@@ -197,6 +220,7 @@ function killUnit(ctx: Ctx, u: Unit): void {
         y: u.y,
       });
       ctx.s.winner = winner;
+      endAllEvents(ctx);
       ctx.s.phase.kind = 'end';
       ctx.emit('matchEnd', { winner, phase: ctx.s.phase.n });
       break;
@@ -240,6 +264,7 @@ export function respawnHeroes(ctx: Ctx): void {
       u.dirty = true;
       u.hp = u.stats.maxHp;
       u.hero.respawnAt = null;
+      u.hero.lastStandUsed = false;
       u.hero.engage = 'fight';
       u.shields = [];
       u.dots = [];

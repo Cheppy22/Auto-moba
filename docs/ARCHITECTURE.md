@@ -1,12 +1,12 @@
 # Auto-MOBA — Architecture v1
 
-As of 2026-10-06. Game decisions live in [DESIGN.md](DESIGN.md); this file covers frameworks, systems, boundaries and milestone tasks. How each task is coded is decided per task by the planner agent.
+As of 2026-10-06. Game decisions live in [SOURCE_OF_TRUTH.md](SOURCE_OF_TRUTH.md) (the original v1 baseline is in [archive/DESIGN-v1.md](archive/DESIGN-v1.md)); this file covers frameworks, systems, boundaries and milestone tasks. How each task is coded is decided per task by the planner agent.
 
 The prototype is one browser game in TypeScript. A deterministic simulation core is walled off from rendering and UI, and all content lives in validated data files.
 
 ## Scope and principles
 
-**In scope (M1–M6):** 4 heroes, about 15 items, 4 cursed items, 2 holy items, 3 biomes, 4 pressure events, one neutral AI difficulty, a full match loop with reports, and a headless balance runner.
+**In scope (M1–M6):** 9 heroes (4 at first, 5 added later), about 15 items, 6 cursed items, 2 holy items, 5 biomes, 4 pressure events, one neutral AI difficulty, a full match loop with reports, and a headless balance runner.
 
 **Out of scope:** meta-progression, lane identity, The Core mode, lore, multiplayer, save/load between sessions, audio, a mobile-first layout, and multiple AI difficulties.
 
@@ -27,7 +27,7 @@ The prototype is one browser game in TypeScript. A deterministic simulation core
 | Dev server / bundle | Vite                                                          | Zero-config, fast reload                             |
 | Tests               | Vitest                                                        | Same config as Vite; runs sim tests in Node          |
 | Browser smoke tests | Playwright (preinstalled Chromium)                            | Checks screens load and a match runs                 |
-| Game drawing        | Canvas 2D, no library                                         | Enough for about 100 units; nothing to port          |
+| Game drawing        | three.js 3D view (lazy loaded); Canvas 2D for report replays  | One physical 3D map; 2D only draws report paths      |
 | Screens             | Preact                                                        | Reports and shop need interactive UI; about 4 KB     |
 | Content schemas     | Zod                                                           | One schema gives both types and load-time validation |
 | Lint / format       | ESLint with `no-restricted-imports` per folder, plus Prettier | Enforces layer boundaries without an extra plugin    |
@@ -37,12 +37,13 @@ The prototype is one browser game in TypeScript. A deterministic simulation core
 content/         JSON: heroes, items, upgrades, biomes, pressure, badges, map, tuning
 src/sim/         pure simulation: core, world, systems, ai, events, commands, content loader
 src/analysis/    pure: event log -> report models (stats, fights, badges, paths)
-src/render/      Canvas drawing of snapshots, sigils, map, replay overlays
+src/render/      sigils, theme, report replay (Canvas 2D);
+                 broadcast/ = the three.js game view, terrain and play director
 src/ui/          Preact screens: draft, HUD, between-phase, reports
 src/app/         wiring: frame clock, speed control, screen state machine
 tools/           Node: headless match, batch balance runner
 tests/           cross-layer tests: determinism, golden match, content, e2e
-docs/            DESIGN.md, ARCHITECTURE.md
+docs/            SOURCE_OF_TRUTH.md, CHANGELOG.md, ARCHITECTURE.md, archive/
 ```
 
 ## System map
@@ -116,6 +117,7 @@ Each system owns one slice of `MatchState`, runs at a fixed point in the tick or
 - **Biome slots:** 6 regions between lanes. 2 open at phase 1 (inner jungle), 2 at phase 2, 2 at phase 3. When a slot opens, the `mapgen` stream draws a biome template.
 - **Biome template (data):** camp spots, a reward table and nav nodes that attach to the slot's fixed entry points.
 - **Navigation:** a waypoint graph (lanes, jungle, open biome nodes) with shortest-path search. Local steering only inside fights. No grid pathfinding.
+- **Walkable space** (`world/terrain.ts`): capsules for lane corridors, bases, open jungle clearings and their gate paths, shops and Keeper spots (sizes in `map.json` → `walk`). Every move is confined to them; a chase whose straight line crosses solid ground detours through the nav graph. The 3D view builds its cliffs from the same shapes.
 - **Jungle refresh:** at each phase start, camp types in open slots are re-rolled from their biome's table.
 - **Spatial index:** a uniform grid for range and target queries.
 
@@ -157,7 +159,7 @@ Each system owns one slice of `MatchState`, runs at a fixed point in the tick or
   - Thinning Veil: global heal multiplier.
   - Spirit Tide: neutral waves from camps walk the lanes, reusing the wave system with team `neutral`.
   - Keeper Calls In Debts: the `curse` tag multiplier goes to 2.
-  - Restless Guardians: guardian AI switches from stationary to roaming.
+  - The Kings Wake (id `restless_guardians`, rule `roamingGuardians`): guardian (King) AI switches from stationary to roaming.
 
 ### Keeper, curses, auction, obelisks
 
@@ -211,13 +213,14 @@ The sim records; `src/analysis` turns the log into numbers; the UI displays. No 
 
 ## Presentation
 
-**Renderer (Canvas 2D)**
+**Game view (three.js, `src/render/broadcast/`, spec [BROADCAST.md](BROADCAST.md))**
 
-- Reads a render snapshot built on demand once per frame (not per tick).
-- Layers: cached map backdrop (redrawn when a biome slot opens), units, effects and particles, overlays (hp bars, posture icon, recall channel).
-- Hero sigils are generated by code from each hero's visual parameters; biomes are palettes plus simple shapes. No image files.
-- The whole map fits the viewport. No panning in v1.
-- The report replay reuses the map backdrop with path and marker overlays.
+- Reads a render snapshot built on demand once per frame (not per tick) plus the new events.
+- Terrain: a heightfield island built from the sim's walkable shapes; height is visual only. Scenery is instanced; sealed jungle clearings are veiled until they open.
+- Director picks the play; camera modes Auto, Follow and Free (touch: pan, pinch, twist).
+- Hero sigils are generated by code from each hero's visual parameters. No image or model files.
+- `project(x, y, lift)` gives screen positions for HTML overlays (shop pins).
+- The report path replay is still Canvas 2D (`render/replay.ts`).
 
 **UI (Preact)**
 
@@ -253,7 +256,7 @@ Every task merges only when `npm run check` passes: typecheck, lint (including l
 - Browser: 60 fps at 4x speed on a mid-range laptop.
 - Event log: under 50 MB for a 6-phase match.
 
-**Safety guard.** Tests and tools stop any match reaching phase 10 and flag it as a bug (Restless Guardians failed to end it). A test guard, not a game rule.
+**Safety guard.** Tests and tools stop any match reaching phase 10 and flag it as a bug (The Kings Wake failed to end it). A test guard, not a game rule.
 
 **Working rules for agents**
 
@@ -265,7 +268,7 @@ Every task merges only when `npm run check` passes: typecheck, lint (including l
 
 ## Milestones
 
-Six milestones with one human checkpoint after M3. All tasks are built; see [BUILD_NOTES.md](BUILD_NOTES.md) for deviations, including that the human checkpoint was skipped by instruction and the M6 tuning pass touched code as well as content.
+Six milestones with one human checkpoint after M3. All tasks are built; see [archive/BUILD_NOTES.md](archive/BUILD_NOTES.md) for deviations, including that the human checkpoint was skipped by instruction and the M6 tuning pass touched code as well as content.
 
 ### M1 — Simulation core (headless)
 
@@ -371,4 +374,4 @@ An adversarial pass on the first draft found 16 issues; all are fixed above.
 | --- | --------------------------------------------- | --------------------------------------------------------- |
 | 1   | Do heroes stay where they are between phases? | Yes: keep position and hp, shop remotely                  |
 | 2   | M6 balance targets                            | Every hero at 40–60% win rate; median match 11–14 minutes |
-| 3   | Repo copy for the planner agent               | Yes: this file and `DESIGN.md`                            |
+| 3   | Repo copy for the planner agent               | Yes: this file and `SOURCE_OF_TRUTH.md`                   |

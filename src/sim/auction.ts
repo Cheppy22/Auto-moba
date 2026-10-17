@@ -16,7 +16,12 @@ export function initAuction(ctx: Ctx): void {
 }
 
 export function auctionOpen(ctx: Ctx): boolean {
-  return ctx.s.phase.kind === 'prep' && ctx.s.phase.n <= 3 && !ctx.s.auction.resolved;
+  return (
+    ctx.t.auction.enabled &&
+    ctx.s.phase.kind === 'prep' &&
+    ctx.s.phase.n <= 3 &&
+    !ctx.s.auction.resolved
+  );
 }
 
 export function placeBid(

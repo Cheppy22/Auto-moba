@@ -1,14 +1,16 @@
 export const PALETTE = {
-  bg: '#0a0b10',
-  panel: '#171923',
-  border: '#2a2f3d',
-  text: '#e8e6df',
-  dim: '#9aa0b4',
-  gold: '#e7c35a',
-  neutral: '#b9a6ff',
-  camp: '#d08a4a',
-  teamA: '#4fd1c5',
-  teamB: '#f2677b',
+  bg: '#08080c',
+  panel: '#141320',
+  border: '#6b5532',
+  text: '#ece2cc',
+  dim: '#9d93a8',
+  gold: '#e0a93e',
+  neutral: '#b9a0e6',
+  spirit: '#c4a8f0',
+  seal: '#b3262e',
+  camp: '#b0794a',
+  teamA: '#6fbfa8',
+  teamB: '#d04a52',
 } as const;
 
 export function teamColor(team: string): string {

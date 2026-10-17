@@ -1,0 +1,82 @@
+:root {
+  --ink-0: #07060b;
+  --ink-1: #0c0a12;
+  --lacquer: #15111e;
+  --lacquer-2: #1d1828;
+  --lacquer-3: #2a2338;
+  --brass: #c9a24a;
+  --brass-dim: #6f5a2e;
+  --brass-hi: #f0d58a;
+  --washi: #ece3cd;
+  --washi-2: #d9cdac;
+  --sumi: #1b1612;
+  --seal: #b3262e;
+  --seal-hi: #e0545c;
+  --seal-deep: #6e141b;
+  --spirit: #c4a8f0;
+  --spirit-dim: #7c66b8;
+  --a: #6fbfa8;
+  --b: #d04a52;
+  --good: #9cb874;
+  --warn: #e0a93e;
+  --bad: #d04a52;
+  --gold: var(--brass-hi);
+  --accent: var(--spirit);
+
+  --mind-1: #7d97b8;
+  --mind: #8fb8ec;
+  --mind-3: #b8d6ff;
+  --body-1: #93a77a;
+  --body: #a9c97c;
+  --body-3: #cde6a2;
+  --soul-1: #a596c0;
+  --soul: #c3a2f4;
+  --soul-3: #ddc8ff;
+  --kw-true: #f6f0e2;
+  --kw-gold: #f0d58a;
+  --kw-price: #ec6a70;
+  --kw-rule: #c9a24a;
+
+  --text: #ece2cc;
+  --dim: #a39aae;
+  --faint: #6f6779;
+  --rule: #342d40;
+  --border: #6f5a2e;
+
+  --font-display: 'IM Fell English SC', 'Iowan Old Style', Georgia, serif;
+  --font-body: 'Spectral', 'Iowan Old Style', Georgia, serif;
+  --font-seal: 'Shippori Mincho', 'Hiragino Mincho ProN', 'Yu Mincho', serif;
+
+  --fs-xs: 12px;
+  --fs-sm: 13.5px;
+  --fs-md: 15px;
+  --fs-lg: 18px;
+  --fs-xl: 24px;
+  --fs-2xl: 34px;
+
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+
+  --r-1: 2px;
+  --r-2: 6px;
+
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --t-fast: 120ms;
+  --t-med: 220ms;
+
+  --sh-1: 0 1px 0 rgba(0, 0, 0, 0.6);
+  --sh-2: 0 10px 28px rgba(0, 0, 0, 0.55);
+  --glow-brass: 0 0 14px rgba(201, 162, 74, 0.35);
+  --glow-seal: 0 0 16px rgba(179, 38, 46, 0.5);
+  --glow-spirit: 0 0 14px rgba(196, 168, 240, 0.4);
+
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .9 0 0 0 0 .85 0 0 0 0 .7 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --fibers: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.04 .9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 .45 0 0 0 0 .36 0 0 0 0 .2 0 0 0 .22 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E");
+
+  font-family: var(--font-body);
+  color-scheme: dark;
+}

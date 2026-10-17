@@ -1,0 +1,70 @@
+{
+  "upgrades": [
+    {
+      "id": "navigator_u1",
+      "hero": "navigator",
+      "name": "Powder Dry",
+      "ability": 0,
+      "cooldownMul": 1,
+      "powerMul": 1.3,
+      "rangeMul": 1,
+      "radiusMul": 1,
+      "desc": "Musket Shot deals 30% more"
+    },
+    {
+      "id": "navigator_u2",
+      "hero": "navigator",
+      "name": "Quick Reload",
+      "ability": 0,
+      "cooldownMul": 0.8,
+      "powerMul": 1,
+      "rangeMul": 1,
+      "radiusMul": 1,
+      "desc": "Musket Shot cools down 20% faster"
+    },
+    {
+      "id": "navigator_u3",
+      "hero": "navigator",
+      "name": "Tarred Canvas",
+      "ability": 1,
+      "cooldownMul": 0.85,
+      "powerMul": 1.3,
+      "rangeMul": 1,
+      "radiusMul": 1,
+      "desc": "Fair Winds is 30% stronger and 15% faster"
+    },
+    {
+      "id": "navigator_u4",
+      "hero": "navigator",
+      "name": "Deep Anchor",
+      "ability": 2,
+      "cooldownMul": 0.8,
+      "powerMul": 1,
+      "rangeMul": 1.3,
+      "radiusMul": 1,
+      "desc": "Cast Anchor slides farther and recharges faster"
+    },
+    {
+      "id": "navigator_u5",
+      "hero": "navigator",
+      "name": "Gale Force",
+      "ability": 3,
+      "cooldownMul": 0.8,
+      "powerMul": 1.2,
+      "rangeMul": 1,
+      "radiusMul": 1.2,
+      "desc": "Full Sail is stronger, wider and recharges faster"
+    },
+    {
+      "id": "navigator_u6",
+      "hero": "navigator",
+      "name": "Long Barrel",
+      "ability": 0,
+      "cooldownMul": 1,
+      "powerMul": 1,
+      "rangeMul": 1.3,
+      "radiusMul": 1,
+      "desc": "Musket Shot reaches 30% farther"
+    }
+  ]
+}

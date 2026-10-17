@@ -52,7 +52,7 @@ describe('world', () => {
 });
 
 describe('damage and shop', () => {
-  const m = Match.create(content, { seed: 9, player: { heroId: 'smelter', role: 'top' } });
+  const m = Match.create(content, { seed: 9, player: { heroId: 'queen', role: 'top' } });
   const hero = m.unitById(m.state.playerHeroId!)!;
 
   it('armor reduces blade damage, resist reduces soul, true ignores both', () => {
@@ -81,14 +81,14 @@ describe('damage and shop', () => {
     expect(hero.hero!.gold).toBe(before - 350 + 450);
   });
 
-  it('tier 3 items are not in the base catalog until unlocked or stocked', () => {
+  it('tier 3 items are not in the base catalog; only the keeper stock sells them there', () => {
     const q = quote(m.ctx, hero, 'soot_reaver');
     const stocked = m.state.keeper.stock.includes('soot_reaver');
     expect('price' in q).toBe(stocked);
   });
 
   it('upgrades scale ability numbers', () => {
-    hero.hero!.upgrades = ['smelter_u1'];
+    hero.hero!.upgrades = ['queen_u1'];
     expect(abilityMods(m.ctx, hero, 0).powerMul).toBeCloseTo(1.3);
     expect(abilityMods(m.ctx, hero, 1).powerMul).toBe(1);
   });

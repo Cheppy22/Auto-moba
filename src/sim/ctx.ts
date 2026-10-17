@@ -24,6 +24,8 @@ export interface Ctx {
   c: Content;
   t: Tuning;
   world: World;
+  /** Ids of the jungle slots that are open; kept in step with `s.slots[].open`. */
+  open: Set<string>;
   rec: Recorder;
   idx: Map<number, Unit>;
   grid: Grid<Unit>;

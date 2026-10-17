@@ -3,7 +3,8 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadContent, type Content, type RawContentFiles } from '../src/sim';
 
-const root = join(dirname(fileURLToPath(import.meta.url)), '..', 'content');
+const root =
+  process.env.CONTENT_DIR ?? join(dirname(fileURLToPath(import.meta.url)), '..', 'content');
 
 const readJson = (p: string): unknown => JSON.parse(readFileSync(p, 'utf8'));
 const readDir = (dir: string): unknown[] =>
@@ -52,11 +53,31 @@ function applyScale(raw: RawContentFiles): RawContentFiles {
   return raw;
 }
 
+// BALANCE_HEROES="a,b,c" restricts the hero pool (e.g. to measure only a subset of the roster).
+function heroPool(): unknown[] {
+  const all = readDir('heroes');
+  const only = process.env.BALANCE_HEROES;
+  if (!only) return all;
+  const ids = new Set(only.split(','));
+  return all.filter((h) => ids.has((h as { id: string }).id));
+}
+
+function upgradePool(): unknown[] {
+  const all = readDir('upgrades');
+  const only = process.env.BALANCE_HEROES;
+  if (!only) return all;
+  const ids = new Set(only.split(','));
+  return all.filter((f) =>
+    ((f as { upgrades: { hero: string }[] }).upgrades ?? []).every((u) => ids.has(u.hero)),
+  );
+}
+
 export function readRawContent(): RawContentFiles {
   return applyScale({
-    heroes: readDir('heroes'),
+    heroes: heroPool(),
     items: readDir('items'),
-    upgrades: readDir('upgrades'),
+    upgrades: upgradePool(),
+    events: readDir('events'),
     biomes: readDir('biomes'),
     pressure: readJson(join(root, 'pressure.json')),
     badges: readJson(join(root, 'badges.json')),

@@ -2,6 +2,7 @@ import { hashContent } from '../core/rng';
 import {
   BadgesSchema,
   BiomeSchema,
+  EventFileSchema,
   HeroSchema,
   ItemFileSchema,
   MapSchema,
@@ -11,6 +12,7 @@ import {
   type BadgeDef,
   type BiomeDef,
   type CursedItemDef,
+  type EventDef,
   type HeroDef,
   type HolyItemDef,
   type ItemDef,
@@ -25,6 +27,7 @@ export interface RawContentFiles {
   items: unknown[];
   upgrades: unknown[];
   biomes: unknown[];
+  events: unknown[];
   pressure: unknown;
   badges: unknown;
   map: unknown;
@@ -46,6 +49,8 @@ export interface Content {
   upgradesByHero: Map<string, UpgradeDef[]>;
   biomes: BiomeDef[];
   biomeById: Map<string, BiomeDef>;
+  events: EventDef[];
+  eventById: Map<string, EventDef>;
   pressure: PressureDef[];
   badges: BadgeDef[];
   map: MapDef;
@@ -101,6 +106,13 @@ export function validateRefs(c: Content): string[] {
   for (const n of c.map.obeliskNodes) {
     if (n.slot && !slotIds.has(n.slot)) errs.push(`obelisk node ${n.id}: unknown slot ${n.slot}`);
   }
+  for (const e of c.events) {
+    if (e.kind === 'parade' && e.lanes.length === 0) errs.push(`event ${e.id}: parade needs lanes`);
+    if (e.kind !== 'well' && e.units.length === 0) errs.push(`event ${e.id}: needs units`);
+    if (e.kind === 'well' && (e.holdSec <= 0 || e.buffs.length === 0))
+      errs.push(`event ${e.id}: well needs holdSec and buffs`);
+    if (e.kind === 'oni' && !e.telegraph) errs.push(`event ${e.id}: oni needs telegraph`);
+  }
   const pressureIds = new Set(c.pressure.map((p) => p.id));
   if (pressureIds.size !== c.pressure.length) errs.push('pressure ids not unique');
   for (const h of c.heroes) {
@@ -124,6 +136,7 @@ export function loadContent(raw: RawContentFiles): Content {
   const holy = itemFiles.flatMap((f) => f.holy);
   const upgrades = raw.upgrades.flatMap((f) => UpgradeFileSchema.parse(f).upgrades);
   const biomes = raw.biomes.map((b) => BiomeSchema.parse(b));
+  const events = raw.events.flatMap((f) => EventFileSchema.parse(f).events);
   const pressure = PressureSchema.parse(raw.pressure).events;
   const badges = BadgesSchema.parse(raw.badges).badges;
   const map = MapSchema.parse(raw.map);
@@ -150,6 +163,8 @@ export function loadContent(raw: RawContentFiles): Content {
     upgradesByHero,
     biomes,
     biomeById: byId(biomes, 'biome'),
+    events,
+    eventById: byId(events, 'event'),
     pressure,
     badges,
     map,

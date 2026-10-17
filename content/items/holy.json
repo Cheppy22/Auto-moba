@@ -5,9 +5,21 @@
       "name": "The Saint's Candle",
       "category": "soul",
       "mods": [
-        { "stat": "soulPower", "kind": "add", "value": 55 },
-        { "stat": "resist", "kind": "add", "value": 25 },
-        { "stat": "maxHp", "kind": "add", "value": 250 }
+        {
+          "stat": "soulPower",
+          "kind": "add",
+          "value": 55
+        },
+        {
+          "stat": "resist",
+          "kind": "add",
+          "value": 25
+        },
+        {
+          "stat": "maxHp",
+          "kind": "add",
+          "value": 250
+        }
       ],
       "triggers": [
         {
@@ -15,31 +27,56 @@
           "everySec": 4,
           "target": "allyArea",
           "radius": 140,
-          "effects": [{ "type": "heal", "base": 40, "soulScale": 0.3 }]
+          "effects": [
+            {
+              "type": "heal",
+              "base": 40,
+              "soulScale": 0.3
+            }
+          ]
         }
       ],
       "hint": "Something warm that burns without wax.",
-      "desc": "+55 Soul power, +25 resist, +250 health; heals nearby allies every 4 seconds"
+      "desc": "{s|+55 Soul power}, {s|+25 resist}, {b|+250 health}. {r|Benediction}: every 4s, {b|heals} nearby allies."
     },
     {
       "id": "halo_of_rust",
       "name": "Halo of Rust",
-      "category": "blade",
+      "category": "mind",
       "mods": [
-        { "stat": "bladeDmg", "kind": "add", "value": 40 },
-        { "stat": "armor", "kind": "add", "value": 35 },
-        { "stat": "maxHp", "kind": "add", "value": 350 }
+        {
+          "stat": "bladeDmg",
+          "kind": "add",
+          "value": 40
+        },
+        {
+          "stat": "armor",
+          "kind": "add",
+          "value": 35
+        },
+        {
+          "stat": "maxHp",
+          "kind": "add",
+          "value": 350
+        }
       ],
       "triggers": [
         {
           "on": "damaged",
           "target": "self",
           "cooldownSec": 8,
-          "effects": [{ "type": "shield", "base": 80, "bladeScale": 0.5, "durationSec": 4 }]
+          "effects": [
+            {
+              "type": "shield",
+              "base": 80,
+              "bladeScale": 0.5,
+              "durationSec": 4
+            }
+          ]
         }
       ],
       "hint": "A ring of iron that remembers being gold.",
-      "desc": "+40 Blade, +35 armor, +350 health; shields you when struck"
+      "desc": "{m|+40 Blade}, {b|+35 armor}, {b|+350 health}. {r|Rust Halo}: when struck, gain a {b|shield}."
     }
   ]
 }

@@ -11,6 +11,7 @@ export function loadBrowserContent(): Content {
     heroes: dir(import.meta.glob('/content/heroes/*.json', { eager: true, import: 'default' })),
     items: dir(import.meta.glob('/content/items/*.json', { eager: true, import: 'default' })),
     upgrades: dir(import.meta.glob('/content/upgrades/*.json', { eager: true, import: 'default' })),
+    events: dir(import.meta.glob('/content/events/*.json', { eager: true, import: 'default' })),
     biomes: dir(import.meta.glob('/content/biomes/*.json', { eager: true, import: 'default' })),
     pressure: Object.values(
       import.meta.glob('/content/pressure.json', { eager: true, import: 'default' }),
