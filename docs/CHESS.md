@@ -32,7 +32,7 @@ An experimental twist on Auto-MOBA. **On this branch this file overrides [SOURCE
 
 Spec: [SPEC-TOURNAMENT-ARMORY-2026-10-13.md](SPEC-TOURNAMENT-ARMORY-2026-10-13.md) 1B. A single match (Exhibition) is unchanged.
 
-- A run is 4 matches, Club, County, Semifinal, Final; you play White every match. Win to go on; one loss ends the run. Classical pace only (Blitz comes with 2B; the run keeps a pace field for it).
+- A run is 4 matches, Club, County, Semifinal, Final; you play White every match. Win to go on; one loss ends the run. The run's **pace** (Blitz or Classical) is picked once at the Draw and every match of the run plays it (see "Blitz and Classical" below).
 - **Adjudication:** a run match that reaches the last Act's 0:00 without Checkmate goes to the side that destroyed more enemy Bastions, then to the side with more Throne health; a dead tie is a loss (`MatchConfig.adjudicate`, `matchEnd.adjudicated`).
 - **What carries:** the court (Opening, lanes, paths: Setup pre-fills the court the last match began with); archetypes (from match 2 a piece with a run archetype takes it at Rank 4 by itself, with no pause, and the `fork` event says `locked`; Rank 8 still pauses; a piece that never reached Rank 4 keeps its earlier archetype; change or clear between matches); relics (the ones held at the end of a match start the next one active from Act 1, aimed at the same lane or piece type; up to **5** in a run for both sides, a draft at the cap is replace-or-decline; an aim that no longer fits the court falls back to the default aim). **What resets:** items, gold, Ranks, Tempo, pawns, health (every match is a fresh match).
 - **Spoils** after each win: pick 1 of 3, one of each kind, seeded by the run seed and round: a **relic** you do not hold (with 5 held it swaps one), an **heirloom** (a tier-1 or tier-2 item up to 1,000 gold that one piece starts every later match with; offered for the piece without one that ended the match with the fewest items, from its build), a **book move** (a card from the court's Opening schools drawn twice as often for the rest of the run, stacking with the Opening's ×2). Let the AI choose: a relic while fewer than 5 are held; otherwise the heirloom or the book move, whichever is worth more gold (the heirloom its item's price, a book move `aiBookGold` 500, so a tier-1 heirloom loses to a book move and a tier-2 one beats it).
@@ -49,6 +49,17 @@ Spec: [SPEC-TOURNAMENT-ARMORY-2026-10-13.md](SPEC-TOURNAMENT-ARMORY-2026-10-13.m
   - **Run summary** (after a loss or the Final): "Champion" or "Out in the Semifinal", the four rounds (won or lost, minutes, "Adjudicated", the match's best piece), your court with archetypes, what you took, the best-finish line (with "New best" when this run set it) and "Nothing from this run carries into the next one." Buttons: **New run**, **Exhibition**, **Title**; leaving deletes the save.
   - **Best finish:** the furthest round reached, or Champion, kept on this device. It is updated when a run ends and when a run that got past the Club round is abandoned from the Title.
 - Code: in-match rules `src/sim/runRules.ts` (`MatchConfig.start`, `lockStyles`, `adjudicate`, `relicMax`; absent fields leave `MatchState.run` unset, so Exhibition matches and the baselines are unchanged); run steps `src/sim/run/`; session and save `src/ui/session.tsx`, `src/ui/run/save.ts`; screens `src/ui/run/`, styles `src/ui/css/run.css`, end-to-end test `tests/e2e/tournament.spec.ts` (its `?run=test` address flag adds `__session.testEnd(winner)`, which ends a match at once); headless runs `npm run tournament -- --runs 100 --seed 29000 --white-player --white-every 60 --workers 2 --ladder` (`--no-cards` for the idle stand-in; `--ladder` lets every run play every round; it prints win rates per round, Champions, relic counts per round and the reward kinds picked).
+
+### Blitz and Classical (pace; proposal 2026-10-17)
+
+Fable review 4.2 item 2B as redefined on 2026-10-13: Blitz changes the pace, not the Act length. Balance runs in [BALANCE-2026-10-15.md](BALANCE-2026-10-15.md) "Blitz and Classical".
+
+- **Classical** is the full match, unchanged: Acts of 240 s, the Endgame rule from Act 7, Thrones 3800, up to 10 Acts.
+- **Blitz:** the same 240 s Acts, but **at most 3 Acts** (2 breaks, so 2 relic drafts and 2 armory visits), the **Endgame rule from Act 2** (the approved definition said Act 3; the probe moved it, see the balance runs) and **Thrones 3000**. Every other pressure event (Thinning Veil, Spirit Tide, Calls In Debts) starts at Act 4 or later, so none fires in Blitz. Numbers in `content/tuning.json` `blitz` (`maxActs`, `endgameAct`, `throneHp`).
+- **Adjudication:** a Blitz match with no Checkmate when Act 3 ends is decided on points, in an Exhibition too (the same rule as a run: more enemy Bastions destroyed, then more Throne health; a dead tie is a draw in an Exhibition and a loss in a run). The report says "Decided on points".
+- **Choosing:** an Exhibition picks its pace on Setup's third page (Opening), above Begin; a run picks it once at the Draw, above **Set up your court**, and Setup in a run shows no switch. Phones (the portrait and landscape layouts) start on Blitz, desktops on Classical; the last pick is remembered on this device (`localStorage['automoba.pace']`). Changing the pace in an Exhibition's Setup rebuilds the match with the same seed.
+- **In the match:** the clock reads "Act 1/3" in Blitz ("Act 1" in Classical); the report's banner says "3 Acts of Blitz". Glossary words: Blitz, Classical.
+- Code: `MatchConfig.pace` (`'blitz'`; absent or `'classical'` is the full match), `contentFor(content, map, pace)` in `src/sim/content/loader.ts` (the Blitz numbers are applied to the match's own content), `MatchState.pace` (set only in Blitz, so Classical state and the baselines are unchanged), adjudication in `src/sim/bell.ts`; the run's `pace` goes into `nextMatchConfig`. UI: `src/ui/pace.ts`, `src/ui/PacePicker.tsx`, `Session.pace` / `setPace`. Tests: `tests/blitz.test.ts`, `tests/e2e/pace.spec.ts`. Tools: `npm run balance -- --pace blitz`, `npm run tournament -- --pace blitz`.
 
 ## Pieces
 
@@ -93,7 +104,7 @@ Both teams field the same five pieces, so balance lives in roles, styles, paths 
 - **Check:** when a King dies while its Throne stands, its team is in Check until he respawns: King respawn ×1.5 and the team deals −10% damage.
 - **Throne fallen:** a destroyed Throne doesn't end the game, but that team's King can no longer respawn.
 - **Checkmate:** a team loses the moment its Throne is down **and** its King is dead (either order).
-- **Endgame** (replaces The Kings Wake, from Act 7): Thrones take +50% damage and all respawns are +50%, so matches end.
+- **Endgame** (replaces The Kings Wake, from Act 7; from Act 2 in Blitz): Thrones take +50% damage and all respawns are +50%, so matches end.
 - Other pressure events (Thinning Veil, Spirit Tide, Calls In Debts) stay.
 
 ## Gambits
@@ -294,6 +305,7 @@ The 14 heroes and their upgrades; draft and lane pick; the player hero and every
 ## Balance targets
 
 - AI vs AI (both auto-gambits): White 48–52%, median match 12–16 min, every style picked by the AI at least 15% of the time when it's free to choose.
+- Blitz, AI vs AI: White 48–52%, median match about 8–10 min, p90 at most about 13 min; the share decided on points is reported.
 - Gambit value: White with auto-gambits vs White with none should gain 8–15 win-rate points (they matter but aren't mandatory).
 
 ## Code contracts

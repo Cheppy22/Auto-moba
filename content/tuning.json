@@ -4,7 +4,7 @@
   "startingGold": 500,
   "passiveGoldPerSec": 1.5,
   "maxPhases": 10,
-  "blitz": { "maxActs": 3, "endgameAct": 3, "throneHp": 3000 },
+  "blitz": { "maxActs": 3, "endgameAct": 2, "throneHp": 3000 },
   "bell": {
     "alertsSec": [60, 30, 10],
     "pulseLastSec": 5,

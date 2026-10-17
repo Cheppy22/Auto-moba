@@ -187,7 +187,7 @@ A generator builds the four courts when the run starts (seeded, so the draw stay
 
 ### Blitz and Classical
 
-- 1B ships before 2B, so the first build plays Classical only and hides the pace switch.
+- 1B ships before 2B, so the first build plays Classical only and hides the pace switch. **2B built 2026-10-17 (proposal):** the Draw has the switch; rules in [CHESS.md](CHESS.md) "Blitz and Classical".
 - When 2B ships the run picks a pace once at the Draw (Blitz default on phones, Classical on desktop) and every match uses it.
 - Blitz has at most 3 Acts, so 2 breaks per match (2 relic drafts, 2 armory visits) against about 3 in Classical; with the 5-relic cap a Blitz run still reaches a full relic row by the Final.
 - If Blitz ends Act 3 without Checkmate, adjudication decides it (the same rule as Classical's last Act). 2B may define its own end; the run uses whatever the match reports as a winner.
