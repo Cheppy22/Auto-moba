@@ -1,11 +1,40 @@
 {
   "relicMax": 5,
   "heirloomMaxPrice": 1000,
+  "aiBookGold": 500,
   "rounds": [
-    { "round": 1, "name": "Club", "relics": 0, "tempoBonus": 0, "counterOpening": false },
-    { "round": 2, "name": "County", "relics": 1, "tempoBonus": 5, "counterOpening": false },
-    { "round": 3, "name": "Semifinal", "relics": 2, "tempoBonus": 10, "counterOpening": true },
-    { "round": 4, "name": "Final", "relics": 3, "tempoBonus": 15, "counterOpening": true }
+    {
+      "round": 1,
+      "name": "Club",
+      "relics": 0,
+      "tempoBonus": 0,
+      "counterOpening": false,
+      "relicMax": 0
+    },
+    {
+      "round": 2,
+      "name": "County",
+      "relics": 0,
+      "tempoBonus": 5,
+      "counterOpening": false,
+      "relicMax": 2
+    },
+    {
+      "round": 3,
+      "name": "Semifinal",
+      "relics": 2,
+      "tempoBonus": 10,
+      "counterOpening": true,
+      "relicMax": 4
+    },
+    {
+      "round": 4,
+      "name": "Final",
+      "relics": 6,
+      "tempoBonus": 60,
+      "counterOpening": true,
+      "relicMax": 6
+    }
   ],
   "finalName": "The Black Queen's Court",
   "names": [

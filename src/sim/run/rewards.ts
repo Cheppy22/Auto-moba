@@ -87,16 +87,18 @@ export function applyReward(c: Content, run: RunState, reward: Reward): RunStep 
 }
 
 /**
- * "Let the AI choose" (and headless runs): a relic while the row has room, else the heirloom,
- * else the book move.
+ * "Let the AI choose" (and headless runs): a relic while the row has room; otherwise the heirloom
+ * or the book move, whichever is worth more gold: the heirloom its item's price, a book move
+ * `tournament.aiBookGold` (so a tier-1 heirloom loses to a book move and a tier-2 one beats it).
  */
 export function aiReward(c: Content, run: RunState): Reward | null {
   const offers = run.offers ?? [];
-  const room = run.relics.length < tournamentOf(c).relicMax;
-  return (
-    offers.find((o) => o.kind === 'relic' && room) ??
-    offers.find((o) => o.kind === 'heirloom') ??
-    offers.find((o) => o.kind === 'book') ??
-    null
-  );
+  const t = tournamentOf(c);
+  const relic = offers.find((o) => o.kind === 'relic');
+  if (relic && run.relics.length < t.relicMax) return relic;
+  const worth = (o: Reward): number =>
+    o.kind === 'heirloom' ? (c.itemById.get(o.item)?.cost ?? 0) : t.aiBookGold;
+  let best: Reward | null = null;
+  for (const o of offers) if (o.kind !== 'relic' && (!best || worth(o) > worth(best))) best = o;
+  return best;
 }

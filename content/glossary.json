@@ -291,7 +291,7 @@
     "term": "Spoils",
     "aliases": ["Spoils", "spoils"],
     "short": "The prize for winning a round: pick one of three cards, a relic, an heirloom or a book move.",
-    "more": "The cards are the same if you reload. Let the AI choose takes a relic while you have room, then an heirloom, then a book move.",
+    "more": "The cards are the same if you reload. Let the AI choose takes a relic while you have room; after that, a dear heirloom (a tier-2 item) over a book move, and a book move over a cheap one.",
     "see": ["relic", "heirloom", "book-move"],
     "group": "Run"
   },
