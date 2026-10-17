@@ -92,9 +92,15 @@ export function merge(parts: Part[]): BufferGeometry {
 /** Box centred on its middle. */
 export const box = (w: number, h: number, d: number): BufferGeometry => new BoxGeometry(w, h, d);
 
-/** An n-sided frustum standing on y=0 (rTop, rBottom, height). */
-export function prism(rTop: number, rBot: number, h: number, sides = 6): BufferGeometry {
-  return new CylinderGeometry(rTop, rBot, h, sides, 1).translate(0, h / 2, 0);
+/** An n-sided frustum standing on y=0 (rTop, rBottom, height; `open`: no end caps). */
+export function prism(
+  rTop: number,
+  rBot: number,
+  h: number,
+  sides = 6,
+  open = false,
+): BufferGeometry {
+  return new CylinderGeometry(rTop, rBot, h, sides, 1, open).translate(0, h / 2, 0);
 }
 
 /** An n-sided cone standing on y=0 (`open`: no base, for cones seen only from above). */

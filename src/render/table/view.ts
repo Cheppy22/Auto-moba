@@ -487,6 +487,21 @@ export class TableView {
       const w = window as unknown as Record<string, unknown>;
       w.__tvStats = () => this.stats();
       w.__tvMeasure = () => this.measure();
+      // dev: renders the current frame `n` times, waiting for each to finish (ms per frame)
+      w.__tvBench = (n = 20) => {
+        const gl = this.renderer.getContext();
+        const px = new Uint8Array(4);
+        // reading a pixel back waits for the frame to finish drawing
+        const sync = (): void => gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
+        this.paint();
+        sync();
+        const t0 = performance.now();
+        for (let i = 0; i < n; i++) {
+          this.paint();
+          sync();
+        }
+        return (performance.now() - t0) / n;
+      };
       // dev: fire a blow between two units (ids), for screenshots of the hit effects
       w.__tvHit = (aid: number, vid: number, frac = 0.06, lethal = false, melee = true) => {
         const a = this.recs.get(aid);
@@ -653,8 +668,13 @@ export class TableView {
     this.bolts.update(dt);
     this.fx.update(dt);
     this.chips.update(dt);
-    this.renderer.render(this.scene, camera);
+    this.paint();
     this.drawn++;
+  }
+
+  /** Draws the scene (through the ink pass when it is on). */
+  private paint(): void {
+    this.renderer.render(this.scene, this.cam.camera);
   }
 
   /**
