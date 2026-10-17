@@ -105,6 +105,8 @@ export function Side(props: { team: 'A' | 'B'; snap: Snapshot; counts?: boolean 
   const state = snap.check[team] ? 'check' : snap.throneDown[team] ? 'throne' : '';
   const name = counts ? `${courtName(team)} pts` : courtName(team);
   const label = state === 'check' ? 'Check' : state === 'throne' ? 'No Throne' : name;
+  // on a narrow phone the " pts" tail is dropped (the title and aria text keep it)
+  const tail = counts && !state ? ' pts' : '';
   return (
     <div
       class={`side ${team === 'A' ? 'a' : 'b'}`}
@@ -119,7 +121,10 @@ export function Side(props: { team: 'A' | 'B'; snap: Snapshot; counts?: boolean 
       <b class={`pts ${team === 'A' ? 'a' : 'b'} ${state}`} data-testid={`points-${team}`}>
         {snap.points[team]}
       </b>
-      <span class={`pts-label ${state} ${label.length > 10 ? 'long' : ''}`}>{label}</span>
+      <span class={`pts-label ${state} ${label.length > 10 ? 'long' : ''}`}>
+        {tail ? label.slice(0, -tail.length) : label}
+        {tail && <span class="pts-tail">{tail}</span>}
+      </span>
     </div>
   );
 }
