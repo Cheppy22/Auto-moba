@@ -7,6 +7,7 @@ import {
   WebGLRenderer,
 } from 'three';
 import type { PieceId } from '../sim';
+import type { CourtDef } from '../sim';
 import { LOOK, TEAM } from './table/palette';
 import { FIG_HEIGHT } from './table/figures';
 import { FIG_SCALE, FigureLib, PieceFigure, SIZE } from './table/piece';
@@ -111,4 +112,79 @@ export function renderPortraits(keys: readonly PortraitKey[], px: number): Map<s
     if (url) cache.set(`t${LOOK.id}:${px}:${portraitKey(k)}`, url);
   }
   return out;
+}
+
+/** Yaw (radians) of each court-portrait pose; positive turns the figure toward the viewer's left. */
+const POSE_YAW: Record<CourtDef['portrait']['pose'], number> = {
+  front: 0.08,
+  left: 0.6,
+  right: -0.6,
+  'profile-left': 1.15,
+  'profile-right': -1.15,
+};
+/** A court portrait is a bust: this share of the figure's height is in frame, centred this far up. */
+const BUST = { view: 0.9, centre: 0.57 };
+/** Portrait shape: height over width. */
+export const COURT_PORTRAIT_RATIO = 1.25;
+
+/**
+ * A hand-made court's portrait: its signature piece in Black's colours and the court's own
+ * archetype, turned by the court's pose and framed as a bust (the figure's upper two thirds), drawn
+ * to a transparent image `px` wide. Cached; null when WebGL is not available (callers keep the glyph).
+ */
+export function renderCourtPortrait(portrait: CourtDef['portrait'], px: number): string | null {
+  const key = `t${LOOK.id}:${px}:court:${portrait.piece}:${portrait.style}:${portrait.pose}`;
+  const hit = cache.get(key);
+  if (hit) return hit;
+  const w = px;
+  const h = Math.round(px * COURT_PORTRAIT_RATIO);
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  let renderer: WebGLRenderer;
+  try {
+    renderer = new WebGLRenderer({ canvas, antialias: true, alpha: true });
+  } catch {
+    return null;
+  }
+  renderer.setPixelRatio(1);
+  renderer.setSize(w, h, false);
+  renderer.setClearColor(new Color(0x000000), 0);
+  const scene = new Scene();
+  const camera = new PerspectiveCamera(FOV, w / h, 1, 5000);
+  const lib = new FigureLib();
+  const L = LOOK.light;
+  const keyLight = new DirectionalLight(L.key, L.keyK);
+  keyLight.position.set(-260, 420, 520);
+  const back = new DirectionalLight(L.back, L.backK);
+  back.position.set(300, 240, -420);
+  scene.add(new HemisphereLight(L.sky, L.ground, L.skyK), keyLight, back);
+  let url: string | null = null;
+  try {
+    const fig = new PieceFigure(lib, portrait.piece, 'B', portrait.style, false);
+    fig.place(0, 0, 0, POSE_YAW[portrait.pose]);
+    const tall = fig.height;
+    // wide figures (the Rook, a Knight with a lance) get more room so they are not cut at the sides
+    const view = Math.max(tall * BUST.view, (fig.halfWidth * 2 * 1.25) / (w / h));
+    const dist = view / 2 / Math.tan((FOV * Math.PI) / 360);
+    const mid = tall * BUST.centre;
+    camera.position.set(0, mid + dist * 0.06, dist);
+    camera.lookAt(0, mid, 0);
+    camera.updateMatrixWorld();
+    const unitsPerPx = (2 * dist * Math.tan((FOV * Math.PI) / 360)) / h;
+    lib.ink.B.value = TEAM.B.inkPx * (px / INK_REF_PX) * 0.55 * unitsPerPx;
+    scene.add(fig.root);
+    renderer.render(scene, camera);
+    url = canvas.toDataURL('image/png');
+    scene.remove(fig.root);
+    fig.dispose();
+  } catch (err) {
+    console.error('A court portrait failed to draw', err);
+  } finally {
+    lib.dispose();
+    renderer.dispose();
+    renderer.forceContextLoss();
+  }
+  if (url) cache.set(key, url);
+  return url;
 }

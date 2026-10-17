@@ -18,6 +18,7 @@ import {
   rewardOffers,
   setArchetype,
   type CarriedRelic,
+  type Content,
   type MatchConfig,
   type MatchOutcome,
   type RunState,
@@ -73,11 +74,14 @@ function shortMatch(config: Partial<MatchConfig>, seed = 41): Match {
   return m;
 }
 
-describe('Tournament run: the draw', () => {
+/** The content without its hand-made courts: the generated stand-ins (the fallback when `courts.json` is missing). */
+const standIn: Content = { ...content, courts: [], courtById: new Map() };
+
+describe('Tournament run: the generated stand-ins (fallback)', () => {
   it('is the same for the same seed and follows the round table', () => {
-    const a = generateOpponents(content, 77);
-    expect(generateOpponents(content, 77)).toEqual(a);
-    expect(generateOpponents(content, 78).map((o) => o.name)).not.toEqual(a.map((o) => o.name));
+    const a = generateOpponents(standIn, 77);
+    expect(generateOpponents(standIn, 77)).toEqual(a);
+    expect(generateOpponents(standIn, 78).map((o) => o.name)).not.toEqual(a.map((o) => o.name));
     expect(a.map((o) => o.round)).toEqual([1, 2, 3, 4]);
     expect(a.map((o) => o.relics.length)).toEqual(T.rounds.map((r) => r.relics));
     expect(a.map((o) => o.tempoBonus)).toEqual(T.rounds.map((r) => r.tempoBonus));
@@ -88,20 +92,20 @@ describe('Tournament run: the draw', () => {
   });
 
   it('gives the Semifinal and Final an Opening that does best against yours', () => {
-    let run = newRun(content, 5);
+    let run = newRun(standIn, 5);
     run.court.opening = 'kings_gambit';
     const best = Math.max(
       ...content.openings.map((o) => openingEdge(o.schools, ['sacrifice', 'march'])),
     );
     for (const i of [2, 3]) {
-      const o = revealOpponent(content, run, i);
+      const o = revealOpponent(standIn, run, i);
       const schools = content.openingById.get(o.setup.opening)!.schools;
       expect(openingEdge(schools, ['sacrifice', 'march'])).toBe(best);
       expect(o.setup.opening).toBe('french');
       expect(o.relics).toHaveLength(T.rounds[i].relics);
     }
     // Club and County keep their seeded Opening
-    expect(revealOpponent(content, run, 1)).toEqual(run.opponents[1]);
+    expect(revealOpponent(standIn, run, 1)).toEqual(run.opponents[1]);
     run = step(take(step(run, true)), true);
     expect(run.round).toBe(2);
     expect(run.opponents[2].setup.opening).toBe('french');

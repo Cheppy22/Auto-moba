@@ -1,4 +1,4 @@
-import { roundName, type PieceId } from '../../sim';
+import { courtOf, roundName, type PieceId } from '../../sim';
 import { Term } from '../glossary';
 import { ItemIcon } from '../ItemIcon';
 import { PIECE_ORDER, PieceGlyph, pieceLabel, styleLabel } from '../pieces';
@@ -49,16 +49,23 @@ export function RunSummary() {
           {run.opponents.map((opp, i) => {
             const r = run.results[i];
             const mvp = r?.mvp ?? null;
+            const court = courtOf(c, opp);
             return (
               <li
                 key={opp.id}
                 class={`sum-round ${r ? (r.won ? 'won' : 'lost') : 'unplayed'}`}
                 data-testid={`sum-round-${i + 1}`}
               >
-                <CourtSeal name={opp.name} final={i === run.opponents.length - 1} size={36} />
+                <CourtSeal
+                  name={opp.name}
+                  court={court}
+                  final={i === run.opponents.length - 1}
+                  size={42}
+                />
                 <div class="sum-round-body">
                   <span class="rung-round">{roundName(c, i)}</span>
                   <b class="rung-name">{r ? r.opponent : opp.name}</b>
+                  {court && <i class="rung-motto">{court.motto}</i>}
                   <span class="sum-line">
                     {r ? (
                       <>

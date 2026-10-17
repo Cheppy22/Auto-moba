@@ -1,10 +1,11 @@
 import { useEffect } from 'preact/hooks';
-import type { LaneId, PlayTeam } from '../../sim';
+import { courtOf, type LaneId, type PlayTeam } from '../../sim';
 import { courtName, laneName } from '../../analysis/text';
 import { introOutMs, type IntroPiece, type IntroState } from '../intro';
 import { LANE_SLOTS, LANES, PIECE_ORDER, PieceGlyph, pieceLabel } from '../pieces';
 import { RelicSeal } from '../relics';
-import { roundLine } from '../run/parts';
+import { CourtSeal, roundLine } from '../run/parts';
+import { CourtPortrait } from '../run/seals';
 import { SchoolChip } from '../schools';
 import { useSession } from '../session';
 
@@ -22,11 +23,17 @@ function Opening(props: { team: PlayTeam }) {
   // in a tournament run Black is a named court that starts with relics (shown as seals)
   const named = team === 'B' && s.run ? s.run.opponents[s.run.round].name : null;
   const relics = team === 'B' && s.run ? s.match!.state.relics.held.B : [];
-  return (
-    <div class={`vs-opening ${team === 'A' ? 'a' : 'b'}`} data-testid={`intro-opening-${team}`}>
+  const court = named && s.run ? courtOf(s.content, s.run.opponents[s.run.round]) : undefined;
+  const text = (
+    <>
       <span class="vs-court" data-testid={named ? 'intro-court-name' : undefined}>
         {named ?? courtName(team)}
       </span>
+      {court && (
+        <i class="vs-motto" data-testid="intro-court-motto">
+          {court.motto}
+        </i>
+      )}
       <b class="vs-opening-name">{o?.name ?? ''}</b>
       <span class="vs-schools">
         {o && o.schools.length > 0 ? (
@@ -47,6 +54,33 @@ function Opening(props: { team: PlayTeam }) {
             ) : null;
           })}
         </span>
+      )}
+    </>
+  );
+  return (
+    <div
+      class={`vs-opening ${team === 'A' ? 'a' : 'b'} ${court ? 'named' : ''}`}
+      data-testid={`intro-opening-${team}`}
+    >
+      {court ? (
+        <>
+          <div class="vs-text">{text}</div>
+          <span class="vs-art">
+            <CourtPortrait
+              court={court}
+              width="var(--vs-art)"
+              final={s.run!.round === s.run!.opponents.length - 1}
+            />
+            <CourtSeal
+              name={court.name}
+              court={court}
+              final={s.run!.round === s.run!.opponents.length - 1}
+              size={28}
+            />
+          </span>
+        </>
+      ) : (
+        text
       )}
     </div>
   );
