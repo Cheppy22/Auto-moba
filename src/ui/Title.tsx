@@ -2,7 +2,7 @@ import { useState } from 'preact/hooks';
 import { RulesPage, Term, Terms } from './glossary';
 import { bestText, roundLine } from './run/parts';
 import { PieceGlyph, PIECE_ORDER } from './pieces';
-import { SoundToggle } from './SoundToggle';
+import { SoundControls } from './SoundToggle';
 import { ThemePicker } from './ThemePicker';
 import { useSession } from './session';
 
@@ -102,7 +102,7 @@ export function Title() {
             </p>
           )}
         </div>
-        <SoundToggle />
+        <SoundControls />
         <ThemePicker />
         <label class="seed">
           Seed

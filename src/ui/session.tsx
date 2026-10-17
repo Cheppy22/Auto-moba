@@ -47,7 +47,9 @@ import {
 import { mmss } from './format';
 import { introOutMs, type IntroPiece, type IntroState } from './intro';
 import { cap, PIECE_ORDER, pieceLabel } from './pieces';
-import { play } from './sound';
+import { commandCue, eventCues, roundCue, type CueRequest } from './audio/cues';
+import { Heat, heatOf, moodFor } from './audio/mood';
+import { duckSound, play, setSoundMood } from './sound';
 
 export type Speed = 0 | 1 | 2 | 4 | 8;
 
@@ -165,6 +167,8 @@ const MAX_NOTES = 2;
 const FIGHT_NOTE_MS = 4200;
 const NOTE_MS = 3200;
 const BLACK_PLAY_MS = 3000;
+/** The Act where the Endgame rule begins (content/pressure.json); the music turns tenser from here. */
+const ENDGAME_ACT = 7;
 /** Banners waiting behind the visible one; at fast speeds the oldest are dropped. */
 const MAX_BLACK_QUEUE = 3;
 /** Size (px) of the intro's piece portraits: twice what the card shows, so they stay sharp on a phone. */
@@ -295,6 +299,8 @@ export class Session {
     this.seenSeq = -1;
     this.lastLeft = null;
     this.forkCam = null;
+    this.heat = new Heat();
+    this.eyeSeen = new Set();
     this.blackQueue = [];
     this.ui = { ...freshUi(), cam: this.ui.cam === 'auto' ? 'auto' : 'free' };
     this.notify();
@@ -311,8 +317,10 @@ export class Session {
       this.matchRun = this.run;
     }
     const r = this.match.issue(cmd);
-    if (!r.ok) this.toast(r.reason ?? 'rejected');
-    else {
+    if (!r.ok) {
+      this.toast(r.reason ?? 'rejected');
+      play('deny');
+    } else {
       if (cmd.type === 'setupTeam') {
         if (this.run?.status === 'between') {
           const court = { opening: cmd.opening, pieces: cmd.pieces.map((e) => ({ ...e })) };
@@ -321,8 +329,11 @@ export class Session {
         // White starts with a standing pawn plan, so a player who never taps still fields pawns
         this.match.issue({ type: 'setPawnPlan', quota: DEFAULT_PAWN_PLAN });
         this.startIntro();
-      } else if (cmd.type === 'playGambit') play('thud');
-      else if (cmd.type === 'pickRelic' || cmd.type === 'autoRelic') play('chime');
+      } else {
+        // a gambit's own sound comes from its event (see `cue`)
+        const cue = commandCue(cmd.type);
+        if (cue) play(cue);
+      }
       this.notify();
     }
     return r;
@@ -487,7 +498,7 @@ export class Session {
     if (!pick) return { ok: false, reason: 'no reward to take' };
     const r = this.applyRun(applyReward(this.content, this.run, pick));
     if (r.ok) {
-      play('chime');
+      play('spoils');
       this.playRound();
     }
     return r;
@@ -561,7 +572,10 @@ export class Session {
     } catch (err) {
       console.warn('Run: the match MVP could not be read', err);
     }
-    this.run = recordResult(this.content, this.run, outcomeOf(m, mvp));
+    const outcome = outcomeOf(m, mvp);
+    this.run = recordResult(this.content, this.run, outcome);
+    // after the Checkmate stinger has had its moment
+    play(roundCue(outcome.winner), { delay: 2.2 });
     const done = finishOf(this.run);
     if (done) {
       const before = this.best;
@@ -903,7 +917,7 @@ export class Session {
     const last = t.bell.pulseLastSec;
     const sec = Math.ceil(left - 1e-6);
     if (sec >= 1 && sec <= last && sec < Math.ceil(prev - 1e-6))
-      play('tick', { k: (last + 1 - sec) / last });
+      play('tick', { k: (last + 1 - sec) / last, n: (this.tickSide ^= 1) });
     const hit = t.bell.alertsSec.find((a) => prev > a && left <= a);
     if (hit === undefined) return;
     const chip = this.chip(
@@ -1113,15 +1127,75 @@ export class Session {
     }
   }
 
-  /** The sound of a sim event: a bell toll, a piece falling, a fork chosen. */
+  private heat = new Heat();
+  private tickSide = 0;
+  private soundAt = 0;
+  private eyeAt = 0;
+  private eyeSeen = new Set<number>();
+  private lastEye = 0;
+
+  /** The sound of a sim event, and how much it heats the fight (see `audio/`). */
   private cue(m: Match, e: GameEvent): void {
-    if (e.type === 'bell') {
-      if (e.payload.stage === 'tolling') play('toll', { n: e.payload.toll ?? 1 });
-    } else if (e.type === 'death') {
-      const u = m.unitById(e.payload.id);
-      if (u?.hero && this.ui.speed < 4) play('clack', { team: u.team });
-    } else if (e.type === 'fork') {
-      if (m.unitById(e.payload.id)?.team === 'A') play('chime');
+    const heat = heatOf(e);
+    if (heat > 0) this.heat.bump(heat, performance.now());
+    const requests: CueRequest[] = eventCues(e, {
+      heroTeam: (id) => {
+        const u = m.unitById(id);
+        return u?.hero ? (u.team === 'A' ? 'A' : 'B') : undefined;
+      },
+      school: (cardId) => this.content.gambitById.get(cardId)?.school,
+      speed: this.ui.speed,
+    });
+    for (const r of requests) {
+      if (r.cue === 'toll') duckSound(5);
+      play(r.cue, r.opts);
+    }
+  }
+
+  /**
+   * Tells the music and garden how the match feels (calm on the menus, tenser late in the match
+   * and in Check, louder in big fights) and sounds the high-ground eye very softly when one of
+   * White's pieces newly gets it. Cheap; runs a few times a second.
+   */
+  syncSound(): void {
+    const now = performance.now();
+    if (now - this.soundAt < 250) return;
+    this.soundAt = now;
+    const m = this.match;
+    const kind = m?.state.phase.kind;
+    const screen = !m
+      ? 'menu'
+      : kind === 'setup'
+        ? 'setup'
+        : kind === 'end'
+          ? 'end'
+          : m.state.bell.stage === 'break'
+            ? 'break'
+            : 'live';
+    setSoundMood(
+      moodFor({
+        screen,
+        act: m && kind === 'live' ? m.state.phase.n : 0,
+        endgameAct: ENDGAME_ACT,
+        heat: this.heat.read(now),
+        check: !!m && (m.state.check.A || m.state.check.B),
+        throneDown: !!m && (m.state.throneDown.A || m.state.throneDown.B),
+      }),
+    );
+    if (!m || screen !== 'live' || this.ui.speed >= 4 || this.ui.speed === 0) return;
+    if (now - this.eyeAt < 700) return;
+    this.eyeAt = now;
+    const seen = new Set<number>();
+    let fresh = false;
+    for (const u of m.snapshot().units)
+      if (u.team === 'A' && u.highGround) {
+        seen.add(u.id);
+        if (!this.eyeSeen.has(u.id)) fresh = true;
+      }
+    this.eyeSeen = seen;
+    if (fresh && now - this.lastEye > 3000) {
+      this.lastEye = now;
+      play('eye');
     }
   }
 
