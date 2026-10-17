@@ -997,6 +997,18 @@ html[data-layout='landscape'] .sum-foot .rs-cta {
   object-fit: cover;
   object-position: 50% 100%;
   filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.5));
+  animation: portrait-in 0.4s ease-out both;
+}
+@keyframes portrait-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .court-portrait img {
+    animation: none;
+  }
 }
 .rung-art {
   position: relative;

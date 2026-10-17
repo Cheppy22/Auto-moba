@@ -1,11 +1,17 @@
 import { expect, test, type Page } from '@playwright/test';
-import { startLive, viewReady, watchErrors } from './helpers';
+import { overflow, startLive, viewReady, watchErrors } from './helpers';
 
 const shots = process.env.SHOTS_DIR;
 
 async function shot(page: Page, name: string): Promise<void> {
   if (!shots) return;
-  await page.waitForTimeout(600);
+  // wait for the 3D portraits (and their fade-in) before the picture is taken
+  await page
+    .locator('[data-testid="court-portrait"] img')
+    .first()
+    .waitFor({ timeout: 15_000 })
+    .catch(() => undefined);
+  await page.waitForTimeout(700);
   await page.screenshot({ path: `${shots}/aaa-courts-${name}.png` });
 }
 
@@ -139,4 +145,33 @@ test('an Exhibition is unchanged: Black, no court furniture', async ({ page }) =
   await expect(page.locator('.v2-label')).toHaveText('Black');
   await expect(page.locator('svg.heraldic-seal')).toHaveCount(0);
   expect(errors).toEqual([]);
+});
+
+test.describe('on a phone', () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+
+  test('the Draw and the versus card show the court and fit the screen', async ({ page }) => {
+    test.setTimeout(120_000);
+    const errors = watchErrors(page);
+    await openDraw(page, '?run=test');
+    await portraitDrawn(page, '[data-testid="rung-1"]');
+    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await shot(page, 'draw-phone');
+    await page.getByTestId('draw-setup').click();
+    await expect(page.getByTestId('setup')).toBeVisible();
+    await page.evaluate(() =>
+      (window as unknown as { __session: { setUi(p: unknown): void } }).__session.setUi({
+        speed: 0,
+      }),
+    );
+    await page.getByTestId('quick-start').click();
+    await expect(page.getByTestId('intro')).toBeVisible();
+    await portraitDrawn(page, '[data-testid="intro-opening-B"]');
+    // the court's header stays inside the card
+    const head = (await page.getByTestId('intro-opening-B').boundingBox())!;
+    expect(head.x + head.width).toBeLessThanOrEqual(390);
+    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await shot(page, 'versus-phone');
+    expect(errors).toEqual([]);
+  });
 });

@@ -333,7 +333,7 @@
 
 /* ---------- 3B: Black as a named court: portrait and seal beside its Opening ---------- */
 .vs-opening.named {
-  --vs-art: max(46px, calc(var(--pic) * 0.78));
+  --vs-art: max(54px, calc(var(--pic) * 0.85));
   flex-direction: row;
   align-items: center;
   justify-content: center;
@@ -367,4 +367,13 @@
   .vs-motto {
     display: none;
   }
+}
+
+/* in a run Black's court has the most to say: it gets the wider half of the header */
+.vs.in-run .vs-head {
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1.3fr);
+}
+.vs-opening.named .vs-court {
+  letter-spacing: 0.1em;
+  text-wrap: balance;
 }
