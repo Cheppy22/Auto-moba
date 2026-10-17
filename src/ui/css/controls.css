@@ -616,3 +616,22 @@ table.stats td:first-child {
   font-size: var(--fs-sm);
   opacity: 0.85;
 }
+/* desktop: each option carries its own line; phones: names only, the picked one's line below */
+.pace-now {
+  display: none;
+  margin: 0;
+  font-size: var(--fs-sm);
+  opacity: 0.85;
+}
+html:is([data-layout='portrait'], [data-layout='landscape']) .pace-opt {
+  min-height: 44px;
+  justify-items: center;
+  text-align: center;
+}
+html:is([data-layout='portrait'], [data-layout='landscape']) .pace-opt span,
+html:is([data-layout='portrait'], [data-layout='landscape']) .pace-note {
+  display: none;
+}
+html:is([data-layout='portrait'], [data-layout='landscape']) .pace-now {
+  display: block;
+}

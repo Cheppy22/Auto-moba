@@ -35,6 +35,7 @@ export function PacePicker(props: {
           </button>
         ))}
       </div>
+      <p class="pace-now">{OPTIONS.find((o) => o.id === props.value)?.line}</p>
       {props.note && (
         <p class="pace-note">
           <Term id="blitz">Blitz</Term> or <Term id="classical">Classical</Term>: {props.note}

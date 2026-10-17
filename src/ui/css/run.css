@@ -947,3 +947,11 @@ html[data-layout='landscape'] .sum-foot .rs-cta {
 .btn.small.sound-toggle {
   min-height: 44px;
 }
+/* portrait Draw: the pace switch and Set up your court stay on screen while the ladder scrolls */
+html[data-layout='portrait'] .draw .rs-foot {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  padding: 10px 0 calc(10px + env(safe-area-inset-bottom));
+  background: linear-gradient(180deg, rgba(20, 17, 14, 0), rgba(20, 17, 14, 0.94) 18px);
+}
