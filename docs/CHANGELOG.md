@@ -2,6 +2,10 @@
 
 Newest first. One entry per change: what changed, why, and any measured effect. How the game works _now_ is in [SOURCE_OF_TRUTH.md](SOURCE_OF_TRUTH.md); this file is history. Commit ids are on branch `test-product`.
 
+## 2026-10-17
+
+- **CLAUDE.md: owner principle and test schedule.** Always choose the most stable, long-lasting solution; test rule 5 now says what to run per kind of change, push identical merges without re-running, and run the full browser suite once a day or before a milestone instead of on every merge. Why: merges were spending 25–30 min re-testing work that had already passed.
+
 ## 2026-10-15
 
 - **Tournament run: Black shows as the opposing court's name** (branch `test-product-2`; rule in [CHESS.md](CHESS.md) "Tournament run"). Why: owner request; the versus card and result line named the court but everything else said "Black". **Changed (UI and analysis text only, no sim change):** one helper, `courtName` / `courtPossessive` in `src/analysis/text.ts`, returns "White", "Black" or the court's short name ("The Brasswick Club" is "Brasswick"); the session sets the court per match (`newMatch`), and an Exhibition sets none. Used by the HUD (Check and Throne banners, Black gambit banner, "took a relic" chip, aim hints and toasts, the Black row and trays, piece cards, lane bars, points label, relic rows), the break sheet (callouts, Report, Relics), the report (scoreboard, verdict, awards, charts, legends, tables, Replay panel) and the event log. Long names are cut short in the points label. **Still "Black":** glossary entries and Setup help texts, the mock report data. **Tests:** two new tests in `tests/e2e/tournament.spec.ts` (a run shows the court name in the row, roster, Check banner, verdict and scoreboard; an Exhibition shows "Black"); screenshots `docs/img/tournament-courtname-banner.png`, `docs/img/tournament-courtname-report.png`. `npm run baseline` identical; no balance runs (UI only).
