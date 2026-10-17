@@ -40,7 +40,8 @@
     "teamBounty": 10,
     "planReserve": 40,
     "planQuota": { "top": 2, "mid": 2, "bot": 2 },
-    "aiCardReserve": 40
+    "aiCardReserve": 40,
+    "aiPawnShare": 0.87
   },
   "relics": {
     "max": 3,

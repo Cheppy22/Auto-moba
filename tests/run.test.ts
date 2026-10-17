@@ -24,6 +24,7 @@ import {
 } from '../src/sim';
 import { drawWeight } from '../src/sim/gambits';
 import { adjudicate } from '../src/sim/runRules';
+import { aiTempoTurn } from '../src/sim/pawnPlan';
 import { giveGold } from '../src/sim/shop';
 import { content, liveMatch, logHash, piece, toBell } from './helpers';
 
@@ -79,7 +80,7 @@ describe('Tournament run: the draw', () => {
     expect(generateOpponents(content, 78).map((o) => o.name)).not.toEqual(a.map((o) => o.name));
     expect(a.map((o) => o.round)).toEqual([1, 2, 3, 4]);
     expect(a.map((o) => o.relics.length)).toEqual(T.rounds.map((r) => r.relics));
-    expect(a.map((o) => o.tempoBonus)).toEqual([0, 5, 10, 15]);
+    expect(a.map((o) => o.tempoBonus)).toEqual(T.rounds.map((r) => r.tempoBonus));
     expect(a[3].name).toBe("The Black Queen's Court");
     expect(new Set(a.map((o) => o.name)).size).toBe(4);
     for (const o of a.slice(0, 3)) expect(T.names).toContain(o.name);
@@ -223,6 +224,28 @@ describe('Tournament run: rewards', () => {
     expect(applyReward(content, run, { kind: 'book', card: 'nope' }).ok).toBe(false);
   });
 
+  it('with the relic row full the AI weighs the heirloom against the book move by gold', () => {
+    const full: RunState = {
+      ...won(34),
+      relics: plain.slice(0, T.relicMax).map((id) => carried(id)),
+    };
+    const book = full.offers!.find((o) => o.kind === 'book')!;
+    const heirloom = (cost: number) => {
+      const item = content.items.find((i) => i.tier <= 2 && i.cost === cost)!;
+      return { kind: 'heirloom' as const, piece: 'rook' as const, item: item.id };
+    };
+    const cheap = heirloom(
+      Math.min(...content.items.filter((i) => i.tier === 1).map((i) => i.cost)),
+    );
+    const dear = heirloom(
+      Math.max(...content.items.filter((i) => i.tier === 2).map((i) => i.cost)),
+    );
+    expect(content.itemById.get(cheap.item)!.cost).toBeLessThan(T.aiBookGold);
+    expect(content.itemById.get(dear.item)!.cost).toBeGreaterThan(T.aiBookGold);
+    expect(aiReward(content, { ...full, offers: [full.offers![0], cheap, book] })).toEqual(book);
+    expect(aiReward(content, { ...full, offers: [full.offers![0], dear, book] })).toEqual(dear);
+  });
+
   it('swaps a relic when five are held', () => {
     const base = newRun(content, 33);
     const b = beginMatch(content, base, base.court);
@@ -235,7 +258,7 @@ describe('Tournament run: rewards', () => {
     );
     expect(run.relics).toHaveLength(5);
     const relic = run.offers!.find((o) => o.kind === 'relic')!;
-    expect(aiReward(content, run)?.kind).toBe('heirloom');
+    expect(aiReward(content, run)?.kind).not.toBe('relic');
     expect(applyReward(content, run, relic).ok).toBe(false);
     if (relic.kind !== 'relic') return;
     const r = applyReward(content, run, { ...relic, replaces: five[0].id });
@@ -307,6 +330,38 @@ describe('Tournament run: in the match', () => {
     expect(m.issue({ type: 'pickRelic', relicId: offer.id }).reason).toMatch(/five relics/);
     expect(m.issue({ type: 'pickRelic', relicId: offer.id, replace: plain[0] }).ok).toBe(true);
     expect(m.state.relics.held.A).toHaveLength(5);
+  });
+
+  it("Black's own cap (the round table's relicMax) stops its starting relics and its drafts", () => {
+    const m = liveMatch(17, {
+      pauseForBreak: true,
+      relicMax: 5,
+      relicMaxB: 1,
+      start: { B: { relics: plain.slice(0, 3).map((id) => carried(id)) } },
+    });
+    expect(m.state.relics.held.B).toHaveLength(1);
+    toBell(m, 'break');
+    m.issue({ type: 'autoRelic' });
+    m.issue({ type: 'resumeAct' });
+    expect(m.state.relics.held.B).toHaveLength(1);
+    // the round table passes it on, only for a round that sets one
+    const run = newRun(content, 35);
+    const rows = T.rounds.map((r) => r.relicMax);
+    expect(nextMatchConfig(content, run).relicMaxB).toBe(rows[0]);
+  });
+
+  it("the round table's aiPawnShare sets Black's Tempo split for that match only", () => {
+    const run = newRun(content, 35);
+    const share = T.rounds[0].aiPawnShare;
+    expect(nextMatchConfig(content, run).aiPawnShareB).toBe(share);
+    const m = liveMatch(17, { aiPawnShareB: 1 });
+    expect(m.state.run?.aiPawnShareB).toBe(1);
+    // with every Tempo owed to pawns, Black holds its cards while a lane is short
+    m.state.tempoSpent.B = { pawns: 0, cards: 0 };
+    expect(aiTempoTurn(m.ctx, 'B')).toBe('pawns');
+    m.state.tempoSpent.B = { pawns: 1000, cards: 1 };
+    expect(aiTempoTurn(m.ctx, 'B')).toBe('pawns');
+    expect(liveMatch(17).state.run).toBeUndefined();
   });
 
   it('lockStyles resolves Rank 4 at once and still pauses Rank 8', () => {

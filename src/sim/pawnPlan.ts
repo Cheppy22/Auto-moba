@@ -3,7 +3,8 @@ import type { Ctx } from './ctx';
 import { pawnCap } from './pawns';
 import { workingRelic } from './relics';
 import { PLAY_TEAMS } from './names';
-import { fieldTowardQuota } from './relicsLive';
+import { aiCardPick } from './gambits';
+import { fieldTowardQuota, quotaGap } from './relicsLive';
 import { LANES } from './world/map';
 import type { CommandResult, PawnQuota, PlayTeam } from './types';
 
@@ -49,12 +50,32 @@ function aiOrPlayerPlan(ctx: Ctx, team: PlayTeam): { quota: PawnQuota; reserve: 
   return plan?.auto ? plan : null;
 }
 
+/**
+ * How an AI side splits its Tempo: pawns get `pawns.aiPawnShare` of what it spends in the match and
+ * cards the rest. The side that is behind its share gets the next Tempo and the other waits, unless
+ * the side that is behind has nothing to buy (every lane full or at the pawn cap; no card in hand
+ * that fits). Null when the AI may spend on either (White as the player has no split). A run's
+ * round table can set Black's share per court (`rounds[].aiPawnShare`).
+ */
+export function aiTempoTurn(ctx: Ctx, team: PlayTeam): 'pawns' | 'cards' | null {
+  if (!ctx.s.autoGambits[team]) return null;
+  const spent = ctx.s.tempoSpent[team];
+  const share = (team === 'B' ? ctx.s.run?.aiPawnShareB : undefined) ?? ctx.t.pawns.aiPawnShare;
+  const pawnsBehind = spent.pawns <= share * (spent.pawns + spent.cards);
+  if (pawnsBehind) {
+    const plan = aiOrPlayerPlan(ctx, team);
+    return plan && quotaGap(ctx, team, plan.quota) ? 'pawns' : null;
+  }
+  return aiCardPick(ctx, team, true) ? 'cards' : null;
+}
+
 /** Every 10 ticks: field one pawn per side toward its plan (never during the bell's tolls and halt). */
 export function tickPawnPlan(ctx: Ctx): void {
   const s = ctx.s;
   if (s.phase.kind !== 'live' || s.tick % 10 !== 0 || committed(ctx)) return;
   for (const team of PLAY_TEAMS) {
     const plan = aiOrPlayerPlan(ctx, team);
-    if (plan) fieldTowardQuota(ctx, team, plan.quota, plan.reserve, 0);
+    if (plan && aiTempoTurn(ctx, team) !== 'cards')
+      fieldTowardQuota(ctx, team, plan.quota, plan.reserve, 0);
   }
 }

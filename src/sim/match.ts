@@ -116,6 +116,7 @@ function initialState(content: Content, config: MatchConfig): MatchState {
       B: true,
     },
     tempo: { A: 0, B: 0 },
+    tempoSpent: { A: { pawns: 0, cards: 0 }, B: { pawns: 0, cards: 0 } },
     hands: { A: [], B: [] },
     forks: [],
     check: { A: false, B: false },

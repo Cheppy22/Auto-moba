@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { aiTempoTurn } from '../src/sim/pawnPlan';
 import { content, liveMatch } from './helpers';
 
 const TPS = content.tuning.tickRate;
@@ -77,6 +78,29 @@ describe("White's standing pawn plan", () => {
     }
     const after = m.events.filter((e) => e.type === 'gambit' && e.payload.team === 'B').length;
     expect(after).toBe(before);
+  });
+
+  it("splits an AI side's Tempo by its pawn share: the side behind goes first", () => {
+    const m = liveMatch(5, { autoGambits: { A: false, B: true } });
+    const gambitsB = (): number =>
+      m.events.filter((e) => e.type === 'gambit' && e.payload.team === 'B').length;
+    // the player's side has no split
+    expect(aiTempoTurn(m.ctx, 'A')).toBeNull();
+    // pawns behind their share and lanes short: cards wait, pawns are fielded
+    m.state.tempoSpent.B = { pawns: 0, cards: 1000 };
+    expect(aiTempoTurn(m.ctx, 'B')).toBe('pawns');
+    const before = gambitsB();
+    m.state.tempo.B = 100;
+    m.step(TPS * 2);
+    expect(gambitsB()).toBe(before);
+    expect(m.state.tempoSpent.B.pawns).toBeGreaterThan(0);
+    // pawns ahead of their share but no card in hand: pawns may still spend
+    m.state.tempoSpent.B = { pawns: 1000, cards: 0 };
+    for (const h of m.state.hands.B) {
+      h.cardId = null;
+      h.refillTick = null;
+    }
+    expect(aiTempoTurn(m.ctx, 'B')).toBeNull();
   });
 
   it('gives way to Pawn Structure, which keeps its own counts', () => {

@@ -287,6 +287,8 @@ export const TournamentSchema = z.object({
   relicMax: z.number().int().min(1),
   /** Heirlooms are tier-1 or tier-2 items up to this price. */
   heirloomMaxPrice: z.number(),
+  /** Let the AI choose: a book move counts as this much gold against the heirloom's item price. */
+  aiBookGold: z.number(),
   rounds: z
     .array(
       z.object({
@@ -296,6 +298,10 @@ export const TournamentSchema = z.object({
         relics: z.number().int().min(0),
         /** Extra Tempo the opponent starts with. */
         tempoBonus: z.number().min(0),
+        /** Relics the opponent may hold in that match (its drafts stop there); default `relicMax`. */
+        relicMax: z.number().int().min(0).optional(),
+        /** The opponent's AI Tempo split in that match (`pawns.aiPawnShare`); default the tuning's. */
+        aiPawnShare: z.number().min(0).max(1).optional(),
         /** The opponent's Opening does well against yours. */
         counterOpening: z.boolean(),
       }),
@@ -677,6 +683,8 @@ export const TuningSchema = z.object({
     planQuota: z.object({ top: z.number(), mid: z.number(), bot: z.number() }),
     /** Tempo the AI keeps after paying for a card, to refill its plan when a pawn falls. */
     aiCardReserve: z.number(),
+    /** Share of the AI's Tempo spending that goes to pawns; cards get the rest (`aiTempoTurn`). */
+    aiPawnShare: z.number().min(0).max(1),
   }),
   /** The relic draft at each Act break. */
   relics: z.object({

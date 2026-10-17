@@ -648,6 +648,8 @@ export interface MatchState {
   autoGambits: Record<PlayTeam, boolean>;
   autoForks: Record<PlayTeam, boolean>;
   tempo: Record<PlayTeam, number>;
+  /** Tempo each side has spent this match on pawns and on cards (the AI splits by it). */
+  tempoSpent: Record<PlayTeam, { pawns: number; cards: number }>;
   hands: Record<PlayTeam, HandSlot[]>;
   forks: PendingFork[];
   check: Record<PlayTeam, boolean>;
@@ -676,6 +678,10 @@ export interface MatchState {
 export interface RunRules {
   /** Relics a side may hold (3 normally, 5 in a run). */
   relicMax: number;
+  /** Relics Black may hold (the round table can set it lower than `relicMax`). */
+  relicMaxB: number;
+  /** Black's AI Tempo split for this match, when the round table sets one. */
+  aiPawnShareB?: number;
   /** Book moves: cards drawn twice as often for this side. */
   books: Record<PlayTeam, string[]>;
   /** White's carried archetypes: Rank 4 resolves at once to these. */
@@ -1036,6 +1042,10 @@ export interface MatchConfig {
   adjudicate?: boolean;
   /** Relics a side may hold (default `relics.max`, 3; a run uses 5). */
   relicMax?: number;
+  /** Relics Black may hold (default `relicMax`; a run's round table can set it lower). */
+  relicMaxB?: number;
+  /** Black's AI Tempo split (default `pawns.aiPawnShare`; a run's round table can set it). */
+  aiPawnShareB?: number;
 }
 
 export interface Replay {

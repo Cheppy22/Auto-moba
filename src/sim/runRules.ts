@@ -33,13 +33,18 @@ export function runRulesFor(config: MatchConfig, c: Content): RunRules | undefin
     config.start === undefined &&
     config.lockStyles === undefined &&
     config.adjudicate === undefined &&
-    config.relicMax === undefined
+    config.relicMax === undefined &&
+    config.relicMaxB === undefined &&
+    config.aiPawnShareB === undefined
   )
     return undefined;
   const books = (t: TeamStart | undefined): string[] =>
     [...new Set(t?.books ?? [])].filter((id) => c.gambitById.has(id));
+  const max = config.relicMax ?? c.tuning.relics.max;
   return {
-    relicMax: config.relicMax ?? c.tuning.relics.max,
+    relicMax: max,
+    relicMaxB: config.relicMaxB ?? max,
+    ...(config.aiPawnShareB !== undefined ? { aiPawnShareB: config.aiPawnShareB } : {}),
     books: { A: books(config.start?.A), B: books(config.start?.B) },
     locked: { ...(config.lockStyles?.A ?? {}) },
     adjudicate: config.adjudicate ?? false,
@@ -47,7 +52,8 @@ export function runRulesFor(config: MatchConfig, c: Content): RunRules | undefin
 }
 
 /** Relics a side may hold in this match. */
-export const relicMax = (ctx: Ctx): number => ctx.s.run?.relicMax ?? ctx.t.relics.max;
+export const relicMax = (ctx: Ctx, team: PlayTeam): number =>
+  (team === 'B' ? ctx.s.run?.relicMaxB : ctx.s.run?.relicMax) ?? ctx.t.relics.max;
 
 /** A side's book moves (cards drawn twice as often); empty outside a run. */
 export const booksOf = (ctx: Ctx, team: PlayTeam): readonly string[] =>
@@ -114,7 +120,7 @@ function liveAim(ctx: Ctx, team: PlayTeam, def: RelicDef, a: CarriedAim): RelicA
 function placeRelics(ctx: Ctx, team: PlayTeam, carried: CarriedRelic[]): void {
   const held = ctx.s.relics.held[team];
   for (const r of carried) {
-    if (held.length >= relicMax(ctx)) break;
+    if (held.length >= relicMax(ctx, team)) break;
     const def = ctx.c.relicById.get(r.id);
     if (!def || held.some((h) => h.id === r.id)) continue;
     let aim = liveAim(ctx, team, def, r);

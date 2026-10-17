@@ -6,7 +6,7 @@ describe('lane discipline', () => {
   it('does not funnel hero fights and hero time into the mid lane (fixed seeds, loose bounds)', () => {
     const sum = {} as LaneShare;
     for (const m of METRICS) sum[m] = { top: 0, mid: 0, bot: 0 };
-    for (const seed of [1, 2, 3]) {
+    for (const seed of [1, 2, 3, 4, 5]) {
       const r = measureLaneShare(content, seed);
       for (const m of METRICS) for (const l of ['top', 'mid', 'bot'] as const) sum[m][l] += r[m][l];
     }

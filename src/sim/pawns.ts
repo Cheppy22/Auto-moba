@@ -28,6 +28,7 @@ export function fieldPawn(ctx: Ctx, team: PlayTeam, lane: LaneId, discount = 0):
   if (ctx.s.tempo[team] < cost) return { ok: false, reason: 'not enough Tempo' };
   if (pawnsAlive(ctx, team) >= pawnCap(ctx, team)) return { ok: false, reason: 'pawn cap reached' };
   ctx.s.tempo[team] -= cost;
+  ctx.s.tempoSpent[team].pawns += cost;
   const u = makePawn(ctx, team, lane);
   ctx.grid.insert(u);
   ctx.emit('pawnFielded', { team, lane, id: u.id });
