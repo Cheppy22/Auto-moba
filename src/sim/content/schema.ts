@@ -300,6 +300,8 @@ export const TournamentSchema = z.object({
         tempoBonus: z.number().min(0),
         /** Relics the opponent may hold in that match (its drafts stop there); default `relicMax`. */
         relicMax: z.number().int().min(0).optional(),
+        /** The opponent's AI Tempo split in that match (`pawns.aiPawnShare`); default the tuning's. */
+        aiPawnShare: z.number().min(0).max(1).optional(),
         /** The opponent's Opening does well against yours. */
         counterOpening: z.boolean(),
       }),

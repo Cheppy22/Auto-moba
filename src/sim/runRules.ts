@@ -34,7 +34,8 @@ export function runRulesFor(config: MatchConfig, c: Content): RunRules | undefin
     config.lockStyles === undefined &&
     config.adjudicate === undefined &&
     config.relicMax === undefined &&
-    config.relicMaxB === undefined
+    config.relicMaxB === undefined &&
+    config.aiPawnShareB === undefined
   )
     return undefined;
   const books = (t: TeamStart | undefined): string[] =>
@@ -43,6 +44,7 @@ export function runRulesFor(config: MatchConfig, c: Content): RunRules | undefin
   return {
     relicMax: max,
     relicMaxB: config.relicMaxB ?? max,
+    ...(config.aiPawnShareB !== undefined ? { aiPawnShareB: config.aiPawnShareB } : {}),
     books: { A: books(config.start?.A), B: books(config.start?.B) },
     locked: { ...(config.lockStyles?.A ?? {}) },
     adjudicate: config.adjudicate ?? false,

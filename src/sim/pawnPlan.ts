@@ -54,12 +54,14 @@ function aiOrPlayerPlan(ctx: Ctx, team: PlayTeam): { quota: PawnQuota; reserve: 
  * How an AI side splits its Tempo: pawns get `pawns.aiPawnShare` of what it spends in the match and
  * cards the rest. The side that is behind its share gets the next Tempo and the other waits, unless
  * the side that is behind has nothing to buy (every lane full or at the pawn cap; no card in hand
- * that fits). Null when the AI may spend on either (White as the player has no split).
+ * that fits). Null when the AI may spend on either (White as the player has no split). A run's
+ * round table can set Black's share per court (`rounds[].aiPawnShare`).
  */
 export function aiTempoTurn(ctx: Ctx, team: PlayTeam): 'pawns' | 'cards' | null {
   if (!ctx.s.autoGambits[team]) return null;
   const spent = ctx.s.tempoSpent[team];
-  const pawnsBehind = spent.pawns <= ctx.t.pawns.aiPawnShare * (spent.pawns + spent.cards);
+  const share = (team === 'B' ? ctx.s.run?.aiPawnShareB : undefined) ?? ctx.t.pawns.aiPawnShare;
+  const pawnsBehind = spent.pawns <= share * (spent.pawns + spent.cards);
   if (pawnsBehind) {
     const plan = aiOrPlayerPlan(ctx, team);
     return plan && quotaGap(ctx, team, plan.quota) ? 'pawns' : null;

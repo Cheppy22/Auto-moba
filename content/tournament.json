@@ -9,7 +9,8 @@
       "relics": 0,
       "tempoBonus": 0,
       "counterOpening": false,
-      "relicMax": 0
+      "relicMax": 0,
+      "aiPawnShare": 0.97
     },
     {
       "round": 2,
@@ -33,7 +34,8 @@
       "relics": 6,
       "tempoBonus": 60,
       "counterOpening": true,
-      "relicMax": 6
+      "relicMax": 6,
+      "aiPawnShare": 0.8
     }
   ],
   "finalName": "The Black Queen's Court",

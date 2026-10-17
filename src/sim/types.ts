@@ -680,6 +680,8 @@ export interface RunRules {
   relicMax: number;
   /** Relics Black may hold (the round table can set it lower than `relicMax`). */
   relicMaxB: number;
+  /** Black's AI Tempo split for this match, when the round table sets one. */
+  aiPawnShareB?: number;
   /** Book moves: cards drawn twice as often for this side. */
   books: Record<PlayTeam, string[]>;
   /** White's carried archetypes: Rank 4 resolves at once to these. */
@@ -1042,6 +1044,8 @@ export interface MatchConfig {
   relicMax?: number;
   /** Relics Black may hold (default `relicMax`; a run's round table can set it lower). */
   relicMaxB?: number;
+  /** Black's AI Tempo split (default `pawns.aiPawnShare`; a run's round table can set it). */
+  aiPawnShareB?: number;
 }
 
 export interface Replay {

@@ -61,6 +61,7 @@ export function nextMatchConfig(c: Content, run: RunState, withCourt = false): M
   const opp = run.opponents[run.round];
   const t = tournamentOf(c);
   const capB = t.rounds[run.round]?.relicMax;
+  const shareB = t.rounds[run.round]?.aiPawnShare;
   return {
     seed: matchSeed(run.seed, run.round),
     setup: { B: copySetup(opp.setup), ...(withCourt ? { A: copySetup(run.court) } : {}) },
@@ -76,6 +77,7 @@ export function nextMatchConfig(c: Content, run: RunState, withCourt = false): M
     adjudicate: true,
     relicMax: t.relicMax,
     ...(capB !== undefined ? { relicMaxB: capB } : {}),
+    ...(shareB !== undefined ? { aiPawnShareB: shareB } : {}),
     ...(opp.styles ? { forceStyles: { B: { ...opp.styles } } } : {}),
     // 2B (Blitz) adds its pace settings here from `run.pace`; Classical uses the defaults.
   };

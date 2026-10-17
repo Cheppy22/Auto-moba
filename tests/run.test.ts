@@ -24,6 +24,7 @@ import {
 } from '../src/sim';
 import { drawWeight } from '../src/sim/gambits';
 import { adjudicate } from '../src/sim/runRules';
+import { aiTempoTurn } from '../src/sim/pawnPlan';
 import { giveGold } from '../src/sim/shop';
 import { content, liveMatch, logHash, piece, toBell } from './helpers';
 
@@ -347,6 +348,20 @@ describe('Tournament run: in the match', () => {
     const run = newRun(content, 35);
     const rows = T.rounds.map((r) => r.relicMax);
     expect(nextMatchConfig(content, run).relicMaxB).toBe(rows[0]);
+  });
+
+  it("the round table's aiPawnShare sets Black's Tempo split for that match only", () => {
+    const run = newRun(content, 35);
+    const share = T.rounds[0].aiPawnShare;
+    expect(nextMatchConfig(content, run).aiPawnShareB).toBe(share);
+    const m = liveMatch(17, { aiPawnShareB: 1 });
+    expect(m.state.run?.aiPawnShareB).toBe(1);
+    // with every Tempo owed to pawns, Black holds its cards while a lane is short
+    m.state.tempoSpent.B = { pawns: 0, cards: 0 };
+    expect(aiTempoTurn(m.ctx, 'B')).toBe('pawns');
+    m.state.tempoSpent.B = { pawns: 1000, cards: 1 };
+    expect(aiTempoTurn(m.ctx, 'B')).toBe('pawns');
+    expect(liveMatch(17).state.run).toBeUndefined();
   });
 
   it('lockStyles resolves Rank 4 at once and still pauses Rank 8', () => {
