@@ -98,6 +98,14 @@ for (const base of MOUNTS) {
       test.setTimeout(300_000);
       await openAndInstall(page, base);
       await startMatch(page);
+      // hold the clock so the saved tick is exact
+      await page.evaluate(
+        () =>
+          void (window as unknown as { __session: { setUi(p: unknown): void } }).__session.setUi({
+            speed: 0,
+          }),
+      );
+      const held = (await snap(page)).tick;
       await step(page, 400);
       await page.evaluate(() => void window.dispatchEvent(new Event('pagehide')));
       // the key names the folder (/ or /v2/), so the two games on one site never read each other's
@@ -109,7 +117,7 @@ for (const base of MOUNTS) {
       await page.getByTestId('resume-match').click();
       await expect(page.getByTestId('hud')).toBeVisible({ timeout: 60_000 });
       await viewReady(page);
-      expect((await snap(page)).tick).toBe(400);
+      expect((await snap(page)).tick).toBe(held + 400);
     });
 
     test('a new deployed version shows "New version ready" and reloads into it', async ({
