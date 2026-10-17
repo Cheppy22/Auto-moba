@@ -243,7 +243,11 @@ for (const v of views) {
       await page.waitForTimeout(700);
       expect((await snap(page)).tick).toBe(held);
       const first = (await snap(page)).forks[0];
-      await page.getByTestId(`fork-opt-${first.heroId}-${first.options[0].id}`).tap();
+      // a tab shows that option's preview; Choose takes it
+      await page.getByTestId(`fork-opt-${first.heroId}-${first.options[1].id}`).tap();
+      await expect(page.getByTestId('fork-preview')).toBeInViewport({ ratio: 1 });
+      await bigEnough(page, 'fork-choose');
+      await page.getByTestId('fork-choose').tap();
       await expect
         .poll(async () =>
           (await snap(page)).forks.some((f) => f.heroId === first.heroId && f.rank === first.rank),
