@@ -545,6 +545,20 @@ export class TableView {
         if (o.at) this.cam.centred({ x: o.at.x - this.hx, z: o.at.y - this.hz }, g.d, g);
         return { ...this.cam.pose, min: this.cam.minD, max: this.cam.maxD };
       };
+      // dev: captured pieces in flight (screen position in CSS px), for screenshots and checks
+      w.__tvFlights = () =>
+        [...this.recs.values()]
+          .filter((v) => v.fig && !v.alive && v.flyD > 0 && v.fall < 1)
+          .map((v) => {
+            const q = this.tmp.set(v.x, v.gy, v.z).project(this.cam.camera);
+            return {
+              id: v.id,
+              fall: v.fall,
+              landed: v.landed,
+              sx: Math.round(((q.x + 1) / 2) * this.cssW),
+              sy: Math.round(((1 - q.y) / 2) * this.cssH),
+            };
+          });
       w.__tvBoard = () => {
         const [x0, y0, x1, y1] = this.cam.boardBox(this.cssW, this.cssH);
         const cx0 = Math.max(0, x0);
@@ -742,7 +756,7 @@ export class TableView {
     if (mode !== 'lane') this.laneCam.update(null);
     if (mk) {
       // Checkmate: push in on the losing King, a little lower, and hold there
-      g.d = MathUtils.clamp(cam.followDist * 0.62, cam.minD, cam.maxD);
+      g.d = MathUtils.clamp(cam.followDist * 0.5, cam.minD, cam.maxD);
       g.tilt = Math.max(cam.home.tilt - MathUtils.degToRad(8), MathUtils.degToRad(30));
       cam.centred(mk, g.d, g);
       rate = 2.4;
@@ -1573,7 +1587,7 @@ export class TableView {
     const gy = this.board.relief.at(x, z);
     const pivot = H * 0.45;
     const lie = v.halfW * 0.7;
-    const arc = 4 * a * (1 - a) * H * 1.15;
+    const arc = 4 * a * (1 - a) * H * 0.85;
     const b = Math.min(1, after / 0.26);
     const bounce = after > 0 ? Math.sin(b * Math.PI) * H * 0.14 * (1 - b * 0.5) : 0;
     const cy = gy + lerp(pivot, lie, easeIn(a)) + arc + bounce;
@@ -1589,11 +1603,11 @@ export class TableView {
       phase: v.phase,
       attack: 0,
       windup: 0,
-      flinch: 1 - a,
+      flinch: 0.35 * (1 - a),
       time: this.time,
       fall: 0,
       drop: 1,
-      hit: Math.max(0, 1 - T * 2),
+      hit: Math.max(0, 0.6 - T * 4),
     });
     f.fling(x, cy, z, yaw, pitch, roll, pivot, Math.max(0.02, sc));
     const team = v.team === 'B' ? 'B' : 'A';
@@ -2038,10 +2052,14 @@ export class TableView {
           );
           this.cam.kick(0.12);
           if (v?.fig && this.motion?.matches !== true) {
-            // knocked flying away from the blow (or backwards when there is no killer)
-            const k = this.recs.get(p.killer);
-            let dx = k ? v.x - k.x : 0;
-            let dz = k ? v.z - k.z : 0;
+            // knocked flying from where the sim says it fell (the last drawn spot is stale after
+            // a long frame) away from the killer's current spot, or backwards with no killer
+            v.x = x;
+            v.z = z;
+            v.gy = this.board.relief.at(x, z);
+            const k = this.byId.get(p.killer);
+            let dx = k ? x - (k.x - hx) : 0;
+            let dz = k ? z - (k.y - hz) : 0;
             let l = Math.hypot(dx, dz);
             if (l < 1) {
               dx = -Math.sin(v.yaw);
@@ -2050,7 +2068,7 @@ export class TableView {
             }
             v.flyX = dx / l;
             v.flyZ = dz / l;
-            v.flyD = v.fig.height * (1.5 + ((p.id * 37) % 10) / 20);
+            v.flyD = v.fig.height * (1.05 + ((p.id * 37) % 10) / 30);
             v.flyRoll = p.id % 2 === 0 ? 1 : -1;
             v.landed = false;
             v.faded = false;
@@ -2195,6 +2213,13 @@ export class TableView {
             this.mate = { id: v.id, t: 0, boomed: false, done: false };
         if (this.mate) {
           const v = this.recs.get(this.mate.id)!;
+          // the King stands where the sim has him (the last drawn spot may be stale)
+          const u = this.byId.get(v.id);
+          if (u) {
+            v.x = u.x - this.hx;
+            v.z = u.y - this.hz;
+            v.gy = this.board.relief.at(v.x, v.z);
+          }
           // a gold shaft comes down on the King as the camera pushes in
           this.fx.column(v.x, v.gy, v.z, GOLD, 60, 30, 900, 1.4, 1, 0.9);
           this.gambits.crown(v.id, MATE_SEC);

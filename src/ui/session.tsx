@@ -94,7 +94,7 @@ const TRAY_WAIT_MS = 2600;
  * The Checkmate beat's longest wait (ms): the 3D view ends it when the King has fallen (about
  * 3.2 s); without a 3D view the word shows at once and the splash follows after a short hold.
  */
-const MATE_BEAT_MAX_MS = 7000;
+const MATE_BEAT_MAX_MS = 10000;
 const MATE_BEAT_BARE_MS = 1400;
 
 export interface UiState {
@@ -132,7 +132,7 @@ export interface UiState {
   /**
    * The Checkmate beat: for about 3 s after Checkmate the 3D view pushes in on the losing King
    * as he topples (`fallen` once he hits the ground); the result splash waits until the view
-   * says the beat is over, 7 s at most (a tap skips it).
+   * says the beat is over, 10 s at most (a tap skips it).
    */
   mateBeat: { winner: 'A' | 'B'; fallen: boolean } | null;
 }

@@ -52,7 +52,11 @@ test('a capture knocks the piece flying and flies its token into the tray', asyn
   // the tray item waits for the token, then is caught when it lands
   await expect(item).toHaveAttribute('data-flight', 'landed', { timeout: 90_000 });
   await expect(item).toBeVisible();
-  expect(await page.evaluate(() => (window as unknown as { __tokens: number }).__tokens)).toBe(1);
+  await expect
+    .poll(() => page.evaluate(() => (window as unknown as { __tokens: number }).__tokens), {
+      timeout: 90_000,
+    })
+    .toBe(1);
   expect(errors).toEqual([]);
 });
 
@@ -73,16 +77,21 @@ test('Checkmate topples the King before the result splash', async ({ page }) => 
   await expect(page.getByTestId('report')).toHaveCount(0);
   if (gl) {
     expect(
-      await page.evaluate(
-        () => (window as unknown as { __session: Sess }).__session.view?.cinematic,
-      ),
+      await page.evaluate(() => {
+        const s = (window as unknown as { __session: Sess & { mateTimer: number } }).__session;
+        // software WebGL runs a few frames a second: drop the safety cap so the view ends the
+        // beat itself (the path a real device takes), and let each frame count 0.1 s
+        clearTimeout(s.mateTimer);
+        (window as unknown as { __tvDt: number }).__tvDt = 0.1;
+        return s.view?.cinematic;
+      }),
     ).toBe(true);
     // the word lands when the King hits the ground
-    await expect(beat).toHaveAttribute('data-fallen', 'true', { timeout: 60_000 });
+    await expect(beat).toHaveAttribute('data-fallen', 'true', { timeout: 90_000 });
   }
   await expect(beat).toContainText('Checkmate');
-  // then the splash (the beat ends itself, 7 s at most)
-  await expect(page.getByTestId('report')).toBeVisible({ timeout: 60_000 });
+  // then the splash, when the view says the beat is over
+  await expect(page.getByTestId('report')).toBeVisible({ timeout: 90_000 });
   await expect(beat).toHaveCount(0);
   expect(errors).toEqual([]);
 });
@@ -97,6 +106,12 @@ test('a tap skips the Checkmate beat', async ({ page }) => {
   await page.evaluate(() =>
     (window as unknown as { __session: Sess }).__session.testEnd('B', false, true),
   );
-  await page.getByTestId('mate-beat').click();
+  const beat = page.getByTestId('mate-beat');
+  await expect(beat).toBeVisible();
+  // hold the beat's safety cap (software WebGL is slow), then tap: the splash shows at once
+  await page.evaluate(() =>
+    clearTimeout((window as unknown as { __session: { mateTimer: number } }).__session.mateTimer),
+  );
+  await beat.click({ force: true });
   await expect(page.getByTestId('report')).toBeVisible({ timeout: 10_000 });
 });

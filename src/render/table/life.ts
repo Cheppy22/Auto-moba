@@ -42,15 +42,15 @@ interface Weather {
 
 const WEATHER: Record<MapStyleId, Weather> = {
   a: {
-    motes: { color: '#bfe3f0', n: 110, size: 7, alpha: 0.55, pulse: 0.35 },
+    motes: { color: '#bfe3f0', n: 110, size: 9, alpha: 0.6, pulse: 0.35 },
     fall: { kind: 'rain', color: '#cfe6f5', n: 260, size: 2.2, alpha: 0.2, speed: 900 },
-    birds: '#1a2330',
+    birds: '#8fa3b3',
     ripple: '#d6ecf7',
   },
   b: {
-    motes: { color: '#ffc864', n: 90, size: 9, alpha: 0.9, pulse: 1 },
-    fall: { kind: 'leaves', colors: ['#b8632e', '#d89a3c'], n: 46, size: 10, speed: 55 },
-    birds: '#2a1a12',
+    motes: { color: '#ffc864', n: 110, size: 15, alpha: 1, pulse: 1 },
+    fall: { kind: 'leaves', colors: ['#c4692e', '#e0a443'], n: 60, size: 17, speed: 55 },
+    birds: '#d2b98c',
     ripple: '#ffe2a8',
   },
 };
@@ -193,8 +193,15 @@ export class Life {
   }
   mvPosition.xy += q;
   gl_Position = projectionMatrix * mvPosition;
-  vLife = 0.55 + 0.45 * aSeed.y;`,
-      color: `diffuseColor.rgb = mix(diffuseColor.rgb, uLeafB, step(0.775, vLife) * uLeaf);`,
+  vLife = 0.55 + 0.45 * aSeed.y;
+  vQ = position.xy;`,
+      // a leaf: an almond with a pale midrib; a raindrop: a streak soft at its sides
+      color: `
+  if (uLeaf > 0.5) {
+    if (abs(vQ.x) * 2.0 + pow(abs(vQ.y) * 2.0, 2.0) > 1.0) discard;
+    diffuseColor.rgb = mix(diffuseColor.rgb, uLeafB, step(0.775, vLife));
+    diffuseColor.rgb *= 0.8 + 0.4 * smoothstep(0.06, 0.0, abs(vQ.x));
+  } else diffuseColor.a *= 1.0 - abs(vQ.x) * 2.0;`,
     });
     this.fall = new Mesh(own(quads(260, 23)), this.fallMat);
 
@@ -248,7 +255,7 @@ export class Life {
   float h = 520.0 + aSeed.z * 260.0 + sin(uTime * 0.4 + ph) * 30.0;
   vec2 dir = normalize(vec2(-sin(ang) * uOrbit.x, cos(ang) * uOrbit.y));
   float beat = sin(uTime * 9.0 + ph) * step(0.35, fract(uTime * 0.07 + aSeed.w));
-  vec3 lp = position * (26.0 + aSeed.x * 10.0);
+  vec3 lp = position * (44.0 + aSeed.x * 14.0);
   lp.y += abs(lp.x) * beat * 0.55;
   vec3 p = vec3(c.x, h, c.y);
   p.x += dir.x * lp.z + dir.y * lp.x;
@@ -346,6 +353,7 @@ uniform float uTime;
 uniform vec3 uCenter;
 uniform vec3 uBox;
 varying float vLife;
+varying vec2 vQ;
 ${src.vars}
 vec3 wrapBox(vec3 p) {
   vec3 lo = uCenter - vec3(uBox.x * 0.5, 0.0, uBox.z * 0.5);
@@ -353,6 +361,7 @@ vec3 wrapBox(vec3 p) {
 }
 ${sh.vertexShader}`.replace('#include <project_vertex>', src.body);
       sh.fragmentShader = `varying float vLife;
+varying vec2 vQ;
 ${key === 'life-fall' ? 'uniform vec3 uLeafB;\nuniform float uLeaf;' : ''}
 ${sh.fragmentShader}`.replace(
         '#include <color_fragment>',
