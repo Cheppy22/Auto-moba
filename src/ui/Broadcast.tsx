@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { GameEvent, Match } from '../sim';
 import { laneNear } from '../analysis/feedback';
+import { inkStyle, subscribeInkStyle } from './inkStyle';
 import { mapTheme, subscribeMapTheme } from './mapTheme';
 import { useSession } from './session';
 
@@ -75,6 +76,13 @@ export function Broadcast() {
         const offTheme = subscribeMapTheme(() => {
           view.setTheme(mapTheme());
           canvas.dataset.theme = mapTheme();
+        });
+        // the ink-and-brass post-process (the same switch row; off by default)
+        view.setInk(inkStyle());
+        canvas.dataset.ink = inkStyle() ? 'on' : 'off';
+        const offInk = subscribeInkStyle(() => {
+          view.setInk(inkStyle());
+          canvas.dataset.ink = inkStyle() ? 'on' : 'off';
         });
         canvas.dataset.ready = 'true';
         const director = new Director(board);
@@ -167,10 +175,12 @@ export function Broadcast() {
           canvas.removeEventListener('cam-manual', onFree);
           canvas.removeEventListener('cam-angle', onAngle);
           offTheme();
+          offInk();
           watch.disconnect();
           if (s.view === view) s.view = null;
           delete canvas.dataset.ready;
           delete canvas.dataset.theme;
+          delete canvas.dataset.ink;
           view.dispose();
         };
       })

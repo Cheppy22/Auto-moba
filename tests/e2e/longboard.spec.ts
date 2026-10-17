@@ -435,6 +435,51 @@ test.describe('the Long Board, phone portrait', () => {
     await expect(page.getByTestId('theme-b')).toHaveAttribute('aria-checked', 'true');
     expect(errors).toEqual([]);
   });
+
+  test('Ink style switches on and off in a live match, is remembered, and ?fx=ink forces it', async ({
+    page,
+  }) => {
+    test.setTimeout(300_000);
+    const errors = watchErrors(page);
+    const inked = () =>
+      page.evaluate(
+        () =>
+          (window as unknown as { __session: { view: { inked: boolean } } }).__session.view.inked,
+      );
+    await page.goto('/?intro=off');
+    await page.evaluate(() => localStorage.removeItem('automoba.ink'));
+    await startLive(page, '42');
+    // off by default
+    await expect(page.getByTestId('stage')).toHaveAttribute('data-ink', 'off');
+    expect(await inked()).toBe(false);
+    await step(page, 60);
+    await page.waitForTimeout(1500);
+    const plain = await page.getByTestId('stage').screenshot();
+    // on from the Adjourn panel: the next frames go through the ink pass
+    await page.getByTestId('adjourn').click();
+    await expect(page.getByTestId('ink-toggle')).toHaveAttribute('aria-checked', 'false');
+    await page.getByTestId('ink-toggle').click();
+    await expect(page.getByTestId('ink-toggle')).toHaveAttribute('aria-checked', 'true');
+    await page.getByTestId('resume').click();
+    await expect(page.getByTestId('stage')).toHaveAttribute('data-ink', 'on');
+    expect(await inked()).toBe(true);
+    await page.waitForTimeout(2500);
+    const ink = await page.getByTestId('stage').screenshot();
+    expect(ink.byteLength).toBeGreaterThan(20_000);
+    expect(ink.equals(plain)).toBe(false);
+    expect(await page.evaluate(() => localStorage.getItem('automoba.ink'))).toBe('on');
+    // and off again
+    await page.getByTestId('adjourn').click();
+    await page.getByTestId('ink-toggle').click();
+    await page.getByTestId('resume').click();
+    await expect(page.getByTestId('stage')).toHaveAttribute('data-ink', 'off');
+    expect(await inked()).toBe(false);
+    await page.waitForTimeout(1000);
+    // the address forces it for a visit
+    await page.goto('/?intro=off&fx=ink');
+    await expect(page.getByTestId('ink-toggle')).toHaveAttribute('aria-checked', 'true');
+    expect(errors).toEqual([]);
+  });
 });
 
 test.describe('the square map', () => {

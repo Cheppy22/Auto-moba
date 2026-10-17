@@ -25,6 +25,7 @@ import { Board } from './board';
 import type { MapStyleId } from './longlook';
 import { TableCamera } from './camera';
 import { FreeControls } from './controls';
+import { InkPass } from './ink';
 import { LaneCam } from './lanecam';
 import { Crowd, crowdInk, facetMaterial, hullOf } from './crowd';
 import { FIG_HEIGHT, type PieceId } from './figures';
@@ -269,6 +270,8 @@ export class TableView {
   private stamp = 0;
   private lastTick = -1;
   private drawn = 0;
+  /** The ink-and-brass post-process, while it is switched on. */
+  private ink: InkPass | null = null;
   private zonesFromSnap = false;
   private cssW = 0;
   private cssH = 0;
@@ -674,7 +677,23 @@ export class TableView {
 
   /** Draws the scene (through the ink pass when it is on). */
   private paint(): void {
-    this.renderer.render(this.scene, this.cam.camera);
+    if (this.ink) this.ink.render(this.scene, this.cam.camera, this.cam.pose.d);
+    else this.renderer.render(this.scene, this.cam.camera);
+  }
+
+  /** Turns the "Ink style" post-process on or off (the Title and Adjourn switch; `?fx=ink`). */
+  setInk(on: boolean): void {
+    if (on === !!this.ink) return;
+    if (on) this.ink = new InkPass(this.renderer);
+    else {
+      this.ink?.dispose();
+      this.ink = null;
+    }
+  }
+
+  /** True while the ink pass draws the frame. */
+  get inked(): boolean {
+    return !!this.ink;
   }
 
   /**
@@ -2070,6 +2089,7 @@ export class TableView {
   }
 
   dispose(): void {
+    this.setInk(false);
     this.laneCam.dispose();
     this.controls.dispose();
     document.documentElement.style.removeProperty('--cam-yaw');
