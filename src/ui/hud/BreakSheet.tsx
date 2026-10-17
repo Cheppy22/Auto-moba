@@ -19,6 +19,7 @@ import { useSession } from '../session';
 import { ArmoryTab } from './ArmoryTab';
 import { LaneBars } from './LaneBars';
 import { RelicsTab } from './RelicsTab';
+import { BreakTour } from './Tutor';
 import { RelicSeal, aimText, relicText, shownRelics } from '../relics';
 
 type Tab = 'report' | 'orders' | 'armory' | 'relics';
@@ -308,6 +309,7 @@ export function BreakSheet(props: { snap: Snapshot }) {
             ))}
           </div>
         </header>
+        <BreakTour />
         <div class="bs-body scroll">
           {tab === 'report' && <Report report={act.report} snap={props.snap} />}
           {tab === 'orders' && <Orders formation={props.snap.relics.formation} snap={props.snap} />}

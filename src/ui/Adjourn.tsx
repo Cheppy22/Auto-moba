@@ -8,6 +8,7 @@ import { itemCategory } from './itemInfo';
 import { PATH_LABEL, PieceGlyph, pieceLabel } from './pieces';
 import { n0 } from './format';
 import { SchoolChip } from './schools';
+import { ReplayTutorial } from './ReplayTutorial';
 import { SoundToggle } from './SoundToggle';
 import { ThemePicker } from './ThemePicker';
 import { useEscape, useSession } from './session';
@@ -171,7 +172,10 @@ export function Adjourn() {
             Resume
           </button>
         </div>
-        <ThemePicker />
+        <div class="row">
+          <ThemePicker />
+          <ReplayTutorial />
+        </div>
         <Mini />
         <div class="tabs" role="tablist">
           {TABS.map((t) => (
