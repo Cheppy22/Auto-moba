@@ -180,7 +180,7 @@
   gap: 6px;
   align-items: center;
 }
-.sound-mix-btn {
+.btn.small.sound-mix-btn {
   min-height: 44px;
   font-size: var(--fs-sm);
 }
