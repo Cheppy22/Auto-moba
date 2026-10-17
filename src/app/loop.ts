@@ -65,6 +65,7 @@ export class FrameClock {
     s.syncEvents();
     s.syncBell();
     s.syncSound();
+    s.autosave(now);
     s.frame(m ? Math.min(1, this.acc) : 1);
     if (now - this.lastNotify > 120) {
       this.lastNotify = now;

@@ -50,6 +50,14 @@ src/ui/          Preact screens: setup board, live HUD (gambits, forks), Adjourn
                  mixer); cues.ts and mood.ts are pure and unit-tested
 src/app/         wiring: frame clock, speed control, screen state machine
 tools/           Node: headless match, batch balance runner
+                 and its device saves (run, best finish, the match in progress for Resume);
+                 session.tsx holds the run between matches; lazy.tsx loads the match and report
+                 screens as their own scripts; update.tsx is the "New version ready" bar
+src/app/         wiring: frame clock, speed control, screen state machine; pwa.ts registers the
+                 service worker, sw.js is its template (see "Platform")
+public/          copied as is: manifest, icons, fonts (with licences)
+tools/           Node: headless match, batch balance runner; make-icons.ts (icons), serve-dist.ts
+                 (serves dist/ like Pages, for the production browser tests)
 tests/           cross-layer tests: determinism, golden match, content, e2e
 docs/            SOURCE_OF_TRUTH.md, CHANGELOG.md, ARCHITECTURE.md, archive/
 ```
@@ -242,6 +250,15 @@ The sim records; `src/analysis` turns the log into numbers; the UI displays. No 
 - Between phases: `pickUpgrade`, `buy`, `sell`, `bid`, `acceptCurse`, `refuseCurse`.
 - Draft: `pickHero`, `pickLane`.
 - Validated in the sim; a rejected command emits `commandRejected` with a reason.
+
+## Platform
+
+- **Base path:** `vite.config.ts` sets `base: './'`, so every URL in the build is relative; the same `dist/` works at `/` (local, Playwright) and at `/v2/` (Pages: the workflow builds this branch and copies `dist/` into `site/v2/`). `manifest.webmanifest` and `sw.js` use relative URLs too (`start_url` and `scope` `./`); the worker's scope is the folder it is served from, so `/v2/sw.js` controls only `/v2/` and nothing in the workflow had to change.
+- **Service worker:** the plugin `automoba-sw` (in `vite.config.ts`, build only) fills `src/app/sw.js` with the list of every shipped file and a version (a hash of their contents) and writes `dist/sw.js`. Install stores the files in cache `automoba-<version>`; every request for a stored file (and every page address in the folder, whatever its `?query`) is answered from it; anything else goes to the network; old caches are deleted on activate. A byte-different `sw.js` is what makes browsers fetch the update. The first install takes control at once; an update waits until the page asks (`SKIP_WAITING`), so a match is never swapped mid-play. `pwa.ts` registers only when `import.meta.env.PROD`, re-checks for updates when the page becomes visible and hourly, and reloads only after the player taps Reload.
+- **Not stored:** source maps, the licence text and the install-only icons (fetched at install time online).
+- **Loading:** `ui/lazy.tsx` (`lazyView`, `preloadViews`) turns the match screens and the report into separate scripts, fetched in the background once the page is idle. `render/` (three.js) is already loaded on demand (`import('../render/...')`). Bundle sizes are in the changelog entry of 2026-10-17.
+- **Resume:** `Match` records every command and step (`exportReplay`); `ui/run/save.ts` keeps one `MatchSave` (replay, tick, Act, run link, speed, fingerprint); `ui/run/resume.ts` replays it in time slices (`restoreMatch`) and compares `matchFingerprint` (tick, event count, every unit's place and health); `Session.autosave` / `resumeMatch` drive it. Nothing in `src/sim` changed. If a sim change ever alters how a match plays out, old saves fail the fingerprint and are dropped, which is the intended safety.
+- **Tests:** unit `tests/resume.test.ts`; browser `tests/e2e/resume.spec.ts` (dev server) and, against the production build served at `/` and `/v2/`, `tests/prod/pwa.spec.ts` (`npm run e2e:prod`: manifest, offline start and a match played offline, update prompt).
 
 ## Quality gates
 

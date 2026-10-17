@@ -1,6 +1,7 @@
 import { useState } from 'preact/hooks';
 import { RulesPage, Term, Terms } from './glossary';
 import { bestText, roundLine } from './run/parts';
+import { mmss } from './format';
 import { PieceGlyph, PIECE_ORDER } from './pieces';
 import { ReplayTutorial } from './ReplayTutorial';
 import { SoundControls } from './SoundToggle';
@@ -13,6 +14,7 @@ export function Title() {
   const [rules, setRules] = useState(false);
   const [confirm, setConfirm] = useState(false);
   const saved = s.savedRun();
+  const match = s.savedMatch();
   const given = (): number | undefined => {
     const n = Number(seed);
     return seed.trim() !== '' && Number.isFinite(n) ? n : undefined;
@@ -52,8 +54,29 @@ export function Title() {
             max={4}
           />
         </p>
-        <div class="title-actions">
-          {saved ? (
+        {s.resuming !== null && (
+          <div class="title-resume" role="status" data-testid="resuming">
+            <span>Resuming your match… {Math.round(s.resuming * 100)}%</span>
+            <span class="title-resume-bar" aria-hidden="true">
+              <i style={{ width: `${Math.round(s.resuming * 100)}%` }} />
+            </span>
+          </div>
+        )}
+        <div class="title-actions" hidden={s.resuming !== null}>
+          {match ? (
+            <button
+              class="btn primary title-main"
+              data-testid="resume-match"
+              onClick={() => void s.resumeMatch()}
+            >
+              <span>Resume match</span>
+              <span class="title-main-sub">
+                {match.run && saved ? `${roundLine(s.content, saved)} · ` : 'Exhibition · '}
+                Act {match.act} · {mmss(match.tick)}
+              </span>
+            </button>
+          ) : null}
+          {saved && !match?.run ? (
             <button
               class="btn primary title-main"
               data-testid="continue-run"
@@ -66,12 +89,17 @@ export function Title() {
             </button>
           ) : null}
           <button
-            class={`btn title-main ${saved ? '' : 'primary'}`}
+            class={`btn title-main ${saved || match ? '' : 'primary'}`}
             data-testid="tournament"
             onClick={tournament}
           >
             <span>{saved ? 'New tournament' : 'Tournament'}</span>
           </button>
+          {s.resumeNote && (
+            <p class="title-modes" role="status" data-testid="resume-note">
+              {s.resumeNote}
+            </p>
+          )}
           {confirm && saved && (
             <div class="title-confirm" role="alertdialog" aria-label="Abandon your current run?">
               <p>Abandon your current run? Its progress is lost.</p>
