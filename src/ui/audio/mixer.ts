@@ -24,8 +24,8 @@ export interface MixerState {
 /** The sliders' starting places: the music and the garden sit under the effects. */
 export const DEFAULT_VOLUME: Record<Bus, number> = {
   master: 0.8,
-  music: 0.65,
-  ambience: 0.75,
+  music: 0.5,
+  ambience: 0.6,
   effects: 1,
 };
 
