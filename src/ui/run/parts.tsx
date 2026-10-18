@@ -4,7 +4,7 @@ import { finishLabel, roundName, type BestFinish } from '../../sim';
 import { laneName } from '../../analysis/text';
 import { LANES, PIECE_ORDER, PieceGlyph, StyleBadge, pieceLabel, styleLabel } from '../pieces';
 import { RelicSeal, relicText } from '../relics';
-import { SCHOOL_COLOR, SCHOOL_ORDER, SchoolChip } from '../schools';
+import { SCHOOL_COLOR, SCHOOL_ORDER, SchoolChip, SchoolGlyph } from '../schools';
 import { HeraldicSeal } from './seals';
 
 const hash = (text: string): number => {
@@ -127,6 +127,31 @@ export function CourtStyles(props: { c: Content; court: CourtDef }) {
           </span>
         </li>
       ))}
+    </ul>
+  );
+}
+
+/**
+ * A court's five fixed first moves: each piece's Technique at the start of the match (a named
+ * court does not draw them), with the school's mark. Tap-free: the card's own text is on Setup's
+ * First moves page for your pieces; here it is the name and the school.
+ */
+export function CourtFirstMoves(props: { c: Content; court: CourtDef }) {
+  const { c, court } = props;
+  return (
+    <ul class="court-styles court-moves" data-testid="court-first-moves" aria-label="First moves">
+      {PIECE_ORDER.map((p) => {
+        const d = c.techniqueById.get(court.firstMoves[p]);
+        if (!d) return null;
+        return (
+          <li key={p} data-testid={`court-move-${p}`} title={d.playsLike}>
+            <SchoolGlyph school={d.school} size={16} />
+            <span>
+              <span class="cs-piece">{pieceLabel(c, p)}</span> {d.name}
+            </span>
+          </li>
+        );
+      })}
     </ul>
   );
 }

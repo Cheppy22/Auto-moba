@@ -41,6 +41,7 @@ import { makeGuardian, makeTower } from './units';
 import { LANES, buildWorld } from './world/map';
 import { highGroundEdge } from './world/height';
 import type {
+  ActTechTally,
   Command,
   BuildAdvice,
   BuildView,
@@ -189,6 +190,7 @@ function buildCtx(
       B: { top: 0.2, mid: 0.2, bot: 0.2 },
     },
     buckets: new Map(),
+    actLog: [],
     emit: <K extends EventType>(type: K, payload: EventPayloads[K]): void => {
       rec.events.push({ tick: state.tick, seq: rec.seq++, type, payload } as GameEvent);
     },
@@ -622,13 +624,70 @@ export class Match {
    */
   firstMoves(opening?: string): FirstMoveView {
     const setup = this.ctx.s.setup.A;
-    return firstMoves(
+    const view = firstMoves(
       this.content,
       this.ctx.t,
       this.ctx.s.seed,
       opening ?? setup.opening,
       setup.pieces.map((e) => e.piece),
+      this.config.start?.A?.heirlooms,
     );
+    // no piece exists yet, so the real numbers come from a throwaway match with the same setup
+    const probe = this.setupProbe();
+    if (!probe) return view;
+    for (const row of view.pieces) {
+      const id = probe.state.teams.A.heroIds.find(
+        (i) => probe.unitById(i)?.hero?.defId === row.piece,
+      );
+      if (id === undefined) continue;
+      for (const card of row.cards) {
+        const pv = probe.techniquePreview(id, card.id, card.grade);
+        // the "last Act" estimate has nothing to count before the match
+        card.preview = pv ? { ...pv, estimate: null } : null;
+      }
+    }
+    return view;
+  }
+
+  private probe: Match | null | undefined;
+
+  /**
+   * A throwaway match with White's default setup, holding only a run's heirlooms: Setup's cards
+   * are priced on its pieces (stats before and after) because the real pieces do not exist yet.
+   */
+  private setupProbe(): Match | null {
+    if (this.probe !== undefined) return this.probe;
+    this.probe = null;
+    try {
+      const probe = Match.create(this.content, {
+        ...this.config,
+        setup: { A: this.defaultSetup() },
+      });
+      const heirlooms = this.config.start?.A?.heirlooms ?? {};
+      for (const id of probe.state.teams.A.heroIds) {
+        const h = probe.unitById(id)?.hero;
+        if (!h) continue;
+        h.techniques = h.techniques.filter((x) => x.id === heirlooms[h.defId]);
+      }
+      this.probe = probe;
+    } catch (err) {
+      console.error('The First moves numbers could not be read from a probe match', err);
+    }
+    return this.probe;
+  }
+
+  /**
+   * What each Technique did, Act by Act (the Act in progress last): the end report's per-Act
+   * tallies. Kept beside the match state, not in it, so it never touches a state hash.
+   */
+  techniqueLog(): ActTechTally[] {
+    const open = this.ctx.s.builds.act;
+    const rows =
+      Object.keys(open).length > 0 ? [{ act: this.ctx.s.phase.n, techniques: open }] : [];
+    return [...this.ctx.actLog, ...rows].map((r) => ({
+      act: r.act,
+      techniques: Object.fromEntries(Object.entries(r.techniques).map(([k, v]) => [k, { ...v }])),
+    }));
   }
 
   unitById(id: number): Unit | undefined {

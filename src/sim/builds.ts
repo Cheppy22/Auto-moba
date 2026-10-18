@@ -529,6 +529,10 @@ export function startBuilds(ctx: Ctx): void {
  */
 export function openBuilds(ctx: Ctx): void {
   const b = ctx.s.builds;
+  ctx.actLog.push({
+    act: ctx.s.phase.n,
+    techniques: Object.fromEntries(Object.entries(b.act).map(([k, v]) => [k, { ...v }])),
+  });
   b.lastAct = b.act;
   b.act = {};
   b.lastPieces = b.pieces;
@@ -922,16 +926,19 @@ export function firstMoves(
   seed: number,
   opening: string,
   pieces: readonly PieceId[],
+  heirlooms: Partial<Record<PieceId, string>> = {},
 ): FirstMoveView {
   const schools = c.openingById.get(opening)?.schools ?? [];
   const rows = pieces.map((piece, i) => {
+    // a run's heirloom is held first (Plain grade), so the first move is drawn for another slot
+    const heirloom = heirlooms[piece];
     const subj: BuildSubject = {
       seed,
       team: 'A',
       piece,
       style: null,
       rank: 1,
-      held: [],
+      held: heirloom && isFirstMove(c, piece, heirloom) ? [{ id: heirloom, grade: 'plain' }] : [],
       schools,
       behind: false,
     };

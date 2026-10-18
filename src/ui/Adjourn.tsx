@@ -5,7 +5,7 @@ import { RulesList, Term } from './glossary';
 import { PieceGlyph, pieceLabel } from './pieces';
 import { n0 } from './format';
 import { SchoolChip } from './schools';
-import { TechniqueChip } from './TechniqueChip';
+import { SlotRows } from './builds/SlotRows';
 import { ReplayTutorial } from './ReplayTutorial';
 import { SoundControls } from './SoundToggle';
 import { ThemePicker } from './ThemePicker';
@@ -22,32 +22,34 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'rules', label: 'Rules' },
 ];
 
-/** Read only: the Techniques each White piece holds (they change only at an Act break). */
+/** Read only: each White piece's slots, with what each Technique has done so far this match. */
 function Builds() {
   const s = useSession();
+  const m = s.match!;
   return (
     <div class="col" data-testid="tab-builds">
       <p class="dim small">
-        <Term id="technique">Techniques</Term> each piece holds. They change at an Act break.
+        <Term id="technique">Techniques</Term> each piece holds, one per <Term id="slot">Slot</Term>
+        , and what each has done this match so far. They change at an Act break, where gold can{' '}
+        <Term id="upgrade">Upgrade</Term> one.
       </p>
       {whitePieces(s).map((u) => {
         const h = u.hero!;
+        const v = m.buildView(u.id);
         return (
           <section class="card builds-piece" key={u.id} data-testid={`adjourn-builds-${h.defId}`}>
             <div class="row">
               <PieceGlyph piece={h.defId} team="A" size={28} />
               <b class="grow">{pieceLabel(s.content, h.defId)}</b>
+              <span class="dim small">
+                <Term id="rank">Rank</Term> {h.rank}
+              </span>
               <span class="gold small">
                 <i class="coin" aria-hidden="true" />
                 {n0(h.gold)}
               </span>
             </div>
-            <div class="builds-held">
-              {h.techniques.length === 0 && <span class="dim small">No Techniques yet.</span>}
-              {h.techniques.map((x) => (
-                <TechniqueChip key={x.id} c={s.content} id={x.id} grade={x.grade} />
-              ))}
-            </div>
+            {v && <SlotRows c={s.content} view={v} />}
           </section>
         );
       })}

@@ -3,6 +3,7 @@ import type { Tuning, LaneId } from './content/schema';
 import { Grid } from './core/grid';
 import type { World } from './world/map';
 import type {
+  ActTechTally,
   EventPayloads,
   EventType,
   MatchState,
@@ -37,6 +38,8 @@ export interface Ctx {
   guardians: Record<PlayTeam, Unit | null>;
   front: Record<PlayTeam, Record<LaneId, number>>;
   buckets: Map<string, DamageBucket>;
+  /** What each Technique did in each finished Act (read by `Match.techniqueLog`; not match state). */
+  actLog: ActTechTally[];
   emit: <K extends EventType>(type: K, payload: EventPayloads[K]) => void;
   unit(id: number): Unit | undefined;
 }

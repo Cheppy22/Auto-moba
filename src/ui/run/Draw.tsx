@@ -5,6 +5,7 @@ import { PieceGlyph } from '../pieces';
 import { useSession } from '../session';
 import {
   CourtSeal,
+  CourtFirstMoves,
   CourtStyles,
   laneLine,
   OpeningLine,
@@ -79,6 +80,8 @@ export function Draw() {
                 {court && now && (
                   <div class="rung-dossier" data-testid="rung-dossier">
                     <CourtStyles c={c} court={court} />
+                    <span class="rung-moves-h">First moves</span>
+                    <CourtFirstMoves c={c} court={court} />
                     <span class="rung-lanes">{laneLine(c, court)}.</span>
                     <SignatureRelic c={c} court={court} />
                   </div>

@@ -17,6 +17,7 @@ import { Orders } from '../Orders';
 import { PIECE_ORDER } from '../pieces';
 import { useSession } from '../session';
 import { BuildsTab } from './BuildsTab';
+import { TechniquesDid } from './TechniquesDid';
 import { LaneBars } from './LaneBars';
 import { RelicsTab } from './RelicsTab';
 import { BreakTour } from './Tutor';
@@ -216,6 +217,7 @@ function Report(props: { report: ActReport; snap: Snapshot }) {
       <Fights report={report} />
       <Falls report={report} />
       <Cards report={report} />
+      <TechniquesDid />
       <BlackRelics snap={props.snap} />
       <table class="bs-table" data-testid="break-numbers">
         <caption class="tiny dim">This Act, side by side</caption>

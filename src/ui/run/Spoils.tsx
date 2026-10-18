@@ -1,14 +1,21 @@
 import type { ComponentChildren } from 'preact';
 import { useState } from 'preact/hooks';
-import { courtOf, roundName, techniqueText, type Reward } from '../../sim';
+import { courtOf, roundName, type Reward } from '../../sim';
 import { Term, Terms } from '../glossary';
-import { TechniqueChip } from '../TechniqueChip';
+import { faceOfDef, TechniqueCard } from '../builds/TechniqueCard';
 import { PieceGlyph, pieceLabel } from '../pieces';
-import { RichText } from '../richtext';
 import { FamilyChip, RelicSeal, relicText } from '../relics';
 import { SchoolChip } from '../schools';
 import { useSession } from '../session';
-import { CourtSeal, laneLine, OpeningLine, RelicNames, SignatureRelic, startsWith } from './parts';
+import {
+  CourtFirstMoves,
+  CourtSeal,
+  laneLine,
+  OpeningLine,
+  RelicNames,
+  SignatureRelic,
+  startsWith,
+} from './parts';
 import { CourtPortrait } from './seals';
 
 type Kind = Reward['kind'];
@@ -94,6 +101,12 @@ export function Spoils() {
             )}
             <OpeningLine c={c} opening={opp.setup.opening} />
             {court && <span class="rung-lanes">{laneLine(c, court)}.</span>}
+            {court && (
+              <>
+                <span class="rung-moves-h">First moves</span>
+                <CourtFirstMoves c={c} court={court} />
+              </>
+            )}
             <span class="rung-note">{startsWith(c, opp)}</span>
             {court ? (
               <SignatureRelic c={c} court={court} />
@@ -165,6 +178,7 @@ export function Spoils() {
             }
             if (o.kind === 'heirloom') {
               const tech = c.techniqueById.get(o.technique)!;
+              const face = faceOfDef(c, tech.id, 'plain', o.piece);
               return (
                 <Card
                   key="heirloom"
@@ -182,16 +196,11 @@ export function Spoils() {
                     </button>
                   }
                 >
-                  <span class="spoil-tags">
-                    <TechniqueChip c={c} id={tech.id} />
-                  </span>
                   <p>
-                    Your {pieceLabel(c, o.piece)} keeps {tech.name} and starts every later match
-                    holding it (Plain grade).
+                    Your {pieceLabel(c, o.piece)} keeps this <Term id="technique">Technique</Term>{' '}
+                    and starts every later match holding it, at Plain grade.
                   </p>
-                  <p class="spoil-fine">
-                    <RichText text={techniqueText(tech, 1).desc} />
-                  </p>
+                  {face && <TechniqueCard face={face} compact testid="spoil-heirloom-card" />}
                 </Card>
               );
             }
@@ -217,7 +226,10 @@ export function Spoils() {
                   <SchoolChip school={card.school} glyph={13} />
                   <span class="spoil-item">{card.cost} Tempo</span>
                 </span>
-                <p>{card.name} is drawn twice as often for the rest of the run.</p>
+                <p>
+                  A <Term id="gambit">gambit</Term> for your hand, not a Technique. It is dealt
+                  twice as often for the rest of the run.
+                </p>
                 <p class="spoil-fine">{card.desc}</p>
               </Card>
             );

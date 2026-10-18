@@ -17,6 +17,7 @@ import { GRADE_MARK, TechniqueChip } from '../../TechniqueChip';
 import { techniqueName } from '../common';
 import type { ReportData } from '../data';
 import { Portrait } from '../parts';
+import { TechniqueTotals } from '../TechniqueTotals';
 import { GOLD_GROUPS, goldGroup } from './EconomyPage';
 
 const TYPES = ['blade', 'soul', 'true'] as const;
@@ -194,6 +195,7 @@ export function PieceDetail(props: { data: ReportData; id: number; onReplay: () 
         ))}
         {r.finalTechniques.length === 0 && <span class="dim tiny">No Techniques</span>}
       </div>
+      <TechniqueTotals heroId={r.id} finalIds={r.finalTechniques} />
       <ChartBox
         testid="chart-life"
         title="Techniques, ranks, archetype and falls"

@@ -733,6 +733,12 @@ export interface TechTally {
   procs: number;
 }
 
+/** What every Technique did in one Act (key `${heroId}:${techniqueId}`). */
+export interface ActTechTally {
+  act: number;
+  techniques: Record<string, TechTally>;
+}
+
 /** A piece's own counts for an Act (the cards' "last Act" lines and the AI's top-damage piece). */
 export interface PieceTally {
   hits: number;

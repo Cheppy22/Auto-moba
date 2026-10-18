@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'preact/hooks';
 import type { CarriedRelic, Content, RelicDef } from '../../sim';
 import { Term } from '../glossary';
 import { CardChips, LaneChips, PieceChips, QuotaControls, SealedControls } from '../hud/RelicsTab';
-import { TechniqueChip } from '../TechniqueChip';
+import { faceOfDef, TechniqueCard } from '../builds/TechniqueCard';
 import {
   LANES,
   LANE_LABEL,
@@ -222,13 +222,26 @@ export function RunKit(props: { onClose: () => void }) {
             {heirlooms.length === 0 ? (
               <p class="rk-note">None yet. A piece with one starts every match holding it.</p>
             ) : (
-              <ul class="relic-names">
-                {heirlooms.map(({ piece, id }) => (
-                  <li key={piece}>
-                    <TechniqueChip c={c} id={id} />
-                    <span class="dim">on the {pieceLabel(c, piece)}</span>
-                  </li>
-                ))}
+              <ul class="rk-heirs">
+                {heirlooms.map(({ piece, id }) => {
+                  const face = faceOfDef(c, id, 'plain', piece);
+                  return (
+                    <li key={piece} data-testid={`kit-heirloom-${piece}`}>
+                      {face && (
+                        <TechniqueCard
+                          face={face}
+                          compact
+                          tag={
+                            <span class="rk-heir-on tiny">
+                              <PieceGlyph piece={piece} team="A" size={16} />
+                              {pieceLabel(c, piece)}
+                            </span>
+                          }
+                        />
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </section>

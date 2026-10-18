@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useMemo, useState } from 'preact/hooks';
 import type { PieceId, SetupEntry } from '../sim';
 import { readOpening, storeOpening } from './openingPick';
 import { PacePicker } from './PacePicker';
@@ -10,6 +10,7 @@ import { BoardPage } from './setup/BoardPage';
 import { OpeningPage } from './setup/OpeningPage';
 import { Pager } from './setup/Pager';
 import { FirstMovesPage } from './setup/FirstMovesPage';
+import { firstMovesToSend, type Picks } from './setup/firstMoves';
 
 const STEPS = ['First moves', 'Board', 'Opening'];
 
@@ -32,6 +33,10 @@ export function Setup() {
   const [opening, setOpening] = useState<string>(() =>
     carried ? s.setupDefaults()!.opening : readOpening(openings.map((o) => o.id)),
   );
+  // First moves: the player's own picks, and "Pick for me" (on: the AI's card is already chosen)
+  const [picks, setPicks] = useState<Picks>({});
+  const [pickForMe, setPickForMe] = useState(true);
+  const moves = useMemo(() => m.firstMoves(opening), [m, opening]);
   const [kit, setKit] = useState(false);
   const [page, setPage] = useState(0);
   const last = STEPS.length - 1;
@@ -54,10 +59,15 @@ export function Setup() {
 
   const begin = (): void => {
     storeOpening(opening);
+    const first = firstMovesToSend(moves, picks, pickForMe);
     s.issue({
       type: 'setupTeam',
       opening,
-      pieces: entries.map(({ piece, lane }) => ({ piece, lane })),
+      pieces: entries.map(({ piece, lane }) => ({
+        piece,
+        lane,
+        ...(first[piece] !== undefined ? { firstMove: first[piece] } : {}),
+      })),
     });
   };
 
@@ -88,7 +98,21 @@ export function Setup() {
         </header>
         <Pager page={page} onPage={go}>
           {[
-            <FirstMovesPage key="moves" opening={opening} />,
+            <FirstMovesPage
+              key="moves"
+              view={moves}
+              picks={picks}
+              onPick={(piece, id) =>
+                setPicks((p) => {
+                  const next = { ...p };
+                  if (id === undefined) delete next[piece];
+                  else next[piece] = id;
+                  return next;
+                })
+              }
+              pickForMe={pickForMe}
+              onPickForMe={setPickForMe}
+            />,
             <BoardPage
               key="board"
               content={s.content}

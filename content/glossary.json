@@ -3,7 +3,7 @@
     "id": "act",
     "term": "Act",
     "aliases": ["Act", "Acts"],
-    "short": "A timed stretch of the match; each one ends with the bell and a break sheet where you give orders and draft a relic.",
+    "short": "A timed stretch of the match; each one ends with the bell and a break sheet for orders, a relic and Technique picks.",
     "more": "Later Acts open more jungle clearings and switch on pressure events, and from Act 7 (Act 2 in Blitz) the game pushes toward an ending.",
     "see": ["bell", "relic"],
     "group": "Match"
@@ -251,7 +251,7 @@
     "aliases": ["Heirloom", "Heirlooms", "heirloom", "heirlooms"],
     "short": "A Technique that one piece keeps from this match and starts every later match of the run holding, at Plain grade.",
     "more": "Each piece can have one. It is one of the Techniques the piece held when the match ended, and its first move is then drawn for another slot.",
-    "see": ["spoils", "technique"],
+    "see": ["spoils", "technique", "slot"],
     "group": "Run"
   },
   {
@@ -329,7 +329,34 @@
     "term": "Reroll",
     "aliases": ["Reroll", "Rerolls"],
     "short": "At a break a piece may spend its gold to draw three new cards, or pass on its offer for gold instead.",
-    "see": ["technique"],
+    "see": ["technique", "upgrade"],
     "group": "Pieces"
+  },
+  {
+    "id": "upgrade",
+    "term": "Upgrade",
+    "aliases": ["Upgrade", "Upgrades"],
+    "short": "At a break a piece may spend its gold to raise one Technique it holds a grade: Plain to Sharp, or Sharp to Brilliant.",
+    "more": "Plain to Sharp costs 600 gold and Sharp to Brilliant 1,200. The Technique keeps its slot and its rule; only its numbers grow.",
+    "see": ["grade", "slot", "builds"],
+    "group": "Break"
+  },
+  {
+    "id": "slot",
+    "term": "Slot",
+    "aliases": ["Slot", "Slots"],
+    "short": "One of a piece's six places for a Technique: Attack, its three skills, its Signature (from Rank 4) and its Trait.",
+    "more": "A slot holds one Technique. A card for a slot that is full replaces what is there, so an offer never holds two cards for one slot.",
+    "see": ["technique", "upgrade"],
+    "group": "Pieces"
+  },
+  {
+    "id": "builds",
+    "term": "Builds",
+    "aliases": ["Builds"],
+    "short": "The break sheet's tab where each piece takes a Technique from its offer, rerolls, upgrades or passes for gold.",
+    "more": "Pieces you leave alone are picked for by the AI when you resume. Pick for me shows the AI's choice and marks the picks that matter most.",
+    "see": ["technique", "reroll", "upgrade"],
+    "group": "Break"
   }
 ]

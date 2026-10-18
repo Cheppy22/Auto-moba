@@ -68,3 +68,511 @@
   flex-direction: column;
   gap: 0.6rem;
 }
+
+/* ---------- the Technique card face (Setup's First moves, Spoils, the Run kit) ---------- */
+.tc {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 11px 12px 12px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--school) 10%, transparent), transparent 55%),
+    rgba(255, 255, 255, 0.03);
+  border: 1px solid color-mix(in srgb, var(--school) 38%, var(--rule));
+  border-radius: 6px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 6px 16px rgba(0, 0, 0, 0.3);
+}
+.tc::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: var(--school);
+  border-radius: 6px 6px 0 0;
+  pointer-events: none;
+}
+.tc.on {
+  border-color: var(--brass);
+  box-shadow: var(--glow-brass);
+}
+.tc-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+.tc-school {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--school) 60%, white);
+}
+.tc-ai {
+  margin-left: auto;
+  padding: 0 8px;
+  font-style: normal;
+  line-height: 18px;
+  color: var(--brass-hi);
+  border: 1px solid var(--brass-dim);
+  border-radius: 9px;
+  background: rgba(201, 163, 90, 0.12);
+}
+.tc-name {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 21px;
+  line-height: 1.1;
+  letter-spacing: 0.03em;
+  color: #f6edd6;
+}
+.tc-slot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  margin: 0;
+}
+.tc-slotchip,
+.tc-tag {
+  padding: 1px 8px;
+  line-height: 18px;
+  border-radius: 10px;
+  color: #f3e9d0;
+  background: color-mix(in srgb, var(--school) 20%, transparent);
+  border: 1px solid color-mix(in srgb, var(--school) 55%, transparent);
+}
+.tc-tag.dubious {
+  color: var(--kw-price);
+  background: rgba(236, 106, 112, 0.1);
+  border-color: rgba(236, 106, 112, 0.5);
+}
+.tc-tag.combo {
+  color: var(--brass-hi);
+  background: rgba(201, 163, 90, 0.12);
+  border-color: var(--brass-dim);
+}
+.tc-plays {
+  margin: 0;
+  font-style: italic;
+  font-size: var(--fs-sm);
+  color: var(--bone);
+}
+.tc-rule {
+  margin: 0;
+  font-size: var(--fs-md);
+  line-height: 1.4;
+  color: #f6edd6;
+}
+.tc-price,
+.tc-note,
+.tc-leads {
+  margin: 0;
+  color: var(--bone);
+}
+.tc-leads b {
+  color: var(--brass-hi);
+  font-weight: 600;
+}
+.tc.compact {
+  gap: 4px;
+  padding: 8px 10px 9px;
+}
+.tc.compact .tc-name {
+  font-size: 17px;
+}
+.tc.compact .tc-rule {
+  font-size: var(--fs-sm);
+}
+.tc-take {
+  align-self: stretch;
+  min-height: 44px;
+  margin-top: auto;
+}
+.tc-take.chosen {
+  color: var(--ivory);
+  border-color: var(--brass);
+  background: rgba(201, 163, 90, 0.18);
+}
+
+/* ---------- Setup page 1: First moves ---------- */
+.fm-page {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.fm-top {
+  display: grid;
+  gap: 8px;
+}
+.fm-pick {
+  display: grid;
+  gap: 4px;
+}
+.fm-pick-note {
+  margin: 0;
+  line-height: 1.35;
+}
+.fm-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  justify-self: start;
+  min-height: 44px;
+  padding: 0 16px 0 10px;
+  font-family: var(--font-display);
+  font-size: var(--fs-md);
+  letter-spacing: 0.04em;
+  color: var(--ivory-2);
+  cursor: pointer;
+  background: linear-gradient(180deg, #2a1e16 0%, #1d1510 100%);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-1);
+}
+.fm-switch.on {
+  color: var(--ivory);
+  border-color: var(--brass);
+}
+.fm-knob {
+  position: relative;
+  flex: none;
+  width: 38px;
+  height: 22px;
+  border-radius: 11px;
+  background: #1a130d;
+  border: 1px solid var(--brass-dim);
+  transition: background var(--t-med);
+}
+.fm-knob::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--bone);
+  transition: transform var(--t-med) var(--ease);
+}
+.fm-switch.on .fm-knob {
+  background: var(--baize);
+  border-color: var(--baize-hi);
+}
+.fm-switch.on .fm-knob::after {
+  transform: translateX(16px);
+  background: var(--ivory);
+}
+.fm-chips {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+}
+.fm-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  min-height: 64px;
+  padding: 4px 2px;
+  color: var(--text);
+  cursor: pointer;
+  background: linear-gradient(180deg, #3d281c, #251b14);
+  border: 1px solid #4a3f2c;
+  border-radius: var(--r-1);
+}
+.fm-chip.on {
+  border-color: var(--baize-hi);
+  box-shadow: inset 0 0 0 1px var(--baize-hi);
+}
+.fm-chip.hot {
+  border-color: var(--brass);
+}
+.fm-chip.hot .fm-chip-src {
+  color: var(--brass-hi);
+}
+.fm-chip.yours .fm-chip-src {
+  color: var(--baize-hi);
+}
+.fm-chip-name {
+  font-size: 12.5px;
+  line-height: 1.1;
+}
+.fm-chip-src {
+  font-size: 11px;
+  line-height: 1.1;
+  color: var(--dim);
+}
+.fm-lost,
+.fm-hot,
+.fm-for {
+  margin: 0;
+}
+.fm-hot {
+  padding: 6px 10px;
+  color: var(--ivory-2);
+  background: rgba(201, 163, 90, 0.1);
+  border-left: 3px solid var(--brass);
+  border-radius: 3px;
+}
+.fm-lost {
+  color: var(--warn);
+}
+.fm-piece {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.fm-cards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr);
+}
+.fm-cards > li {
+  display: flex;
+  min-width: 0;
+}
+.fm-cards > li > .tc {
+  flex: 1;
+}
+.fm-heir {
+  display: grid;
+  gap: 4px;
+}
+.fm-heir-label {
+  color: var(--brass-hi);
+}
+.fm-undo {
+  align-self: start;
+  min-height: 44px;
+}
+html[data-layout='landscape'] .fm-top,
+html[data-layout='desktop'] .fm-top {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
+  align-items: start;
+}
+html[data-layout='landscape'] .fm-cards,
+html[data-layout='desktop'] .fm-cards {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+html[data-layout='landscape'] .fm-chip {
+  min-height: 52px;
+}
+html[data-layout='landscape'] .fm-page {
+  gap: 0.4rem;
+}
+html[data-layout='landscape'] .tc {
+  gap: 4px;
+  padding: 8px 10px 10px;
+}
+html[data-layout='landscape'] .tc-name {
+  font-size: 18px;
+}
+html[data-layout='landscape'] .tc-rule {
+  font-size: var(--fs-sm);
+}
+
+/* heirlooms on the Run kit: the card face, with the piece that holds it */
+.rk-heirs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.rk-heir-on {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  color: var(--ivory-2);
+}
+
+/* a court's fixed first moves (Draw, Spoils) */
+.rung-moves-h {
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--brass-hi);
+}
+
+/* ---------- what each Technique did (the Act report, Adjourn, the end report) ---------- */
+.tl {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 5px;
+}
+.tl li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    'mark what'
+    'mark nums';
+  gap: 0 8px;
+  align-items: baseline;
+  padding: 4px 8px;
+  font-size: var(--fs-sm);
+  line-height: 1.35;
+  background: color-mix(in srgb, var(--school, var(--bone)) 8%, transparent);
+  border-left: 3px solid var(--school, var(--rule));
+  border-radius: 0 3px 3px 0;
+}
+.tl li > svg {
+  grid-area: mark;
+  align-self: center;
+}
+.tl-what {
+  grid-area: what;
+  color: var(--ivory);
+}
+.tl-nums {
+  grid-area: nums;
+  color: var(--bone);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* a piece's six slots as read-only rows (Adjourn) */
+.sr {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+}
+.sr-row {
+  display: grid;
+  grid-template-columns: minmax(70px, 26%) minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+  padding: 5px 0;
+  border-bottom: 1px dotted rgba(203, 189, 159, 0.16);
+}
+.sr-row:last-child {
+  border-bottom: 0;
+}
+.sr-slot {
+  font-size: var(--fs-sm);
+  color: var(--bone);
+  overflow-wrap: anywhere;
+}
+.sr-body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 3px 8px;
+  min-width: 0;
+}
+.sr-did {
+  flex: 1 1 100%;
+  color: var(--bone);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+.sr-away {
+  flex: 1 1 100%;
+  color: var(--brass-hi);
+}
+
+/* the end report: what a piece's Techniques did, by Act */
+.tt {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.tt-row {
+  display: grid;
+  gap: 3px;
+  padding: 5px 8px 6px;
+  background: color-mix(in srgb, var(--school, var(--bone)) 8%, transparent);
+  border-left: 3px solid var(--school, var(--rule));
+  border-radius: 0 3px 3px 0;
+}
+.tt-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ivory);
+}
+.tt-acts {
+  display: grid;
+  grid-template-columns: repeat(var(--n, 1), minmax(0, 1fr));
+  gap: 2px;
+  max-width: calc(var(--n, 1) * 64px);
+}
+.tt-act {
+  display: grid;
+  justify-items: center;
+  padding: 2px 0;
+  background: rgba(0, 0, 0, 0.22);
+  border-radius: 2px;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+.tt-act.none {
+  opacity: 0.55;
+}
+.tt-n {
+  font-size: var(--fs-sm);
+  color: var(--ivory);
+}
+.tt-l {
+  font-size: 11px;
+  color: var(--dim);
+}
+.tt-total {
+  color: var(--bone);
+}
+
+/* the card's "What changes" ledger (the relic card's table, in the card's colour) */
+.tc-change {
+  display: grid;
+  gap: 2px;
+  padding: 6px 9px 7px;
+  background: rgba(10, 8, 6, 0.35);
+  border: 1px solid color-mix(in srgb, var(--school) 25%, rgba(201, 163, 90, 0.18));
+  border-radius: 4px;
+}
+.tc-change-h {
+  font-family: var(--font-display);
+  font-size: var(--fs-sm);
+  letter-spacing: 0.04em;
+  color: var(--brass-hi);
+}
+.tc-change dl {
+  display: grid;
+  gap: 1px;
+  margin: 0;
+}
+.tc.compact .tc-change {
+  display: none;
+}
+
+/* a phone held sideways is short: the cards keep to the essentials and the page scrolls */
+html[data-layout='landscape'] .fm-pick-note,
+html[data-layout='landscape'] .fm-for,
+html[data-layout='landscape'] .tc-change {
+  display: none;
+}
+html[data-layout='landscape'] .fm-hot {
+  padding: 3px 8px;
+}
+
+.sr-slot {
+  display: grid;
+}
+.sr-kind {
+  color: var(--faint);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}

@@ -42,10 +42,13 @@ test('title, setup, gambits, pawn, fork, adjourn, checkmate and report', async (
   await page.getByTestId('seed').fill('42');
   await page.getByTestId('start').click();
   await expect(page.getByTestId('setup')).toBeVisible();
-  // page 1, first moves: each piece's Setup cards, the AI's pick marked (read only for now)
+  // page 1, first moves: Pick for me is on, so each piece's tab shows three cards with the AI's chosen
   await expect(page.getByTestId('first-moves')).toBeVisible();
-  for (const piece of ['king', 'queen', 'rook', 'bishop', 'knight'])
-    await expect(page.getByTestId(`first-move-${piece}`).locator('li.on')).toHaveCount(1);
+  await expect(page.getByTestId('pick-for-me')).toHaveAttribute('aria-checked', 'true');
+  for (const piece of ['king', 'queen', 'rook', 'bishop', 'knight']) {
+    await page.getByTestId(`fm-chip-${piece}`).click();
+    await expect(page.getByTestId(`first-move-${piece}`).locator('.tc.on')).toHaveCount(1);
+  }
   // page 2, board: swap the King into Mid, read a piece descriptor
   await page.getByTestId('next').click();
   await expect(page.getByTestId('step-2')).toHaveAttribute('aria-current', 'step');

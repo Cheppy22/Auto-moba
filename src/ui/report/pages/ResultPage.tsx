@@ -333,7 +333,7 @@ function Block(props: {
           <span class="short">Mit</span>
         </span>
         <span class="rp-c rp-c-gold">Gold</span>
-        <span class="rp-c-items">Items</span>
+        <span class="rp-c-items">Techniques</span>
       </div>
       {rows.map((r) => (
         <ScoreRow
