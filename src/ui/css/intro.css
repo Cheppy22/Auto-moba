@@ -88,6 +88,13 @@
   justify-content: center;
   gap: 4px;
 }
+.vs-opens {
+  margin-top: -1px;
+  font-size: calc(var(--vs-fs) * 0.78);
+  line-height: 1.1;
+  color: var(--brass-hi);
+  text-wrap: balance;
+}
 .vs-vs {
   align-self: center;
   font-family: var(--font-display);

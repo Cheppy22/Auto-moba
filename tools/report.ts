@@ -110,6 +110,8 @@ export function report(
     `| times in Check | ${(results.reduce((a, r) => a + r.checks.A, 0) / n).toFixed(1)} | ${(results.reduce((a, r) => a + r.checks.B, 0) / n).toFixed(1)} |`,
   );
   lines.push('');
+  lines.push(...openingLines(results));
+  lines.push('');
   lines.push(...paceLines(results));
   lines.push('');
   lines.push('## Pieces (share of appearances on the winning side)');
@@ -251,6 +253,26 @@ export function report(
 }
 
 /** Gold banked and Masterworks owned at each Act break (both sides, per piece). */
+/** Each Opening's appearances and win rate per side (flag a rate outside 44-56%). */
+function openingLines(results: MatchSummary[]): string[] {
+  const out: string[] = ['## Openings (win rate when held, by side)', ''];
+  out.push('| Opening | White: games | White: win | Black: games | Black: win | Both |');
+  out.push('| --- | --- | --- | --- | --- | --- |');
+  const ids = [...new Set(results.flatMap((r) => (r.opening ? [r.opening.A, r.opening.B] : [])))];
+  for (const id of ids.sort()) {
+    const row = (t: 'A' | 'B'): { n: number; w: number } => {
+      const mine = results.filter((r) => r.opening?.[t] === id && r.winner !== null);
+      return { n: mine.length, w: mine.filter((r) => r.winner === t).length };
+    };
+    const a = row('A');
+    const b = row('B');
+    out.push(
+      `| ${id} | ${a.n} | ${pct(a.w, a.n)} | ${b.n} | ${pct(b.w, b.n)} | ${pct(a.w + b.w, a.n + b.n)} |`,
+    );
+  }
+  return out;
+}
+
 function breakLines(results: MatchSummary[]): string[] {
   const n = results.length;
   const out: string[] = ['## Gold and Masterworks at the Act breaks (per piece, both sides)', ''];

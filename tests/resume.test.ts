@@ -78,7 +78,7 @@ describe('resume a match after a reload', () => {
   }, 240_000);
 
   it('resumes across a fork that is waiting and across an Act break', async () => {
-    const m = browserMatch(21);
+    const m = browserMatch(22);
     // run until the first stop of the clock (a fork), save there
     while (m.state.phase.kind === 'live' && m.state.forks.length === 0) {
       if (m.step(5) > 0) continue;

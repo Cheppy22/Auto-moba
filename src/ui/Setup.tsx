@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'preact/hooks';
 import { naturalPath, type Path, type PieceId, type SetupEntry } from '../sim';
+import { readOpening, storeOpening } from './openingPick';
 import { PacePicker } from './PacePicker';
 import { PIECE_ORDER } from './pieces';
 import { useSession } from './session';
@@ -33,9 +34,7 @@ export function Setup() {
   const [selected, setSelected] = useState<PieceId | null>(null);
   const openings = s.content.openings;
   const [opening, setOpening] = useState<string>(() =>
-    carried
-      ? s.setupDefaults()!.opening
-      : ((openings.find((o) => o.id === 'italian') ?? openings[0])?.id ?? 'italian'),
+    carried ? s.setupDefaults()!.opening : readOpening(openings.map((o) => o.id)),
   );
   const [kit, setKit] = useState(false);
   const [page, setPage] = useState(0);
@@ -58,6 +57,7 @@ export function Setup() {
   }, [last]);
 
   const begin = (): void => {
+    storeOpening(opening);
     s.issue({
       type: 'setupTeam',
       opening,
