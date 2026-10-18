@@ -144,9 +144,6 @@ function Preview(props: {
         </p>
       )}
       <p class="fs-rule">{props.desc}</p>
-      <p class="fs-rule tiny dim" data-testid="fork-signature-slot">
-        Opens the Signature slot for <Term id="technique">Techniques</Term>.
-      </p>
     </div>
   );
 }
