@@ -305,7 +305,14 @@ export const PieceSchema = z.object({
 /** `ally` targets one of the team's own pieces. */
 const GambitTargetSchema = z.enum(['lane', 'point', 'enemy', 'ally', 'none']);
 
-const SCHOOLS = ['march', 'initiative', 'fortress', 'sacrifice', 'position', 'clock'] as const;
+export const SCHOOLS = [
+  'march',
+  'initiative',
+  'fortress',
+  'sacrifice',
+  'position',
+  'clock',
+] as const;
 const SchoolSchema = z.enum(SCHOOLS);
 
 /** Effect families the sim implements; a card's `effect` defaults to its id. */
@@ -361,6 +368,8 @@ const OpeningSchema = z.object({
   name: z.string(),
   desc: z.string().default(''),
   schools: z.array(SchoolSchema),
+  /** The card this Opening's first hand always holds (null: the Italian Game's three schools). */
+  openingCard: z.string().nullable().default(null),
 });
 
 export const OpeningFileSchema = z.array(OpeningSchema).min(1);

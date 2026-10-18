@@ -212,7 +212,6 @@ export function ForkSheet(props: { forks: SnapFork[] }) {
             Paused
           </span>
         </header>
-        <ForkTutor />
         <div class="fs-opts archetypes" role="tablist" aria-label="Archetypes">
           {f.options.map((o) => {
             const on = o.id === opt.id;
@@ -234,15 +233,18 @@ export function ForkSheet(props: { forks: SnapFork[] }) {
             );
           })}
         </div>
-        <Preview
-          key={`${forkKey}:${opt.id}`}
-          f={f}
-          optionId={opt.id}
-          playsLike={playsLike}
-          desc={opt.desc}
-          portrait={portraits.get(look)}
-          look={look}
-        />
+        <div class="fs-body">
+          <ForkTutor />
+          <Preview
+            key={`${forkKey}:${opt.id}`}
+            f={f}
+            optionId={opt.id}
+            playsLike={playsLike}
+            desc={opt.desc}
+            portrait={portraits.get(look)}
+            look={look}
+          />
+        </div>
         <div class="fs-actions">
           <button
             class="btn primary fs-choose"

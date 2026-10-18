@@ -37,6 +37,8 @@ export interface MatchSummary {
   ms: number;
   heroes: HeroResult[];
   lead1: PlayTeam | null;
+  /** Each side's Opening id. */
+  opening: Record<PlayTeam, string>;
   comeback: boolean;
   obelisks: Record<PlayTeam, number>;
   towers: Record<PlayTeam, number>;
@@ -301,6 +303,7 @@ export function simulateMatch(content: Content, seed: number, opts: SimOptions =
     ms,
     heroes,
     lead1,
+    opening: { ...s.opening },
     comeback: lead1 !== null && winner !== null && winner !== lead1,
     obelisks,
     towers: { A: s.teams.A.towersDown, B: s.teams.B.towersDown },

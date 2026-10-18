@@ -136,6 +136,9 @@
 
 /* the Rules page (Title) and tab (Adjourn) */
 .overlay.rules-page {
+  /* opened from the Title, which is itself an overlay: `.overlay > *` would make it a flex item */
+  position: absolute;
+  inset: 0;
   z-index: 6;
 }
 .rules-panel {
@@ -173,4 +176,97 @@
 .rules-row dd {
   margin: 2px 0 0;
   line-height: 1.45;
+}
+
+/* Rules: Words or All cards */
+.rules-switch {
+  display: flex;
+  gap: 6px;
+  margin-bottom: var(--sp-3, 12px);
+}
+.rules-switch .btn {
+  flex: 1 1 0;
+  min-height: 44px;
+}
+.ac-chips {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: var(--sp-3, 12px);
+}
+.ac-chip {
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  background: color-mix(in srgb, var(--school) 12%, #1d1510);
+  border: 1px solid color-mix(in srgb, var(--school) 45%, transparent);
+  border-radius: var(--r-1);
+}
+.ac-chip.on {
+  background: color-mix(in srgb, var(--school) 28%, #1d1510);
+  border-color: var(--school);
+  box-shadow: 0 0 0 1px var(--school);
+}
+.ac-h {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--school);
+  font-variant: small-caps;
+  letter-spacing: 0.08em;
+}
+.ac-job,
+.ac-counter {
+  margin: 2px 0 0;
+  font-size: var(--fs-sm);
+  line-height: 1.4;
+}
+.ac-list {
+  list-style: none;
+  margin: var(--sp-3, 12px) 0 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.ac-card {
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--school);
+  border-radius: var(--r-1);
+  background: rgba(20, 17, 14, 0.5);
+}
+.ac-name {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.ac-name b {
+  color: var(--ivory);
+}
+.ac-cost {
+  min-width: 22px;
+  height: 20px;
+  padding: 0 5px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #1a1206;
+  background: linear-gradient(180deg, var(--brass-hi), var(--brass));
+}
+.ac-desc {
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--ivory-2);
+}
+.ac-note {
+  font-size: 12px;
 }

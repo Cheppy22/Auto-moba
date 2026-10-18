@@ -191,7 +191,7 @@
         "style": "regent",
         "pose": "left"
       },
-      "opening": "italian",
+      "opening": "caro_kann",
       "pieces": [
         {
           "piece": "rook",
@@ -366,7 +366,7 @@
         "style": "light",
         "pose": "front"
       },
-      "opening": "italian",
+      "opening": "english",
       "pieces": [
         {
           "piece": "rook",
@@ -482,7 +482,7 @@
         "style": "duelist",
         "pose": "front"
       },
-      "opening": "sicilian",
+      "opening": "scandinavian",
       "pieces": [
         {
           "piece": "rook",
@@ -541,7 +541,7 @@
         "style": "zealot",
         "pose": "profile-left"
       },
-      "opening": "kings_gambit",
+      "opening": "kings_indian",
       "pieces": [
         {
           "piece": "king",

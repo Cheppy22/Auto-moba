@@ -396,7 +396,7 @@ html[data-layout='desktop'] .hud.v2 {
   grid-template-columns: auto auto 1fr auto;
   grid-template-areas:
     'name name name cost'
-    'school sig . .';
+    'school sig . open';
   align-items: center;
   gap: 2px 4px;
 }
@@ -411,6 +411,10 @@ html[data-layout='desktop'] .hud.v2 {
 }
 .dr-hand .gsig {
   grid-area: sig;
+}
+.dr-hand .gopen {
+  grid-area: open;
+  justify-self: end;
 }
 .dr-hand .gcost {
   grid-area: cost;
@@ -1115,6 +1119,23 @@ html[data-layout='desktop'] .hud.v2 {
 /* a banner waits below a tray that is showing */
 .hud.v2[data-shape='stack']:has(.tray-item) .notices {
   top: calc(var(--hud-top, 110px) + 52px);
+}
+/* so does Black's piece card, which opens in the same spot: the trays (44 px, 2 px under the bar)
+ * and the seals row (they push the trays down 44 px more) hang out of the bar's flow, so the
+ * card starts below whatever hangs there instead of sitting under it with its close button */
+.hud.v2[data-shape='stack'] {
+  --hang: 0px;
+}
+.hud.v2[data-shape='stack']:has(.tray-item) {
+  --hang: 52px;
+}
+.hud.v2[data-shape='stack']:has(.tray-item):has(.v2-black .relic-row) {
+  --hang: 96px;
+}
+.hud.v2[data-shape='stack'] .ucard.side-B {
+  top: calc(var(--hud-top, 110px) + 8px + var(--hang));
+  max-height: calc(100% - var(--hud-top, 110px) - var(--hud-bottom, 150px) - 24px - var(--hang));
+  transition: top 0.25s ease;
 }
 .hud.v2[data-shape='stack'] .notices {
   transition: top 0.25s ease;

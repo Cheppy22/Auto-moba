@@ -267,6 +267,12 @@ html[data-layout='desktop'] .openings {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
 }
+html[data-layout='desktop'] .op-col,
+html[data-layout='landscape'] .op-col {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
 html[data-layout='desktop'] .sp-foot {
   max-width: 560px;
   width: 100%;
@@ -351,6 +357,7 @@ html[data-layout='landscape'] .bd-empty {
 }
 html[data-layout='landscape'] .openings {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
 }
 
 @media (pointer: coarse) {

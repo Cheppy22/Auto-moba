@@ -61,7 +61,7 @@ test('title, setup, gambits, pawn, fork, adjourn, checkmate and report', async (
   // page 3, Opening: everything is pre-filled with the Italian Game; pick another and read "More"
   await page.keyboard.press('ArrowRight');
   await expect(page.getByTestId('step-3')).toHaveAttribute('aria-current', 'step');
-  await expect(page.locator('[data-testid^="opening-"][role="radio"]')).toHaveCount(4);
+  await expect(page.locator('[data-testid^="opening-"][role="radio"]')).toHaveCount(8);
   await expect(page.getByTestId('opening-italian')).toHaveClass(/on/);
   await page.getByTestId('opening-french').click();
   await expect(page.getByTestId('opening-french')).toHaveClass(/on/);
@@ -86,6 +86,10 @@ test('title, setup, gambits, pawn, fork, adjourn, checkmate and report', async (
   await expect(page.getByTestId('roster-A-king')).toHaveAttribute('aria-label', /Generic.*Mid/);
   await expect(page.getByTestId('roster-A-king')).toHaveAttribute('data-rank', '1');
   await expect(page.locator('[data-testid^="gambit-"]')).toHaveCount(3);
+  // the French Defence opens with Hold the File, in slot 0, with its "Opening" corner and "Act 1" pin
+  await expect(page.getByTestId('gambit-0')).toHaveAttribute('data-card', 'hold_the_file');
+  await expect(page.getByTestId('hand-opening-0')).toHaveText('Opening');
+  await expect(page.getByTestId('hand-pin-0')).toHaveText('Act 1');
   await expect(page.getByTestId('tempo-value')).toHaveText('30');
   await expect(page.getByTestId('pawn-count')).toContainText('0/8 · 15');
   await expect(page.getByTestId('status-A')).toHaveAttribute('data-state', '');

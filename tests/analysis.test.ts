@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { buildReport, inputFromMatch, mostTakenType } from '../src/analysis';
 import { content, runAi } from './helpers';
 
-const m = runAi(8, 9);
+const m = runAi(10, 9);
 const input = inputFromMatch(m, content);
 const whole = buildReport(input, { kind: 'match' });
 

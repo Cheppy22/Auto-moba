@@ -179,8 +179,17 @@
     "term": "Opening",
     "aliases": ["Opening", "Openings"],
     "short": "Your setup choice that tilts which gambit cards you are dealt; most favour two schools, doubling their chance.",
-    "more": "The Italian Game is balanced and favours none. Black picks an Opening too, and you see it a little way into the match.",
-    "see": ["gambit", "school"],
+    "more": "There are eight, and each names the card it opens with. The Italian Game is balanced and favours none. Black picks an Opening too, and you see it a little way into the match.",
+    "see": ["gambit", "school", "opening-card"],
+    "group": "Gambits"
+  },
+  {
+    "id": "opening-card",
+    "term": "Opening card",
+    "aliases": ["opening card", "Opening card", "opening cards"],
+    "short": "The one card your Opening always puts in your first hand; it stays until you play it or Act 1 ends.",
+    "more": "Each Opening names its own (the Sicilian Defence opens with Fork). The Italian Game has none: its first hand holds three different schools. Black follows the same rule.",
+    "see": ["opening", "gambit"],
     "group": "Gambits"
   },
   {

@@ -78,6 +78,10 @@ describe('content', () => {
       'sicilian',
       'french',
       'kings_gambit',
+      'english',
+      'scandinavian',
+      'kings_indian',
+      'caro_kann',
     ]);
     const sig = content.gambits.filter((g) => g.piece !== null).map((g) => g.piece);
     expect(sig.sort()).toEqual(['bishop', 'king', 'knight', 'queen', 'rook']);
