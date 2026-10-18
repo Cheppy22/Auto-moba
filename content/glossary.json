@@ -339,5 +339,47 @@
     "more": "A Classical match usually lasts 12 to 16 minutes. Desktops start on Classical; you can switch before each Exhibition or tournament.",
     "see": ["blitz", "act"],
     "group": "Match"
+  },
+  {
+    "id": "technique",
+    "term": "Technique",
+    "aliases": ["Technique", "Techniques", "techniques"],
+    "short": "A card that changes how a piece's attack, a skill or its trait works; each piece picks one of three at Setup and every break.",
+    "more": "A piece holds one Technique per slot: Attack, its three skills, its Signature (from Rank 4) and its Trait. Each belongs to one of the six schools.",
+    "see": ["grade", "combination", "dubious"],
+    "group": "Pieces"
+  },
+  {
+    "id": "grade",
+    "term": "Grade",
+    "aliases": ["Grade", "Grades"],
+    "short": "How strong a Technique card is: Plain, Sharp (!) or Brilliant (!!); all three cards of an offer share one grade.",
+    "more": "Sharp gives half again the bonus of Plain, Brilliant twice it. Gold upgrades a held Technique one grade at a break; Rank 8 makes the next offer Brilliant.",
+    "see": ["technique", "reroll"],
+    "group": "Pieces"
+  },
+  {
+    "id": "combination",
+    "term": "Combination",
+    "aliases": ["Combination", "Combinations"],
+    "short": "A stronger Technique that appears once a piece holds its two named parents; taking it upgrades the first parent in its slot.",
+    "see": ["technique"],
+    "group": "Pieces"
+  },
+  {
+    "id": "dubious",
+    "term": "Dubious",
+    "aliases": ["Dubious"],
+    "short": "A Sacrifice Technique with a large effect and a stated price, both shown on the card; a trailing side is offered them more often.",
+    "see": ["technique"],
+    "group": "Pieces"
+  },
+  {
+    "id": "reroll",
+    "term": "Reroll",
+    "aliases": ["Reroll", "Rerolls"],
+    "short": "At a break a piece may spend its gold to draw three new cards, or pass on its offer for gold instead.",
+    "see": ["technique"],
+    "group": "Pieces"
   }
 ]

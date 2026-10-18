@@ -10,6 +10,7 @@ import {
   healUnit,
   tickDots,
   tickPeriodicTriggers,
+  tickRecasts,
   tryRevive,
 } from './combat';
 import { dist } from './core/math';
@@ -83,6 +84,7 @@ export function tickUnitState(ctx: Ctx): void {
       for (let k = 0; k < 4; k++) if (h.cd[k] > 0) h.cd[k]--;
       if (h.order && h.order.untilTick <= tick) h.order = null;
       tickPeriodicTriggers(ctx, u);
+      if (h.recasts) tickRecasts(ctx, u);
       if (u.team !== 'neutral') {
         const b = ctx.world.basePos[u.team];
         if (dist(u.x, u.y, b.x, b.y) <= ctx.t.ai.healBaseRadius && u.hp < u.stats.maxHp) {
@@ -165,6 +167,7 @@ function killUnit(ctx: Ctx, u: Unit): void {
   const killer = ctx.unit(u.pendingKill?.killerId ?? 0) ?? null;
   const killerHero = killer && killer.hero ? killer : null;
   const killerTeam: PlayTeam | null = killer && killer.team !== 'neutral' ? killer.team : null;
+  const killOrigin = u.pendingKill?.origin;
   u.alive = false;
   u.hp = 0;
   u.pendingKill = null;
@@ -187,6 +190,8 @@ function killUnit(ctx: Ctx, u: Unit): void {
       h.lastDeathTick = ctx.s.tick;
       h.recall = null;
       h.goal = null;
+      if (h.recasts) h.recasts = [];
+      if (ctx.s.builds) fireTriggers(ctx, u, 'death', { attacker: killer ?? undefined });
       h.respawnAt = ctx.s.tick + respawnTicks(ctx, u);
       removeBoardClaim(ctx, u);
       const assists = awardAssists(ctx, u, killer ? killer.id : 0);
@@ -208,7 +213,15 @@ function killUnit(ctx: Ctx, u: Unit): void {
             bountyMul(ctx, u),
           'kill',
         );
-        fireTriggers(ctx, killerHero, 'kill', { victim: u });
+        fireTriggers(ctx, killerHero, 'kill', { victim: u, origin: killOrigin });
+      }
+      if (ctx.s.builds) {
+        // Techniques: a takedown is the kill or an assist on an enemy piece
+        if (killerHero) fireTriggers(ctx, killerHero, 'takedown', { victim: u });
+        for (const id of assists) {
+          const a = ctx.unit(id);
+          if (a?.hero && a.id !== killerHero?.id) fireTriggers(ctx, a, 'takedown', { victim: u });
+        }
       }
       if (killerTeam) {
         ctx.s.teams[killerTeam].kills++;
@@ -251,10 +264,15 @@ function killUnit(ctx: Ctx, u: Unit): void {
       }
       if (u.team !== 'neutral' && u.lane) ctx.s.actTally.pawnlingsLost[u.team][u.lane]++;
       if (killerTeam) addTempo(ctx, killerTeam, ctx.t.gambits.tempoPawnlingKill);
+      if (killerTeam && ctx.s.builds)
+        for (const id of ctx.s.teams[killerTeam].heroIds) {
+          const hero = ctx.unit(id);
+          if (hero?.alive) fireTriggers(ctx, hero, 'pawnlingKill', { victim: u });
+        }
       if (killerHero) {
         giveGold(ctx, killerHero, u.bounty, 'lasthit');
         shareNearby(ctx, u, killerTeam, killerHero.id, ctx.t.gold.minionShare);
-        fireTriggers(ctx, killerHero, 'kill', { victim: u });
+        fireTriggers(ctx, killerHero, 'kill', { victim: u, origin: killOrigin });
       } else shareNearby(ctx, u, killerTeam, -1, ctx.t.gold.minionShare);
       break;
     }

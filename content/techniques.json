@@ -1,6 +1,42 @@
 {
   "techniques": [
     {
+      "id": "escort",
+      "name": "Escort",
+      "school": "march",
+      "slot": "trait",
+      "pool": "common",
+      "triggers": [
+        {
+          "on": "periodic",
+          "everySec": 1,
+          "target": "self",
+          "effects": [
+            {
+              "type": "aura",
+              "radius": 200,
+              "target": "ally",
+              "filter": "pawn",
+              "stat": "bladeDmg",
+              "kind": "mul",
+              "value": 1.15
+            },
+            {
+              "type": "aura",
+              "radius": 200,
+              "target": "ally",
+              "filter": "pawn",
+              "stat": "damageTakenMult",
+              "kind": "mul",
+              "value": 0.9
+            }
+          ]
+        }
+      ],
+      "playsLike": "A wave leader: it wants to walk with its lane.",
+      "desc": "{r|Escort}: your pawns and pawnlings within {triggers.0.effects.0.radius|num} deal {m|+{triggers.0.effects.0.value|mul}% damage} and take {b|{triggers.0.effects.1.value|less}% less}."
+    },
+    {
       "id": "battering_hits",
       "name": "Battering Hits",
       "school": "march",
@@ -9,31 +45,51 @@
       "triggers": [
         {
           "on": "hit",
-          "vs": "other",
+          "vs": "structure",
           "target": "victim",
-          "effects": [{ "type": "damage", "dmgType": "blade", "bladeScale": 0.25 }]
+          "effects": [
+            {
+              "type": "damage",
+              "dmgType": "hit",
+              "fractionOfDamage": 0.25
+            }
+          ]
         }
       ],
       "playsLike": "A sieger that turns every push into a dent.",
-      "desc": "{r|Battering Hits}: hits on pawns, pawnlings, camps and structures add {m|{triggers.0.effects.0.bladeScale|pct}% Blade} damage (the structure cap still holds)."
+      "desc": "{r|Battering Hits}: its hits on Bastions and Thrones deal {m|+{triggers.0.effects.0.fractionOfDamage|pct}%} (the structure cap still holds)."
     },
     {
-      "id": "wind_up",
-      "name": "Wind-up",
-      "school": "initiative",
-      "slot": "attack",
+      "id": "push_on",
+      "name": "Push On",
+      "school": "march",
+      "slot": "trait",
       "pool": "common",
       "triggers": [
         {
           "on": "hit",
-          "everyNth": 4,
-          "target": "victim",
-          "effects": [{ "type": "damage", "dmgType": "blade", "bladeScale": 1 }]
+          "vs": "structure",
+          "target": "self",
+          "effects": [
+            {
+              "type": "statMod",
+              "stat": "moveSpeed",
+              "kind": "mul",
+              "value": 1.15,
+              "durationSec": 4
+            },
+            {
+              "type": "statMod",
+              "stat": "atkSpeed",
+              "kind": "mul",
+              "value": 1.15,
+              "durationSec": 4
+            }
+          ]
         }
       ],
-      "estimate": { "count": "hits", "per": 4, "label": "extra strikes" },
-      "playsLike": "Steady extra damage for fast attackers.",
-      "desc": "{r|Wind-up}: every {triggers.0.everyNth|num}th hit strikes again for {m|{triggers.0.effects.0.bladeScale|pct}% Blade}."
+      "playsLike": "Keeps rolling from one Bastion to the next.",
+      "desc": "{r|Push On}: after it hits a Bastion or Throne, {m|+{triggers.0.effects.0.value|mul}% move speed} and {m|+{triggers.0.effects.1.value|mul}% attack speed} for {triggers.0.effects.0.durationSec|num} s."
     },
     {
       "id": "hunters_mark",
@@ -47,11 +103,10 @@
           "vs": "hero",
           "target": "victim",
           "cooldownSec": 10,
+          "perTarget": true,
           "effects": [
             {
-              "type": "statMod",
-              "stat": "damageTakenMult",
-              "kind": "mul",
+              "type": "mark",
               "value": 1.1,
               "durationSec": 4
             }
@@ -59,7 +114,58 @@
         }
       ],
       "playsLike": "Points the team at one target.",
-      "desc": "{r|Hunter's Mark}: a hit on an enemy piece marks it; it takes {r|{triggers.0.effects.0.value|mul}% more damage} for {triggers.0.effects.0.durationSec|num} s. {r|Every {triggers.0.cooldownSec|num} s}."
+      "desc": "{r|Hunter's Mark}: its first hit on an enemy piece marks it: it takes {r|{triggers.0.effects.0.value|mul}% more damage} from your side for {triggers.0.effects.0.durationSec|num} s. {r|Every {triggers.0.cooldownSec|num} s per piece}."
+    },
+    {
+      "id": "ambush",
+      "name": "Ambush",
+      "school": "initiative",
+      "slot": "attack",
+      "pool": "common",
+      "triggers": [
+        {
+          "on": "hit",
+          "quietSec": 3,
+          "target": "victim",
+          "effects": [
+            {
+              "type": "damage",
+              "dmgType": "hit",
+              "fractionOfDamage": 0.6
+            }
+          ]
+        }
+      ],
+      "playsLike": "Opens fights from the side.",
+      "desc": "{r|Ambush}: its first hit after {triggers.0.quietSec|num} s out of combat deals {m|+{triggers.0.effects.0.fractionOfDamage|pct}%}."
+    },
+    {
+      "id": "wind_up",
+      "name": "Wind-up",
+      "school": "initiative",
+      "slot": "attack",
+      "pool": "common",
+      "triggers": [
+        {
+          "on": "hit",
+          "everyNth": 4,
+          "target": "victim",
+          "effects": [
+            {
+              "type": "damage",
+              "dmgType": "blade",
+              "bladeScale": 1
+            }
+          ]
+        }
+      ],
+      "estimate": {
+        "count": "hits",
+        "per": 4,
+        "label": "extra strikes"
+      },
+      "playsLike": "Steady extra damage for fast attackers.",
+      "desc": "{r|Wind-up}: every {triggers.0.everyNth|num}th hit strikes again for {m|{triggers.0.effects.0.bladeScale|pct}% Blade}."
     },
     {
       "id": "the_vault",
@@ -72,7 +178,13 @@
           "on": "lowHp",
           "target": "self",
           "custom": "lastStand",
-          "effects": [{ "type": "shield", "base": 300, "durationSec": 2 }]
+          "effects": [
+            {
+              "type": "shield",
+              "base": 300,
+              "durationSec": 2
+            }
+          ]
         }
       ],
       "playsLike": "Survives the one dive that should have killed it.",
@@ -91,7 +203,13 @@
           "target": "allyArea",
           "radius": 150,
           "cooldownSec": 14,
-          "effects": [{ "type": "shield", "base": 70, "durationSec": 4 }]
+          "effects": [
+            {
+              "type": "shield",
+              "base": 70,
+              "durationSec": 4
+            }
+          ]
         }
       ],
       "playsLike": "Every hit on the front line protects the back.",
@@ -110,7 +228,12 @@
           "target": "self",
           "custom": "outOfCombat",
           "param": 4,
-          "effects": [{ "type": "heal", "maxHpPct": 0.02 }]
+          "effects": [
+            {
+              "type": "heal",
+              "maxHpPct": 0.02
+            }
+          ]
         }
       ],
       "playsLike": "Stays in lane instead of walking home.",
@@ -123,49 +246,37 @@
       "slot": "trait",
       "pool": "common",
       "mods": [
-        { "stat": "bladeDmg", "kind": "mul", "value": 1.2 },
-        { "stat": "soulPower", "kind": "mul", "value": 1.2 }
+        {
+          "stat": "bladeDmg",
+          "kind": "mul",
+          "value": 1.2
+        },
+        {
+          "stat": "soulPower",
+          "kind": "mul",
+          "value": 1.2
+        }
       ],
       "dubious": {
-        "mods": [{ "stat": "damageTakenMult", "kind": "mul", "value": 1.12 }],
-        "text": "{r|The price}: {p|it takes {dubious.mods.0.value|mul}% more damage}."
+        "triggers": [
+          {
+            "on": "periodic",
+            "everySec": 1,
+            "target": "self",
+            "custom": "inCombat",
+            "param": 1.5,
+            "effects": [
+              {
+                "type": "payHp",
+                "maxHpPct": 0.01
+              }
+            ]
+          }
+        ],
+        "text": "{r|The price}: {p|it loses {dubious.triggers.0.effects.0.maxHpPct|pct}% max health a second} in combat."
       },
       "playsLike": "Hits hard, must win fast.",
       "desc": "{m|+{mods.0.value|mul}% Blade damage} and {s|+{mods.1.value|mul}% Soul power}."
-    },
-    {
-      "id": "drink_me",
-      "name": "Drink Me",
-      "school": "sacrifice",
-      "slot": "trait",
-      "pool": "common",
-      "mods": [
-        { "stat": "moveSpeed", "kind": "mul", "value": 1.2 },
-        { "stat": "atkSpeed", "kind": "mul", "value": 1.15 }
-      ],
-      "dubious": {
-        "mods": [{ "stat": "maxHp", "kind": "mul", "value": 0.85 }],
-        "text": "{r|The price}: {p|max health −{dubious.mods.0.value|less}%}."
-      },
-      "playsLike": "A little bottle, and a little less of it.",
-      "desc": "{m|+{mods.0.value|mul}% move speed} and {m|+{mods.1.value|mul}% attack speed}."
-    },
-    {
-      "id": "eat_me",
-      "name": "Eat Me",
-      "school": "sacrifice",
-      "slot": "trait",
-      "pool": "common",
-      "mods": [
-        { "stat": "maxHp", "kind": "mul", "value": 1.25 },
-        { "stat": "armor", "kind": "add", "value": 10 }
-      ],
-      "dubious": {
-        "mods": [{ "stat": "moveSpeed", "kind": "mul", "value": 0.85 }],
-        "text": "{r|The price}: {p|move speed −{dubious.mods.0.value|less}%}."
-      },
-      "playsLike": "A small cake, and a great deal more of it.",
-      "desc": "{b|+{mods.0.value|mul}% max health} and {b|+{mods.1.value|num} armor}."
     },
     {
       "id": "desperado",
@@ -203,8 +314,45 @@
           ]
         }
       ],
+      "dubious": {
+        "retreatMul": 0.5,
+        "text": "{r|The price}: {p|its retreat line drops {dubious.retreatMul|less}%}: it fights on at lower health."
+      },
       "playsLike": "Fights to the end instead of breaking off.",
       "desc": "{r|Desperado}: below {b|{triggers.0.hpBelow|pct}% health}, {m|+{triggers.0.effects.0.value|mul}% attack speed} and {m|+{triggers.0.effects.1.value|mul}% damage}."
+    },
+    {
+      "id": "poisoned_piece",
+      "name": "Poisoned Piece",
+      "school": "sacrifice",
+      "slot": "trait",
+      "pool": "common",
+      "triggers": [
+        {
+          "on": "death",
+          "vs": "hero",
+          "target": "attacker",
+          "effects": [
+            {
+              "type": "damage",
+              "dmgType": "true",
+              "ownMaxHpPct": 0.25
+            }
+          ]
+        }
+      ],
+      "dubious": {
+        "mods": [
+          {
+            "stat": "respawnMult",
+            "kind": "mul",
+            "value": 1.2
+          }
+        ],
+        "text": "{r|The price}: {p|it respawns {dubious.mods.0.value|mul}% slower}."
+      },
+      "playsLike": "Makes diving it expensive.",
+      "desc": "{r|Poisoned Piece}: when it falls, the enemy piece that took it suffers {t|{triggers.0.effects.0.ownMaxHpPct|pct}% of its max health as true damage}."
     },
     {
       "id": "slip",
@@ -218,7 +366,13 @@
           "target": "attacker",
           "hpBelow": 0.5,
           "cooldownSec": 12,
-          "effects": [{ "type": "dash", "distance": 80, "toward": "away" }]
+          "effects": [
+            {
+              "type": "dash",
+              "distance": 80,
+              "toward": "away"
+            }
+          ]
         }
       ],
       "playsLike": "Escapes the first burst.",
@@ -247,9 +401,45 @@
           ]
         }
       ],
-      "estimate": { "count": "pieceHits", "per": 4, "label": "slows" },
+      "estimate": {
+        "count": "pieceHits",
+        "per": 4,
+        "label": "slows"
+      },
       "playsLike": "Holds a target in place for the team.",
       "desc": "{r|Pin}: every {triggers.0.everyNth|num}th hit on a piece slows it {r|{triggers.0.effects.0.value|less}%} for {triggers.0.effects.0.durationSec|num} s."
+    },
+    {
+      "id": "shove",
+      "name": "Shove",
+      "school": "position",
+      "slot": "attack",
+      "pool": "common",
+      "knockbackMul": 2,
+      "playsLike": "Peels attackers off allies, breaks enemy lines.",
+      "desc": "{r|Shove}: its heavy hits knock pieces back {knockbackMul|num} times as far."
+    },
+    {
+      "id": "tempo_thief",
+      "name": "Tempo Thief",
+      "school": "clock",
+      "slot": "trait",
+      "pool": "common",
+      "triggers": [
+        {
+          "on": "takedown",
+          "vs": "hero",
+          "target": "self",
+          "effects": [
+            {
+              "type": "tempo",
+              "amount": 4
+            }
+          ]
+        }
+      ],
+      "playsLike": "Turns its kills into cards.",
+      "desc": "{r|Tempo Thief}: each enemy piece it helps take gives your side {r|+{triggers.0.effects.0.amount|num} Tempo}."
     },
     {
       "id": "spare_minute",
@@ -259,7 +449,13 @@
       "pool": "common",
       "scaleParam": true,
       "triggers": [
-        { "on": "periodic", "everySec": 20, "target": "self", "custom": "cooldownTick", "param": 2 }
+        {
+          "on": "periodic",
+          "everySec": 20,
+          "target": "self",
+          "custom": "cooldownTick",
+          "param": 2
+        }
       ],
       "playsLike": "More skills, more often.",
       "desc": "{r|Spare Minute}: every {triggers.0.everySec|num} s its cooldowns tick {s|{triggers.0.param|num} s}."
@@ -272,10 +468,248 @@
       "pool": "common",
       "scaleParam": true,
       "triggers": [
-        { "on": "hit", "vs": "hero", "target": "self", "custom": "cooldownTick", "param": 0.3 }
+        {
+          "on": "hit",
+          "vs": "hero",
+          "target": "self",
+          "custom": "cooldownTick",
+          "param": 0.3
+        }
       ],
       "playsLike": "The more it hits, the more it casts.",
       "desc": "{r|Time Pressure}: each hit on a piece cuts its own cooldowns by {s|{triggers.0.param|num} s}."
+    },
+    {
+      "id": "hungry_mask",
+      "name": "The Hungry Mask",
+      "school": "sacrifice",
+      "slot": "trait",
+      "pool": "common",
+      "weight": 0.5,
+      "mods": [
+        {
+          "stat": "bladeDmg",
+          "kind": "mul",
+          "value": 1.45
+        },
+        {
+          "stat": "atkSpeed",
+          "kind": "mul",
+          "value": 1.12
+        }
+      ],
+      "dubious": {
+        "triggers": [
+          {
+            "on": "periodic",
+            "everySec": 1,
+            "target": "self",
+            "custom": "outOfCombatDrain",
+            "param": 0.02
+          }
+        ],
+        "text": "{r|The price}: {p|it loses {dubious.triggers.0.param|pct}% max health a second} out of combat."
+      },
+      "playsLike": "It is always hungry, and it takes before it gives.",
+      "desc": "{m|+{mods.0.value|mul}% Blade damage} and {m|+{mods.1.value|mul}% attack speed}."
+    },
+    {
+      "id": "borrowed_years",
+      "name": "Borrowed Years",
+      "school": "sacrifice",
+      "slot": "trait",
+      "pool": "common",
+      "weight": 0.5,
+      "mods": [
+        {
+          "stat": "atkSpeed",
+          "kind": "mul",
+          "value": 1.2
+        },
+        {
+          "stat": "moveSpeed",
+          "kind": "mul",
+          "value": 1.1
+        },
+        {
+          "stat": "maxHp",
+          "kind": "add",
+          "value": 150
+        }
+      ],
+      "dubious": {
+        "mods": [
+          {
+            "stat": "respawnMult",
+            "kind": "mul",
+            "value": 1.75
+          }
+        ],
+        "text": "{r|The price}: {p|it respawns {dubious.mods.0.value|mul}% slower}."
+      },
+      "playsLike": "Time is lent, and always called in.",
+      "desc": "{m|+{mods.0.value|mul}% attack speed}, {m|+{mods.1.value|mul}% move speed} and {b|+{mods.2.value|num} health}."
+    },
+    {
+      "id": "lantern_of_the_drowned",
+      "name": "Lantern of the Drowned",
+      "school": "sacrifice",
+      "slot": "trait",
+      "pool": "common",
+      "weight": 0.5,
+      "mods": [
+        {
+          "stat": "soulPower",
+          "kind": "mul",
+          "value": 1.15
+        }
+      ],
+      "triggers": [
+        {
+          "on": "lowHp",
+          "target": "self",
+          "custom": "reviveOnce",
+          "param": 0.4
+        }
+      ],
+      "dubious": {
+        "mods": [
+          {
+            "stat": "cdr",
+            "kind": "add",
+            "value": -0.2
+          }
+        ],
+        "text": "{r|The price}: {p|its cooldowns run slower} (cooldown reduction {dubious.mods.0.value|pct}%)."
+      },
+      "playsLike": "A drowned light that refuses to go out.",
+      "desc": "{s|+{mods.0.value|mul}% Soul power}; once a match it {r|rises again} at {b|{triggers.0.param|pct}% health}."
+    },
+    {
+      "id": "pact_of_ash",
+      "name": "Pact of Ash",
+      "school": "sacrifice",
+      "slot": "trait",
+      "pool": "common",
+      "weight": 0.5,
+      "mods": [
+        {
+          "stat": "bladeDmg",
+          "kind": "mul",
+          "value": 1.3
+        },
+        {
+          "stat": "soulPower",
+          "kind": "mul",
+          "value": 1.3
+        },
+        {
+          "stat": "maxHp",
+          "kind": "mul",
+          "value": 1.2
+        }
+      ],
+      "dubious": {
+        "mods": [
+          {
+            "stat": "damageTakenMult",
+            "kind": "mul",
+            "value": 1.3
+          }
+        ],
+        "text": "{r|The price}: {p|it takes {dubious.mods.0.value|mul}% more damage}."
+      },
+      "playsLike": "Ask for a great deal, and ash is the change.",
+      "desc": "{m|+{mods.0.value|mul}% Blade damage}, {s|+{mods.1.value|mul}% Soul power} and {b|+{mods.2.value|mul}% max health}."
+    },
+    {
+      "id": "drink_me",
+      "name": "Drink Me",
+      "school": "sacrifice",
+      "slot": "trait",
+      "pool": "common",
+      "weight": 0.5,
+      "mods": [
+        {
+          "stat": "moveSpeed",
+          "kind": "mul",
+          "value": 1.2
+        },
+        {
+          "stat": "atkSpeed",
+          "kind": "mul",
+          "value": 1.15
+        }
+      ],
+      "dubious": {
+        "mods": [
+          {
+            "stat": "maxHp",
+            "kind": "mul",
+            "value": 0.85
+          }
+        ],
+        "text": "{r|The price}: {p|max health −{dubious.mods.0.value|less}%}."
+      },
+      "playsLike": "A little bottle, and a little less of it.",
+      "desc": "{m|+{mods.0.value|mul}% move speed} and {m|+{mods.1.value|mul}% attack speed}."
+    },
+    {
+      "id": "eat_me",
+      "name": "Eat Me",
+      "school": "sacrifice",
+      "slot": "trait",
+      "pool": "common",
+      "weight": 0.5,
+      "mods": [
+        {
+          "stat": "maxHp",
+          "kind": "mul",
+          "value": 1.25
+        },
+        {
+          "stat": "armor",
+          "kind": "add",
+          "value": 10
+        }
+      ],
+      "dubious": {
+        "mods": [
+          {
+            "stat": "moveSpeed",
+            "kind": "mul",
+            "value": 0.85
+          }
+        ],
+        "text": "{r|The price}: {p|move speed −{dubious.mods.0.value|less}%}."
+      },
+      "playsLike": "A small cake, and a great deal more of it.",
+      "desc": "{b|+{mods.0.value|mul}% max health} and {b|+{mods.1.value|num} armor}."
+    },
+    {
+      "id": "kings_walk",
+      "name": "King's Walk",
+      "school": "initiative",
+      "slot": "skill1",
+      "pool": "piece",
+      "piece": "king",
+      "powerMul": 1.15,
+      "triggers": [
+        {
+          "on": "cast",
+          "skill": 0,
+          "target": "victim",
+          "effects": [
+            {
+              "type": "taunt",
+              "durationSec": 1
+            }
+          ],
+          "vs": "hero"
+        }
+      ],
+      "playsLike": "The King pulls the enemy carry onto himself.",
+      "desc": "{r|One Step} taunts the piece it hits for {triggers.0.effects.0.durationSec|num} s and hits {m|{powerMul|mul}% harder}."
     },
     {
       "id": "rallying_cry",
@@ -284,22 +718,147 @@
       "slot": "skill2",
       "pool": "piece",
       "piece": "king",
-      "powerMul": 1.3,
-      "radiusMul": 1.25,
-      "playsLike": "The King's heal reaches the whole fight.",
-      "desc": "{r|Rally} heals and speeds allies {b|{powerMul|mul}% more} and reaches {radiusMul|mul}% farther."
+      "triggers": [
+        {
+          "on": "cast",
+          "skill": 1,
+          "target": "castTargets",
+          "effects": [
+            {
+              "type": "statMod",
+              "stat": "moveSpeed",
+              "kind": "mul",
+              "value": 1.25,
+              "durationSec": 4,
+              "key": "ability:rally:moveSpeed"
+            },
+            {
+              "type": "cleanse"
+            }
+          ]
+        }
+      ],
+      "playsLike": "Turns a heal into a charge or an escape.",
+      "desc": "{r|Rally}'s speed-up becomes {m|+{triggers.0.effects.0.value|mul}%} for {triggers.0.effects.0.durationSec|num} s and frees allies from slows."
     },
     {
-      "id": "kings_guard",
-      "name": "King's Guard",
+      "id": "shared_guard",
+      "name": "Shared Guard",
       "school": "fortress",
       "slot": "skill3",
       "pool": "piece",
       "piece": "king",
-      "powerMul": 1.4,
-      "cooldownMul": 0.8,
-      "playsLike": "A King who dares the enemy to dive him.",
-      "desc": "{r|Royal Guard} shields {b|{powerMul|mul}% more} and is ready {s|{cooldownMul|less}% sooner}."
+      "triggers": [
+        {
+          "on": "cast",
+          "skill": 2,
+          "target": "lowestAlly",
+          "effects": [
+            {
+              "type": "echo",
+              "share": 0.6
+            }
+          ],
+          "radius": 200
+        }
+      ],
+      "playsLike": "A King who guards others, not himself.",
+      "desc": "{r|Royal Guard} also shields the most wounded ally piece within {triggers.0.radius|num} for {b|{triggers.0.effects.0.share|pct}%} as much."
+    },
+    {
+      "id": "tithe",
+      "name": "Tithe",
+      "school": "clock",
+      "slot": "trait",
+      "pool": "piece",
+      "piece": "king",
+      "triggers": [
+        {
+          "on": "pawnlingKill",
+          "near": 250,
+          "target": "self",
+          "effects": [
+            {
+              "type": "tempo",
+              "amount": 0.5
+            }
+          ]
+        }
+      ],
+      "playsLike": "A King who belongs in a busy lane.",
+      "desc": "{r|Tithe}: each enemy pawnling your side kills within {triggers.0.near|num} of the King gives {r|+{triggers.0.effects.0.amount|num} Tempo}."
+    },
+    {
+      "id": "through_line",
+      "name": "Through Line",
+      "school": "initiative",
+      "slot": "skill1",
+      "pool": "piece",
+      "piece": "queen",
+      "triggers": [
+        {
+          "on": "cast",
+          "skill": 0,
+          "target": "landing",
+          "effects": [
+            {
+              "type": "echo",
+              "share": 0.8
+            }
+          ],
+          "radius": 60
+        }
+      ],
+      "playsLike": "Dives a clump, not one target.",
+      "desc": "{r|Royal Lunge} also hits every enemy within {triggers.0.radius|num} of where she lands for {m|{triggers.0.effects.0.share|pct}%} as much."
+    },
+    {
+      "id": "echoing_decree",
+      "name": "Echoing Decree",
+      "school": "clock",
+      "slot": "skill2",
+      "pool": "piece",
+      "piece": "queen",
+      "triggers": [
+        {
+          "on": "cast",
+          "skill": 1,
+          "target": "self",
+          "effects": [
+            {
+              "type": "recast",
+              "delaySec": 1,
+              "share": 0.5
+            }
+          ]
+        }
+      ],
+      "playsLike": "Double zone control from range.",
+      "desc": "{r|Sweeping Decree} strikes the same spot again {triggers.0.effects.0.delaySec|num} s later at {s|{triggers.0.effects.0.share|pct}%}."
+    },
+    {
+      "id": "counter_gambit",
+      "name": "Counter-Gambit",
+      "school": "position",
+      "slot": "skill3",
+      "pool": "piece",
+      "piece": "queen",
+      "cooldownMul": 0.85,
+      "triggers": [
+        {
+          "on": "cast",
+          "skill": 2,
+          "target": "self",
+          "effects": [
+            {
+              "type": "ready",
+              "skill": 0
+            }
+          ]
+        }
+      ],
+      "playsLike": "She slips out and strikes straight back.",
+      "desc": "{r|Withdraw} readies {r|Royal Lunge} at once and is ready {s|{cooldownMul|less}% sooner}."
     },
     {
       "id": "long_range",
@@ -308,7 +867,13 @@
       "slot": "attack",
       "pool": "piece",
       "piece": "queen",
-      "mods": [{ "stat": "range", "kind": "mul", "value": 1.25 }],
+      "mods": [
+        {
+          "stat": "range",
+          "kind": "mul",
+          "value": 1.25
+        }
+      ],
       "triggers": [
         {
           "on": "hit",
@@ -329,27 +894,53 @@
       "desc": "{m|+{mods.0.value|mul}% attack range}; her hits on pieces slow them {r|{triggers.0.effects.0.value|less}%} for {triggers.0.effects.0.durationSec|num} s."
     },
     {
-      "id": "wide_decree",
-      "name": "Wide Decree",
-      "school": "initiative",
-      "slot": "skill2",
+      "id": "rook_lift",
+      "name": "Rook Lift",
+      "school": "position",
+      "slot": "skill1",
       "pool": "piece",
-      "piece": "queen",
-      "radiusMul": 1.35,
-      "powerMul": 1.15,
-      "playsLike": "Zone control from range: the blast catches the whole clump.",
-      "desc": "{r|Sweeping Decree} blasts {radiusMul|mul}% wider and hits {s|{powerMul|mul}% harder}."
+      "piece": "rook",
+      "rangeMul": 1.3,
+      "dashMul": 1.5,
+      "triggers": [
+        {
+          "on": "cast",
+          "skill": 0,
+          "target": "victim",
+          "effects": [
+            {
+              "type": "push",
+              "distance": 40
+            }
+          ]
+        }
+      ],
+      "playsLike": "Splits the enemy line on engage.",
+      "desc": "{r|File Charge} reaches {rangeMul|mul}% and dashes {dashMul|mul}% farther, and knocks its target back {triggers.0.effects.0.distance|num}."
     },
     {
-      "id": "granite_skin",
-      "name": "Granite Skin",
+      "id": "living_wall",
+      "name": "Living Wall",
       "school": "fortress",
       "slot": "skill2",
       "pool": "piece",
       "piece": "rook",
-      "powerMul": 1.5,
-      "playsLike": "A tank who shrugs off the first burst.",
-      "desc": "{r|Stone Skin} shields {b|{powerMul|mul}% more}."
+      "triggers": [
+        {
+          "on": "cast",
+          "skill": 1,
+          "target": "allies",
+          "effects": [
+            {
+              "type": "echo",
+              "share": 0.5
+            }
+          ],
+          "radius": 150
+        }
+      ],
+      "playsLike": "A tank whose shield is the team's.",
+      "desc": "{r|Stone Skin} also shields ally pieces within {triggers.0.radius|num} for {b|{triggers.0.effects.0.share|pct}%} as much."
     },
     {
       "id": "quake",
@@ -358,10 +949,66 @@
       "slot": "skill3",
       "pool": "piece",
       "piece": "rook",
-      "radiusMul": 1.3,
-      "powerMul": 1.25,
-      "playsLike": "One slam holds the whole lane.",
-      "desc": "{r|Rampart Slam} reaches {radiusMul|mul}% wider and hits {m|{powerMul|mul}% harder}."
+      "powerMul": 1.15,
+      "skillRule": {
+        "minEnemies": 1
+      },
+      "triggers": [
+        {
+          "on": "cast",
+          "skill": 2,
+          "target": "castTargets",
+          "effects": [
+            {
+              "type": "stun",
+              "durationSec": 0.5
+            }
+          ]
+        }
+      ],
+      "playsLike": "A lone Rook still locks a lane.",
+      "desc": "{r|Rampart Slam} no longer waits for a crowd, hits {m|{powerMul|mul}% harder} and stuns for {triggers.0.effects.0.durationSec|num} s."
+    },
+    {
+      "id": "seventh_rank",
+      "name": "Seventh Rank",
+      "school": "march",
+      "slot": "trait",
+      "pool": "piece",
+      "piece": "rook",
+      "triggers": [
+        {
+          "on": "periodic",
+          "everySec": 1,
+          "target": "self",
+          "custom": "enemyHalf",
+          "effects": [
+            {
+              "type": "statMod",
+              "stat": "bladeDmg",
+              "kind": "mul",
+              "value": 1.15,
+              "durationSec": 1.2
+            },
+            {
+              "type": "statMod",
+              "stat": "soulPower",
+              "kind": "mul",
+              "value": 1.15,
+              "durationSec": 1.2
+            },
+            {
+              "type": "statMod",
+              "stat": "armor",
+              "kind": "mul",
+              "value": 1.15,
+              "durationSec": 1.2
+            }
+          ]
+        }
+      ],
+      "playsLike": "Pays the Rook for pushing deep.",
+      "desc": "{r|Seventh Rank}: in the enemy half of the board, {m|+{triggers.0.effects.0.value|mul}% damage} and {b|+{triggers.0.effects.2.value|mul}% armor}."
     },
     {
       "id": "long_diagonal",
@@ -371,21 +1018,130 @@
       "pool": "piece",
       "piece": "bishop",
       "rangeMul": 1.4,
-      "powerMul": 1.1,
+      "triggers": [
+        {
+          "on": "cast",
+          "skill": 0,
+          "target": "aroundVictim",
+          "effects": [
+            {
+              "type": "echo",
+              "share": 0.75
+            }
+          ],
+          "radius": 40
+        }
+      ],
       "playsLike": "Poke from out of reach.",
-      "desc": "{r|Diagonal Beam} reaches {rangeMul|mul}% farther and hits {s|{powerMul|mul}% harder}."
+      "desc": "{r|Diagonal Beam} reaches {rangeMul|mul}% farther and also hits everything within {triggers.0.radius|num} of its target for {s|{triggers.0.effects.0.share|pct}%} as much."
     },
     {
-      "id": "deep_blessing",
-      "name": "Deep Blessing",
+      "id": "twin_blessing",
+      "name": "Twin Blessing",
       "school": "fortress",
       "slot": "skill2",
       "pool": "piece",
       "piece": "bishop",
-      "powerMul": 1.35,
-      "cooldownMul": 0.8,
-      "playsLike": "A healer who keeps one lane standing.",
-      "desc": "{r|Blessing} heals {b|{powerMul|mul}% more} and is ready {s|{cooldownMul|less}% sooner}."
+      "triggers": [
+        {
+          "on": "cast",
+          "skill": 1,
+          "target": "lowestAlly",
+          "effects": [
+            {
+              "type": "echo",
+              "share": 0.7
+            }
+          ],
+          "radius": 180
+        }
+      ],
+      "playsLike": "A healer for a two-piece lane.",
+      "desc": "{r|Blessing} also heals the next most wounded piece within {triggers.0.radius|num} for {b|{triggers.0.effects.0.share|pct}%} as much."
+    },
+    {
+      "id": "interdiction",
+      "name": "Interdiction",
+      "school": "position",
+      "slot": "skill3",
+      "pool": "piece",
+      "piece": "bishop",
+      "triggers": [
+        {
+          "on": "cast",
+          "skill": 2,
+          "target": "castTargets",
+          "effects": [
+            {
+              "type": "statMod",
+              "stat": "moveSpeed",
+              "kind": "mul",
+              "value": 0.6,
+              "durationSec": 3,
+              "key": "ability:censure:moveSpeed"
+            },
+            {
+              "type": "statMod",
+              "stat": "atkSpeed",
+              "kind": "mul",
+              "value": 0.75,
+              "durationSec": 3
+            }
+          ]
+        }
+      ],
+      "playsLike": "Shuts down the enemy's diver.",
+      "desc": "{r|Censure}'s slow lasts {triggers.0.effects.0.durationSec|num} s and also cuts attack speed {r|{triggers.0.effects.1.value|less}%}."
+    },
+    {
+      "id": "fianchetto",
+      "name": "Fianchetto",
+      "school": "position",
+      "slot": "trait",
+      "pool": "piece",
+      "piece": "bishop",
+      "triggers": [
+        {
+          "on": "hit",
+          "custom": "highGround",
+          "target": "victim",
+          "effects": [
+            {
+              "type": "damage",
+              "dmgType": "hit",
+              "fractionOfDamage": 0.2
+            }
+          ]
+        }
+      ],
+      "playsLike": "Wants the high ground; the eye badge matters more.",
+      "desc": "{r|Fianchetto}: its hits on a target on a lower tier deal {s|+{triggers.0.effects.0.fractionOfDamage|pct}%} (on top of the slope rule)."
+    },
+    {
+      "id": "family_fork",
+      "name": "Family Fork",
+      "school": "initiative",
+      "slot": "skill1",
+      "pool": "piece",
+      "piece": "knight",
+      "triggers": [
+        {
+          "on": "cast",
+          "skill": 0,
+          "target": "landing",
+          "effects": [
+            {
+              "type": "echo",
+              "share": 0.8
+            }
+          ],
+          "radius": 100,
+          "filter": "piece",
+          "maxTargets": 2
+        }
+      ],
+      "playsLike": "Jumps into the middle of a fight, not its edge.",
+      "desc": "{r|L-Leap}'s strike also hits up to {triggers.0.maxTargets|num} other enemy pieces within {triggers.0.radius|num} of where he lands, for {m|{triggers.0.effects.0.share|pct}%} as much."
     },
     {
       "id": "stampede",
@@ -394,64 +1150,157 @@
       "slot": "skill2",
       "pool": "piece",
       "piece": "knight",
-      "powerMul": 1.5,
-      "radiusMul": 1.2,
+      "skillRule": {
+        "minEnemies": 1
+      },
+      "triggers": [
+        {
+          "on": "cast",
+          "skill": 1,
+          "target": "castTargets",
+          "effects": [
+            {
+              "type": "echo",
+              "share": 0.5
+            }
+          ],
+          "filter": "pawn"
+        }
+      ],
       "playsLike": "Clears waves; splits pushes.",
-      "desc": "{r|Trample} hits {m|{powerMul|mul}% harder} and {radiusMul|mul}% wider."
+      "desc": "{r|Trample} no longer waits for a crowd and deals {m|+{triggers.0.effects.0.share|pct}%} to pawns and pawnlings."
     },
     {
-      "id": "restless_hooves",
-      "name": "Restless Hooves",
+      "id": "hit_and_run",
+      "name": "Hit and Run",
       "school": "clock",
-      "slot": "skill1",
+      "slot": "skill3",
       "pool": "piece",
       "piece": "knight",
-      "cooldownMul": 0.7,
-      "playsLike": "Leaps in again before the enemy has turned round.",
-      "desc": "{r|L-Leap} is ready {s|{cooldownMul|less}% sooner}."
-    },
-    {
-      "id": "split_shot",
-      "name": "Split Shot",
-      "school": "initiative",
-      "slot": "signature",
-      "pool": "archetype",
-      "piece": "queen",
-      "archetype": "huntress",
-      "mods": [{ "stat": "moveSpeed", "kind": "add", "value": 3 }],
+      "cooldownMul": 0.85,
       "triggers": [
         {
-          "on": "hit",
-          "everyNth": 3,
-          "target": "enemyArea",
-          "radius": 160,
-          "effects": [{ "type": "damage", "dmgType": "blade", "bladeScale": 0.4 }]
+          "on": "cast",
+          "skill": 2,
+          "target": "self",
+          "effects": [
+            {
+              "type": "ready",
+              "skill": 0
+            }
+          ]
         }
       ],
-      "estimate": { "count": "hits", "per": 3, "label": "splash shots" },
-      "playsLike": "Her shots splash: clears waves and hits whole team fights.",
-      "desc": "{r|Split Shot}: every {triggers.0.everyNth|num}rd attack also hits every enemy within {triggers.0.radius|num} for {m|{triggers.0.effects.0.bladeScale|pct}% Blade}. {m|+{mods.0.value|num} move speed}."
+      "playsLike": "Leaps out and straight back in.",
+      "desc": "{r|Spur Away} readies {r|L-Leap} at once and is ready {s|{cooldownMul|less}% sooner}."
     },
     {
-      "id": "thousand_cuts",
-      "name": "Thousand Cuts",
-      "school": "initiative",
-      "slot": "signature",
-      "pool": "archetype",
-      "piece": "queen",
-      "archetype": "duelist",
-      "mods": [{ "stat": "bladeDmg", "kind": "mul", "value": 1.04 }],
+      "id": "zwischenzug",
+      "name": "Zwischenzug",
+      "school": "clock",
+      "slot": "attack",
+      "pool": "piece",
+      "piece": "knight",
       "triggers": [
         {
           "on": "hit",
-          "everyNth": 4,
+          "afterCast": true,
           "target": "victim",
-          "effects": [{ "type": "damage", "dmgType": "true", "bladeScale": 0.5 }]
+          "effects": [
+            {
+              "type": "damage",
+              "dmgType": "hit",
+              "fractionOfDamage": 0.4
+            }
+          ]
         }
       ],
-      "estimate": { "count": "hits", "per": 4, "label": "true-damage cuts" },
-      "playsLike": "Cuts through armor: Rooks and Kings melt as fast as anyone.",
-      "desc": "{r|Thousand Cuts}: every {triggers.0.everyNth|num}th hit deals {t|{triggers.0.effects.0.bladeScale|pct}% Blade as true damage}. {m|+{mods.0.value|mul}% Blade damage}."
+      "playsLike": "Skill, hit, skill, hit.",
+      "desc": "{r|Zwischenzug}: after each skill, his next hit deals {m|+{triggers.0.effects.0.fractionOfDamage|pct}%}."
+    },
+    {
+      "id": "royal_fork",
+      "name": "Royal Fork",
+      "school": "initiative",
+      "slot": "skill1",
+      "pool": "combination",
+      "piece": "knight",
+      "parents": ["family_fork", "hunters_mark"],
+      "triggers": [
+        {
+          "on": "cast",
+          "skill": 0,
+          "target": "landing",
+          "effects": [
+            {
+              "type": "echo",
+              "share": 0.8
+            },
+            {
+              "type": "mark",
+              "value": 1.1,
+              "durationSec": 6
+            }
+          ],
+          "radius": 100,
+          "filter": "piece",
+          "maxTargets": 2
+        },
+        {
+          "on": "cast",
+          "skill": 0,
+          "target": "victim",
+          "effects": [
+            {
+              "type": "mark",
+              "value": 1.1,
+              "durationSec": 6
+            }
+          ],
+          "vs": "hero"
+        }
+      ],
+      "playsLike": "One leap marks the whole back line.",
+      "desc": "{r|L-Leap} also hits up to {triggers.0.maxTargets|num} other enemy pieces where he lands for {m|{triggers.0.effects.0.share|pct}%}, and marks every piece it hits: {r|{triggers.0.effects.1.value|mul}% more damage} from your side for {triggers.0.effects.1.durationSec|num} s."
+    },
+    {
+      "id": "smothered_mate",
+      "name": "Smothered Mate",
+      "school": "initiative",
+      "slot": "skill1",
+      "pool": "combination",
+      "piece": "knight",
+      "parents": ["family_fork", "ambush"],
+      "triggers": [
+        {
+          "on": "cast",
+          "skill": 0,
+          "target": "landing",
+          "effects": [
+            {
+              "type": "echo",
+              "share": 0.8
+            }
+          ],
+          "radius": 100,
+          "filter": "piece",
+          "maxTargets": 2
+        },
+        {
+          "on": "kill",
+          "skill": 0,
+          "vs": "hero",
+          "target": "self",
+          "effects": [
+            {
+              "type": "ready",
+              "skill": 0
+            }
+          ]
+        }
+      ],
+      "playsLike": "Chain dives through a weakened team.",
+      "desc": "{r|L-Leap} also hits up to {triggers.0.maxTargets|num} other enemy pieces where he lands for {m|{triggers.0.effects.0.share|pct}%}; a piece it kills readies it at once."
     },
     {
       "id": "windmill",
@@ -466,13 +1315,93 @@
           "on": "hit",
           "everyNth": 4,
           "target": "victim",
-          "effects": [{ "type": "damage", "dmgType": "blade", "bladeScale": 1 }]
+          "effects": [
+            {
+              "type": "damage",
+              "dmgType": "blade",
+              "bladeScale": 1
+            }
+          ]
         },
-        { "on": "hit", "everyNth": 4, "target": "self", "custom": "cooldownTick", "param": 1 }
+        {
+          "on": "hit",
+          "everyNth": 4,
+          "target": "self",
+          "custom": "cooldownTick",
+          "param": 1
+        }
       ],
-      "estimate": { "count": "hits", "per": 4, "label": "extra strikes" },
+      "estimate": {
+        "count": "hits",
+        "per": 4,
+        "label": "extra strikes"
+      },
       "playsLike": "A fast attacker becomes a skill engine.",
       "desc": "{r|Windmill}: every {triggers.0.everyNth|num}th hit strikes again for {m|{triggers.0.effects.0.bladeScale|pct}% Blade} and cuts its cooldowns by {s|{triggers.1.param|num} s}."
+    },
+    {
+      "id": "castle_wall",
+      "name": "Castle Wall",
+      "school": "fortress",
+      "slot": "skill2",
+      "pool": "combination",
+      "piece": "rook",
+      "parents": ["living_wall", "toll"],
+      "triggers": [
+        {
+          "on": "cast",
+          "skill": 1,
+          "target": "allies",
+          "effects": [
+            {
+              "type": "echo",
+              "share": 1
+            }
+          ],
+          "radius": 150
+        },
+        {
+          "on": "cast",
+          "skill": 1,
+          "target": "enemyArea",
+          "effects": [
+            {
+              "type": "taunt",
+              "durationSec": 1
+            }
+          ],
+          "radius": 120,
+          "filter": "piece"
+        }
+      ],
+      "playsLike": "The Rook's guard turns the fight onto him.",
+      "desc": "{r|Stone Skin} shields ally pieces within {triggers.0.radius|num} at {b|{triggers.0.effects.0.share|pct}%} and taunts enemy pieces within {triggers.1.radius|num} for {triggers.1.effects.0.durationSec|num} s."
+    },
+    {
+      "id": "zugzwang",
+      "name": "Zugzwang",
+      "school": "clock",
+      "slot": "skill2",
+      "pool": "combination",
+      "piece": "queen",
+      "parents": ["echoing_decree", "pin"],
+      "triggers": [
+        {
+          "on": "cast",
+          "skill": 1,
+          "target": "self",
+          "effects": [
+            {
+              "type": "recast",
+              "delaySec": 1,
+              "share": 0.5,
+              "bothStunSec": 0.5
+            }
+          ]
+        }
+      ],
+      "playsLike": "Two strikes become a lockdown.",
+      "desc": "{r|Sweeping Decree} strikes the same spot again {triggers.0.effects.0.delaySec|num} s later at {s|{triggers.0.effects.0.share|pct}%}; pieces hit by both strikes are stunned for {triggers.0.effects.0.bothStunSec|num} s."
     },
     {
       "id": "sanctified",
@@ -481,11 +1410,1161 @@
       "slot": "skill2",
       "pool": "combination",
       "piece": "bishop",
-      "parents": ["deep_blessing", "deep_breath"],
-      "powerMul": 1.7,
-      "cooldownMul": 0.65,
-      "playsLike": "Healing that keeps a whole lane standing.",
-      "desc": "{r|Blessing} heals {b|{powerMul|mul}% more} and is ready {s|{cooldownMul|less}% sooner}."
+      "parents": ["twin_blessing", "deep_breath"],
+      "triggers": [
+        {
+          "on": "cast",
+          "skill": 1,
+          "target": "lowestAlly",
+          "effects": [
+            {
+              "type": "echo",
+              "share": 0.7
+            },
+            {
+              "type": "regen",
+              "maxHpPct": 0.02,
+              "durationSec": 4
+            }
+          ],
+          "radius": 180
+        },
+        {
+          "on": "cast",
+          "skill": 1,
+          "target": "castTargets",
+          "effects": [
+            {
+              "type": "regen",
+              "maxHpPct": 0.02,
+              "durationSec": 4
+            }
+          ]
+        }
+      ],
+      "playsLike": "Healing that keeps working after the cast.",
+      "desc": "{r|Blessing} also heals the next most wounded piece for {b|{triggers.0.effects.0.share|pct}%}, and both regain {b|{triggers.0.effects.1.maxHpPct|pct}% max health} a second for {triggers.0.effects.1.durationSec|num} s."
+    },
+    {
+      "id": "discovered_attack",
+      "name": "Discovered Attack",
+      "school": "initiative",
+      "slot": "skill1",
+      "pool": "combination",
+      "piece": "bishop",
+      "parents": ["long_diagonal", "hunters_mark"],
+      "rangeMul": 1.4,
+      "triggers": [
+        {
+          "on": "cast",
+          "skill": 0,
+          "target": "aroundVictim",
+          "effects": [
+            {
+              "type": "echo",
+              "share": 0.75
+            }
+          ],
+          "radius": 40
+        },
+        {
+          "on": "cast",
+          "skill": 0,
+          "target": "nearVictim",
+          "effects": [
+            {
+              "type": "echo",
+              "share": 1
+            }
+          ],
+          "radius": 250,
+          "victimMarked": true
+        }
+      ],
+      "playsLike": "The Bishop chains onto the team's target.",
+      "desc": "{r|Diagonal Beam} reaches {rangeMul|mul}% farther and hits everything within {triggers.0.radius|num} of its target for {s|{triggers.0.effects.0.share|pct}%}; a beam on a marked piece also strikes the enemy piece nearest it."
+    },
+    {
+      "id": "royal_court",
+      "name": "Royal Court",
+      "school": "position",
+      "slot": "skill2",
+      "pool": "combination",
+      "piece": "king",
+      "parents": ["rallying_cry", "shared_guard"],
+      "triggers": [
+        {
+          "on": "cast",
+          "skill": 1,
+          "target": "castTargets",
+          "effects": [
+            {
+              "type": "statMod",
+              "stat": "moveSpeed",
+              "kind": "mul",
+              "value": 1.25,
+              "durationSec": 4,
+              "key": "ability:rally:moveSpeed"
+            },
+            {
+              "type": "cleanse"
+            }
+          ]
+        },
+        {
+          "on": "cast",
+          "skill": 1,
+          "target": "castTargets",
+          "effects": [
+            {
+              "type": "shield",
+              "base": 40,
+              "soulScale": 0.3,
+              "durationSec": 4
+            }
+          ]
+        }
+      ],
+      "playsLike": "The King's heal becomes a team shield.",
+      "desc": "{r|Rally}'s speed-up becomes {m|+{triggers.0.effects.0.value|mul}%} and frees allies from slows, and every piece it heals gains a {b|{triggers.1.effects.0.base|num} + {triggers.1.effects.0.soulScale|pct}% Soul shield} for {triggers.1.effects.0.durationSec|num} s."
+    },
+    {
+      "id": "swindle",
+      "name": "Swindle",
+      "school": "sacrifice",
+      "slot": "trait",
+      "pool": "combination",
+      "parents": ["desperado", "shove"],
+      "triggers": [
+        {
+          "on": "damaged",
+          "hpBelow": 0.4,
+          "cooldownSec": 30,
+          "target": "attacker",
+          "effects": [
+            {
+              "type": "dash",
+              "distance": 80,
+              "toward": "away"
+            }
+          ]
+        },
+        {
+          "on": "damaged",
+          "hpBelow": 0.4,
+          "cooldownSec": 30,
+          "target": "self",
+          "effects": [
+            {
+              "type": "statMod",
+              "stat": "atkSpeed",
+              "kind": "mul",
+              "value": 1.35,
+              "durationSec": 6
+            },
+            {
+              "type": "statMod",
+              "stat": "bladeDmg",
+              "kind": "mul",
+              "value": 1.15,
+              "durationSec": 6
+            },
+            {
+              "type": "statMod",
+              "stat": "soulPower",
+              "kind": "mul",
+              "value": 1.15,
+              "durationSec": 6
+            }
+          ]
+        }
+      ],
+      "dubious": {
+        "retreatMul": 0.5,
+        "text": "{r|The price}: {p|its retreat line drops {dubious.retreatMul|less}%}: it fights on at lower health."
+      },
+      "playsLike": "Escapes, then turns the fight.",
+      "desc": "{r|Swindle}: hit below {b|{triggers.0.hpBelow|pct}% health}, it dashes {triggers.0.effects.0.distance|num} away, then fights at {m|+{triggers.1.effects.0.value|mul}% attack speed} and {m|+{triggers.1.effects.1.value|mul}% damage} for {triggers.1.effects.0.durationSec|num} s. {r|Every {triggers.0.cooldownSec|num} s}."
+    },
+    {
+      "id": "steamroller",
+      "name": "Steamroller",
+      "school": "march",
+      "slot": "skill1",
+      "pool": "combination",
+      "piece": "rook",
+      "parents": ["rook_lift", "battering_hits"],
+      "rangeMul": 1.3,
+      "dashMul": 1.5,
+      "skillRule": {
+        "structures": true
+      },
+      "triggers": [
+        {
+          "on": "cast",
+          "skill": 0,
+          "target": "victim",
+          "effects": [
+            {
+              "type": "push",
+              "distance": 40
+            }
+          ],
+          "vs": "hero"
+        },
+        {
+          "on": "cast",
+          "skill": 0,
+          "target": "victim",
+          "effects": [
+            {
+              "type": "damage",
+              "dmgType": "blade",
+              "bladeScale": 1.5
+            }
+          ],
+          "vs": "structure"
+        }
+      ],
+      "playsLike": "The Rook opens sieges himself.",
+      "desc": "{r|File Charge} reaches {rangeMul|mul}% and dashes {dashMul|mul}% farther, can charge a Bastion or Throne, and hits one for {m|+{triggers.1.effects.0.bladeScale|pct}% Blade}."
+    },
+    {
+      "id": "warlord_conquest",
+      "name": "Conquest",
+      "school": "march",
+      "slot": "signature",
+      "pool": "archetype",
+      "piece": "king",
+      "archetype": "warlord",
+      "mods": [
+        {
+          "stat": "bladeDmg",
+          "kind": "mul",
+          "value": 1.04
+        }
+      ],
+      "triggers": [
+        {
+          "on": "periodic",
+          "everySec": 1,
+          "target": "self",
+          "effects": [
+            {
+              "type": "aura",
+              "radius": 170,
+              "target": "ally",
+              "stat": "atkSpeed",
+              "kind": "mul",
+              "value": 1.1
+            }
+          ]
+        }
+      ],
+      "playsLike": "The court around him swings faster; stand him in the middle of the fight.",
+      "desc": "{r|Conquest}: allies within {triggers.0.effects.0.radius|num} attack {m|{triggers.0.effects.0.value|mul}% faster}. {m|+{mods.0.value|mul}% Blade damage}."
+    },
+    {
+      "id": "warlord_stand",
+      "name": "Last Stand",
+      "school": "fortress",
+      "slot": "signature",
+      "pool": "archetype",
+      "piece": "king",
+      "archetype": "warlord",
+      "mods": [
+        {
+          "stat": "armor",
+          "kind": "add",
+          "value": 5
+        }
+      ],
+      "triggers": [
+        {
+          "on": "lowHp",
+          "hpBelow": 0.35,
+          "cooldownSec": 60,
+          "target": "self",
+          "effects": [
+            {
+              "type": "statMod",
+              "stat": "damageTakenMult",
+              "kind": "mul",
+              "value": 0.6,
+              "durationSec": 5
+            }
+          ]
+        }
+      ],
+      "playsLike": "Hard to finish: he survives the dive and keeps the lane.",
+      "desc": "{r|Last Stand}: below {b|{triggers.0.hpBelow|pct}% health} it takes {b|{triggers.0.effects.0.value|less}% less damage} for {triggers.0.effects.0.durationSec|num} s. {r|Every {triggers.0.cooldownSec|num} s}. {b|+{mods.0.value|num} armor}."
+    },
+    {
+      "id": "sovereign_divine",
+      "name": "Divine Sovereign",
+      "school": "clock",
+      "slot": "signature",
+      "pool": "archetype",
+      "piece": "king",
+      "archetype": "sovereign",
+      "cooldownMul": 0.85,
+      "playsLike": "More shields, more often: the court survives longer fights.",
+      "desc": "{r|Aegis of the Crown} is ready {s|{cooldownMul|less}% sooner}."
+    },
+    {
+      "id": "sovereign_wrath",
+      "name": "Royal Wrath",
+      "school": "initiative",
+      "slot": "signature",
+      "pool": "archetype",
+      "piece": "king",
+      "archetype": "sovereign",
+      "mods": [
+        {
+          "stat": "soulPower",
+          "kind": "mul",
+          "value": 1.15
+        }
+      ],
+      "triggers": [
+        {
+          "on": "periodic",
+          "everySec": 5,
+          "target": "nearestEnemyHero",
+          "radius": 220,
+          "effects": [
+            {
+              "type": "damage",
+              "dmgType": "soul",
+              "base": 30,
+              "bladeScale": 0,
+              "soulScale": 0.4
+            }
+          ]
+        }
+      ],
+      "playsLike": "He shields and also chips the nearest enemy piece on his own.",
+      "desc": "{r|Royal Wrath}: every {triggers.0.everySec|num} s the nearest enemy piece within {triggers.0.radius|num} takes {s|{triggers.0.effects.0.base|num} + {triggers.0.effects.0.soulScale|pct}% Soul} damage. {s|+{mods.0.value|mul}% Soul power}."
+    },
+    {
+      "id": "usurper_regicide",
+      "name": "Regicide",
+      "school": "initiative",
+      "slot": "signature",
+      "pool": "archetype",
+      "piece": "king",
+      "archetype": "usurper",
+      "mods": [
+        {
+          "stat": "bladeDmg",
+          "kind": "mul",
+          "value": 1.04
+        }
+      ],
+      "triggers": [
+        {
+          "on": "hit",
+          "target": "victim",
+          "custom": "execute",
+          "param": 0.12,
+          "effects": []
+        }
+      ],
+      "playsLike": "Finishes low pieces outright: no one escapes at a sliver of health.",
+      "desc": "{r|Regicide}: his hits on a piece below {b|{triggers.0.param|pct}% health} finish it. {m|+{mods.0.value|mul}% Blade damage}."
+    },
+    {
+      "id": "usurper_luck",
+      "name": "Usurper's Luck",
+      "school": "fortress",
+      "slot": "signature",
+      "pool": "archetype",
+      "piece": "king",
+      "archetype": "usurper",
+      "mods": [
+        {
+          "stat": "armor",
+          "kind": "add",
+          "value": 4
+        }
+      ],
+      "triggers": [
+        {
+          "on": "lowHp",
+          "target": "self",
+          "custom": "lastStand",
+          "effects": [
+            {
+              "type": "heal",
+              "maxHpPct": 0.25
+            }
+          ]
+        }
+      ],
+      "playsLike": "Cheats death once a life: dive deeper than you should.",
+      "desc": "{r|Usurper's Luck}: once per life, lethal damage leaves him standing and heals {b|{triggers.0.effects.0.maxHpPct|pct}% max health}. {b|+{mods.0.value|num} armor}."
+    },
+    {
+      "id": "regent_endless",
+      "name": "Ruin Without End",
+      "school": "clock",
+      "slot": "signature",
+      "pool": "archetype",
+      "piece": "queen",
+      "archetype": "regent",
+      "mods": [
+        {
+          "stat": "soulPower",
+          "kind": "mul",
+          "value": 1.06
+        }
+      ],
+      "triggers": [
+        {
+          "on": "kill",
+          "vs": "hero",
+          "custom": "cooldownTick",
+          "param": 8,
+          "target": "self",
+          "effects": []
+        }
+      ],
+      "scaleParam": true,
+      "playsLike": "Each piece she kills reloads her spells: one pick becomes three.",
+      "desc": "{r|Ruin Without End}: each enemy piece she takes cuts her cooldowns by {s|{triggers.0.param|num} s}. {s|+{mods.0.value|mul}% Soul power}."
+    },
+    {
+      "id": "regent_ashes",
+      "name": "Queen of Ashes",
+      "school": "position",
+      "slot": "signature",
+      "pool": "archetype",
+      "piece": "queen",
+      "archetype": "regent",
+      "mods": [
+        {
+          "stat": "armor",
+          "kind": "add",
+          "value": 6
+        },
+        {
+          "stat": "resist",
+          "kind": "add",
+          "value": 6
+        }
+      ],
+      "triggers": [
+        {
+          "on": "periodic",
+          "everySec": 4,
+          "custom": "inCombat",
+          "param": 4,
+          "target": "enemyArea",
+          "radius": 160,
+          "effects": [
+            {
+              "type": "damage",
+              "dmgType": "soul",
+              "base": 20,
+              "bladeScale": 0,
+              "soulScale": 0.3
+            }
+          ]
+        }
+      ],
+      "playsLike": "A burning aura: she stands closer and melts whoever stays near.",
+      "desc": "{r|Queen of Ashes}: every {triggers.0.everySec|num} s in combat, enemies within {triggers.0.radius|num} take {s|{triggers.0.effects.0.base|num} + {triggers.0.effects.0.soulScale|pct}% Soul} damage. {b|+{mods.0.value|num} armor}, {b|+{mods.1.value|num} resist}."
+    },
+    {
+      "id": "duelist_cuts",
+      "name": "Thousand Cuts",
+      "school": "initiative",
+      "slot": "signature",
+      "pool": "archetype",
+      "piece": "queen",
+      "archetype": "duelist",
+      "mods": [
+        {
+          "stat": "bladeDmg",
+          "kind": "mul",
+          "value": 1.04
+        }
+      ],
+      "triggers": [
+        {
+          "on": "hit",
+          "everyNth": 4,
+          "target": "victim",
+          "effects": [
+            {
+              "type": "damage",
+              "dmgType": "true",
+              "base": 0,
+              "bladeScale": 0.5,
+              "soulScale": 0
+            }
+          ]
+        }
+      ],
+      "estimate": {
+        "count": "hits",
+        "per": 4,
+        "label": "true-damage cuts"
+      },
+      "playsLike": "Cuts through armor: Rooks and Kings melt as fast as anyone.",
+      "desc": "{r|Thousand Cuts}: every {triggers.0.everyNth|num}th hit deals {t|{triggers.0.effects.0.bladeScale|pct}% Blade as true damage}. {m|+{mods.0.value|mul}% Blade damage}."
+    },
+    {
+      "id": "duelist_untouchable",
+      "name": "Untouchable",
+      "school": "fortress",
+      "slot": "signature",
+      "pool": "archetype",
+      "piece": "queen",
+      "archetype": "duelist",
+      "mods": [
+        {
+          "stat": "armor",
+          "kind": "add",
+          "value": 4
+        }
+      ],
+      "triggers": [
+        {
+          "on": "lowHp",
+          "hpBelow": 0.35,
+          "cooldownSec": 45,
+          "target": "self",
+          "effects": [
+            {
+              "type": "statMod",
+              "stat": "damageTakenMult",
+              "kind": "mul",
+              "value": 0.5,
+              "durationSec": 3
+            }
+          ]
+        }
+      ],
+      "playsLike": "Escapes the burst: she survives the counter-dive.",
+      "desc": "{r|Untouchable}: below {b|{triggers.0.hpBelow|pct}% health} it takes {b|{triggers.0.effects.0.value|less}% less damage} for {triggers.0.effects.0.durationSec|num} s. {r|Every {triggers.0.cooldownSec|num} s}. {b|+{mods.0.value|num} armor}."
+    },
+    {
+      "id": "huntress_kill",
+      "name": "Kill Shot",
+      "school": "initiative",
+      "slot": "signature",
+      "pool": "archetype",
+      "piece": "queen",
+      "archetype": "huntress",
+      "mods": [
+        {
+          "stat": "bladeDmg",
+          "kind": "mul",
+          "value": 1.04
+        }
+      ],
+      "triggers": [
+        {
+          "on": "hit",
+          "target": "victim",
+          "custom": "execute",
+          "param": 0.12,
+          "effects": []
+        }
+      ],
+      "playsLike": "Finishes low pieces outright from range.",
+      "desc": "{r|Kill Shot}: her hits on a piece below {b|{triggers.0.param|pct}% health} finish it. {m|+{mods.0.value|mul}% Blade damage}."
+    },
+    {
+      "id": "huntress_split",
+      "name": "Split Shot",
+      "school": "march",
+      "slot": "signature",
+      "pool": "archetype",
+      "piece": "queen",
+      "archetype": "huntress",
+      "mods": [
+        {
+          "stat": "moveSpeed",
+          "kind": "add",
+          "value": 3
+        }
+      ],
+      "triggers": [
+        {
+          "on": "hit",
+          "everyNth": 3,
+          "target": "enemyArea",
+          "radius": 160,
+          "effects": [
+            {
+              "type": "damage",
+              "dmgType": "blade",
+              "base": 0,
+              "bladeScale": 0.4,
+              "soulScale": 0
+            }
+          ]
+        }
+      ],
+      "estimate": {
+        "count": "hits",
+        "per": 3,
+        "label": "splash shots"
+      },
+      "playsLike": "Her shots splash: clears waves and hits whole team fights.",
+      "desc": "{r|Split Shot}: every {triggers.0.everyNth|num}rd attack also hits every enemy within {triggers.0.radius|num} for {m|{triggers.0.effects.0.bladeScale|pct}% Blade}. {m|+{mods.0.value|num} move speed}."
+    },
+    {
+      "id": "bastion_immovable",
+      "name": "Immovable",
+      "school": "fortress",
+      "slot": "signature",
+      "pool": "archetype",
+      "piece": "rook",
+      "archetype": "bastion",
+      "mods": [
+        {
+          "stat": "maxHp",
+          "kind": "mul",
+          "value": 1.08
+        },
+        {
+          "stat": "armor",
+          "kind": "add",
+          "value": 6
+        }
+      ],
+      "triggers": [
+        {
+          "on": "lowHp",
+          "hpBelow": 0.4,
+          "cooldownSec": 60,
+          "target": "self",
+          "effects": [
+            {
+              "type": "statMod",
+              "stat": "damageTakenMult",
+              "kind": "mul",
+              "value": 0.5,
+              "durationSec": 4
+            }
+          ]
+        }
+      ],
+      "playsLike": "Tougher still: diving him wastes the enemy court.",
+      "desc": "{r|Immovable}: below {b|{triggers.0.hpBelow|pct}% health} it takes {b|{triggers.0.effects.0.value|less}% less damage} for {triggers.0.effects.0.durationSec|num} s. {r|Every {triggers.0.cooldownSec|num} s}. {b|+{mods.0.value|mul}% max health}, {b|+{mods.1.value|num} armor}."
+    },
+    {
+      "id": "bastion_keep",
+      "name": "Great Keep",
+      "school": "position",
+      "slot": "signature",
+      "pool": "archetype",
+      "piece": "rook",
+      "archetype": "bastion",
+      "radiusMul": 1.25,
+      "playsLike": "His slow and weakening field covers more ground.",
+      "desc": "{r|Hold the Line} covers {radiusMul|mul}% more ground."
+    },
+    {
+      "id": "ram_breach",
+      "name": "Breach",
+      "school": "march",
+      "slot": "signature",
+      "pool": "archetype",
+      "piece": "rook",
+      "archetype": "ram",
+      "mods": [
+        {
+          "stat": "moveSpeed",
+          "kind": "add",
+          "value": 2
+        }
+      ],
+      "triggers": [
+        {
+          "on": "periodic",
+          "everySec": 1,
+          "target": "self",
+          "effects": [
+            {
+              "type": "aura",
+              "radius": 140,
+              "target": "enemy",
+              "stat": "resist",
+              "kind": "add",
+              "value": -15
+            }
+          ]
+        }
+      ],
+      "playsLike": "The whole lane sieges with him: enemies near him lose resist too.",
+      "desc": "{r|Breach}: enemies within {triggers.0.effects.0.radius|num}, structures included, lose {r|{triggers.0.effects.0.value|num} resist}. {m|+{mods.0.value|num} move speed}."
+    },
+    {
+      "id": "ram_lone",
+      "name": "Lone Siege",
+      "school": "march",
+      "slot": "signature",
+      "pool": "archetype",
+      "piece": "rook",
+      "archetype": "ram",
+      "mods": [
+        {
+          "stat": "maxHp",
+          "kind": "mul",
+          "value": 1.04
+        }
+      ],
+      "triggers": [
+        {
+          "on": "periodic",
+          "everySec": 1,
+          "custom": "outOfCombat",
+          "param": 3,
+          "target": "self",
+          "effects": [
+            {
+              "type": "heal",
+              "maxHpPct": 0.02
+            }
+          ]
+        }
+      ],
+      "playsLike": "Heals between fights: he split-pushes a lane alone, forever.",
+      "desc": "{r|Lone Siege}: after {triggers.0.param|num} s out of combat he regains {b|{triggers.0.effects.0.maxHpPct|pct}% max health} a second. {b|+{mods.0.value|mul}% max health}."
+    },
+    {
+      "id": "vanguard_shockwave",
+      "name": "Shockwave",
+      "school": "position",
+      "slot": "signature",
+      "pool": "archetype",
+      "piece": "rook",
+      "archetype": "vanguard",
+      "mods": [
+        {
+          "stat": "bladeDmg",
+          "kind": "mul",
+          "value": 1.04
+        }
+      ],
+      "triggers": [
+        {
+          "on": "hit",
+          "vs": "hero",
+          "everyNth": 5,
+          "target": "enemyArea",
+          "radius": 110,
+          "effects": [
+            {
+              "type": "damage",
+              "dmgType": "blade",
+              "base": 0,
+              "bladeScale": 0.4,
+              "soulScale": 0
+            },
+            {
+              "type": "statMod",
+              "stat": "moveSpeed",
+              "kind": "mul",
+              "value": 0.7,
+              "durationSec": 1.5
+            }
+          ]
+        }
+      ],
+      "estimate": {
+        "count": "pieceHits",
+        "per": 5,
+        "label": "shockwaves"
+      },
+      "playsLike": "Every few hits shake the crowd around his target.",
+      "desc": "{r|Shockwave}: every {triggers.0.everyNth|num}th hit on a piece shakes every enemy within {triggers.0.radius|num}: {m|{triggers.0.effects.0.bladeScale|pct}% Blade} and a {r|{triggers.0.effects.1.value|less}% slow} for {triggers.0.effects.1.durationSec|num} s. {m|+{mods.0.value|mul}% Blade damage}."
+    },
+    {
+      "id": "vanguard_spearhead",
+      "name": "Spearhead",
+      "school": "initiative",
+      "slot": "signature",
+      "pool": "archetype",
+      "piece": "rook",
+      "archetype": "vanguard",
+      "mods": [
+        {
+          "stat": "hpRegen",
+          "kind": "add",
+          "value": 1.5
+        }
+      ],
+      "triggers": [
+        {
+          "on": "kill",
+          "vs": "hero",
+          "target": "allyArea",
+          "radius": 200,
+          "effects": [
+            {
+              "type": "statMod",
+              "stat": "atkSpeed",
+              "kind": "mul",
+              "value": 1.15,
+              "durationSec": 4
+            },
+            {
+              "type": "heal",
+              "maxHpPct": 0.05
+            }
+          ]
+        }
+      ],
+      "playsLike": "Each kill speeds and heals the court near him: snowball fights.",
+      "desc": "{r|Spearhead}: each enemy piece he kills gives allies within {triggers.0.radius|num} {m|+{triggers.0.effects.0.value|mul}% attack speed} for {triggers.0.effects.0.durationSec|num} s and heals them {b|{triggers.0.effects.1.maxHpPct|pct}% max health}. {b|+{mods.0.value|num} health regeneration}."
+    },
+    {
+      "id": "light_miracle",
+      "name": "Miracle",
+      "school": "clock",
+      "slot": "signature",
+      "pool": "archetype",
+      "piece": "bishop",
+      "archetype": "light",
+      "cooldownMul": 0.85,
+      "playsLike": "Her group heal comes back sooner.",
+      "desc": "{r|Radiance} is ready {s|{cooldownMul|less}% sooner}."
+    },
+    {
+      "id": "light_wrath",
+      "name": "Wrath of Heaven",
+      "school": "initiative",
+      "slot": "signature",
+      "pool": "archetype",
+      "piece": "bishop",
+      "archetype": "light",
+      "mods": [
+        {
+          "stat": "soulPower",
+          "kind": "mul",
+          "value": 1.15
+        }
+      ],
+      "triggers": [
+        {
+          "on": "periodic",
+          "everySec": 5,
+          "target": "nearestEnemyHero",
+          "radius": 250,
+          "effects": [
+            {
+              "type": "damage",
+              "dmgType": "soul",
+              "base": 25,
+              "bladeScale": 0,
+              "soulScale": 0.4
+            }
+          ]
+        }
+      ],
+      "playsLike": "She heals and also burns the nearest enemy piece on her own.",
+      "desc": "{r|Wrath of Heaven}: every {triggers.0.everySec|num} s the nearest enemy piece within {triggers.0.radius|num} takes {s|{triggers.0.effects.0.base|num} + {triggers.0.effects.0.soulScale|pct}% Soul} damage. {s|+{mods.0.value|mul}% Soul power}."
+    },
+    {
+      "id": "shadow_endless",
+      "name": "Unending Night",
+      "school": "clock",
+      "slot": "signature",
+      "pool": "archetype",
+      "piece": "bishop",
+      "archetype": "shadow",
+      "cooldownMul": 0.85,
+      "playsLike": "Her curse comes back sooner: more burns, more often.",
+      "desc": "{r|Black Diagonal} is ready {s|{cooldownMul|less}% sooner}."
+    },
+    {
+      "id": "shadow_harvest",
+      "name": "Soul Harvest",
+      "school": "initiative",
+      "slot": "signature",
+      "pool": "archetype",
+      "piece": "bishop",
+      "archetype": "shadow",
+      "mods": [
+        {
+          "stat": "soulPower",
+          "kind": "mul",
+          "value": 1.15
+        }
+      ],
+      "triggers": [
+        {
+          "on": "kill",
+          "target": "self",
+          "effects": [
+            {
+              "type": "heal",
+              "maxHpPct": 0.03
+            },
+            {
+              "type": "statMod",
+              "stat": "soulPower",
+              "kind": "add",
+              "value": 3,
+              "durationSec": 60,
+              "maxStacks": 10
+            }
+          ]
+        }
+      ],
+      "playsLike": "Grows with every kill: late in a match she hits hardest.",
+      "desc": "{r|Soul Harvest}: every kill heals her {b|{triggers.0.effects.0.maxHpPct|pct}% max health} and gives {s|+{triggers.0.effects.1.value|num} Soul power} for {triggers.0.effects.1.durationSec|num} s, stacking {triggers.0.effects.1.maxStacks|num} times. {s|+{mods.0.value|mul}% Soul power}."
+    },
+    {
+      "id": "zealot_vow",
+      "name": "Crusader's Vow",
+      "school": "fortress",
+      "slot": "signature",
+      "pool": "archetype",
+      "piece": "bishop",
+      "archetype": "zealot",
+      "mods": [
+        {
+          "stat": "soulPower",
+          "kind": "mul",
+          "value": 1.06
+        }
+      ],
+      "triggers": [
+        {
+          "on": "kill",
+          "vs": "hero",
+          "target": "allyArea",
+          "radius": 200,
+          "effects": [
+            {
+              "type": "heal",
+              "maxHpPct": 0.1
+            }
+          ]
+        }
+      ],
+      "playsLike": "Each piece she kills heals the court around her.",
+      "desc": "{r|Crusader's Vow}: each enemy piece she kills heals allies within {triggers.0.radius|num} for {b|{triggers.0.effects.0.maxHpPct|pct}% max health}. {s|+{mods.0.value|mul}% Soul power}."
+    },
+    {
+      "id": "zealot_unbowed",
+      "name": "Unbowed",
+      "school": "fortress",
+      "slot": "signature",
+      "pool": "archetype",
+      "piece": "bishop",
+      "archetype": "zealot",
+      "mods": [
+        {
+          "stat": "armor",
+          "kind": "add",
+          "value": 6
+        }
+      ],
+      "triggers": [
+        {
+          "on": "lowHp",
+          "hpBelow": 0.3,
+          "cooldownSec": 50,
+          "target": "self",
+          "effects": [
+            {
+              "type": "statMod",
+              "stat": "damageTakenMult",
+              "kind": "mul",
+              "value": 0.5,
+              "durationSec": 3
+            }
+          ]
+        }
+      ],
+      "playsLike": "Hard to finish: she survives the burst and keeps swinging.",
+      "desc": "{r|Unbowed}: below {b|{triggers.0.hpBelow|pct}% health} it takes {b|{triggers.0.effects.0.value|less}% less damage} for {triggers.0.effects.0.durationSec|num} s. {r|Every {triggers.0.cooldownSec|num} s}. {b|+{mods.0.value|num} armor}."
+    },
+    {
+      "id": "lancer_skewer",
+      "name": "Skewer",
+      "school": "initiative",
+      "slot": "signature",
+      "pool": "archetype",
+      "piece": "knight",
+      "archetype": "lancer",
+      "powerMul": 1.2,
+      "playsLike": "The charge hits harder: more one-shot picks.",
+      "desc": "{r|Lance Through} hits {m|{powerMul|mul}% harder}."
+    },
+    {
+      "id": "lancer_breakaway",
+      "name": "Breakaway",
+      "school": "position",
+      "slot": "signature",
+      "pool": "archetype",
+      "piece": "knight",
+      "archetype": "lancer",
+      "mods": [
+        {
+          "stat": "maxHp",
+          "kind": "mul",
+          "value": 1.08
+        },
+        {
+          "stat": "armor",
+          "kind": "add",
+          "value": 8
+        }
+      ],
+      "triggers": [
+        {
+          "on": "damaged",
+          "vs": "hero",
+          "hpBelow": 0.4,
+          "cooldownSec": 16,
+          "target": "attacker",
+          "effects": [
+            {
+              "type": "dash",
+              "distance": 120,
+              "toward": "away"
+            }
+          ]
+        }
+      ],
+      "playsLike": "Charges in, leaps out: he survives his own dives.",
+      "desc": "{r|Breakaway}: when a piece hits him below {b|{triggers.0.hpBelow|pct}% health} he leaps {triggers.0.effects.0.distance|num} away from it. {r|Every {triggers.0.cooldownSec|num} s}. {b|+{mods.0.value|mul}% max health}, {b|+{mods.1.value|num} armor}."
+    },
+    {
+      "id": "errant_siegebreaker",
+      "name": "Siegebreaker",
+      "school": "march",
+      "slot": "signature",
+      "pool": "archetype",
+      "piece": "knight",
+      "archetype": "errant",
+      "mods": [
+        {
+          "stat": "moveSpeed",
+          "kind": "add",
+          "value": 2
+        }
+      ],
+      "triggers": [
+        {
+          "on": "periodic",
+          "everySec": 1,
+          "target": "self",
+          "effects": [
+            {
+              "type": "aura",
+              "radius": 120,
+              "target": "enemy",
+              "stat": "armor",
+              "kind": "add",
+              "value": -10
+            }
+          ]
+        }
+      ],
+      "playsLike": "Strips armor around him, Bastions included: raids go faster.",
+      "desc": "{r|Siegebreaker}: enemies within {triggers.0.effects.0.radius|num}, structures included, lose {r|{triggers.0.effects.0.value|num} armor}. {m|+{mods.0.value|num} move speed}."
+    },
+    {
+      "id": "errant_hunter",
+      "name": "Hunter of Pieces",
+      "school": "clock",
+      "slot": "signature",
+      "pool": "archetype",
+      "piece": "knight",
+      "archetype": "errant",
+      "mods": [
+        {
+          "stat": "maxHp",
+          "kind": "mul",
+          "value": 1.04
+        }
+      ],
+      "triggers": [
+        {
+          "on": "kill",
+          "vs": "hero",
+          "custom": "cooldownTick",
+          "param": 6,
+          "target": "self",
+          "effects": [
+            {
+              "type": "heal",
+              "maxHpPct": 0.1
+            }
+          ]
+        }
+      ],
+      "scaleParam": true,
+      "playsLike": "Each piece he kills reloads and heals him: hunt the next one.",
+      "desc": "{r|Hunter of Pieces}: each enemy piece he kills cuts his cooldowns by {s|{triggers.0.param|num} s} and heals him {b|{triggers.0.effects.0.maxHpPct|pct}% max health}. {b|+{mods.0.value|mul}% max health}."
+    },
+    {
+      "id": "paladin_intercept",
+      "name": "Intercept",
+      "school": "position",
+      "slot": "signature",
+      "pool": "archetype",
+      "piece": "knight",
+      "archetype": "paladin",
+      "mods": [
+        {
+          "stat": "armor",
+          "kind": "add",
+          "value": 8
+        },
+        {
+          "stat": "resist",
+          "kind": "add",
+          "value": 8
+        }
+      ],
+      "triggers": [
+        {
+          "on": "damaged",
+          "vs": "hero",
+          "cooldownSec": 8,
+          "target": "attacker",
+          "effects": [
+            {
+              "type": "statMod",
+              "stat": "moveSpeed",
+              "kind": "mul",
+              "value": 0.1,
+              "durationSec": 1
+            },
+            {
+              "type": "statMod",
+              "stat": "atkSpeed",
+              "kind": "mul",
+              "value": 0.1,
+              "durationSec": 1
+            }
+          ]
+        }
+      ],
+      "playsLike": "Whoever hits him stalls: a wall for the court behind him.",
+      "desc": "{r|Intercept}: a piece that hits him is staggered for {triggers.0.effects.0.durationSec|num} s. {r|Every {triggers.0.cooldownSec|num} s}. {b|+{mods.0.value|num} armor}, {b|+{mods.1.value|num} resist}."
+    },
+    {
+      "id": "paladin_aegis",
+      "name": "Aegis Knight",
+      "school": "fortress",
+      "slot": "signature",
+      "pool": "archetype",
+      "piece": "knight",
+      "archetype": "paladin",
+      "powerMul": 1.2,
+      "playsLike": "His leap shields more: the court survives the burst.",
+      "desc": "{r|Gallant Leap} shields {b|{powerMul|mul}% more}."
     }
   ]
 }

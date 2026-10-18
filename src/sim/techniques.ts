@@ -44,6 +44,14 @@ function scaleMod(m: ModDef, k: number): ModDef {
 function scaleEffect(e: EffectDef, k: number): EffectDef {
   switch (e.type) {
     case 'damage':
+      return {
+        ...e,
+        base: e.base * k,
+        bladeScale: e.bladeScale * k,
+        soulScale: e.soulScale * k,
+        ...(e.fractionOfDamage !== undefined ? { fractionOfDamage: e.fractionOfDamage * k } : {}),
+        ...(e.ownMaxHpPct !== undefined ? { ownMaxHpPct: e.ownMaxHpPct * k } : {}),
+      };
     case 'dot':
     case 'shield':
       return { ...e, base: e.base * k, bladeScale: e.bladeScale * k, soulScale: e.soulScale * k };
@@ -59,6 +67,17 @@ function scaleEffect(e: EffectDef, k: number): EffectDef {
     case 'statMod':
     case 'aura':
       return { ...e, value: e.kind === 'mul' ? scaleMul(e.value, k) : e.value * k };
+    case 'tempo':
+      return { ...e, amount: e.amount * k };
+    case 'recast':
+    case 'echo':
+      return { ...e, share: e.share * k };
+    case 'mark':
+      return { ...e, value: scaleMul(e.value, k) };
+    case 'push':
+      return { ...e, distance: e.distance * k };
+    case 'regen':
+      return { ...e, maxHpPct: e.maxHpPct * k };
     default:
       return e;
   }
@@ -90,6 +109,8 @@ export function gradedTechnique(def: TechniqueDef, mult: number): TechniqueDef {
     rangeMul: scaleMul(def.rangeMul, mult),
     radiusMul: scaleMul(def.radiusMul, mult),
     cooldownMul: Math.max(0.2, scaleMul(def.cooldownMul, mult)),
+    dashMul: scaleMul(def.dashMul, mult),
+    knockbackMul: scaleMul(def.knockbackMul, mult),
     mods: def.mods.map((m) => scaleMod(m, mult)),
     triggers: def.triggers.map((tr) => scaleTrigger(tr, mult, def.scaleParam)),
   };
@@ -123,6 +144,51 @@ export function techniqueAbilityMods(
     m.rangeMul *= d.rangeMul;
     m.radiusMul *= d.radiusMul;
   }
+  return m;
+}
+
+/** How far a held Technique set lengthens one skill's dash (`dashMul`). */
+export function techniqueDashMul(
+  c: Content,
+  t: Tuning,
+  held: readonly HeldTechnique[],
+  idx: number,
+): number {
+  let m = 1;
+  for (const d of heldDefs(c, t, held)) if (techniqueAbility(d) === idx) m *= d.dashMul;
+  return m;
+}
+
+/** A skill's own rules as held Techniques change them (the last one held wins per rule). */
+export function techniqueSkillRule(
+  c: Content,
+  held: readonly HeldTechnique[],
+  idx: number,
+): { minEnemies?: number; structures?: boolean } | null {
+  let out: { minEnemies?: number; structures?: boolean } | null = null;
+  for (const h of held) {
+    const d = c.techniqueById.get(h.id);
+    if (!d?.skillRule || techniqueAbility(d) !== idx) continue;
+    out = { ...(out ?? {}), ...d.skillRule };
+  }
+  return out;
+}
+
+/** Knockback multiplier of a piece's hits on pieces (`knockbackMul`). */
+export function techniqueKnockbackMul(
+  c: Content,
+  t: Tuning,
+  held: readonly HeldTechnique[],
+): number {
+  let m = 1;
+  for (const d of heldDefs(c, t, held)) m *= d.knockbackMul;
+  return m;
+}
+
+/** The piece's low-health retreat line multiplier (a Dubious price, `retreatMul`). */
+export function techniqueRetreatMul(c: Content, held: readonly HeldTechnique[]): number {
+  let m = 1;
+  for (const h of held) m *= c.techniqueById.get(h.id)?.dubious?.retreatMul ?? 1;
   return m;
 }
 
@@ -205,6 +271,13 @@ export function withTechnique(
   return out.sort((a, b) => at(a) - at(b));
 }
 
+/** A card a piece can take as its first move: common or its own piece's pool (the Signature is shut). */
+export function isFirstMove(c: Content, piece: string, id: string): boolean {
+  const d = c.techniqueById.get(id);
+  if (!d || d.slot === 'signature') return false;
+  return d.pool === 'common' || (d.pool === 'piece' && d.piece === piece);
+}
+
 /** Combinations that name this Technique as a parent. */
 export function combinationsOf(c: Content, id: string): TechniqueDef[] {
   return c.techniques.filter((d) => d.parents?.includes(id));
@@ -254,7 +327,13 @@ export function validateTechniques(c: Content): string[] {
     if (d.parents && d.pool !== 'combination') errs.push(`${at}: only a Combination has parents`);
     if (!(TECHNIQUE_SLOTS as readonly string[]).includes(d.slot)) errs.push(`${at}: unknown slot`);
     const ab = techniqueAbility(d);
-    const tweaks = d.powerMul !== 1 || d.cooldownMul !== 1 || d.rangeMul !== 1 || d.radiusMul !== 1;
+    const tweaks =
+      d.powerMul !== 1 ||
+      d.cooldownMul !== 1 ||
+      d.rangeMul !== 1 ||
+      d.radiusMul !== 1 ||
+      d.dashMul !== 1 ||
+      d.skillRule !== undefined;
     if (tweaks && ab === null) errs.push(`${at}: a skill tweak needs a skill slot or \`ability\``);
     for (const text of [d.desc, d.playsLike, d.dubious?.text ?? '']) {
       const bad = badPlaceholders(text, d);
@@ -264,6 +343,22 @@ export function validateTechniques(c: Content): string[] {
     }
     if (d.school === 'sacrifice' && d.dubious && !/price/i.test(d.dubious.text))
       errs.push(`${at}: a Dubious price says "The price"`);
+    for (const tr of [...d.triggers, ...(d.dubious?.triggers ?? [])]) {
+      const castOnly = tr.effects.some((e) => e.type === 'echo' || e.type === 'recast');
+      if ((castOnly || tr.target === 'castTargets') && tr.on !== 'cast')
+        errs.push(`${at}: echo, recast and castTargets need a cast trigger`);
+      if (tr.on === 'cast' && tr.skill === undefined && castOnly)
+        errs.push(`${at}: a cast trigger that echoes or recasts names its skill`);
+      if (tr.skill !== undefined && tr.on !== 'cast' && tr.on !== 'kill')
+        errs.push(`${at}: \`skill\` works on cast and kill triggers only`);
+    }
   }
+  // the Rank 8 options live on as archetype Techniques (same id, piece and archetype)
+  for (const st of c.pieces.flatMap((p) => p.styles.map((s) => ({ p, s }))))
+    for (const f of st.s.forks['8']) {
+      const d = c.techniqueById.get(f.id);
+      if (!d || d.pool !== 'archetype' || d.piece !== st.p.id || d.archetype !== st.s.id)
+        errs.push(`Rank 8 option ${f.id}: needs an archetype Technique of the same id`);
+    }
   return errs;
 }

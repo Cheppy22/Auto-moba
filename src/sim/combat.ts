@@ -8,10 +8,16 @@ import { kitOf, perksOf, pieceDef } from './pieces';
 import { campDamageMul, checkDamageMul, structureMul, throneDamageMul } from './relics';
 import { addMod, recompute, triggersOf } from './stats';
 import { tallyCast, tallyDamage, tallyHeal, tallyHit, tallyProc, tallyShield } from './buildTally';
-import { techniqueAbilityMods } from './techniques';
-import type { Unit } from './types';
+import { addTempo } from './gambits';
+import {
+  techniqueAbilityMods,
+  techniqueDashMul,
+  techniqueKnockbackMul,
+  techniqueSkillRule,
+} from './techniques';
+import type { PendingRecast, PlayTeam, Unit } from './types';
 import { clearLine, confine, walkable } from './world/terrain';
-import { lineOfSight, slopeMul } from './world/height';
+import { lineOfSight, reachActive, slopeMul } from './world/height';
 
 const HERO_ASSIST_WINDOW = 160;
 export const TPS = 20;
@@ -99,12 +105,15 @@ function knockback(ctx: Ctx, src: Unit | null, tgt: Unit, dmg: number): number {
   const kb = ctx.t.spacing.knockback;
   const frac = dmg / Math.max(1, tgt.stats.maxHp);
   if (frac < kb.minFrac) return 0;
+  const held = src.hero!.techniques;
+  const mul =
+    held && held.length && tgt.kind === 'hero' ? techniqueKnockbackMul(ctx.c, ctx.t, held) : 1;
   const dx = tgt.x - src.x;
   const dy = tgt.y - src.y;
   const d = Math.sqrt(dx * dx + dy * dy);
   if (d < 0.001) return 0;
   const queued = tgt.knock ? Math.sqrt(tgt.knock.x ** 2 + tgt.knock.y ** 2) : 0;
-  const step = Math.min(kb.max - queued, kb.perFrac * frac);
+  const step = Math.min(kb.max * mul - queued, kb.perFrac * frac * mul);
   if (step <= 0) return 0;
   const k = tgt.knock ?? (tgt.knock = { x: 0, y: 0 });
   k.x += (dx / d) * step;
@@ -152,6 +161,8 @@ export function dealDamage(
     const td = ctx.s.teamDamage[src.team];
     if (td && td.untilTick > ctx.s.tick) raw *= td.value;
   }
+  const mark = tgt.mark;
+  if (mark && src && mark.team === src.team && mark.untilTick > ctx.s.tick) raw *= mark.value;
   let dmg = Math.max(1, mitigate(tgt, raw, dtype));
   // Damage a piece did not take: armor, resist and reduction effects, plus what shields soaked.
   let mitigated = tgt.kind === 'hero' ? Math.max(0, raw - dmg) : 0;
@@ -198,7 +209,10 @@ export function dealDamage(
   trackDamage(ctx, src, tgt, applied + absorbed);
   if (ctx.s.feedback.runs.length > 0)
     noteDamage(ctx, src, tgt, raw, dtype, applied + absorbed, absorbed);
-  if (lethal) tgt.pendingKill = { killerId: src ? src.id : 0 };
+  if (lethal)
+    tgt.pendingKill = ctx.s.builds
+      ? { killerId: src ? src.id : 0, origin }
+      : { killerId: src ? src.id : 0 };
   if (tgt.hero && !lethal)
     fireTriggers(ctx, tgt, 'damaged', {
       attacker: src ?? undefined,
@@ -234,12 +248,27 @@ export function healUnit(
   return done;
 }
 
+/** A cast as `cast` triggers see it: the skill, what it hit, and where (for `recast` and `echo`). */
+export interface CastInfo {
+  idx: number;
+  def: AbilityDef;
+  targets: number[];
+  /** An area skill: it strikes around (x, y). */
+  area: boolean;
+  x: number;
+  y: number;
+  powerMul: number;
+}
+
 interface EffectCtx {
   caster: Unit;
   target: Unit;
   powerMul: number;
   origin: string;
   damage?: number;
+  /** The damage type of the hit that fired the trigger. */
+  hitType?: DamageType;
+  cast?: CastInfo;
 }
 
 function moveDash(
@@ -297,9 +326,14 @@ function moveDash(
 export function applyEffect(ctx: Ctx, e: EffectDef, ec: EffectCtx): void {
   const { caster, target } = ec;
   switch (e.type) {
-    case 'damage':
-      dealDamage(ctx, caster, target, amountOf(e, caster, ec.powerMul), e.dmgType, ec.origin);
+    case 'damage': {
+      let raw = amountOf(e, caster, ec.powerMul);
+      if (e.fractionOfDamage && ec.damage) raw += e.fractionOfDamage * ec.damage * ec.powerMul;
+      if (e.ownMaxHpPct) raw += e.ownMaxHpPct * caster.stats.maxHp * ec.powerMul;
+      const dtype = e.dmgType === 'hit' ? (ec.hitType ?? 'blade') : e.dmgType;
+      dealDamage(ctx, caster, target, raw, dtype, ec.origin);
       break;
+    }
     case 'heal': {
       let amt = amountOf(e, caster, ec.powerMul) + e.maxHpPct * target.stats.maxHp;
       if (e.fractionOfDamage && ec.damage) amt += e.fractionOfDamage * ec.damage;
@@ -316,7 +350,7 @@ export function applyEffect(ctx: Ctx, e: EffectDef, ec: EffectCtx): void {
       break;
     }
     case 'statMod': {
-      const id = `${ec.origin}:${e.stat}`;
+      const id = e.key ?? `${ec.origin}:${e.stat}`;
       let value = e.value;
       if (e.maxStacks) {
         const prev = target.mods.find((m) => m.id === id);
@@ -373,6 +407,8 @@ export function applyEffect(ctx: Ctx, e: EffectDef, ec: EffectCtx): void {
         if (!u.alive) continue;
         const same = u.team === caster.team;
         if ((e.target === 'ally') !== same) continue;
+        if (e.filter === 'pawn' && (u.kind !== 'minion' || u.ev)) continue;
+        if (e.filter === 'piece' && u.kind !== 'hero') continue;
         addMod(ctx, u, {
           id: `aura:${caster.id}:${e.stat}`,
           stat: e.stat,
@@ -385,6 +421,91 @@ export function applyEffect(ctx: Ctx, e: EffectDef, ec: EffectCtx): void {
       }
       break;
     }
+    case 'tempo':
+      if (caster.team !== 'neutral') addTempo(ctx, caster.team, e.amount);
+      break;
+    case 'ready':
+      if (target.hero) target.hero.cd[e.skill] = 0;
+      break;
+    case 'recast': {
+      const cast = ec.cast;
+      const h = caster.hero;
+      if (!cast || !h) break;
+      (h.recasts ??= []).push({
+        idx: cast.idx,
+        tick: ctx.s.tick + Math.max(1, Math.round(e.delaySec * TPS)),
+        share: e.share,
+        bothStunSec: e.bothStunSec,
+        area: cast.area,
+        x: cast.x,
+        y: cast.y,
+        ids: cast.targets.slice(),
+        origin: ec.origin,
+      });
+      break;
+    }
+    case 'echo': {
+      const cast = ec.cast;
+      if (!cast) break;
+      for (const eff of cast.def.effects) {
+        if (eff.type === 'dash' || !target.alive) continue;
+        applyEffect(ctx, eff, {
+          caster,
+          target,
+          powerMul: cast.powerMul * e.share,
+          origin: ec.origin,
+        });
+      }
+      break;
+    }
+    case 'mark':
+      if (caster.team !== 'neutral' && target.team !== caster.team)
+        target.mark = {
+          team: caster.team as PlayTeam,
+          value: e.value,
+          untilTick: ctx.s.tick + Math.round(e.durationSec * TPS),
+        };
+      break;
+    case 'push': {
+      if ((target.kind !== 'hero' && target.kind !== 'minion') || target.ev) break;
+      const dx = target.x - caster.x;
+      const dy = target.y - caster.y;
+      const d = Math.sqrt(dx * dx + dy * dy);
+      if (d < 0.001) break;
+      // queued like knockback, so it is applied with the body collisions and never through walls
+      const k = target.knock ?? (target.knock = { x: 0, y: 0 });
+      k.x += (dx / d) * e.distance;
+      k.y += (dy / d) * e.distance;
+      break;
+    }
+    case 'cleanse': {
+      const before = target.mods.length;
+      target.mods = target.mods.filter(
+        (m) =>
+          !(
+            (m.stat === 'moveSpeed' || m.stat === 'atkSpeed') &&
+            m.kind === 'mul' &&
+            m.value < 1 &&
+            m.expiresTick !== null
+          ),
+      );
+      if (target.mods.length !== before) target.dirty = true;
+      break;
+    }
+    case 'regen':
+      addMod(ctx, target, {
+        id: `${ec.origin}:regen`,
+        stat: 'hpRegen',
+        kind: 'add',
+        value: e.maxHpPct * target.stats.maxHp,
+        source: ec.origin,
+        tags: [],
+        expiresTick: ctx.s.tick + Math.round(e.durationSec * TPS),
+      });
+      break;
+    case 'payHp':
+      target.hp = Math.max(1, target.hp - e.maxHpPct * target.stats.maxHp);
+      break;
   }
 }
 
@@ -437,14 +558,22 @@ export function abilityMods(ctx: Ctx, hero: Unit, idx: number): AbilityMods {
 }
 
 const ENEMY_KINDS = new Set(['hero', 'minion', 'camp']);
+const ENEMY_AND_STRUCTURE_KINDS = new Set(['hero', 'minion', 'camp', 'tower', 'guardian']);
 
 /** Skill targets around (cx, cy): enemies in `radius` with a line of sight from that point. */
-function enemiesNear(ctx: Ctx, from: Unit, radius: number, cx = from.x, cy = from.y): Unit[] {
+function enemiesNear(
+  ctx: Ctx,
+  from: Unit,
+  radius: number,
+  cx = from.x,
+  cy = from.y,
+  structures = false,
+): Unit[] {
   const out: Unit[] = [];
   const w = ctx.world;
+  const kinds = structures ? ENEMY_AND_STRUCTURE_KINDS : ENEMY_KINDS;
   for (const u of ctx.grid.query(cx, cy, radius)) {
-    if (!u.alive || !isEnemy(from, u) || !ENEMY_KINDS.has(u.kind) || !isTargetable(ctx, u))
-      continue;
+    if (!u.alive || !isEnemy(from, u) || !kinds.has(u.kind) || !isTargetable(ctx, u)) continue;
     if (lineOfSight(w.height, w.terrain, ctx.open, cx, cy, u.x, u.y)) out.push(u);
   }
   return out;
@@ -473,8 +602,15 @@ export function tryCast(ctx: Ctx, u: Unit, idx: number): boolean {
   const mods = abilityMods(ctx, u, idx);
   const range = def.range * mods.rangeMul;
   const radius = def.radius * mods.radiusMul;
-  const cond = def.condition;
+  const rule = h.techniques?.length ? techniqueSkillRule(ctx.c, h.techniques, idx) : null;
+  const cond =
+    rule?.minEnemies !== undefined
+      ? { ...def.condition, minEnemies: rule.minEnemies }
+      : def.condition;
   let targets: Unit[] = [];
+  // where an area skill strikes (the caster, or the centre of a burst)
+  let cx = u.x;
+  let cy = u.y;
   let enemiesCount = 0;
   let enemyHeroes = 0;
   switch (def.target) {
@@ -486,7 +622,8 @@ export function tryCast(ctx: Ctx, u: Unit, idx: number): boolean {
       break;
     }
     case 'enemy': {
-      const t = pickEnemy(enemiesNear(ctx, u, range), u, cond.heroTargetOnly === true);
+      const near = enemiesNear(ctx, u, range, u.x, u.y, rule?.structures === true);
+      const t = pickEnemy(near, u, cond.heroTargetOnly === true);
       if (!t) return false;
       targets = [t];
       enemiesCount = 1;
@@ -503,6 +640,8 @@ export function tryCast(ctx: Ctx, u: Unit, idx: number): boolean {
       const near = enemiesNear(ctx, u, range);
       const centre = pickEnemy(near, u, cond.heroTargetOnly === true);
       if (!centre) return false;
+      cx = centre.x;
+      cy = centre.y;
       targets = enemiesNear(ctx, u, radius, centre.x, centre.y);
       enemiesCount = targets.length;
       enemyHeroes = targets.filter((e) => e.kind === 'hero').length;
@@ -536,19 +675,47 @@ export function tryCast(ctx: Ctx, u: Unit, idx: number): boolean {
   if (cond.selfHpBelow !== undefined && hpPct(u) >= cond.selfHpBelow) return false;
   if (cond.allyHpBelow !== undefined && !targets.some((t) => hpPct(t) < cond.allyHpBelow!))
     return false;
-  castOn(ctx, u, def, targets, mods);
+  const dashMul = h.techniques?.length ? techniqueDashMul(ctx.c, ctx.t, h.techniques, idx) : 1;
+  castOn(ctx, u, def, targets, mods, dashMul);
   if (ctx.s.builds) tallyCast(ctx, u);
   const cdTicks = Math.round(def.cooldownSec * mods.cooldownMul * (1 - u.stats.cdr) * TPS);
   h.cd[idx] = Math.max(10, cdTicks);
+  if (ctx.s.builds) {
+    // Techniques: `cast` triggers see the cast after its cooldown is set (so `ready` can clear it)
+    h.castSinceHit = true;
+    const area = def.target === 'enemyArea' || def.target === 'enemyBurst';
+    if (!area) {
+      cx = targets[0].x;
+      cy = targets[0].y;
+    }
+    const cast: CastInfo = {
+      idx,
+      def,
+      targets: targets.map((t) => t.id),
+      area,
+      x: cx,
+      y: cy,
+      powerMul: mods.powerMul,
+    };
+    fireTriggers(ctx, u, 'cast', { victim: targets[0], cast });
+  }
   return true;
 }
 
-function castOn(ctx: Ctx, u: Unit, def: AbilityDef, targets: Unit[], mods: AbilityMods): void {
+function castOn(
+  ctx: Ctx,
+  u: Unit,
+  def: AbilityDef,
+  targets: Unit[],
+  mods: AbilityMods,
+  dashMul: number,
+): void {
   const origin = `ability:${def.id}`;
   const primary = targets[0];
   for (const eff of def.effects) {
     if (eff.type === 'dash') {
-      applyEffect(ctx, eff, { caster: u, target: primary, powerMul: mods.powerMul, origin });
+      const e = dashMul === 1 ? eff : { ...eff, distance: eff.distance * dashMul };
+      applyEffect(ctx, e, { caster: u, target: primary, powerMul: mods.powerMul, origin });
       continue;
     }
     for (const t of targets) {
@@ -556,6 +723,41 @@ function castOn(ctx: Ctx, u: Unit, def: AbilityDef, targets: Unit[], mods: Abili
       applyEffect(ctx, eff, { caster: u, target: t, powerMul: mods.powerMul, origin });
     }
   }
+}
+
+/** Techniques: a skill due to strike again does, on the same spot or the same targets. */
+export function tickRecasts(ctx: Ctx, u: Unit): void {
+  const h = u.hero;
+  if (!h?.recasts?.length) return;
+  const now = ctx.s.tick;
+  if (!h.recasts.some((r) => r.tick <= now)) return;
+  const due = h.recasts.filter((r) => r.tick <= now);
+  h.recasts = h.recasts.filter((r) => r.tick > now);
+  for (const r of due) recastNow(ctx, u, r);
+}
+
+function recastNow(ctx: Ctx, u: Unit, r: PendingRecast): void {
+  const def = kitOf(ctx.c, u.hero!)[r.idx];
+  if (!def) return;
+  const mods = abilityMods(ctx, u, r.idx);
+  const targets = r.area
+    ? enemiesNear(ctx, u, def.radius * mods.radiusMul, r.x, r.y)
+    : r.ids.map((id) => ctx.unit(id)).filter((t): t is Unit => !!t && t.alive);
+  for (const eff of def.effects) {
+    if (eff.type === 'dash') continue;
+    for (const t of targets) {
+      if (!t.alive) continue;
+      applyEffect(ctx, eff, {
+        caster: u,
+        target: t,
+        powerMul: mods.powerMul * r.share,
+        origin: r.origin,
+      });
+    }
+  }
+  if (r.bothStunSec > 0)
+    for (const t of targets)
+      if (t.alive && t.kind === 'hero' && r.ids.includes(t.id)) stunUnit(ctx, t, r.bothStunSec);
 }
 
 export function castAbilities(ctx: Ctx, u: Unit): void {
@@ -566,11 +768,36 @@ export function castAbilities(ctx: Ctx, u: Unit): void {
   }
 }
 
-interface TriggerEvent {
+export interface TriggerEvent {
   victim?: Unit;
   attacker?: Unit;
   damage?: number;
   dtype?: DamageType;
+  /** hit: the hit's damage type (effects with `dmgType: hit` use it). */
+  hitType?: DamageType;
+  /** hit: ticks the attacker had been out of combat before it (Techniques only). */
+  quietTicks?: number;
+  /** hit: the first hit since one of the attacker's skills (Techniques only). */
+  afterCast?: boolean;
+  /** kill: what dealt the killing blow (Techniques only). */
+  origin?: string;
+  cast?: CastInfo;
+}
+
+const STRUCTURE_KINDS = new Set(['tower', 'guardian']);
+
+function byDistance(list: Unit[], x: number, y: number): Unit[] {
+  return list
+    .map((u) => ({ u, d: dist(x, y, u.x, u.y) }))
+    .sort((a, b) => a.d - b.d || a.u.id - b.u.id)
+    .map((e) => e.u);
+}
+
+function allyPieces(ctx: Ctx, u: Unit, radius: number): Unit[] {
+  const out: Unit[] = [];
+  for (const a of ctx.grid.query(u.x, u.y, radius))
+    if (a.alive && a.team === u.team && a.kind === 'hero' && a.id !== u.id) out.push(a);
+  return out;
 }
 
 function resolveTrigTargets(ctx: Ctx, u: Unit, def: TriggerDef, ev: TriggerEvent): Unit[] {
@@ -603,7 +830,63 @@ function resolveTrigTargets(ctx: Ctx, u: Unit, def: TriggerDef, ev: TriggerEvent
       }
       return out;
     }
+    case 'landing':
+      return byDistance(
+        enemiesNear(ctx, u, def.radius).filter((e) => e !== ev.victim),
+        u.x,
+        u.y,
+      );
+    case 'aroundVictim':
+    case 'nearVictim': {
+      const v = ev.victim;
+      if (!v) return [];
+      const near = byDistance(
+        enemiesNear(ctx, u, def.radius, v.x, v.y).filter((e) => e !== v),
+        v.x,
+        v.y,
+      );
+      if (def.target === 'aroundVictim') return near;
+      const piece = near.find((e) => e.kind === 'hero');
+      return piece ? [piece] : [];
+    }
+    case 'castTargets':
+      return (ev.cast?.targets ?? [])
+        .map((id) => ctx.unit(id))
+        .filter((t): t is Unit => !!t && t.alive);
+    case 'allies':
+      return byDistance(allyPieces(ctx, u, def.radius), u.x, u.y);
+    case 'lowestAlly': {
+      const reached = ev.cast?.targets ?? [];
+      let best: Unit | null = null;
+      for (const a of allyPieces(ctx, u, def.radius)) {
+        if (reached.includes(a.id)) continue;
+        if (!best || hpPct(a) < hpPct(best) || (hpPct(a) === hpPct(best) && a.id < best.id))
+          best = a;
+      }
+      return best ? [best] : [];
+    }
   }
+}
+
+/** The Technique conditions of a trigger on the event (all hold, or it does not fire). */
+function techniqueConditions(ctx: Ctx, u: Unit, def: TriggerDef, ev: TriggerEvent): boolean {
+  if (def.skill !== undefined) {
+    if (def.on === 'cast') {
+      if (ev.cast?.idx !== def.skill) return false;
+    } else {
+      const id = kitOf(ctx.c, u.hero!)[def.skill]?.id;
+      if (!id || ev.origin !== `ability:${id}`) return false;
+    }
+  }
+  if (def.quietSec !== undefined && (ev.quietTicks ?? -1) < def.quietSec * TPS) return false;
+  if (def.afterCast && !ev.afterCast) return false;
+  const v = ev.victim;
+  if (def.victimMarked) {
+    const m = v?.mark;
+    if (!m || m.team !== u.team || m.untilTick <= ctx.s.tick) return false;
+  }
+  if (def.near !== undefined && (!v || dist(u.x, u.y, v.x, v.y) > def.near)) return false;
+  return true;
 }
 
 function runTrigger(
@@ -616,14 +899,18 @@ function runTrigger(
 ): void {
   const h = u.hero;
   if (!h) return;
-  const key = `${src}#${idx}`;
+  const other = def.on === 'damaged' || def.on === 'death' ? ev.attacker : ev.victim;
+  const key = def.perTarget && other ? `${src}#${idx}@${other.id}` : `${src}#${idx}`;
   if (def.on !== 'periodic' && def.cooldownSec > 0) {
     if ((h.trigCd[key] ?? 0) > ctx.s.tick) return;
   }
   if (def.vs) {
-    const other = def.on === 'damaged' ? ev.attacker : ev.victim;
-    if (!other || (def.vs === 'hero') !== (other.kind === 'hero')) return;
+    if (!other) return;
+    if (def.vs === 'structure') {
+      if (!STRUCTURE_KINDS.has(other.kind)) return;
+    } else if ((def.vs === 'hero') !== (other.kind === 'hero')) return;
   }
+  if (!techniqueConditions(ctx, u, def, ev)) return;
   if (def.ofType && ev.dtype !== def.ofType) return;
   if (def.on !== 'lowHp' && def.hpBelow !== undefined && hpPct(u) >= def.hpBelow) return;
   if (def.everyNth) {
@@ -636,7 +923,10 @@ function runTrigger(
   const proceed = def.custom ? runCustom(ctx, u, def, ev) : true;
   if (proceed && ctx.s.builds) tallyProc(ctx, u, src);
   if (proceed) {
-    const targets = resolveTrigTargets(ctx, u, def, ev);
+    let targets = resolveTrigTargets(ctx, u, def, ev);
+    if (def.filter === 'piece') targets = targets.filter((t) => t.kind === 'hero');
+    else if (def.filter === 'pawn') targets = targets.filter((t) => t.kind === 'minion' && !t.ev);
+    if (def.maxTargets !== undefined) targets = targets.slice(0, def.maxTargets);
     for (const t of targets) {
       if (!t.alive) continue;
       for (const eff of def.effects) {
@@ -646,6 +936,8 @@ function runTrigger(
           powerMul: 1,
           origin: `item:${src}`,
           damage: ev.damage,
+          hitType: ev.hitType,
+          cast: ev.cast,
         });
       }
     }
@@ -722,6 +1014,15 @@ export const CUSTOM_BEHAVIORS: Record<string, Custom> = {
   payPct: (_ctx, u, def) => {
     u.hp = Math.max(1, u.hp - u.stats.maxHp * (def.param ?? 0.02));
   },
+  /** The holder stands nearer the enemy base than its own (the enemy half of the board). */
+  enemyHalf: (ctx, u) => {
+    if (u.team === 'neutral') return false;
+    const own = ctx.world.basePos[u.team];
+    const foe = ctx.world.basePos[u.team === 'A' ? 'B' : 'A'];
+    return dist(u.x, u.y, foe.x, foe.y) < dist(u.x, u.y, own.x, own.y);
+  },
+  /** The victim stands on a lower tier than the holder. */
+  highGround: (ctx, u, _def, ev) => !!ev.victim && reachActive(ctx, u, ev.victim),
 };
 
 function runCustom(ctx: Ctx, u: Unit, def: TriggerDef, ev: TriggerEvent): boolean {
@@ -784,9 +1085,24 @@ export function performAttack(ctx: Ctx, a: Unit, t: Unit): void {
       ? ctx.t.pawns.structureMul
       : ctx.t.minions.structureMul + ctx.t.minions.structureMulPerPhase * (ctx.s.phase.n - 1);
   const origin = a.kind === 'tower' || a.kind === 'guardian' ? a.kind : 'attack';
+  const h = a.hero;
+  // Techniques: how long the attacker had been quiet before this hit (Ambush)
+  const quietTicks =
+    h && ctx.s.builds ? ctx.s.tick - Math.max(a.lastDamagedTick, h.lastDealtTick) : undefined;
   dealDamage(ctx, a, t, dmg, a.atkType, origin);
-  if (a.hero && ctx.s.builds) tallyHit(ctx, a, t);
-  if (a.hero) fireTriggers(ctx, a, 'hit', { victim: t, damage: dmg });
+  if (!h) return;
+  if (ctx.s.builds) {
+    tallyHit(ctx, a, t);
+    const afterCast = h.castSinceHit === true;
+    h.castSinceHit = false;
+    fireTriggers(ctx, a, 'hit', {
+      victim: t,
+      damage: dmg,
+      hitType: a.atkType,
+      quietTicks,
+      afterCast,
+    });
+  } else fireTriggers(ctx, a, 'hit', { victim: t, damage: dmg });
 }
 
 export { HERO_ASSIST_WINDOW };

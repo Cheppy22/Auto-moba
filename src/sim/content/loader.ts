@@ -38,7 +38,7 @@ import {
   type TechniqueDef,
   type Tuning,
 } from './schema';
-import { validateTechniques } from '../techniques';
+import { isFirstMove, validateTechniques } from '../techniques';
 
 export interface RawContentFiles {
   pieces: unknown[];
@@ -177,6 +177,11 @@ function validateCourts(c: Content): string[] {
     for (const id of PIECE_IDS) {
       if (!c.styleByKey.has(`${id}/${k.styles[id]}`))
         errs.push(`${at}: ${id} has no archetype ${k.styles[id]}`);
+    }
+    for (const id of PIECE_IDS) {
+      const move = k.firstMoves?.[id];
+      if (move !== undefined && !isFirstMove(c, id, move))
+        errs.push(`${at}: ${id}'s first move ${move} is not a Setup Technique for it`);
     }
     if (k.styles[k.portrait.piece] !== k.portrait.style)
       errs.push(`${at}: the portrait wears ${k.portrait.style}, not the court's archetype`);

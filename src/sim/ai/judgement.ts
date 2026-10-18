@@ -7,6 +7,7 @@ import type { PlayTeam, Unit } from '../types';
 import { closestLane } from './lanes';
 import { unitDps, unitEhp } from './power';
 import { isWary } from './swap';
+import { techniqueRetreatMul } from '../techniques';
 
 /**
  * Piece judgement shared by the fight loop and the goal picker: the retreat line, sure kills,
@@ -47,7 +48,9 @@ export function underEnemyTower(ctx: Ctx, team: PlayTeam, x: number, y: number):
 /** Health share at which this piece breaks off: by role, sooner when it keeps dying. */
 export function retreatLine(ctx: Ctx, u: Unit): number {
   const h = u.hero!;
-  return (ctx.t.judgement.retreatHp[h.defId] ?? 0.3) + (isWary(ctx, h) ? 0.12 : 0);
+  const line = (ctx.t.judgement.retreatHp[h.defId] ?? 0.3) + (isWary(ctx, h) ? 0.12 : 0);
+  // a Dubious Technique's price (Desperado) can lower it
+  return h.techniques?.length ? line * techniqueRetreatMul(ctx.c, h.techniques) : line;
 }
 
 /**

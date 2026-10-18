@@ -87,7 +87,10 @@ function authoredOpponent(
 ): OpponentDef {
   const setup: TeamSetup = {
     opening: court.opening,
-    pieces: court.pieces.map((e) => ({ ...e })),
+    pieces: court.pieces.map((e) => ({
+      ...e,
+      ...(court.firstMoves ? { firstMove: court.firstMoves[e.piece] } : {}),
+    })),
   };
   const def = c.relicById.get(court.signature.relic)!;
   const aim = defaultAim(c, setup, def);

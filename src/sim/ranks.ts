@@ -242,6 +242,11 @@ function rankTo(ctx: Ctx, u: Unit, rank: number): void {
   const h = u.hero!;
   h.rank = rank;
   u.dirty = true;
+  if (rank === 8 && ctx.s.builds) {
+    // with Techniques the Rank 8 options are archetype Techniques; Rank 8 makes the next offer Brilliant
+    ctx.emit('rankUp', { id: u.id, rank, bonus: '' });
+    return;
+  }
   if (rank === 4 || rank === 8) {
     ctx.emit('rankUp', { id: u.id, rank, bonus: '' });
     const team = u.team as PlayTeam;

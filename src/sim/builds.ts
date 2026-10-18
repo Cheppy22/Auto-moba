@@ -24,6 +24,7 @@ import { abilityAxes, perkAxes, styleAxes, type Axes } from './ranks';
 import {
   combinationsOf,
   gradeIndex,
+  isFirstMove,
   gradeMult,
   replacedBy,
   techniqueAbility,
@@ -144,6 +145,17 @@ function combinationGrade(d: TechniqueDef, subj: BuildSubject): Grade {
   return GRADES[best];
 }
 
+/** The piece holds the other parent of a Combination this card leads to (and not the Combination). */
+function partnerHeld(c: Content, subj: BuildSubject, id: string): boolean {
+  const have = new Set(subj.held.map((h) => h.id));
+  return combinationsOf(c, id).some(
+    (k) =>
+      (!k.piece || k.piece === subj.piece) &&
+      !have.has(k.id) &&
+      k.parents!.some((p) => p !== id && have.has(p)),
+  );
+}
+
 function drawWeight(c: Content, t: Tuning, subj: BuildSubject, d: TechniqueDef): number {
   const w = t.builds.weights;
   let m = 1;
@@ -151,6 +163,7 @@ function drawWeight(c: Content, t: Tuning, subj: BuildSubject, d: TechniqueDef):
   if (heldSchools(c, subj.held).has(d.school)) m *= w.held;
   m = Math.min(m, w.max);
   if (d.dubious && subj.behind) m *= w.dubiousBehind;
+  if (partnerHeld(c, subj, d.id)) m *= w.partner;
   return d.weight * m;
 }
 
@@ -462,7 +475,8 @@ function upgrade(ctx: Ctx, u: Unit, id: string): number {
 
 /**
  * The match starts: every piece holds no Technique, then each draws its Setup offer (White, then
- * Black, in slot order). White takes its `firstMove` when it is one of the cards; the AI picks the rest.
+ * Black, in slot order). White takes its `firstMove` when it is one of the cards; Black takes its
+ * court's fixed first move (`content/courts.json`) whatever the offer holds; the AI picks the rest.
  */
 export function startBuilds(ctx: Ctx): void {
   const b = ctx.s.builds;
@@ -473,26 +487,26 @@ export function startBuilds(ctx: Ctx): void {
     for (const u of piecesInSlotOrder(ctx, team)) {
       const subj = subjectOf(ctx, u);
       const d = drawOffer(ctx.c, ctx.t, subj, 0, 0);
-      if (d.cards.length === 0) continue;
+      const wanted = ctx.s.setup[team].pieces.find((e) => e.piece === u.hero!.defId)?.firstMove;
+      // a named court's first move is fixed: its offer is that one card
+      const fixed = team === 'B' && !!wanted && isFirstMove(ctx.c, u.hero!.defId, wanted);
+      const cards = fixed ? [{ id: wanted!, grade: d.grade }] : d.cards;
+      if (cards.length === 0) continue;
       const offer: BuildOffer = {
         heroId: u.id,
         team,
         at: 0,
         grade: d.grade,
-        cards: d.cards,
+        cards,
         rerolls: 0,
         decided: null,
       };
       b.offers.push(offer);
       emitOffer(ctx, offer);
-      const wanted =
-        team === 'A'
-          ? ctx.s.setup.A.pieces.find((e) => e.piece === u.hero!.defId)?.firstMove
-          : undefined;
-      const chosen = wanted ? d.cards.findIndex((x) => x.id === wanted) : -1;
+      const chosen = wanted ? cards.findIndex((x) => x.id === wanted) : -1;
       if (chosen >= 0) takeCard(ctx, u, offer, chosen, false);
       else {
-        const i = aiChoice(ctx.c, ctx.t, subj, d.cards, 0);
+        const i = aiChoice(ctx.c, ctx.t, subj, cards, 0);
         if (i !== null) takeCard(ctx, u, offer, i, true);
       }
     }

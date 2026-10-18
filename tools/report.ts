@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { PIECE_NAME } from '../src/sim';
 import type { MatchSummary } from './simulate';
 
@@ -14,6 +15,83 @@ const quant = (xs: number[], q: number): number => {
   const s = xs.slice().sort((a, b) => a - b);
   return s.length ? s[Math.min(s.length - 1, Math.floor(q * s.length))] : 0;
 };
+
+const SCHOOL_OF = new Map<string, string>();
+const POOL_OF = new Map<string, string>();
+
+/** Techniques (`--techniques`): picks by school, pick and held win rates per card, Combinations. */
+function techniqueLines(results: MatchSummary[]): string[] {
+  if (SCHOOL_OF.size === 0) {
+    const file = JSON.parse(
+      readFileSync(new URL('../content/techniques.json', import.meta.url), 'utf8'),
+    ) as {
+      techniques: { id: string; school: string; pool: string }[];
+    };
+    for (const d of file.techniques) {
+      SCHOOL_OF.set(d.id, d.school);
+      POOL_OF.set(d.id, d.pool);
+    }
+  }
+  const out: string[] = ['## Techniques', ''];
+  const cards: Record<string, { offered: number; taken: number; held: number; won: number }> = {};
+  const row = (id: string) => (cards[id] ??= { offered: 0, taken: 0, held: 0, won: 0 });
+  const schools: Record<string, number> = {};
+  let picks = 0;
+  let passes = 0;
+  let rerolls = 0;
+  let upgrades = 0;
+  let whitePieces = 0;
+  let whiteCombo = 0;
+  for (const r of results) {
+    const rb = r.builds;
+    if (!rb) continue;
+    for (const t of ['A', 'B'] as const) {
+      const b: NonNullable<MatchSummary['builds']>['A'] = rb[t];
+      for (const id of b.offered) row(id).offered++;
+      for (const id of b.taken) {
+        row(id).taken++;
+        const sc = SCHOOL_OF.get(id) ?? '?';
+        schools[sc] = (schools[sc] ?? 0) + 1;
+        picks++;
+      }
+      passes += b.passes;
+      rerolls += b.rerolls;
+      upgrades += b.upgrades;
+    }
+    for (const h of r.heroes) {
+      const held = (h.techniques ?? []).map((x) => x.split(':')[0]);
+      for (const id of new Set(held)) {
+        row(id).held++;
+        if (h.won) row(id).won++;
+      }
+      if (h.team === 'A') {
+        whitePieces++;
+        if (held.some((id) => POOL_OF.get(id) === 'combination')) whiteCombo++;
+      }
+    }
+  }
+  const n = results.filter((r) => r.builds).length;
+  out.push(
+    `- Per match: ${(picks / Math.max(1, n)).toFixed(1)} cards taken, ${(rerolls / Math.max(1, n)).toFixed(1)} rerolls, ${(passes / Math.max(1, n)).toFixed(1)} passes, ${(upgrades / Math.max(1, n)).toFixed(1)} upgrades.`,
+  );
+  out.push(`- White pieces holding a Combination at match end: ${pct(whiteCombo, whitePieces)}.`);
+  out.push(
+    `- Picks by school: ${Object.entries(schools)
+      .sort((a, b) => b[1] - a[1])
+      .map(([k, v]) => `${k} ${pct(v, picks)}`)
+      .join(', ')}.`,
+  );
+  out.push('');
+  out.push(
+    '| Technique | Pool | School | Offered | Pick rate | Held at end | Win rate when held |',
+  );
+  out.push('| --- | --- | --- | --- | --- | --- | --- |');
+  for (const [id, s] of Object.entries(cards).sort((a, b) => b[1].taken - a[1].taken))
+    out.push(
+      `| ${id} | ${POOL_OF.get(id) ?? '?'} | ${SCHOOL_OF.get(id) ?? '?'} | ${s.offered} | ${pct(s.taken, s.offered)} | ${s.held} | ${pct(s.won, s.held)} |`,
+    );
+  return out;
+}
 
 export function report(
   results: MatchSummary[],
@@ -184,6 +262,7 @@ export function report(
   for (const [id, s] of Object.entries(itemStats).sort((a, b) => b[1].n - a[1].n))
     lines.push(`| ${id} | ${s.n} | ${pct(s.w, s.n)} |`);
   lines.push('');
+  if (results.some((r) => r.builds)) lines.push(...techniqueLines(results), '');
   lines.push(...breakLines(results));
   lines.push('');
   lines.push('## Relics');

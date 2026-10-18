@@ -26,6 +26,8 @@ export interface HeroResult {
   goldEarned: number;
   items: string[];
   rank: number;
+  /** Techniques held at match end (`id:grade`); only with `--techniques`. */
+  techniques?: string[];
 }
 
 export interface MatchSummary {
@@ -70,6 +72,11 @@ export interface MatchSummary {
   masterworks: Record<string, number>;
   /** No Checkmate: the winner came from adjudication (a run or Blitz). */
   adjudicated: boolean;
+  /** With `--techniques`: every card dealt (rerolls included) and every card taken, per side. */
+  builds?: Record<
+    PlayTeam,
+    { offered: string[]; taken: string[]; passes: number; rerolls: number; upgrades: number }
+  >;
 }
 
 /** One piece at one Act break (gold before and after the break shop, items after it). */
@@ -269,6 +276,7 @@ export function simulateMatch(content: Content, seed: number, opts: SimOptions =
         goldEarned: h.goldEarned,
         items: h.items.slice(),
         rank: h.rank,
+        ...(h.techniques ? { techniques: h.techniques.map((x) => `${x.id}:${x.grade}`) } : {}),
       });
     }
   }
@@ -329,8 +337,34 @@ export function simulateMatch(content: Content, seed: number, opts: SimOptions =
       firstTowerMinute = min(e.tick);
     }
   }
+  let builds: MatchSummary['builds'];
+  if (s.builds) {
+    const blank = () => ({
+      offered: [] as string[],
+      taken: [] as string[],
+      passes: 0,
+      rerolls: 0,
+      upgrades: 0,
+    });
+    const b = { A: blank(), B: blank() };
+    for (const e of m.events) {
+      if (e.type === 'buildOffer') {
+        b[e.payload.team].offered.push(...e.payload.cards);
+        if (e.payload.reroll > 0) b[e.payload.team].rerolls++;
+      } else if (e.type === 'technique') b[e.payload.team].taken.push(e.payload.technique);
+      else if (e.type === 'offerPassed') {
+        const t = teamOfHero.get(e.payload.id);
+        if (t) b[t].passes++;
+      } else if (e.type === 'techniqueUpgrade') {
+        const t = teamOfHero.get(e.payload.id);
+        if (t) b[t].upgrades++;
+      }
+    }
+    builds = b;
+  }
   const ms = Number(process.hrtime.bigint() - t0) / 1e6;
   return {
+    ...(builds ? { builds } : {}),
     seed,
     winner,
     phases: s.phase.n,

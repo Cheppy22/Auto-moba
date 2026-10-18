@@ -53,7 +53,16 @@ const amount = {
 };
 
 const EffectSchema = z.discriminatedUnion('type', [
-  z.object({ type: z.literal('damage'), dmgType: DamageTypeSchema, ...amount }),
+  z.object({
+    type: z.literal('damage'),
+    /** `hit`: the damage type of the hit that fired the trigger (Blade when none). */
+    dmgType: z.enum(['blade', 'soul', 'true', 'hit']),
+    ...amount,
+    /** Adds this share of the triggering hit's damage (before armor). */
+    fractionOfDamage: z.number().optional(),
+    /** Adds this share of the caster's own max health. */
+    ownMaxHpPct: z.number().optional(),
+  }),
   z.object({
     type: z.literal('heal'),
     ...amount,
@@ -69,6 +78,8 @@ const EffectSchema = z.discriminatedUnion('type', [
     durationSec: z.number(),
     tags: z.array(z.string()).default([]),
     maxStacks: z.number().int().optional(),
+    /** The modifier's id; a skill's own (`ability:<id>:<stat>`) replaces that skill's change. */
+    key: z.string().optional(),
   }),
   z.object({
     type: z.literal('dot'),
@@ -94,7 +105,36 @@ const EffectSchema = z.discriminatedUnion('type', [
     stat: StatKeySchema,
     kind: z.enum(['add', 'mul']),
     value: z.number(),
+    /** Only pawns and pawnlings (`pawn`) or only pieces (`piece`) feel it. */
+    filter: z.enum(['pawn', 'piece']).optional(),
   }),
+  /** Gives the caster's side Tempo. */
+  z.object({ type: z.literal('tempo'), amount: z.number() }),
+  /** Clears one of the caster's skill cooldowns (0-2 base skills, 3 the Signature). */
+  z.object({ type: z.literal('ready'), skill: z.number().int().min(0).max(3) }),
+  /**
+   * The skill a `cast` trigger fired on strikes again after `delaySec`, at `share` of its power, on
+   * the same spot (area skills) or the same targets; pieces hit by both strikes are stunned
+   * `bothStunSec`.
+   */
+  z.object({
+    type: z.literal('recast'),
+    delaySec: z.number(),
+    share: z.number(),
+    bothStunSec: z.number().default(0),
+  }),
+  /** The cast skill's effects (its dash left out) on this target too, at `share` of its power. */
+  z.object({ type: z.literal('echo'), share: z.number() }),
+  /** Marks the target: it takes `value` times the damage from the caster's side for the duration. */
+  z.object({ type: z.literal('mark'), value: z.number(), durationSec: z.number() }),
+  /** Pushes the target straight away from the caster (never through walls). */
+  z.object({ type: z.literal('push'), distance: z.number() }),
+  /** Ends the target's slows (move and attack speed cut below 100%). */
+  z.object({ type: z.literal('cleanse') }),
+  /** Regenerates `maxHpPct` of the target's max health a second for the duration. */
+  z.object({ type: z.literal('regen'), maxHpPct: z.number(), durationSec: z.number() }),
+  /** The target loses `maxHpPct` of its max health (never below 1; not damage). */
+  z.object({ type: z.literal('payHp'), maxHpPct: z.number() }),
 ]);
 
 const AbilityTargetSchema = z.enum([
@@ -126,17 +166,71 @@ const AbilitySchema = z.object({
   desc: z.string().default(''),
 });
 
+/**
+ * cast: the holder cast a skill (`skill` names which); death: the holder fell (`attacker` is its
+ * killer); takedown: an enemy piece fell to the holder's kill or assist; pawnlingKill: the holder's
+ * side killed an enemy pawnling (within `near` of the holder).
+ */
+const TRIGGER_ONS = [
+  'hit',
+  'kill',
+  'damaged',
+  'periodic',
+  'lowHp',
+  'cast',
+  'death',
+  'takedown',
+  'pawnlingKill',
+] as const;
+
 const TriggerSchema = z.object({
-  on: z.enum(['hit', 'kill', 'damaged', 'periodic', 'lowHp']),
+  on: z.enum(TRIGGER_ONS),
   everySec: z.number().optional(),
   hpBelow: z.number().optional(),
   cooldownSec: z.number().default(0),
   chance: z.number().default(1),
+  /**
+   * landing: enemies within `radius` of the holder after its cast (a dash's landing point), the
+   * cast's target left out; aroundVictim: enemies within `radius` of the victim, the victim left out;
+   * nearVictim: the enemy piece nearest the victim (not the victim) within `radius`; castTargets:
+   * everything the cast hit; allies: ally pieces within `radius` but the holder; lowestAlly: the most
+   * wounded ally piece within `radius`, not the holder and not one the cast already reached.
+   */
   target: z
-    .enum(['self', 'victim', 'attacker', 'enemyArea', 'allyArea', 'nearestEnemyHero'])
+    .enum([
+      'self',
+      'victim',
+      'attacker',
+      'enemyArea',
+      'allyArea',
+      'nearestEnemyHero',
+      'landing',
+      'aroundVictim',
+      'nearVictim',
+      'castTargets',
+      'allies',
+      'lowestAlly',
+    ])
     .default('self'),
   radius: z.number().default(0),
-  vs: z.enum(['hero', 'other']).optional(),
+  /** structure: Bastions and Thrones only; other: anything but a piece. */
+  vs: z.enum(['hero', 'other', 'structure']).optional(),
+  /** cast: the skill (0-2 base, 3 Signature); kill: the killing blow came from that skill. */
+  skill: z.number().int().min(0).max(3).optional(),
+  /** Keeps only targets of this kind: pieces, or pawns and pawnlings. */
+  filter: z.enum(['piece', 'pawn']).optional(),
+  /** At most this many targets (nearest first). */
+  maxTargets: z.number().int().positive().optional(),
+  /** hit: the holder had been out of combat this many seconds before the hit. */
+  quietSec: z.number().optional(),
+  /** hit: the first hit after one of the holder's skills. */
+  afterCast: z.boolean().optional(),
+  /** The victim carries the holder's side's mark. */
+  victimMarked: z.boolean().optional(),
+  /** The victim stands within this distance of the holder. */
+  near: z.number().optional(),
+  /** The cooldown counts per victim (or attacker), not for the trigger as a whole. */
+  perTarget: z.boolean().optional(),
   ofType: DamageTypeSchema.optional(),
   everyNth: z.number().int().optional(),
   effects: z.array(EffectSchema).default([]),
@@ -395,6 +489,19 @@ export const CourtSchema = z.object({
     bishop: z.string(),
     knight: z.string(),
   }),
+  /**
+   * Techniques on: each piece's fixed first move (a Setup card: common or its own piece's pool),
+   * taken at the start whatever the Setup offer holds.
+   */
+  firstMoves: z
+    .object({
+      king: z.string(),
+      queen: z.string(),
+      rook: z.string(),
+      bishop: z.string(),
+      knight: z.string(),
+    })
+    .optional(),
   /** The relic the court always starts with; `lane` / `piece` aim it when its default aim is not the court's idea. */
   signature: z.object({
     relic: z.string(),
@@ -758,6 +865,17 @@ const TechniqueSchema = z.object({
   powerMul: z.number().default(1),
   rangeMul: z.number().default(1),
   radiusMul: z.number().default(1),
+  /** The skill's dash goes this much farther. */
+  dashMul: z.number().default(1),
+  /** The skill's own rules, changed: enemies it needs nearby, and whether it may pick a structure. */
+  skillRule: z
+    .object({
+      minEnemies: z.number().int().min(0).optional(),
+      structures: z.boolean().optional(),
+    })
+    .optional(),
+  /** Its hits on pieces knock them back this many times as far (the knockback cap grows with it). */
+  knockbackMul: z.number().default(1),
   mods: z.array(ModSchema).default([]),
   triggers: z.array(TriggerSchema).default([]),
   /** Grades also scale the triggers' custom `param` (e.g. seconds of cooldown ticked). */
@@ -767,6 +885,8 @@ const TechniqueSchema = z.object({
     .object({
       mods: z.array(ModSchema).default([]),
       triggers: z.array(TriggerSchema).default([]),
+      /** Its low-health retreat line, times this. */
+      retreatMul: z.number().optional(),
       text: z.string(),
     })
     .optional(),
@@ -799,12 +919,16 @@ const BuildsTuningSchema = z.object({
   /** Gold to upgrade Plain to Sharp, and Sharp to Brilliant. */
   upgrade: z.tuple([z.number(), z.number()]),
   passGold: z.number(),
-  /** Draw weights: the Opening's schools, schools the piece holds, the cap, Dubious for the trailing side. */
+  /**
+   * Draw weights: the Opening's schools, schools the piece holds, the cap, Dubious for the trailing
+   * side, and a card whose Combination partner the piece already holds (outside the cap).
+   */
   weights: z.object({
     opening: z.number(),
     held: z.number(),
     max: z.number(),
     dubiousBehind: z.number(),
+    partner: z.number(),
   }),
   /** The AI's card score (spec 4.6). */
   ai: z.object({

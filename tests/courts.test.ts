@@ -78,7 +78,11 @@ describe('Named courts (3B): the draw', () => {
       const k = courtOf(content, o)!;
       expect(k.round).toBe(i + 1);
       expect(o.name).toBe(k.name);
-      expect(o.setup).toEqual({ opening: k.opening, pieces: k.pieces });
+      expect(o.setup).toEqual({
+        opening: k.opening,
+        // Techniques on: each piece carries the court's fixed first move
+        pieces: k.pieces.map((e) => ({ ...e, firstMove: k.firstMoves![e.piece] })),
+      });
       expect(o.styles).toEqual(k.styles);
       expect(o.tempoBonus).toBe(T.rounds[i].tempoBonus);
       // the signature relic is always held (and counts toward the round's relics, at least one)

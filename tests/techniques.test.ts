@@ -87,6 +87,69 @@ describe('Technique content', () => {
   });
 });
 
+describe('the full set (spec 4.3)', () => {
+  it('holds 18 common, 20 piece (4 each), 30 archetype, 10 Combinations and 6 Dubious moved in', () => {
+    const by = (pool: string) => content.techniques.filter((d) => d.pool === pool);
+    const moved = ['hungry_mask', 'borrowed_years', 'lantern_of_the_drowned', 'pact_of_ash'];
+    expect(by('common')).toHaveLength(18 + 6);
+    for (const id of [...moved, 'drink_me', 'eat_me']) expect(tech(id).dubious, id).toBeDefined();
+    expect(by('piece')).toHaveLength(20);
+    for (const p of ['king', 'queen', 'rook', 'bishop', 'knight'])
+      expect(by('piece').filter((d) => d.piece === p)).toHaveLength(4);
+    expect(by('archetype')).toHaveLength(30);
+    expect(by('combination')).toHaveLength(10);
+    // each common school has three cards besides the six moved Dubious ones
+    const commons = by('common').filter(
+      (d) => !moved.includes(d.id) && d.id !== 'drink_me' && d.id !== 'eat_me',
+    );
+    for (const school of ['march', 'initiative', 'fortress', 'sacrifice', 'position', 'clock'])
+      expect(
+        commons.filter((d) => d.school === school),
+        school,
+      ).toHaveLength(3);
+  });
+
+  it('moves every Rank 8 option in as an archetype Technique with the same effect', () => {
+    for (const p of content.pieces)
+      for (const st of p.styles)
+        for (const f of st.forks['8']) {
+          const d = tech(f.id);
+          expect(d.archetype).toBe(st.id);
+          expect(d.mods).toEqual(f.mods);
+          expect(d.triggers.map((x) => ({ ...x, desc: undefined }))).toEqual(
+            f.triggers.map((x) => ({ ...x, desc: undefined })),
+          );
+          expect([d.cooldownMul, d.powerMul, d.radiusMul]).toEqual([
+            f.cooldownMul,
+            f.powerMul,
+            f.radiusMul,
+          ]);
+        }
+  });
+
+  it('gives every named court five legal first moves, and Black takes them at the start', () => {
+    for (const k of content.courts) expect(k.firstMoves, k.id).toBeDefined();
+    const court = content.courts[0];
+    const m = Match.create(content, {
+      seed: 5,
+      techniques: true,
+      autoGambits: { A: true, B: true },
+      setup: {
+        B: {
+          opening: court.opening,
+          pieces: court.pieces.map((e) => ({ ...e, firstMove: court.firstMoves![e.piece] })),
+        },
+      },
+    });
+    m.issue({ type: 'setupTeam', ...m.defaultSetup() });
+    m.step(1);
+    for (const e of court.pieces)
+      expect(piece(m, 'B', e.piece).hero!.techniques!.map((h) => h.id)).toEqual([
+        court.firstMoves![e.piece],
+      ]);
+  });
+});
+
 describe('grades', () => {
   it('scale the bonus 1.5x at Sharp and 2x at Brilliant; counts, durations and the price stay', () => {
     const wind = tech('wind_up');
@@ -100,10 +163,15 @@ describe('grades', () => {
     expect(slow.durationSec).toBe(1.5);
     const blood = gradedTechnique(tech('blood_price'), t.builds.grades.brilliant);
     expect(blood.mods[0].value).toBeCloseTo(1.4);
-    expect(blood.dubious!.mods[0].value).toBe(1.12);
-    const guard = gradedTechnique(tech('kings_guard'), t.builds.grades.sharp);
-    expect(guard.powerMul).toBeCloseTo(1.6);
-    expect(guard.cooldownMul).toBeCloseTo(0.7);
+    const price = blood.dubious!.triggers[0].effects[0] as { maxHpPct: number };
+    expect(price.maxHpPct).toBe(0.01);
+    const walk = gradedTechnique(tech('kings_walk'), t.builds.grades.sharp);
+    expect(walk.powerMul).toBeCloseTo(1.225);
+    expect((walk.triggers[0].effects[0] as { durationSec: number }).durationSec).toBe(1);
+    const counter = gradedTechnique(tech('counter_gambit'), t.builds.grades.sharp);
+    expect(counter.cooldownMul).toBeCloseTo(0.775);
+    const guard = gradedTechnique(tech('shared_guard'), t.builds.grades.brilliant);
+    expect((guard.triggers[0].effects[0] as { share: number }).share).toBeCloseTo(1.2);
     expect(gradedTechnique(wind, 1.5)).toBe(sharp); // cached
     expect(techniqueText(wind, 2).desc).toMatch(/200% Blade/);
   });
@@ -138,12 +206,12 @@ describe('offers', () => {
 
   it('hold three cards: own pool, common pool, wild; one per slot; never a held card', () => {
     for (let seed = 0; seed < 300; seed++) {
-      const held = [{ id: 'restless_hooves', grade: 'plain' as Grade }];
+      const held = [{ id: 'family_fork', grade: 'plain' as Grade }];
       const o = drawOffer(content, t, subject({ seed, held }), 1, 0);
       expect(o.cards).toHaveLength(3);
       const defs = o.cards.map((c) => tech(c.id));
       expect(new Set(defs.map((d) => d.slot)).size).toBe(3);
-      expect(defs.some((d) => d.id === 'restless_hooves')).toBe(false);
+      expect(defs.some((d) => d.id === 'family_fork')).toBe(false);
       expect(defs[0].piece).toBe('knight');
       expect(defs[1].pool).toBe('common');
       for (const d of defs) {
@@ -165,10 +233,10 @@ describe('offers', () => {
         0,
       );
       const ids = hunt.cards.map((c) => c.id);
-      expect(ids).not.toContain('thousand_cuts');
-      if (ids.includes('split_shot')) seen++;
+      expect(ids).not.toContain('duelist_cuts');
+      if (ids.includes('huntress_split')) seen++;
       const generic = drawOffer(content, t, subject({ seed, piece: 'queen' }), 1, 0);
-      expect(generic.cards.map((c) => c.id)).not.toContain('split_shot');
+      expect(generic.cards.map((c) => c.id)).not.toContain('huntress_split');
     }
     expect(seen).toBeGreaterThan(0);
   });

@@ -52,6 +52,13 @@
         "bishop": "light",
         "knight": "paladin"
       },
+      "firstMoves": {
+        "king": "shared_guard",
+        "queen": "echoing_decree",
+        "rook": "living_wall",
+        "bishop": "twin_blessing",
+        "knight": "toll"
+      },
       "signature": {
         "relic": "curtain_wall"
       }
@@ -107,6 +114,13 @@
         "rook": "bastion",
         "bishop": "light",
         "knight": "lancer"
+      },
+      "firstMoves": {
+        "king": "kings_walk",
+        "queen": "through_line",
+        "rook": "rook_lift",
+        "bishop": "long_diagonal",
+        "knight": "ambush"
       },
       "signature": {
         "relic": "half_open_file"
@@ -164,6 +178,13 @@
         "bishop": "light",
         "knight": "errant"
       },
+      "firstMoves": {
+        "king": "tithe",
+        "queen": "long_range",
+        "rook": "escort",
+        "bishop": "fianchetto",
+        "knight": "stampede"
+      },
       "signature": {
         "relic": "pawn_chain"
       }
@@ -219,6 +240,13 @@
         "rook": "bastion",
         "bishop": "light",
         "knight": "lancer"
+      },
+      "firstMoves": {
+        "king": "tithe",
+        "queen": "echoing_decree",
+        "rook": "quake",
+        "bishop": "interdiction",
+        "knight": "hit_and_run"
       },
       "signature": {
         "relic": "opening_theory"
@@ -276,6 +304,13 @@
         "bishop": "shadow",
         "knight": "lancer"
       },
+      "firstMoves": {
+        "king": "blood_price",
+        "queen": "through_line",
+        "rook": "battering_hits",
+        "bishop": "long_diagonal",
+        "knight": "family_fork"
+      },
       "signature": {
         "relic": "spare_tempo"
       }
@@ -331,6 +366,13 @@
         "rook": "vanguard",
         "bishop": "zealot",
         "knight": "errant"
+      },
+      "firstMoves": {
+        "king": "rallying_cry",
+        "queen": "hunters_mark",
+        "rook": "push_on",
+        "bishop": "twin_blessing",
+        "knight": "ambush"
       },
       "signature": {
         "relic": "development",
@@ -389,6 +431,13 @@
         "bishop": "light",
         "knight": "errant"
       },
+      "firstMoves": {
+        "king": "tithe",
+        "queen": "echoing_decree",
+        "rook": "time_pressure",
+        "bishop": "spare_minute",
+        "knight": "zwischenzug"
+      },
       "signature": {
         "relic": "quiet_move"
       }
@@ -444,6 +493,13 @@
         "rook": "vanguard",
         "bishop": "light",
         "knight": "lancer"
+      },
+      "firstMoves": {
+        "king": "shared_guard",
+        "queen": "long_range",
+        "rook": "living_wall",
+        "bishop": "interdiction",
+        "knight": "hit_and_run"
       },
       "signature": {
         "relic": "royal_keep"
@@ -501,6 +557,13 @@
         "bishop": "light",
         "knight": "lancer"
       },
+      "firstMoves": {
+        "king": "shared_guard",
+        "queen": "through_line",
+        "rook": "quake",
+        "bishop": "twin_blessing",
+        "knight": "toll"
+      },
       "signature": {
         "relic": "crown_jewel",
         "piece": "queen"
@@ -557,6 +620,13 @@
         "rook": "bastion",
         "bishop": "zealot",
         "knight": "paladin"
+      },
+      "firstMoves": {
+        "king": "desperado",
+        "queen": "wind_up",
+        "rook": "the_vault",
+        "bishop": "poisoned_piece",
+        "knight": "toll"
       },
       "signature": {
         "relic": "kings_ransom"

@@ -112,6 +112,22 @@ export interface GambitOrder {
   untilTick: number;
 }
 
+/** A skill due to strike again (Techniques' `recast` effect). */
+export interface PendingRecast {
+  /** The skill (0-3) and the tick it strikes. */
+  idx: number;
+  tick: number;
+  share: number;
+  bothStunSec: number;
+  /** An area skill strikes the same spot again; any other the same targets. */
+  area: boolean;
+  x: number;
+  y: number;
+  /** Who the first strike hit. */
+  ids: number[];
+  origin: string;
+}
+
 export interface HeroState {
   /** Piece id (also the unit's defId). */
   defId: PieceId;
@@ -138,6 +154,10 @@ export interface HeroState {
   flaws: Record<string, string>;
   /** Techniques held, in slot order; present only in a match with `MatchConfig.techniques`. */
   techniques?: HeldTechnique[];
+  /** Techniques: skills due to strike again (the `recast` effect). */
+  recasts?: PendingRecast[];
+  /** Techniques: a skill was cast since the piece's last hit (`afterCast` triggers). */
+  castSinceHit?: boolean;
   gold: number;
   goldEarned: number;
   kills: number;
@@ -280,7 +300,8 @@ export interface Unit {
   pathI: number;
   lane: LaneId | null;
   structWindow?: { tick: number; taken: number };
-  pendingKill: { killerId: number } | null;
+  /** `origin` (Techniques only): what dealt the killing blow, e.g. `ability:l_leap`. */
+  pendingKill: { killerId: number; origin?: string } | null;
   bounty: number;
   hero?: HeroState;
   tower?: TowerState;
@@ -296,6 +317,8 @@ export interface Unit {
   rootUntil?: number;
   /** Taunted: must attack unit `by` until the tick. */
   taunt?: { by: number; untilTick: number };
+  /** Marked (Techniques): takes `value` times the damage from `team` until the tick. */
+  mark?: { team: PlayTeam; value: number; untilTick: number };
   lastDamagedTick: number;
   /** Knockback queued by heavy hits this tick, applied with the body collisions. */
   knock?: { x: number; y: number };
