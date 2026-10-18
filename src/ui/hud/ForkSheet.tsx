@@ -262,36 +262,36 @@ export function ForkSheet(props: { forks: SnapFork[] }) {
             Paused
           </span>
         </header>
+        {!archetype && <p class="fs-style-desc">{styleDesc(s.content, f.piece, f.style)}</p>}
+        <div
+          class={`fs-opts ${archetype ? 'archetypes' : ''}`}
+          role="tablist"
+          aria-label={archetype ? 'Archetypes' : 'Paths'}
+        >
+          {f.options.map((o) => {
+            const tag = lean(defs.find((d) => d.id === o.id));
+            const on = o.id === opt.id;
+            return (
+              <button
+                key={o.id}
+                class={`fs-opt ${on ? 'on' : ''}`}
+                role="tab"
+                aria-selected={on}
+                data-testid={`fork-opt-${f.heroId}-${o.id}`}
+                style={archetype ? { '--opt': styleColor(o.id) } : undefined}
+                onClick={() => setPicked({ key: forkKey, id: o.id })}
+              >
+                {archetype && <StyleBadge style={o.id} team="A" size={24} class="fs-emblem" />}
+                <span class="fs-opt-text">
+                  <b>{o.name}</b>
+                  {tag && <i class={`fs-tag ${tag}`}>{PATH_LABEL[tag]}</i>}
+                </span>
+              </button>
+            );
+          })}
+        </div>
         <div class="fs-body">
           {archetype && <ForkTutor />}
-          {!archetype && <p class="fs-style-desc">{styleDesc(s.content, f.piece, f.style)}</p>}
-          <div
-            class={`fs-opts ${archetype ? 'archetypes' : ''}`}
-            role="tablist"
-            aria-label={archetype ? 'Archetypes' : 'Paths'}
-          >
-            {f.options.map((o) => {
-              const tag = lean(defs.find((d) => d.id === o.id));
-              const on = o.id === opt.id;
-              return (
-                <button
-                  key={o.id}
-                  class={`fs-opt ${on ? 'on' : ''}`}
-                  role="tab"
-                  aria-selected={on}
-                  data-testid={`fork-opt-${f.heroId}-${o.id}`}
-                  style={archetype ? { '--opt': styleColor(o.id) } : undefined}
-                  onClick={() => setPicked({ key: forkKey, id: o.id })}
-                >
-                  {archetype && <StyleBadge style={o.id} team="A" size={24} class="fs-emblem" />}
-                  <span class="fs-opt-text">
-                    <b>{o.name}</b>
-                    {tag && <i class={`fs-tag ${tag}`}>{PATH_LABEL[tag]}</i>}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
           <Preview
             key={`${forkKey}:${opt.id}`}
             f={f}
