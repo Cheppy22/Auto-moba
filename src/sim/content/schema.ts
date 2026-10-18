@@ -22,7 +22,6 @@ export const RoleSchema = z.enum(['top', 'mid', 'bot']);
 const DispositionSchema = z.enum(['farmer', 'attacker', 'defender']);
 const LaneSchema = z.enum(['top', 'mid', 'bot']);
 export const PostureSchema = z.enum(['push', 'farm', 'defend', 'default']);
-const CategorySchema = z.enum(['mind', 'body', 'soul']);
 
 const StatsSchema = z.object({
   maxHp: z.number(),
@@ -243,13 +242,10 @@ const PersonalitySchema = z.enum(['reckless', 'cautious', 'opportunist', 'steadf
 
 export const PIECE_IDS = ['king', 'queen', 'rook', 'bishop', 'knight'] as const;
 const PieceIdSchema = z.enum(PIECE_IDS);
-export const PATHS = ['offense', 'defense', 'utility'] as const;
-const PathSchema = z.enum(PATHS);
 
 /**
  * One automatic improvement: an optional ability tweak (same shape as the old upgrade cards) plus
- * optional stat mods and triggers. Used for style rank bonuses (Ranks 2, 3, 5, 6, 7) and fork
- * options (Ranks 4 and 8).
+ * optional stat mods and triggers. Used for the rank bonuses (Ranks 2, 3, 5, 6, 7).
  */
 const PerkSchema = z.object({
   name: z.string(),
@@ -264,18 +260,6 @@ const PerkSchema = z.object({
   triggers: z.array(TriggerSchema).default([]),
 });
 
-const ForkOptionSchema = PerkSchema.extend({
-  id: z.string(),
-  /** One plain line on how the piece plays with this option (the fork sheet). */
-  playsLike: z.string().default(''),
-});
-
-const PathListsSchema = z.object({
-  offense: z.array(z.string()),
-  defense: z.array(z.string()),
-  utility: z.array(z.string()),
-});
-
 /** The two generic rank bonuses a piece earns before it chooses its archetype (Ranks 2 and 3). */
 const GenericRanksSchema = z.object({ '2': PerkSchema, '3': PerkSchema });
 
@@ -287,8 +271,6 @@ const StyleSchema = z.object({
   playsLike: z.string().default(''),
   /** Overrides the piece's attack kind (e.g. a melee style of a ranged piece). */
   attackKind: z.enum(['melee', 'ranged']).optional(),
-  /** Overrides the piece's build lists for this style (any path left out uses the piece's). */
-  paths: PathListsSchema.partial().optional(),
   /** The signature skill: becomes the piece's 4th ability. */
   ability: AbilitySchema,
   /** Stat tilt applied for the whole match. */
@@ -299,10 +281,6 @@ const StyleSchema = z.object({
     '5': PerkSchema,
     '6': PerkSchema,
     '7': PerkSchema,
-  }),
-  /** Rank 4 is the archetype choice itself (the piece's three styles); this is the Rank 8 fork. */
-  forks: z.object({
-    '8': z.array(ForkOptionSchema).length(2),
   }),
 });
 
@@ -322,10 +300,6 @@ export const PieceSchema = z.object({
   styles: z.array(StyleSchema).length(3),
   /** Rank 2 and 3 bonuses while the piece is still generic (before the Rank 4 archetype). */
   generic: GenericRanksSchema,
-  /** Build path the AI prefers (and the setup board pre-fills); derived from disposition if absent. */
-  defaultPath: PathSchema.optional(),
-  /** Item build list per build path (item ids, in buy order). */
-  paths: PathListsSchema,
 });
 
 /** `ally` targets one of the team's own pieces. */
@@ -395,10 +369,9 @@ export const OpeningFileSchema = z.array(OpeningSchema).min(1);
 export const TournamentSchema = z.object({
   /** Relics a side may hold in a run match. */
   relicMax: z.number().int().min(1),
-  /** Heirlooms are tier-1 or tier-2 items up to this price. */
-  heirloomMaxPrice: z.number(),
-  /** Let the AI choose: a book move counts as this much gold against the heirloom's item price. */
+  /** Let the AI choose: what a book move and an heirloom Technique are worth, in gold. */
   aiBookGold: z.number(),
+  aiHeirloomGold: z.number(),
   rounds: z
     .array(
       z.object({
@@ -471,12 +444,11 @@ export const CourtSchema = z.object({
     pose: z.enum(PORTRAIT_POSES),
   }),
   opening: z.string(),
-  /** The five pieces: build path and lane each (2 Left, 2 Right, 1 Mid). */
+  /** The five pieces: a lane each (2 Left, 2 Right, 1 Mid). */
   pieces: z
     .array(
       z.object({
         piece: z.enum(PIECE_IDS),
-        path: z.enum(['offense', 'defense', 'utility']),
         lane: z.enum(['top', 'mid', 'bot']),
       }),
     )
@@ -490,18 +462,16 @@ export const CourtSchema = z.object({
     knight: z.string(),
   }),
   /**
-   * Techniques on: each piece's fixed first move (a Setup card: common or its own piece's pool),
-   * taken at the start whatever the Setup offer holds.
+   * Each piece's fixed first move (a Setup card: common or its own piece's pool), taken at the
+   * start whatever the Setup offer holds.
    */
-  firstMoves: z
-    .object({
-      king: z.string(),
-      queen: z.string(),
-      rook: z.string(),
-      bishop: z.string(),
-      knight: z.string(),
-    })
-    .optional(),
+  firstMoves: z.object({
+    king: z.string(),
+    queen: z.string(),
+    rook: z.string(),
+    bishop: z.string(),
+    knight: z.string(),
+  }),
   /** The relic the court always starts with; `lane` / `piece` aim it when its default aim is not the court's idea. */
   signature: z.object({
     relic: z.string(),
@@ -578,42 +548,6 @@ const RelicSchema = z.object({
 });
 
 export const RelicFileSchema = z.object({ relics: z.array(RelicSchema).min(1) });
-
-const ItemSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  category: CategorySchema,
-  tier: z.number().int().min(1).max(3),
-  cost: z.number(),
-  from: z.array(z.string()).default([]),
-  mods: z.array(ModSchema).default([]),
-  triggers: z.array(TriggerSchema).default([]),
-  desc: z.string().default(''),
-});
-
-const FlawSchema = z.object({
-  id: z.string(),
-  text: z.string(),
-  mods: z.array(ModSchema).default([]),
-  triggers: z.array(TriggerSchema).default([]),
-});
-
-const CursedItemSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  category: CategorySchema,
-  boons: z.array(ModSchema).default([]),
-  triggers: z.array(TriggerSchema).default([]),
-  flawType: z.string(),
-  flaws: z.array(FlawSchema).min(1),
-  desc: z.string().default(''),
-  boonText: z.string(),
-});
-
-export const ItemFileSchema = z.object({
-  items: z.array(ItemSchema).default([]),
-  cursed: z.array(CursedItemSchema).default([]),
-});
 
 const CampTypeSchema = z.object({
   id: z.string(),
@@ -697,6 +631,7 @@ export const MapSchema = z.object({
   openJungle: z.boolean().default(false),
   /** The site of `siteMode: neutral` events, when no slot sits on the mirror axis. */
   neutralSite: z.object({ id: z.string(), x: z.number(), y: z.number() }).optional(),
+  /** The Squares (once the jungle shops): open places with their own paths to the lanes. */
   shops: z.array(
     z.object({
       id: z.string(),
@@ -720,6 +655,7 @@ export const MapSchema = z.object({
   obeliskNodes: z.array(
     z.object({ id: z.string(), x: z.number(), y: z.number(), slot: z.string().optional() }),
   ),
+  /** Small walkable clearings off the lanes (where the retired Keeper once stood). */
   keeperSpots: z.array(z.object({ id: z.string(), x: z.number(), y: z.number() })),
   /** Walkable space: everything outside these shapes is solid terrain. */
   walk: z
@@ -953,13 +889,6 @@ const BuildsTuningSchema = z.object({
     carry: z.number(),
     secondShare: z.number(),
   }),
-  /**
-   * The Rank growth that replaces item stats once items retire (spec 4.8, measured in
-   * BALANCE-TECHNIQUES-2026-10-18): per Rank above 1, + this fraction of health and of the piece's
-   * main damage stat (Blade or Soul, whichever its base is higher in), in place of `ranks.growth`,
-   * in a match with `items: false`. The other damage stat keeps `ranks.growth`.
-   */
-  rankGrowth: z.object({ health: z.number(), damage: z.number() }),
 });
 
 export const TuningSchema = z.object({
@@ -1001,14 +930,17 @@ export const TuningSchema = z.object({
   }),
   /**
    * Piece builds with Techniques (SPEC-PIECE-BUILDS-2026-10-18): grades, offer odds, gold costs and
-   * the AI's pick weights. Read only when a match plays with `MatchConfig.techniques`.
+   * the AI's pick weights.
    */
   builds: BuildsTuningSchema,
   /** Ranks 1-8 from lifetime gold earned. */
   ranks: z.object({
     goldThresholds: z.array(z.number()).length(8),
-    /** Per rank above 1: +growth fraction of health, Blade damage and Soul power. */
-    growth: z.number(),
+    /**
+     * Per Rank above 1, + this fraction of health, of the piece's main damage stat (Blade or Soul,
+     * whichever its base is higher in) and of the other one (BALANCE-TECHNIQUES-2026-10-18).
+     */
+    growth: z.object({ health: z.number(), main: z.number(), other: z.number() }),
     /** Seconds White's fork waits for the player before the AI picks. */
     forkSec: z.number(),
   }),
@@ -1176,26 +1108,6 @@ export const TuningSchema = z.object({
     growthPerSec: z.number(),
     maxSec: z.number(),
   }),
-  attunement: z.record(
-    CategorySchema,
-    z.array(
-      z.object({
-        count: z.number().int(),
-        title: z.string(),
-        text: z.string(),
-        mods: z.array(ModSchema),
-      }),
-    ),
-  ),
-  shop: z.object({
-    slots: z.number().int(),
-    sellRefund: z.number(),
-    baseRadius: z.number(),
-    keeperRadius: z.number(),
-    jungleRadius: z.number(),
-    keeperStock: z.number().int(),
-    unlockDiscount: z.number(),
-  }),
   recall: z.object({ baseSec: z.number() }),
   movement: z.object({
     arriveDist: z.number(),
@@ -1212,7 +1124,6 @@ export const TuningSchema = z.object({
       tower: z.number(),
       guardian: z.number(),
       obelisk: z.number(),
-      keeper: z.number(),
       neutralBase: z.number(),
       neutralPerHp: z.number(),
       neutralMax: z.number(),
@@ -1310,12 +1221,10 @@ export const TuningSchema = z.object({
     aggroRadius: z.number(),
     fightRadius: z.number(),
     allyRadius: z.number(),
-    shopAtBaseGold: z.number(),
     healBaseRadius: z.number(),
     baseHealPerSec: z.number(),
     pushWaveRadius: z.number(),
     defendRadius: z.number(),
-    curseAcceptBase: z.number(),
     siegeStartHp: z.number(),
     siegeKeepHp: z.number(),
     siegeAfterTick: z.number(),
@@ -1331,10 +1240,6 @@ export const TuningSchema = z.object({
     guardianThreatRadius: z.number(),
     huntRadius: z.number(),
     huntScore: z.number(),
-    shopTripGold: z.number(),
-    shopTripRadius: z.number(),
-    shopTripScore: z.number(),
-    tier3TripRadius: z.number(),
     swapAfterDeaths: z.number().int(),
     dominatedGap: z.number().int(),
     lossWindowTicks: z.number(),
@@ -1347,7 +1252,6 @@ export const TuningSchema = z.object({
     commitBonus: z.number(),
     easyKillHp: z.number(),
     holdBraveCap: z.number(),
-    tier3TripScore: z.number(),
   }),
   personalities: z.record(
     z.string(),
@@ -1358,10 +1262,6 @@ export const TuningSchema = z.object({
     }),
   ),
   posture: z.record(z.string(), z.record(z.string(), z.number())),
-  curse: z.object({
-    threshold: z.number(),
-    minPhase: z.number().int(),
-  }),
   obelisk: z.object({
     spawnSec: z.array(z.number()),
     claimSec: z.number(),
@@ -1370,7 +1270,7 @@ export const TuningSchema = z.object({
     expireSec: z.number(),
     rewards: z.array(
       z.object({
-        kind: z.enum(['points', 'gold', 'buff', 'unlock']),
+        kind: z.enum(['points', 'gold', 'buff', 'reroll']),
         weight: z.number(),
         value: z.number().default(0),
         stat: StatKeySchema.optional(),
@@ -1401,11 +1301,9 @@ export type EffectDef = z.infer<typeof EffectSchema>;
 export type AbilityDef = z.infer<typeof AbilitySchema>;
 export type TriggerDef = z.infer<typeof TriggerSchema>;
 export type PieceId = z.infer<typeof PieceIdSchema>;
-export type Path = z.infer<typeof PathSchema>;
 export type PieceDef = z.infer<typeof PieceSchema>;
 export type StyleDef = z.infer<typeof StyleSchema>;
 export type PerkDef = z.infer<typeof PerkSchema>;
-export type ForkOptionDef = z.infer<typeof ForkOptionSchema>;
 export type GambitDef = z.infer<typeof GambitSchema>;
 export type GambitTarget = z.infer<typeof GambitTargetSchema>;
 export type School = z.infer<typeof SchoolSchema>;
@@ -1418,8 +1316,6 @@ export type RelicFamily = z.infer<typeof RelicFamilySchema>;
 export type RelicEffect = (typeof RELIC_EFFECTS)[number];
 export type SealedTrigger = z.infer<typeof SealedTriggerSchema>;
 export type GambitEffect = (typeof GAMBIT_EFFECTS)[number];
-export type ItemDef = z.infer<typeof ItemSchema>;
-export type CursedItemDef = z.infer<typeof CursedItemSchema>;
 export type CampTypeDef = z.infer<typeof CampTypeSchema>;
 export type BiomeDef = z.infer<typeof BiomeSchema>;
 export type MapDef = z.infer<typeof MapSchema>;

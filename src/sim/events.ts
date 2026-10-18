@@ -3,7 +3,7 @@ import { dist } from './core/math';
 import { pick, rand, weightedPick } from './core/rng';
 import type { Ctx } from './ctx';
 import type { EventDef, EventUnitDef, Stats } from './content/schema';
-import { giveGold } from './shop';
+import { giveGold } from './gold';
 import { addMod } from './stats';
 import { newUnit } from './units';
 import { findPath, lanePoint, laneWaypoints, laneT } from './world/map';

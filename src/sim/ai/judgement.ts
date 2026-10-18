@@ -50,7 +50,7 @@ export function retreatLine(ctx: Ctx, u: Unit): number {
   const h = u.hero!;
   const line = (ctx.t.judgement.retreatHp[h.defId] ?? 0.3) + (isWary(ctx, h) ? 0.12 : 0);
   // a Dubious Technique's price (Desperado) can lower it
-  return h.techniques?.length ? line * techniqueRetreatMul(ctx.c, h.techniques) : line;
+  return h.techniques.length ? line * techniqueRetreatMul(ctx.c, h.techniques) : line;
 }
 
 /**

@@ -6,7 +6,6 @@ import {
   EventFileSchema,
   GAMBIT_EFFECTS,
   GambitFileSchema,
-  ItemFileSchema,
   MapSchema,
   OpeningFileSchema,
   PIECE_IDS,
@@ -20,7 +19,6 @@ import {
   type BadgeDef,
   type BiomeDef,
   type CourtDef,
-  type CursedItemDef,
   type EventDef,
   type AbilityDef,
   type GambitDef,
@@ -28,7 +26,6 @@ import {
   type PieceDef,
   type PieceId,
   type StyleDef,
-  type ItemDef,
   type MapDef,
   type OpeningDef,
   type PressureDef,
@@ -45,7 +42,6 @@ export interface RawContentFiles {
   gambits: unknown;
   openings: unknown;
   relics: unknown;
-  items: unknown[];
   biomes: unknown[];
   events: unknown[];
   pressure: unknown;
@@ -57,8 +53,8 @@ export interface RawContentFiles {
   tournament?: unknown;
   /** The Tournament run's hand-made Black courts (`content/courts.json`, 3B). */
   courts?: unknown;
-  /** Piece builds (`content/techniques.json`); none when missing. */
-  techniques?: unknown;
+  /** Piece builds (`content/techniques.json`). */
+  techniques: unknown;
   tuning: unknown;
 }
 
@@ -82,10 +78,6 @@ export interface Content {
   openingById: Map<string, OpeningDef>;
   relics: RelicDef[];
   relicById: Map<string, RelicDef>;
-  items: ItemDef[];
-  itemById: Map<string, ItemDef>;
-  cursed: CursedItemDef[];
-  cursedById: Map<string, CursedItemDef>;
   biomes: BiomeDef[];
   biomeById: Map<string, BiomeDef>;
   events: EventDef[];
@@ -101,7 +93,7 @@ export interface Content {
   /** The hand-made courts (3B); empty when `content/courts.json` is missing (the run then falls back to generated courts). */
   courts: CourtDef[];
   courtById: Map<string, CourtDef>;
-  /** Piece builds (SPEC-PIECE-BUILDS-2026-10-18); empty when `content/techniques.json` is missing. */
+  /** Piece builds (SPEC-PIECE-BUILDS-2026-10-18). */
   techniques: TechniqueDef[];
   techniqueById: Map<string, TechniqueDef>;
 }
@@ -179,8 +171,8 @@ function validateCourts(c: Content): string[] {
         errs.push(`${at}: ${id} has no archetype ${k.styles[id]}`);
     }
     for (const id of PIECE_IDS) {
-      const move = k.firstMoves?.[id];
-      if (move !== undefined && !isFirstMove(c, id, move))
+      const move = k.firstMoves[id];
+      if (!isFirstMove(c, id, move))
         errs.push(`${at}: ${id}'s first move ${move} is not a Setup Technique for it`);
     }
     if (k.styles[k.portrait.piece] !== k.portrait.style)
@@ -200,39 +192,11 @@ function validateCourts(c: Content): string[] {
 
 export function validateRefs(c: Content): string[] {
   const errs: string[] = [];
-  const allItemIds = new Set<string>([...c.itemById.keys(), ...c.cursedById.keys()]);
-  for (const it of c.items) {
-    for (const f of it.from) {
-      const comp = c.itemById.get(f);
-      if (!comp) errs.push(`item ${it.id}: unknown component ${f}`);
-      else if (comp.tier >= it.tier) errs.push(`item ${it.id}: component ${f} is not a lower tier`);
-    }
-    if (it.tier > 1 && it.from.length === 0)
-      errs.push(`item ${it.id}: tier ${it.tier} has no recipe`);
-  }
   for (const p of c.pieces) {
-    for (const path of ['offense', 'defense', 'utility'] as const) {
-      const list = p.paths[path];
-      for (const id of list)
-        if (!c.itemById.has(id)) errs.push(`piece ${p.id}: ${path} item ${id} unknown`);
-      if (list.length > c.tuning.shop.slots)
-        errs.push(`piece ${p.id}: ${path} build list exceeds slots`);
-    }
     const styleIds = new Set<string>();
     for (const st of p.styles) {
-      for (const path of ['offense', 'defense', 'utility'] as const) {
-        const list = st.paths?.[path];
-        if (!list) continue;
-        for (const id of list)
-          if (!c.itemById.has(id)) errs.push(`style ${p.id}/${st.id}: ${path} item ${id} unknown`);
-        if (list.length > c.tuning.shop.slots)
-          errs.push(`style ${p.id}/${st.id}: ${path} build list exceeds slots`);
-      }
       if (styleIds.has(st.id)) errs.push(`piece ${p.id}: duplicate style ${st.id}`);
       styleIds.add(st.id);
-      const forkIds = st.forks['8'].map((f) => f.id);
-      if (new Set(forkIds).size !== forkIds.length)
-        errs.push(`piece ${p.id}/${st.id}: fork option ids must be unique`);
     }
     if (!c.tuning.personalities[p.personality])
       errs.push(`piece ${p.id}: personality ${p.personality} missing`);
@@ -282,9 +246,6 @@ export function validateRefs(c: Content): string[] {
   for (const p of ['push', 'farm', 'defend', 'default']) {
     if (!c.tuning.posture[p]) errs.push(`posture table ${p} missing`);
   }
-  if (allItemIds.size !== c.items.length + c.cursed.length)
-    errs.push('item ids collide across kinds');
-  if (c.cursed.length === 0) errs.push('needs cursed items');
   return errs;
 }
 
@@ -294,11 +255,7 @@ export function loadContent(raw: RawContentFiles): Content {
   const openings = OpeningFileSchema.parse(raw.openings);
   const relics = RelicFileSchema.parse(raw.relics).relics;
   const courts = raw.courts === undefined ? [] : CourtFileSchema.parse(raw.courts).courts;
-  const techniques =
-    raw.techniques === undefined ? [] : TechniqueFileSchema.parse(raw.techniques).techniques;
-  const itemFiles = raw.items.map((f) => ItemFileSchema.parse(f));
-  const items = itemFiles.flatMap((f) => f.items);
-  const cursed = itemFiles.flatMap((f) => f.cursed);
+  const techniques = TechniqueFileSchema.parse(raw.techniques).techniques;
   const biomes = raw.biomes.map((b) => BiomeSchema.parse(b));
   const events = raw.events.flatMap((f) => EventFileSchema.parse(f).events);
   const pressure = PressureSchema.parse(raw.pressure).events;
@@ -333,10 +290,6 @@ export function loadContent(raw: RawContentFiles): Content {
     openingById: byId(openings, 'opening'),
     relics,
     relicById: byId(relics, 'relic'),
-    items,
-    itemById: byId(items, 'item'),
-    cursed,
-    cursedById: byId(cursed, 'cursed item'),
     biomes,
     biomeById: byId(biomes, 'biome'),
     events,

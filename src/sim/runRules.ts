@@ -11,6 +11,7 @@ import { checkAim, fitFormation, laneCardFor, NO_AIM, sealableUnder } from './dr
 import { PLAY_TEAMS } from './names';
 import { param, tempoCap } from './relics';
 import { recompute } from './stats';
+import { isFirstMove, withTechnique } from './techniques';
 import { LANES } from './world/map';
 import type {
   CarriedRelic,
@@ -134,12 +135,13 @@ function placeRelics(ctx: Ctx, team: PlayTeam, carried: CarriedRelic[]): void {
     fitFormation(ctx, team);
 }
 
-function giveHeirlooms(ctx: Ctx, team: PlayTeam, items: Partial<Record<PieceId, string>>): void {
+/** Heirloom Techniques: held at Plain grade from the start (a Setup card of the piece's own). */
+function giveHeirlooms(ctx: Ctx, team: PlayTeam, heirlooms: Partial<Record<PieceId, string>>): void {
   for (const piece of PIECE_IDS) {
-    const item = items[piece];
+    const id = heirlooms[piece];
     const u = unitOf(ctx, team, piece);
-    if (!item || !u?.hero || !ctx.c.itemById.has(item) || u.hero.items.includes(item)) continue;
-    u.hero.items.push(item);
+    if (!id || !u?.hero || !isFirstMove(ctx.c, piece, id)) continue;
+    u.hero.techniques = withTechnique(ctx.c, u.hero.techniques, id, 'plain');
     recompute(ctx, u);
     u.hp = u.stats.maxHp;
   }
@@ -147,7 +149,7 @@ function giveHeirlooms(ctx: Ctx, team: PlayTeam, items: Partial<Record<PieceId, 
 
 /**
  * Applies `MatchConfig.start` once both courts are placed and Tempo is set: held relics (working
- * from Act 1), heirloom items, and extra starting Tempo. Book moves are read by the deck draw.
+ * from Act 1), heirloom Techniques, and extra starting Tempo. Book moves are read by the deck draw.
  */
 export function applyStart(ctx: Ctx, start: MatchConfig['start']): void {
   if (!start || !ctx.s.run) return;

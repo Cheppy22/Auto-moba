@@ -47,7 +47,7 @@ export const isEnemy = (a: Unit, b: Unit): boolean =>
 export const hpPct = (u: Unit): number => (u.stats.maxHp > 0 ? u.hp / u.stats.maxHp : 0);
 
 export function isTargetable(ctx: Ctx, u: Unit): boolean {
-  if (!u.alive || u.kind === 'obelisk' || u.kind === 'keeper') return false;
+  if (!u.alive || u.kind === 'obelisk') return false;
   if (u.kind === 'tower' && u.tower && u.tower.index === 1 && u.team !== 'neutral') {
     const outer = ctx.towers[u.team][u.tower.lane][0];
     return !outer || !outer.alive;

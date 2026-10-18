@@ -1,6 +1,6 @@
 import { maybeSwapLane } from './ai/swap';
 import { committed } from './bell';
-import { teamNetWorth } from './curses';
+import { teamGoldEarned } from './gold';
 import {
   TPS,
   HERO_ASSIST_WINDOW,
@@ -18,7 +18,7 @@ import type { Ctx } from './ctx';
 import { hpPct, turnIndex } from './ctx';
 import { bountyMul, wingMelee } from './relics';
 import { onPieceDown } from './relicsLive';
-import { giveGold } from './shop';
+import { giveGold } from './gold';
 import { makeMinion } from './units';
 import { LANES } from './world/map';
 import type { PlayTeam, Unit } from './types';
@@ -191,7 +191,7 @@ function killUnit(ctx: Ctx, u: Unit): void {
       h.recall = null;
       h.goal = null;
       if (h.recasts) h.recasts = [];
-      if (ctx.s.builds) fireTriggers(ctx, u, 'death', { attacker: killer ?? undefined });
+      fireTriggers(ctx, u, 'death', { attacker: killer ?? undefined });
       h.respawnAt = ctx.s.tick + respawnTicks(ctx, u);
       removeBoardClaim(ctx, u);
       const assists = awardAssists(ctx, u, killer ? killer.id : 0);
@@ -202,7 +202,7 @@ function killUnit(ctx: Ctx, u: Unit): void {
         kh.streak++;
         const behind = Math.max(
           0,
-          teamNetWorth(ctx, u.team as PlayTeam) - teamNetWorth(ctx, killerTeam),
+          teamGoldEarned(ctx, u.team as PlayTeam) - teamGoldEarned(ctx, killerTeam),
         );
         giveGold(
           ctx,
@@ -215,13 +215,11 @@ function killUnit(ctx: Ctx, u: Unit): void {
         );
         fireTriggers(ctx, killerHero, 'kill', { victim: u, origin: killOrigin });
       }
-      if (ctx.s.builds) {
-        // Techniques: a takedown is the kill or an assist on an enemy piece
-        if (killerHero) fireTriggers(ctx, killerHero, 'takedown', { victim: u });
-        for (const id of assists) {
-          const a = ctx.unit(id);
-          if (a?.hero && a.id !== killerHero?.id) fireTriggers(ctx, a, 'takedown', { victim: u });
-        }
+      // a takedown is the kill or an assist on an enemy piece
+      if (killerHero) fireTriggers(ctx, killerHero, 'takedown', { victim: u });
+      for (const id of assists) {
+        const a = ctx.unit(id);
+        if (a?.hero && a.id !== killerHero?.id) fireTriggers(ctx, a, 'takedown', { victim: u });
       }
       if (killerTeam) {
         ctx.s.teams[killerTeam].kills++;
@@ -264,7 +262,7 @@ function killUnit(ctx: Ctx, u: Unit): void {
       }
       if (u.team !== 'neutral' && u.lane) ctx.s.actTally.pawnlingsLost[u.team][u.lane]++;
       if (killerTeam) addTempo(ctx, killerTeam, ctx.t.gambits.tempoPawnlingKill);
-      if (killerTeam && ctx.s.builds)
+      if (killerTeam)
         for (const id of ctx.s.teams[killerTeam].heroIds) {
           const hero = ctx.unit(id);
           if (hero?.alive) fireTriggers(ctx, hero, 'pawnlingKill', { victim: u });

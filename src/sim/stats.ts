@@ -49,7 +49,7 @@ function equipment(ctx: Ctx, u: Unit): { mods: TaggedMod[]; trigs: TrigInst[] } 
     for (const m of perk.mods) mods.push({ ...m, tags: [] });
     perk.triggers.forEach((def, idx) => trigs.push({ src: `perk:${pd.id}/${n}`, idx, def }));
   });
-  for (const held of h.techniques ?? []) {
+  for (const held of h.techniques) {
     const def = ctx.c.techniqueById.get(held.id);
     if (!def) continue;
     const g = gradedTechnique(def, gradeMult(ctx.t, held.grade));
@@ -60,37 +60,6 @@ function equipment(ctx: Ctx, u: Unit): { mods: TaggedMod[]; trigs: TrigInst[] } 
       for (const m of def.dubious.mods) mods.push({ ...m, tags: [] });
       def.dubious.triggers.forEach((d, idx) => trigs.push({ src: `${src}:price`, idx, def: d }));
     }
-  }
-  for (const id of h.items) {
-    const item = ctx.c.itemById.get(id);
-    if (item) {
-      for (const m of item.mods) mods.push({ ...m, tags: [] });
-      item.triggers.forEach((def, idx) => trigs.push({ src: id, idx, def }));
-      continue;
-    }
-    const cursed = ctx.c.cursedById.get(id);
-    if (cursed) {
-      for (const m of cursed.boons) mods.push({ ...m, tags: ['curse'] });
-      cursed.triggers.forEach((def, idx) => trigs.push({ src: id, idx, def }));
-      const flaw = cursed.flaws.find((f) => f.id === h.flaws[id]);
-      if (flaw) {
-        for (const m of flaw.mods) mods.push({ ...m, tags: ['curse'] });
-        flaw.triggers.forEach((def, idx) => trigs.push({ src: `${id}:${flaw.id}`, idx, def }));
-      }
-      continue;
-    }
-  }
-  const owned: Record<string, number> = {};
-  for (const id of h.items) {
-    const cat = ctx.c.itemById.get(id)?.category ?? ctx.c.cursedById.get(id)?.category;
-    if (cat) owned[cat] = (owned[cat] ?? 0) + 1;
-  }
-  for (const [cat, n] of Object.entries(owned)) {
-    const tiers = ctx.t.attunement[cat as keyof typeof ctx.t.attunement];
-    let best: (typeof tiers)[number] | undefined;
-    for (const tier of tiers)
-      if (n >= tier.count && (!best || tier.count > best.count)) best = tier;
-    if (best) for (const m of best.mods) mods.push({ ...m, tags: [] });
   }
   return { mods, trigs };
 }
@@ -105,29 +74,21 @@ function tagFactor(ctx: Ctx, tags: string[]): number {
 }
 
 /**
- * A unit's stats from its base, Rank growth, equipment, relics and live modifiers. Pure: it reads
+ * A unit's stats from its base, Rank growth, Techniques, perks, relics and live modifiers. Pure: it reads
  * the unit and the match and changes neither (`recompute` stores the result; the fork preview
  * calls it on a copy of the hero).
  */
 export function computeStats(ctx: Ctx, u: Unit): { stats: Stats; trigs: TrigInst[] } {
   const out: Stats = { ...u.base };
   if (u.hero && u.hero.rank > 1) {
+    // health and the damage stat the piece is built on grow fast, the other damage stat slowly
+    // (`ranks.growth`, measured in BALANCE-TECHNIQUES-2026-10-18)
     const steps = u.hero.rank - 1;
     const g = ctx.t.ranks.growth;
-    if (ctx.s.noItems) {
-      // without items, Ranks carry what items gave (`builds.rankGrowth`, phase 0 of the builds
-      // spec): health, and the damage stat the piece is built on (items left the other one alone)
-      const rg = ctx.t.builds.rankGrowth;
-      const soulMain = out.soulPower > out.bladeDmg;
-      out.maxHp *= 1 + rg.health * steps;
-      out.bladeDmg *= 1 + (soulMain ? g : rg.damage) * steps;
-      out.soulPower *= 1 + (soulMain ? rg.damage : g) * steps;
-    } else {
-      const growth = 1 + g * steps;
-      out.maxHp *= growth;
-      out.bladeDmg *= growth;
-      out.soulPower *= growth;
-    }
+    const soulMain = out.soulPower > out.bladeDmg;
+    out.maxHp *= 1 + g.health * steps;
+    out.bladeDmg *= 1 + (soulMain ? g.other : g.main) * steps;
+    out.soulPower *= 1 + (soulMain ? g.main : g.other) * steps;
   }
   const add: Partial<Record<StatKey, number>> = {};
   const mul: Partial<Record<StatKey, number>> = {};

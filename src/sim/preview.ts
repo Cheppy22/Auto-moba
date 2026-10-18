@@ -16,14 +16,12 @@ export interface AbilityNumbers {
   power: number;
 }
 
-/** What a fork option would change on a piece: its stats and the ability it adds or tweaks. */
+/** What an archetype (the Rank 4 fork) would change on a piece: its stats and its new 4th skill. */
 export interface ForkPreview {
   before: Stats;
   after: Stats;
-  /** Rank 4: the style's signature skill, the piece's new 4th ability. */
+  /** The style's signature skill, the piece's new 4th ability. */
   signature: (AbilityNumbers & { desc: string }) | null;
-  /** Rank 8: the ability the option tweaks, before and after (null when it tweaks none). */
-  ability: { before: AbilityNumbers; after: AbilityNumbers } | null;
 }
 
 function numbers(ctx: Ctx, u: Unit, stats: Stats, idx: number): AbilityNumbers | null {
@@ -40,41 +38,22 @@ function numbers(ctx: Ctx, u: Unit, stats: Stats, idx: number): AbilityNumbers |
 }
 
 /**
- * Read-only: what taking one option of a pending fork would do to a piece, computed on a copy of
- * the piece with the option applied, so it uses exactly the sim's own stat rules. Null when the
- * piece has no such option.
+ * Read-only: what taking one archetype at the Rank 4 fork would do to a piece, computed on a copy
+ * of the piece with the style applied, so it uses exactly the sim's own stat rules. Null when the
+ * piece has no such style or already has one.
  */
 export function forkPreview(ctx: Ctx, heroId: number, optionId: string): ForkPreview | null {
   const u = ctx.unit(heroId);
   const h = u?.hero;
-  if (!u || !h) return null;
-  const fork = ctx.s.forks.find((f) => f.heroId === heroId);
-  const rank = fork?.rank ?? (h.style === null ? 4 : 8);
-  if (rank === 4 && !ctx.c.styleByKey.has(`${h.defId}/${optionId}`)) return null;
-  if (rank === 8 && !styleDef(ctx.c, h)?.forks['8'].some((o) => o.id === optionId)) return null;
-  const hero: HeroState = {
-    ...h,
-    style: rank === 4 ? optionId : h.style,
-    perks: [...h.perks, { rank, optionId }],
-  };
+  if (!u || !h || h.style !== null) return null;
+  if (!ctx.c.styleByKey.has(`${h.defId}/${optionId}`)) return null;
+  const hero: HeroState = { ...h, style: optionId, perks: [...h.perks, { rank: 4, optionId }] };
   const copy: Unit = { ...u, hero };
   const before = computeStats(ctx, u).stats;
   const after = computeStats(ctx, copy).stats;
-  let signature: ForkPreview['signature'] = null;
-  let ability: ForkPreview['ability'] = null;
-  if (rank === 4) {
-    const sig = styleDef(ctx.c, hero)!.ability;
-    const n = numbers(ctx, copy, after, 3);
-    if (n) signature = { ...n, desc: sig.desc };
-  } else {
-    const opt = styleDef(ctx.c, h)!.forks['8'].find((o) => o.id === optionId)!;
-    if (opt.ability !== undefined) {
-      const b = numbers(ctx, u, before, opt.ability);
-      const a = numbers(ctx, copy, after, opt.ability);
-      if (b && a) ability = { before: b, after: a };
-    }
-  }
-  return { before, after, signature, ability };
+  const sig = styleDef(ctx.c, hero)!.ability;
+  const n = numbers(ctx, copy, after, 3);
+  return { before, after, signature: n ? { ...n, desc: sig.desc } : null };
 }
 
 /**
@@ -92,7 +71,7 @@ export function techniquePreview(
   const h = u?.hero;
   const def = ctx.c.techniqueById.get(techniqueId);
   if (!u || !h || !def) return null;
-  const held = h.techniques ?? [];
+  const held = h.techniques;
   const old = replacedBy(ctx.c, held, techniqueId);
   const hero: HeroState = { ...h, techniques: withTechnique(ctx.c, held, techniqueId, grade) };
   const copy: Unit = { ...u, hero };
@@ -107,7 +86,7 @@ export function techniquePreview(
   }
   let estimate: TechniquePreview['estimate'] = null;
   const est = def.estimate;
-  if (est && ctx.s.builds) {
+  if (est) {
     const last = ctx.s.builds.lastPieces[String(heroId)]?.[est.count] ?? 0;
     estimate = { count: est.count, last, value: Math.round(last / est.per), label: est.label };
   }

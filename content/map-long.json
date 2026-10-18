@@ -426,9 +426,7 @@
       "speedMul": 1.725
     },
     "ai": {
-      "defendOffLaneRadius": 1400,
-      "shopTripRadius": 1100,
-      "tier3TripRadius": 3800
+      "defendOffLaneRadius": 1400
     },
     "height": {
       "slopeDmg": 0.2,

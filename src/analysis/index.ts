@@ -3,6 +3,7 @@ import type {
   Content,
   DamageType,
   GameEvent,
+  Grade,
   Match,
   PlayTeam,
   PositionSample,
@@ -25,7 +26,6 @@ export interface RosterEntry {
   role: string;
   /** The archetype picked at Rank 4; '' while the piece is still generic. */
   style: string;
-  path: string;
 }
 
 export interface AnalysisInput {
@@ -37,7 +37,7 @@ export interface AnalysisInput {
   badges: BadgeDef[];
   /** The human player's team; defaults to A. */
   playerTeam?: PlayTeam;
-  /** Content for display names and costs (pieces, styles, items, gambits). Optional. */
+  /** Content for display names (pieces, styles, Techniques, gambits). Optional. */
   content?: Content;
 }
 
@@ -56,11 +56,14 @@ export function inputFromMatch(m: Match, c: Content): AnalysisInput {
 
 export type Scope = { kind: 'phase'; n: number } | { kind: 'match' };
 
-export interface Purchase {
+/** A Technique taken (or upgraded, with `upgraded`) at Setup or an Act break. */
+export interface TechniqueRecord {
   tick: number;
-  item: string;
-  price: number;
-  consumed: string[];
+  technique: string;
+  grade: Grade;
+  /** The held Technique it replaced. */
+  replaced: string | null;
+  upgraded?: true;
 }
 
 export interface DeathRecord {
@@ -96,8 +99,7 @@ export interface HeroModel {
   goldEarned: number;
   goldBySource: Record<string, number>;
   goldSeries: { tick: number; total: number }[];
-  purchases: Purchase[];
-  sells: { tick: number; item: string; refund: number }[];
+  techniques: TechniqueRecord[];
   ranks: { tick: number; rank: number; bonus: string }[];
   forks: { tick: number; rank: number; optionId: string; auto: boolean }[];
   recalls: { tick: number; dest: string; stage: string }[];
@@ -105,7 +107,6 @@ export interface HeroModel {
   distance: number;
   path: PositionSample[];
   fightIds: number[];
-  curse: { tick: number; item: string; flaw: string }[];
 }
 
 export interface TeamModel {
@@ -129,8 +130,6 @@ export interface TeamModel {
 
 export interface SpecialFacts {
   obelisks: { tick: number; team: PlayTeam; node: string; reward: string; value: number }[];
-  curses: { tick: number; hero: number; item: string; flaw?: string; refused?: boolean }[];
-  keeper: { tick: number; spot: string; stock: string[] }[];
   pressure: { tick: number; name: string }[];
   biomes: { tick: number; slot: string; biome: string }[];
   structures: {
@@ -183,8 +182,7 @@ function newHero(r: RosterEntry): HeroModel {
     goldEarned: 0,
     goldBySource: {},
     goldSeries: [],
-    purchases: [],
-    sells: [],
+    techniques: [],
     ranks: [],
     forks: [],
     recalls: [],
@@ -192,7 +190,6 @@ function newHero(r: RosterEntry): HeroModel {
     distance: 0,
     path: [],
     fightIds: [],
-    curse: [],
   };
 }
 
@@ -251,7 +248,7 @@ function windowFor(events: GameEvent[], scope: Scope): Window {
       w.seqTo = e.seq;
       w.tickTo = e.tick;
     } else if (e.type === 'phaseStart' && e.payload.phase === scope.n + 1) {
-      // the Act break (relic picks, the armory's purchases) belongs to the Act that just ended
+      // the Act break (relic picks, Technique picks) belongs to the Act that just ended
       w.seqTo = e.seq - 1;
     }
   }
@@ -275,7 +272,6 @@ export function buildReport(input: AnalysisInput, scope: Scope, viewer?: PlayTea
         def: h.def,
         role: h.role,
         style: archetype.get(h.id) ?? h.style ?? '',
-        path: h.path,
       }))
     : [];
   const heroes = new Map<number, HeroModel>();
@@ -285,8 +281,6 @@ export function buildReport(input: AnalysisInput, scope: Scope, viewer?: PlayTea
   const w = windowFor(events, scope);
   const special: SpecialFacts = {
     obelisks: [],
-    curses: [],
-    keeper: [],
     pressure: [],
     biomes: [],
     structures: [],
@@ -384,19 +378,22 @@ export function buildReport(input: AnalysisInput, scope: Scope, viewer?: PlayTea
         h.goldSeries.push({ tick: e.tick, total });
         break;
       }
-      case 'purchase': {
-        heroes.get(e.payload.id)?.purchases.push({
+      case 'technique':
+        heroes.get(e.payload.id)?.techniques.push({
           tick: e.tick,
-          item: e.payload.item,
-          price: e.payload.price,
-          consumed: e.payload.consumed,
+          technique: e.payload.technique,
+          grade: e.payload.grade,
+          replaced: e.payload.replaced,
         });
         break;
-      }
-      case 'sell':
-        heroes
-          .get(e.payload.id)
-          ?.sells.push({ tick: e.tick, item: e.payload.item, refund: e.payload.refund });
+      case 'techniqueUpgrade':
+        heroes.get(e.payload.id)?.techniques.push({
+          tick: e.tick,
+          technique: e.payload.technique,
+          grade: e.payload.grade,
+          replaced: null,
+          upgraded: true,
+        });
         break;
       case 'rankUp':
         heroes
@@ -462,32 +459,6 @@ export function buildReport(input: AnalysisInput, scope: Scope, viewer?: PlayTea
         break;
       case 'teamPoints':
         if (e.payload.amount > 0) teams[e.payload.team].pointsEarned += e.payload.amount;
-        break;
-      case 'curseOffered':
-        special.curses.push({ tick: e.tick, hero: e.payload.hero, item: e.payload.item });
-        break;
-      case 'curseAccepted': {
-        special.curses.push({
-          tick: e.tick,
-          hero: e.payload.hero,
-          item: e.payload.item,
-          flaw: e.payload.flaw,
-        });
-        heroes
-          .get(e.payload.hero)
-          ?.curse.push({ tick: e.tick, item: e.payload.item, flaw: e.payload.flaw });
-        break;
-      }
-      case 'curseRefused':
-        special.curses.push({
-          tick: e.tick,
-          hero: e.payload.hero,
-          item: e.payload.item,
-          refused: true,
-        });
-        break;
-      case 'keeperMoved':
-        special.keeper.push({ tick: e.tick, spot: e.payload.spot, stock: e.payload.stock });
         break;
       case 'pressure':
         special.pressure.push({ tick: e.tick, name: e.payload.name });

@@ -8,8 +8,6 @@ import { other } from '../types';
 import { closestLane, enemyTowerTarget, lanePath, pointAtProgress, progressAt } from './lanes';
 import { enemyCover, fallbackPoint, retreatLine } from './judgement';
 import { matchupAt } from './power';
-import { aiShop, nextPurchase } from './shopping';
-import { shopAt } from '../shop';
 import { isWary } from './swap';
 import { kitOf, pieceDef } from '../pieces';
 
@@ -41,12 +39,6 @@ function enemiesNear(ctx: Ctx, u: Unit, x: number, y: number, r: number): number
     else if (e.kind === 'minion') n += 1;
   }
   return n;
-}
-
-function enemyPieceNear(ctx: Ctx, u: Unit, r: number): boolean {
-  for (const e of ctx.grid.query(u.x, u.y, r))
-    if (e.alive && e.kind === 'hero' && e.team !== u.team && e.team !== 'neutral') return true;
-  return false;
 }
 
 function standoff(u: Unit): number {
@@ -263,13 +255,6 @@ export function strategicUpdate(ctx: Ctx, u: Unit): void {
   const cands: Cand[] = [];
   const cur = h.goal;
 
-  const here = shopAt(ctx, u);
-  if (here && cur?.kind === 'visitShop') {
-    aiShop(ctx, u);
-    h.lastRecallTick = ctx.s.tick;
-    h.goal = null;
-  }
-
   const wary = isWary(ctx, h);
   const healing = cur !== null && (cur.kind === 'retreat' || cur.kind === 'base');
   const foesClose = enemiesNear(ctx, u, u.x, u.y, 600 * ctx.world.k) > 0;
@@ -290,18 +275,6 @@ export function strategicUpdate(ctx: Ctx, u: Unit): void {
       cands.push(cand('retreat', base.x, base.y, goalKey('retreat', 0), 10));
     }
   } else {
-    if (distBase > 400 * ctx.world.k && enemiesNear(ctx, u, u.x, u.y, 260) === 0) {
-      const p = nextPurchase(ctx, u, 'base');
-      const since = ctx.s.tick - (h.lastRecallTick ?? -9999);
-      let shopClose = false;
-      for (const sh of ctx.world.map.shops)
-        if (dist(u.x, u.y, sh.x, sh.y) <= ai.ai.shopTripRadius) shopClose = true;
-      if (p && h.gold >= 750 && since > 400 && !shopClose) {
-        h.lastRecallTick = ctx.s.tick;
-        startRecall(ctx, u, 'base', true);
-        return;
-      }
-    }
     const lane: LaneId = h.lane ?? closestLane(ctx, u);
     const laneHero = h.lane !== null;
     const prog = ctx.front[team][lane];
@@ -586,32 +559,6 @@ export function strategicUpdate(ctx: Ctx, u: Unit): void {
           Math.max(0.2, 1.15 - (0.6 * d) / reach) *
           (laneHero ? 1 : 1.3);
         cands.push(cand('contestEvent', ev.x, ev.y, key, score, null));
-      }
-    }
-  }
-
-  if (!needHeal) {
-    const shopCand = (id: string, score: number): void => {
-      const sh = ctx.world.map.shops.find((x) => x.id === id);
-      if (sh) cands.push(cand('visitShop', sh.x, sh.y, goalKey('visitShop', id), score));
-    };
-    if (h.gold >= ai.ai.shopTripGold) {
-      const big = nextPurchase(ctx, u, 'jungle');
-      const smallOnly = nextPurchase(ctx, u, 'base');
-      const wantsT3 = !!big && ctx.c.itemById.get(big.id)?.tier === 3;
-      const radius = wantsT3 ? ai.ai.tier3TripRadius : ai.ai.shopTripRadius;
-      // Only enemy pieces block the trip: a lane piece almost always has pawnlings near.
-      if ((wantsT3 || smallOnly) && !enemyPieceNear(ctx, u, 420 * ctx.world.k)) {
-        let bestShop: { id: string; d: number } | null = null;
-        for (const sh of ctx.world.map.shops) {
-          const d = dist(u.x, u.y, sh.x, sh.y);
-          if (d <= radius && (!bestShop || d < bestShop.d)) bestShop = { id: sh.id, d };
-        }
-        if (bestShop)
-          shopCand(
-            bestShop.id,
-            (wantsT3 ? ai.ai.tier3TripScore : ai.ai.shopTripScore) * (1.2 - bestShop.d / radius),
-          );
       }
     }
   }

@@ -1,6 +1,5 @@
 // What each Technique did (SPEC-PIECE-BUILDS 4.5 "What it did") and each piece's own counts for
-// the cards' "last Act" lines. Runs only in a match with Techniques (`s.builds`); every hook is a
-// no-op otherwise, so matches without them are unchanged.
+// the cards' "last Act" lines.
 import type { Ctx } from './ctx';
 import { kitOf } from './pieces';
 import { gradeMult, gradedTechnique, techniqueAbility } from './techniques';
@@ -8,7 +7,7 @@ import type { PieceTally, TechTally, Unit } from './types';
 
 /** Trigger instances of a held Technique carry this source prefix (`tech:<id>`). */
 export const TECH_SRC = 'tech:';
-const TECH_ORIGIN = `item:${TECH_SRC}`;
+const TECH_ORIGIN = `trigger:${TECH_SRC}`;
 
 const freshTech = (): TechTally => ({ damage: 0, heal: 0, shield: 0, procs: 0 });
 export const freshPieceTally = (): PieceTally => ({
@@ -20,13 +19,13 @@ export const freshPieceTally = (): PieceTally => ({
 });
 
 function techRows(ctx: Ctx, heroId: number, id: string): TechTally[] {
-  const b = ctx.s.builds!;
+  const b = ctx.s.builds;
   const key = `${heroId}:${id}`;
   return [(b.act[key] ??= freshTech()), (b.match[key] ??= freshTech())];
 }
 
 function pieceRow(ctx: Ctx, heroId: number): PieceTally {
-  return (ctx.s.builds!.pieces[String(heroId)] ??= freshPieceTally());
+  return (ctx.s.builds.pieces[String(heroId)] ??= freshPieceTally());
 }
 
 /** The Technique an effect's origin belongs to: its own trigger, or its share of a skill it boosts. */
@@ -59,7 +58,7 @@ export function tallyDamage(
   amount: number,
   origin: string,
 ): void {
-  if (!ctx.s.builds || amount <= 0) return;
+  if (amount <= 0) return;
   if (tgt.hero) pieceRow(ctx, tgt.id).damageTaken += amount;
   if (!src?.hero || src.team === tgt.team) return;
   pieceRow(ctx, src.id).damage += amount;
@@ -68,32 +67,32 @@ export function tallyDamage(
 }
 
 export function tallyHeal(ctx: Ctx, src: Unit | null, amount: number, origin: string): void {
-  if (!ctx.s.builds || !src?.hero || amount <= 0) return;
+  if (!src?.hero || amount <= 0) return;
   for (const [id, part] of credit(ctx, src, origin, amount))
     for (const row of techRows(ctx, src.id, id)) row.heal += part;
 }
 
 export function tallyShield(ctx: Ctx, src: Unit, amount: number, origin: string): void {
-  if (!ctx.s.builds || !src.hero || amount <= 0) return;
+  if (!src.hero || amount <= 0) return;
   for (const [id, part] of credit(ctx, src, origin, amount))
     for (const row of techRows(ctx, src.id, id)) row.shield += part;
 }
 
 /** A held Technique's trigger fired. */
 export function tallyProc(ctx: Ctx, u: Unit, src: string): void {
-  if (!ctx.s.builds || !src.startsWith(TECH_SRC)) return;
+  if (!src.startsWith(TECH_SRC)) return;
   const id = src.slice(TECH_SRC.length).split(':')[0];
   for (const row of techRows(ctx, u.id, id)) row.procs += 1;
 }
 
 export function tallyHit(ctx: Ctx, a: Unit, t: Unit): void {
-  if (!ctx.s.builds || !a.hero) return;
+  if (!a.hero) return;
   const row = pieceRow(ctx, a.id);
   row.hits += 1;
   if (t.kind === 'hero') row.pieceHits += 1;
 }
 
 export function tallyCast(ctx: Ctx, u: Unit): void {
-  if (!ctx.s.builds || !u.hero) return;
+  if (!u.hero) return;
   pieceRow(ctx, u.id).casts += 1;
 }

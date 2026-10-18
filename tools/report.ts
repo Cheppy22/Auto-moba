@@ -19,7 +19,7 @@ const quant = (xs: number[], q: number): number => {
 const SCHOOL_OF = new Map<string, string>();
 const POOL_OF = new Map<string, string>();
 
-/** Techniques (`--techniques`): picks by school, pick and held win rates per card, Combinations. */
+/** Techniques: picks by school, pick and held win rates per card, Combinations. */
 function techniqueLines(results: MatchSummary[]): string[] {
   if (SCHOOL_OF.size === 0) {
     const file = JSON.parse(
@@ -43,10 +43,8 @@ function techniqueLines(results: MatchSummary[]): string[] {
   let whitePieces = 0;
   let whiteCombo = 0;
   for (const r of results) {
-    const rb = r.builds;
-    if (!rb) continue;
     for (const t of ['A', 'B'] as const) {
-      const b: NonNullable<MatchSummary['builds']>['A'] = rb[t];
+      const b = r.builds[t];
       for (const id of b.offered) row(id).offered++;
       for (const id of b.taken) {
         row(id).taken++;
@@ -59,7 +57,7 @@ function techniqueLines(results: MatchSummary[]): string[] {
       upgrades += b.upgrades;
     }
     for (const h of r.heroes) {
-      const held = (h.techniques ?? []).map((x) => x.split(':')[0]);
+      const held = h.techniques.map((x) => x.split(':')[0]);
       for (const id of new Set(held)) {
         row(id).held++;
         if (h.won) row(id).won++;
@@ -70,7 +68,7 @@ function techniqueLines(results: MatchSummary[]): string[] {
       }
     }
   }
-  const n = results.filter((r) => r.builds).length;
+  const n = results.length;
   out.push(
     `- Per match: ${(picks / Math.max(1, n)).toFixed(1)} cards taken, ${(rerolls / Math.max(1, n)).toFixed(1)} rerolls, ${(passes / Math.max(1, n)).toFixed(1)} passes, ${(upgrades / Math.max(1, n)).toFixed(1)} upgrades.`,
   );
@@ -206,13 +204,11 @@ export function report(
   };
   const pieceStats: Record<string, Agg> = {};
   const styleStats: Record<string, Agg> = {};
-  const pathStats: Record<string, Agg> = {};
   const laneStats: Record<string, Agg> = {};
   for (const r of finished) {
     for (const h of r.heroes) {
       add(pieceStats, h.def, h);
       add(styleStats, `${h.def}/${h.style}`, h);
-      add(pathStats, `${h.def}/${h.path}`, h);
       add(laneStats, h.role, h);
     }
   }
@@ -232,37 +228,13 @@ export function report(
     lines.push(`| ${k} | ${pct(s.n, pieceN)} | ${row(s)} |`);
   }
   lines.push('');
-  lines.push('## Build paths');
-  lines.push('');
-  lines.push('| Piece / path | Pick rate | Win rate | K | D | A | Gold |');
-  lines.push('| --- | --- | --- | --- | --- | --- | --- |');
-  for (const [k, s] of Object.entries(pathStats).sort())
-    lines.push(`| ${k} | ${pct(s.n, pieceStats[k.split('/')[0]]?.n ?? 1)} | ${row(s)} |`);
-  lines.push('');
   lines.push('## Lanes');
   lines.push('');
   lines.push('| Lane | Win rate | K | D | A | Gold |');
   lines.push('| --- | --- | --- | --- | --- | --- |');
   for (const [k, s] of Object.entries(laneStats).sort()) lines.push(`| ${k} | ${row(s)} |`);
   lines.push('');
-  lines.push('## Items (held at match end)');
-  lines.push('');
-  lines.push('| Item | Held by | Win rate when held |');
-  lines.push('| --- | --- | --- |');
-  const itemStats: Record<string, { n: number; w: number }> = {};
-  for (const r of finished) {
-    for (const h of r.heroes) {
-      for (const id of new Set(h.items)) {
-        const s = (itemStats[id] ??= { n: 0, w: 0 });
-        s.n++;
-        s.w += h.won ? 1 : 0;
-      }
-    }
-  }
-  for (const [id, s] of Object.entries(itemStats).sort((a, b) => b[1].n - a[1].n))
-    lines.push(`| ${id} | ${s.n} | ${pct(s.w, s.n)} |`);
-  lines.push('');
-  if (results.some((r) => r.builds)) lines.push(...techniqueLines(results), '');
+  lines.push(...techniqueLines(results), '');
   lines.push(...breakLines(results));
   lines.push('');
   lines.push('## Relics');
@@ -287,17 +259,11 @@ export function report(
       `| ${id} | ${s.offered} | ${pct(s.taken, s.offered)} | ${s.held} | ${pct(s.won, s.held)} |`,
     );
   lines.push('');
-  lines.push('## Curses, comebacks, obelisks');
+  lines.push('## Comebacks, obelisks');
   lines.push('');
-  const offered = results.reduce((a, r) => a + r.curses.offered, 0);
-  const accepted = results.reduce((a, r) => a + r.curses.accepted, 0);
-  const acceptedBy = results.flatMap((r) => r.curses.acceptedBy);
-  lines.push(
-    `- Curse offers: ${offered} (${(offered / n).toFixed(2)} per match); accepted ${pct(accepted, offered)}; side won after accepting ${pct(acceptedBy.filter((c) => c.won).length, acceptedBy.length)}`,
-  );
   const lead = finished.filter((r) => r.lead1);
   lines.push(
-    `- Side ahead in net worth after Act 1 won: ${pct(lead.filter((r) => !r.comeback).length, lead.length)}; comeback rate ${pct(lead.filter((r) => r.comeback).length, lead.length)}`,
+    `- Side ahead in gold earned after Act 1 won: ${pct(lead.filter((r) => !r.comeback).length, lead.length)}; comeback rate ${pct(lead.filter((r) => r.comeback).length, lead.length)}`,
   );
   lines.push(
     `- Obelisks claimed per match: ${(results.reduce((a, r) => a + r.obelisks.A + r.obelisks.B, 0) / n).toFixed(2)}; camps cleared per match: ${(results.reduce((a, r) => a + r.campsCleared, 0) / n).toFixed(0)}`,
@@ -329,40 +295,24 @@ export function report(
   };
 }
 
-/** Gold banked and Masterworks owned at each Act break (both sides, per piece). */
+/** Gold spent and left, Techniques held and upgrades bought at each Act break (per piece, both sides). */
 function breakLines(results: MatchSummary[]): string[] {
-  const n = results.length;
-  const out: string[] = ['## Gold and Masterworks at the Act breaks (per piece, both sides)', ''];
+  const out: string[] = ['## Gold and Techniques at the Act breaks (per piece, both sides)', ''];
   out.push(
-    '| Break after Act | Matches | Gold banked, median (p90) | Spent at the break, median | Gold left, median | Pieces owning a Masterwork | Masterworks bought at the break / match | Items held, median |',
+    '| Break after Act | Matches | Spent at the break, median (p90) | Gold left, median (p90) | Techniques held, median | Upgrades bought / piece |',
   );
-  out.push('| --- | --- | --- | --- | --- | --- | --- | --- |');
-  const all = results.flatMap((r) => r.breaks ?? []);
+  out.push('| --- | --- | --- | --- | --- | --- |');
+  const all = results.flatMap((r) => r.breaks);
   const acts = [...new Set(all.map((b) => b.act))].sort((a, b) => a - b);
   for (const act of acts) {
     const xs = all.filter((b) => b.act === act);
-    const matches = results.filter((r) => (r.breaks ?? []).some((b) => b.act === act)).length;
-    const gb = xs.map((b) => b.goldBefore);
+    const matches = results.filter((r) => r.breaks.some((b) => b.act === act)).length;
+    const spent = xs.map((b) => b.spent);
+    const left = xs.map((b) => b.goldAfter);
     out.push(
-      `| ${act} | ${matches} | ${median(gb).toFixed(0)} (${quant(gb, 0.9).toFixed(0)}) | ${median(xs.map((b) => b.spent)).toFixed(0)} | ${median(xs.map((b) => b.goldAfter)).toFixed(0)} | ${pct(xs.filter((b) => b.masterworks > 0).length, xs.length)} | ${(xs.reduce((a, b) => a + b.boughtMasterworks, 0) / Math.max(1, matches)).toFixed(2)} | ${median(xs.map((b) => b.items)).toFixed(0)} |`,
+      `| ${act} | ${matches} | ${median(spent).toFixed(0)} (${quant(spent, 0.9).toFixed(0)}) | ${median(left).toFixed(0)} (${quant(left, 0.9).toFixed(0)}) | ${median(xs.map((b) => b.techniques)).toFixed(0)} | ${(xs.reduce((a, b) => a + b.upgrades, 0) / Math.max(1, xs.length)).toFixed(2)} |`,
     );
   }
-  const mw: Record<string, number> = {};
-  for (const r of results)
-    for (const id of Object.keys(r.masterworks ?? {})) mw[id] = (mw[id] ?? 0) + 1;
-  const bought = results.reduce(
-    (a, r) => a + Object.values(r.masterworks ?? {}).reduce((x, y) => x + y, 0),
-    0,
-  );
-  out.push('');
-  out.push(
-    `- Masterworks bought per match (any time): ${(bought / Math.max(1, n)).toFixed(2)}; share of matches each was bought by some piece: ${
-      Object.entries(mw)
-        .sort((a, b) => b[1] - a[1])
-        .map(([id, k]) => `${id} ${pct(k, n)}`)
-        .join(', ') || 'none'
-    }`,
-  );
   return out;
 }
 

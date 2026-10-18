@@ -5,7 +5,7 @@ import { createInterface } from 'node:readline';
 import { fileURLToPath } from 'node:url';
 import { report } from './report';
 import type { RelicMode } from '../src/sim';
-import { PLAN_PRESETS, type MatchSummary, type PlanPreset } from './simulate';
+import type { MatchSummary } from './simulate';
 
 function arg(name: string, def: number): number {
   const i = process.argv.indexOf(`--${name}`);
@@ -55,18 +55,6 @@ const map = mapIdx >= 0 && process.argv[mapIdx + 1] === 'long' ? ('long' as cons
 const paceIdx = process.argv.indexOf('--pace');
 const pace = paceIdx >= 0 && process.argv[paceIdx + 1] === 'blitz' ? ('blitz' as const) : undefined;
 
-// --plans A=mind-queen|body-rook|stack: White's pieces buy by a fixed greedy plan (Black stays AI).
-const plansIdx = process.argv.indexOf('--plans');
-const plansSpec = plansIdx >= 0 ? process.argv[plansIdx + 1] : '';
-const plans = plansSpec ? (plansSpec.replace(/^A=/, '') as PlanPreset) : undefined;
-if (plans && !PLAN_PRESETS.includes(plans))
-  throw new Error(`--plans expects A=${PLAN_PRESETS.join('|')}: got "${plansSpec}"`);
-
-// --techniques: both sides play piece builds (SPEC-PIECE-BUILDS-2026-10-18; items stay on).
-// --no-items: nothing is bought and Ranks grow by `builds.rankGrowth` (the items-retired curve).
-const techniques = flag('techniques');
-const noItems = flag('no-items');
-
 async function main(): Promise<void> {
   const seeds = Array.from({ length: total }, (_, i) => startSeed + i);
   const results: MatchSummary[] = [];
@@ -90,10 +78,7 @@ async function main(): Promise<void> {
               map,
               whitePlayer,
               whiteEvery,
-              plans,
               pace,
-              techniques,
-              noItems,
             }),
           ],
           {
@@ -129,10 +114,8 @@ async function main(): Promise<void> {
   const withRelics = relicsSpec
     ? `${withPool}-relics-${relicsSpec.replace(/[^A-Za-z]/g, '')}`
     : withPool;
-  const withPlans = plans ? `${withRelics}-plans-${plans}` : withRelics;
-  const withMap0 = map ? `${withPlans}-long` : withPlans;
-  const withMap1 = pace ? `${withMap0}-blitz` : withMap0;
-  const withMap = `${withMap1}${techniques ? '-techniques' : ''}${noItems ? '-no-items' : ''}`;
+  const withMap0 = map ? `${withRelics}-long` : withRelics;
+  const withMap = pace ? `${withMap0}-blitz` : withMap0;
   // --tag NAME: appended to the output file name, so parallel runs do not overwrite each other.
   const tagIdx = process.argv.indexOf('--tag');
   const name = tagIdx >= 0 ? `${withMap}-${process.argv[tagIdx + 1]}` : withMap;

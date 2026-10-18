@@ -11,10 +11,7 @@ export type {
   BiomeDef,
   CourtDef,
   CourtEmblem,
-  CursedItemDef,
-  ForkOptionDef,
   GambitDef,
-  ItemDef,
   MapDef,
   PerkDef,
   PieceDef,
@@ -30,20 +27,17 @@ export {
   CourtFileSchema,
   GRADES,
   TECHNIQUE_SLOTS,
-  PATHS,
   PIECE_IDS,
   PORTRAIT_POSES,
   RELIC_FAMILIES,
   SEALED_TRIGGERS,
 } from './content/schema';
 export { CUSTOM_BEHAVIORS, TPS } from './combat';
-export { naturalPath, validateSetup } from './setup';
-export { armoryView, armoryQuote, planError } from './armory';
+export { validateSetup } from './setup';
 export type { AbilityNumbers, ForkPreview } from './preview';
 export { aiChoice, drawOffer, firstMoves, readyCombinations, scoreCard } from './builds';
 export type { BuildSubject } from './builds';
 export { gradedTechnique, SLOT_ABILITY, techniqueText } from './techniques';
-export { pathListOf } from './pieces';
 export { LANE_NAME, PIECE_NAME, PLAY_TEAMS, TEAM_NAME, teamWord } from './names';
 export { hashContent } from './core/rng';
 export { COUNTERED_BY, openingEdge } from './schools';

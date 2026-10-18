@@ -19,7 +19,7 @@
   },
   "ranks": {
     "goldThresholds": [0, 600, 1300, 2100, 3000, 4100, 5400, 7000],
-    "growth": 0.045,
+    "growth": { "health": 0.155, "main": 0.4, "other": 0.045 },
     "forkSec": 10
   },
   "builds": {
@@ -49,8 +49,7 @@
       "rerollBelow": 1.2,
       "maxRerolls": 1
     },
-    "advice": { "gradeStakes": [0, 0.5, 1], "combination": 1, "carry": 0.5, "secondShare": 0.75 },
-    "rankGrowth": { "health": 0.155, "damage": 0.4 }
+    "advice": { "gradeStakes": [0, 0.5, 1], "combination": 1, "carry": 0.5, "secondShare": 0.75 }
   },
   "pawns": {
     "cost": 15,
@@ -193,166 +192,6 @@
     "growthPerSec": 0.12,
     "maxSec": 70
   },
-  "attunement": {
-    "mind": [
-      {
-        "count": 2,
-        "title": "Drilled",
-        "text": "+6% Blade damage",
-        "mods": [
-          {
-            "stat": "bladeDmg",
-            "kind": "mul",
-            "value": 1.06
-          }
-        ]
-      },
-      {
-        "count": 4,
-        "title": "Adept",
-        "text": "+12% Blade damage, +8% attack speed",
-        "mods": [
-          {
-            "stat": "bladeDmg",
-            "kind": "mul",
-            "value": 1.12
-          },
-          {
-            "stat": "atkSpeed",
-            "kind": "mul",
-            "value": 1.08
-          }
-        ]
-      },
-      {
-        "count": 6,
-        "title": "Master",
-        "text": "+20% Blade damage, +15% attack speed",
-        "mods": [
-          {
-            "stat": "bladeDmg",
-            "kind": "mul",
-            "value": 1.2
-          },
-          {
-            "stat": "atkSpeed",
-            "kind": "mul",
-            "value": 1.15
-          }
-        ]
-      }
-    ],
-    "body": [
-      {
-        "count": 2,
-        "title": "Hardened",
-        "text": "+6% health",
-        "mods": [
-          {
-            "stat": "maxHp",
-            "kind": "mul",
-            "value": 1.06
-          }
-        ]
-      },
-      {
-        "count": 4,
-        "title": "Steeled",
-        "text": "+12% health, +8 armor",
-        "mods": [
-          {
-            "stat": "maxHp",
-            "kind": "mul",
-            "value": 1.12
-          },
-          {
-            "stat": "armor",
-            "kind": "add",
-            "value": 8
-          }
-        ]
-      },
-      {
-        "count": 6,
-        "title": "Unbroken",
-        "text": "+20% health, +15 armor, +2 regeneration",
-        "mods": [
-          {
-            "stat": "maxHp",
-            "kind": "mul",
-            "value": 1.2
-          },
-          {
-            "stat": "armor",
-            "kind": "add",
-            "value": 15
-          },
-          {
-            "stat": "hpRegen",
-            "kind": "add",
-            "value": 2
-          }
-        ]
-      }
-    ],
-    "soul": [
-      {
-        "count": 2,
-        "title": "Stirred",
-        "text": "+6% Soul power",
-        "mods": [
-          {
-            "stat": "soulPower",
-            "kind": "mul",
-            "value": 1.06
-          }
-        ]
-      },
-      {
-        "count": 4,
-        "title": "Awakened",
-        "text": "+12% Soul power, +8% cooldown reduction",
-        "mods": [
-          {
-            "stat": "soulPower",
-            "kind": "mul",
-            "value": 1.12
-          },
-          {
-            "stat": "cdr",
-            "kind": "add",
-            "value": 0.08
-          }
-        ]
-      },
-      {
-        "count": 6,
-        "title": "Ascendant",
-        "text": "+20% Soul power, +15% cooldown reduction",
-        "mods": [
-          {
-            "stat": "soulPower",
-            "kind": "mul",
-            "value": 1.2
-          },
-          {
-            "stat": "cdr",
-            "kind": "add",
-            "value": 0.15
-          }
-        ]
-      }
-    ]
-  },
-  "shop": {
-    "slots": 6,
-    "sellRefund": 0.5,
-    "baseRadius": 214.5,
-    "keeperRadius": 234,
-    "jungleRadius": 117,
-    "keeperStock": 3,
-    "unlockDiscount": 0.25
-  },
   "recall": {
     "baseSec": 3
   },
@@ -368,7 +207,6 @@
       "tower": 18,
       "guardian": 26,
       "obelisk": 10,
-      "keeper": 12,
       "neutralBase": 8,
       "neutralPerHp": 0.004,
       "neutralMax": 14
@@ -427,12 +265,10 @@
     "aggroRadius": 150,
     "fightRadius": 280,
     "allyRadius": 300,
-    "shopAtBaseGold": 300,
     "healBaseRadius": 195,
     "baseHealPerSec": 0.12,
     "pushWaveRadius": 507,
     "defendRadius": 624,
-    "curseAcceptBase": 0.55,
     "siegeStartHp": 0.55,
     "siegeKeepHp": 0.4,
     "siegeAfterTick": 1500,
@@ -445,10 +281,6 @@
     "laneHugRadius": 292.5,
     "defendOffLaneRadius": 1170,
     "guardianThreatRadius": 780,
-    "shopTripGold": 700,
-    "shopTripRadius": 741,
-    "shopTripScore": 0.9,
-    "tier3TripRadius": 2535,
     "swapAfterDeaths": 3,
     "dominatedGap": 3,
     "lossWindowTicks": 3600,
@@ -461,7 +293,6 @@
     "commitBonus": 1.5,
     "easyKillHp": 0.4,
     "holdBraveCap": 1.2,
-    "tier3TripScore": 1.1,
     "holdPatience": 400,
     "huntRadius": 1267.5,
     "huntScore": 0.8
@@ -526,10 +357,6 @@
       "hunt": 1
     }
   },
-  "curse": {
-    "threshold": 0.75,
-    "minPhase": 2
-  },
   "obelisk": {
     "spawnSec": [50, 150],
     "claimSec": 5,
@@ -562,7 +389,7 @@
         "mod": "mul"
       },
       {
-        "kind": "unlock",
+        "kind": "reroll",
         "weight": 1,
         "value": 0
       }

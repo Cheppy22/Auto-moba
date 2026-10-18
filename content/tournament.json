@@ -1,6 +1,6 @@
 {
   "relicMax": 5,
-  "heirloomMaxPrice": 1000,
+  "aiHeirloomGold": 900,
   "aiBookGold": 500,
   "rounds": [
     {

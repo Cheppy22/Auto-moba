@@ -37,8 +37,6 @@ export interface PieceRow {
   /** Style id and its display name from content ("lancer", "Lancer"). */
   style: string;
   styleName: string;
-  /** Build path id (offense, defense, utility). */
-  path: string;
   /** Lane the piece started in (inferred from where it walked), or null if unknown. */
   startLane: string | null;
   /** Lane the piece ended in (start lane plus lane changes in the log), or null if unknown. */
@@ -63,10 +61,10 @@ export interface PieceRow {
   /** Pawnlings this piece last-hit. */
   pawnlingKills: number;
   goldEarned: number;
-  /** Item ids held at the end (purchases minus sells minus components consumed). */
-  finalItems: string[];
-  /** Same items as display names from content. */
-  finalItemNames: string[];
+  /** Techniques held at the end (taken at Setup and the breaks, minus those replaced). */
+  finalTechniques: string[];
+  /** Same Techniques as display names from content. */
+  finalTechniqueNames: string[];
   /** Longest single life, ticks (a life still running at the end counts up to the end). */
   longestLifeTicks: number;
   /** The MVP score: see `MVP_WEIGHTS` and `scoreRow`. */
@@ -342,19 +340,9 @@ function pickBest(
   return best;
 }
 
-function forkName(
-  content: Content | undefined,
-  piece: string,
-  style: string,
-  rank: number,
-  id: string,
-): string {
-  if (rank === 4) {
-    const name = content?.pieceById.get(piece as PieceId)?.styles.find((x) => x.id === id)?.name;
-    return name ?? id.replace(/_/g, ' ');
-  }
-  const st = content?.styleByKey.get(`${piece}/${style}`);
-  return st?.forks['8'].find((o) => o.id === id)?.name ?? id.replace(/_/g, ' ');
+function forkName(content: Content | undefined, piece: string, id: string): string {
+  const name = content?.pieceById.get(piece as PieceId)?.styles.find((x) => x.id === id)?.name;
+  return name ?? id.replace(/_/g, ' ');
 }
 
 export function buildSummary(input: AnalysisInput): MatchSummary {
@@ -395,7 +383,7 @@ export function buildSummary(input: AnalysisInput): MatchSummary {
   const curLane = new Map(startLane);
 
   const rank = new Map<number, number>(report.roster.map((r) => [r.id, 1]));
-  const items = new Map<number, string[]>(report.roster.map((r) => [r.id, []]));
+  const held = new Map<number, string[]>(report.roster.map((r) => [r.id, []]));
   const pawnKills = new Map<number, number>();
   const pawnlingKills = new Map<number, number>();
   const bastionKills = new Map<number, number>();
@@ -475,25 +463,14 @@ export function buildSummary(input: AnalysisInput): MatchSummary {
         else if (e.payload.source === 'lasthit') inc(pawnlingKills, e.payload.id);
         break;
       }
-      case 'purchase': {
-        const list = items.get(e.payload.id);
+      case 'technique': {
+        const list = held.get(e.payload.id);
         if (!list) break;
-        for (const c of e.payload.consumed) {
-          const i = list.indexOf(c);
-          if (i >= 0) list.splice(i, 1);
-        }
-        list.push(e.payload.item);
+        const i = e.payload.replaced ? list.indexOf(e.payload.replaced) : -1;
+        if (i >= 0) list.splice(i, 1);
+        list.push(e.payload.technique);
         break;
       }
-      case 'sell': {
-        const list = items.get(e.payload.id);
-        const i = list ? list.indexOf(e.payload.item) : -1;
-        if (list && i >= 0) list.splice(i, 1);
-        break;
-      }
-      case 'curseAccepted':
-        items.get(e.payload.hero)?.push(e.payload.item);
-        break;
       case 'rankUp': {
         rank.set(e.payload.id, e.payload.rank);
         rankInc.get(e.payload.id)?.push({ tick: e.tick, rank: e.payload.rank });
@@ -511,7 +488,7 @@ export function buildSummary(input: AnalysisInput): MatchSummary {
       case 'fork': {
         const r = rosterById.get(e.payload.id);
         if (!r) break;
-        const opt = forkName(content, r.def, r.style, e.payload.rank, e.payload.optionId);
+        const opt = forkName(content, r.def, e.payload.optionId);
         timeline.push({
           tick: e.tick,
           kind: 'fork',
@@ -690,13 +667,11 @@ export function buildSummary(input: AnalysisInput): MatchSummary {
       longest.set(r.id, Math.max(longest.get(r.id) ?? 0, endTick - (lifeStart.get(r.id) ?? 0)));
 
   // --- rows -------------------------------------------------------------------------------------
-  const itemName = (id: string): string =>
-    content?.itemById.get(id)?.name ??
-    content?.cursedById.get(id)?.name ??
-    cap(id.replace(/_/g, ' '));
+  const techniqueName = (id: string): string =>
+    content?.techniqueById.get(id)?.name ?? cap(id.replace(/_/g, ' '));
   const rows: PieceRow[] = report.roster.map((r) => {
     const h = report.heroes.find((x) => x.id === r.id)!;
-    const ids = items.get(r.id) ?? [];
+    const ids = held.get(r.id) ?? [];
     return {
       id: r.id,
       team: r.team,
@@ -707,7 +682,6 @@ export function buildSummary(input: AnalysisInput): MatchSummary {
       styleName: r.style
         ? (content?.styleByKey.get(`${r.def}/${r.style}`)?.name ?? cap(r.style))
         : 'Generic',
-      path: r.path,
       startLane: startLane.get(r.id) ?? null,
       lane: curLane.get(r.id) ?? null,
       rank: rank.get(r.id) ?? 1,
@@ -723,8 +697,8 @@ export function buildSummary(input: AnalysisInput): MatchSummary {
       pawnKills: pawnKills.get(r.id) ?? 0,
       pawnlingKills: pawnlingKills.get(r.id) ?? 0,
       goldEarned: h.goldEarned,
-      finalItems: ids,
-      finalItemNames: ids.map(itemName),
+      finalTechniques: ids,
+      finalTechniqueNames: ids.map(techniqueName),
       longestLifeTicks: longest.get(r.id) ?? 0,
       score: 0,
     };

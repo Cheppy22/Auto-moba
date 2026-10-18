@@ -205,14 +205,12 @@ export function dealDamage(
   const lethal = tgt.hp <= 0;
   const kb = lethal ? 0 : knockback(ctx, src, tgt, applied + absorbed);
   recordDamage(ctx, src, tgt, applied + absorbed, dtype, origin, lethal, mitigated, kb);
-  if (ctx.s.builds) tallyDamage(ctx, src, tgt, applied + absorbed, origin);
+  tallyDamage(ctx, src, tgt, applied + absorbed, origin);
   trackDamage(ctx, src, tgt, applied + absorbed);
   if (ctx.s.feedback.runs.length > 0)
     noteDamage(ctx, src, tgt, raw, dtype, applied + absorbed, absorbed);
   if (lethal)
-    tgt.pendingKill = ctx.s.builds
-      ? { killerId: src ? src.id : 0, origin }
-      : { killerId: src ? src.id : 0 };
+    tgt.pendingKill = { killerId: src ? src.id : 0, origin };
   if (tgt.hero && !lethal)
     fireTriggers(ctx, tgt, 'damaged', {
       attacker: src ?? undefined,
@@ -236,7 +234,7 @@ export function healUnit(
   const before = tgt.hp;
   tgt.hp = Math.min(tgt.stats.maxHp, tgt.hp + want);
   const done = tgt.hp - before;
-  if (ctx.s.builds) tallyHeal(ctx, src, done, origin);
+  tallyHeal(ctx, src, done, origin);
   if (done > 0.5 && log && (tgt.kind === 'hero' || (src && src.kind === 'hero'))) {
     ctx.emit('heal', {
       src: src ? src.id : 0,
@@ -346,7 +344,7 @@ export function applyEffect(ctx: Ctx, e: EffectDef, ec: EffectCtx): void {
         amount,
         expiresTick: ctx.s.tick + Math.round(e.durationSec * TPS),
       });
-      if (ctx.s.builds) tallyShield(ctx, caster, amount, ec.origin);
+      tallyShield(ctx, caster, amount, ec.origin);
       break;
     }
     case 'statMod': {
@@ -602,7 +600,7 @@ export function tryCast(ctx: Ctx, u: Unit, idx: number): boolean {
   const mods = abilityMods(ctx, u, idx);
   const range = def.range * mods.rangeMul;
   const radius = def.radius * mods.radiusMul;
-  const rule = h.techniques?.length ? techniqueSkillRule(ctx.c, h.techniques, idx) : null;
+  const rule = h.techniques.length ? techniqueSkillRule(ctx.c, h.techniques, idx) : null;
   const cond =
     rule?.minEnemies !== undefined
       ? { ...def.condition, minEnemies: rule.minEnemies }
@@ -675,30 +673,28 @@ export function tryCast(ctx: Ctx, u: Unit, idx: number): boolean {
   if (cond.selfHpBelow !== undefined && hpPct(u) >= cond.selfHpBelow) return false;
   if (cond.allyHpBelow !== undefined && !targets.some((t) => hpPct(t) < cond.allyHpBelow!))
     return false;
-  const dashMul = h.techniques?.length ? techniqueDashMul(ctx.c, ctx.t, h.techniques, idx) : 1;
+  const dashMul = h.techniques.length ? techniqueDashMul(ctx.c, ctx.t, h.techniques, idx) : 1;
   castOn(ctx, u, def, targets, mods, dashMul);
-  if (ctx.s.builds) tallyCast(ctx, u);
+  tallyCast(ctx, u);
   const cdTicks = Math.round(def.cooldownSec * mods.cooldownMul * (1 - u.stats.cdr) * TPS);
   h.cd[idx] = Math.max(10, cdTicks);
-  if (ctx.s.builds) {
-    // Techniques: `cast` triggers see the cast after its cooldown is set (so `ready` can clear it)
-    h.castSinceHit = true;
-    const area = def.target === 'enemyArea' || def.target === 'enemyBurst';
-    if (!area) {
-      cx = targets[0].x;
-      cy = targets[0].y;
-    }
-    const cast: CastInfo = {
-      idx,
-      def,
-      targets: targets.map((t) => t.id),
-      area,
-      x: cx,
-      y: cy,
-      powerMul: mods.powerMul,
-    };
-    fireTriggers(ctx, u, 'cast', { victim: targets[0], cast });
+  // `cast` triggers see the cast after its cooldown is set (so `ready` can clear it)
+  h.castSinceHit = true;
+  const area = def.target === 'enemyArea' || def.target === 'enemyBurst';
+  if (!area) {
+    cx = targets[0].x;
+    cy = targets[0].y;
   }
+  const cast: CastInfo = {
+    idx,
+    def,
+    targets: targets.map((t) => t.id),
+    area,
+    x: cx,
+    y: cy,
+    powerMul: mods.powerMul,
+  };
+  fireTriggers(ctx, u, 'cast', { victim: targets[0], cast });
   return true;
 }
 
@@ -921,7 +917,7 @@ function runTrigger(
   }
   if (def.chance < 1 && rand(ctx.s.rng, 'combat') > def.chance) return;
   const proceed = def.custom ? runCustom(ctx, u, def, ev) : true;
-  if (proceed && ctx.s.builds) tallyProc(ctx, u, src);
+  if (proceed) tallyProc(ctx, u, src);
   if (proceed) {
     let targets = resolveTrigTargets(ctx, u, def, ev);
     if (def.filter === 'piece') targets = targets.filter((t) => t.kind === 'hero');
@@ -934,7 +930,7 @@ function runTrigger(
           caster: u,
           target: t,
           powerMul: 1,
-          origin: `item:${src}`,
+          origin: `trigger:${src}`,
           damage: ev.damage,
           hitType: ev.hitType,
           cast: ev.cast,
@@ -1001,7 +997,7 @@ export const CUSTOM_BEHAVIORS: Record<string, Custom> = {
     const v = ev.victim;
     if (!v || v.kind !== 'hero' || !v.alive || hpPct(v) >= (def.param ?? 0.15)) return;
     const shield = v.shields.reduce((a, s) => a + s.amount, 0);
-    dealDamage(ctx, u, v, v.hp + shield, 'true', 'item:execute');
+    dealDamage(ctx, u, v, v.hp + shield, 'true', 'trigger:execute');
   },
   cooldownTick: (ctx, u, def) => {
     const h = u.hero;
@@ -1039,7 +1035,7 @@ export function tryRevive(ctx: Ctx, u: Unit): boolean {
     u.pendingKill = null;
     u.hp = 1;
     for (const eff of stand.def.effects)
-      applyEffect(ctx, eff, { caster: u, target: u, powerMul: 1, origin: `item:${stand.src}` });
+      applyEffect(ctx, eff, { caster: u, target: u, powerMul: 1, origin: `trigger:${stand.src}` });
     ctx.emit('heal', { src: u.id, tgt: u.id, amount: 1, origin: 'lastStand' });
     return true;
   }
@@ -1087,22 +1083,19 @@ export function performAttack(ctx: Ctx, a: Unit, t: Unit): void {
   const origin = a.kind === 'tower' || a.kind === 'guardian' ? a.kind : 'attack';
   const h = a.hero;
   // Techniques: how long the attacker had been quiet before this hit (Ambush)
-  const quietTicks =
-    h && ctx.s.builds ? ctx.s.tick - Math.max(a.lastDamagedTick, h.lastDealtTick) : undefined;
+  const quietTicks = h ? ctx.s.tick - Math.max(a.lastDamagedTick, h.lastDealtTick) : undefined;
   dealDamage(ctx, a, t, dmg, a.atkType, origin);
   if (!h) return;
-  if (ctx.s.builds) {
-    tallyHit(ctx, a, t);
-    const afterCast = h.castSinceHit === true;
-    h.castSinceHit = false;
-    fireTriggers(ctx, a, 'hit', {
-      victim: t,
-      damage: dmg,
-      hitType: a.atkType,
-      quietTicks,
-      afterCast,
-    });
-  } else fireTriggers(ctx, a, 'hit', { victim: t, damage: dmg });
+  tallyHit(ctx, a, t);
+  const afterCast = h.castSinceHit === true;
+  h.castSinceHit = false;
+  fireTriggers(ctx, a, 'hit', {
+    victim: t,
+    damage: dmg,
+    hitType: a.atkType,
+    quietTicks,
+    afterCast,
+  });
 }
 
 export { HERO_ASSIST_WINDOW };

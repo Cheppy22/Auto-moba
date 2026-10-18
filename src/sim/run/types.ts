@@ -27,7 +27,7 @@ export interface OpponentDef {
 
 export type Reward =
   | { kind: 'relic'; relic: string; replaces?: string }
-  | { kind: 'heirloom'; piece: PieceId; item: string }
+  | { kind: 'heirloom'; piece: PieceId; technique: string }
   | { kind: 'book'; card: string };
 
 /** The run's pace, chosen once at the Draw; every match of the run plays it. */
@@ -48,7 +48,8 @@ export interface RunMatchResult {
 }
 
 export interface RunState {
-  v: 1;
+  /** Save version: 2 since Techniques replaced items (heirlooms are Techniques). */
+  v: 2;
   seed: number;
   pace: RunPace;
   /** The current round, 0..3 (Club .. Final). */
@@ -60,6 +61,7 @@ export interface RunState {
   archetypes: Partial<Record<PieceId, string>>;
   /** At most `tournament.relicMax` (5). */
   relics: CarriedRelic[];
+  /** One Technique per piece, held at Plain grade from the start of every later match. */
   heirlooms: Partial<Record<PieceId, string>>;
   books: string[];
   results: RunMatchResult[];
@@ -78,8 +80,8 @@ export interface MatchOutcome {
   relics: CarriedRelic[];
   /** White's archetypes chosen this match. */
   styles: Partial<Record<PieceId, string>>;
-  /** Items each White piece held at the end (the heirloom offer goes to the piece with fewest). */
-  items: Partial<Record<PieceId, number>>;
+  /** Techniques each White piece held at the end (the heirloom is drawn from these). */
+  techniques: Partial<Record<PieceId, string[]>>;
 }
 
 /** A run step that checks the player's input. */

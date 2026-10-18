@@ -7,7 +7,6 @@ import type {
   GambitTarget,
   Grade,
   LaneId,
-  Path,
   PieceId,
   Posture,
   Role,
@@ -25,7 +24,6 @@ export type {
   GambitTarget,
   Grade,
   LaneId,
-  Path,
   PieceId,
   Posture,
   Role,
@@ -38,8 +36,8 @@ export type {
 
 export type TeamId = 'A' | 'B' | 'neutral';
 export type PlayTeam = 'A' | 'B';
-export type UnitKind = 'hero' | 'minion' | 'tower' | 'guardian' | 'camp' | 'obelisk' | 'keeper';
-/** setup (White picks styles, paths and lanes) -> live (Acts run back to back) -> end (checkmate). */
+export type UnitKind = 'hero' | 'minion' | 'tower' | 'guardian' | 'camp' | 'obelisk';
+/** setup (White picks lanes, an Opening and first moves) -> live (Acts run back to back) -> end (checkmate). */
 type PhaseKind = 'setup' | 'live' | 'end';
 
 export const other = (t: PlayTeam): PlayTeam => (t === 'A' ? 'B' : 'A');
@@ -75,7 +73,6 @@ export type GoalKind =
   | 'joinFight'
   | 'takeObelisk'
   | 'contestEvent'
-  | 'visitShop'
   | 'retreat'
   | 'recall'
   | 'base'
@@ -133,7 +130,6 @@ export interface HeroState {
   defId: PieceId;
   /** The archetype chosen at Rank 4; null while the piece is still generic (Ranks 1-3). */
   style: string | null;
-  path: Path;
   rank: number;
   perks: PerkRef[];
   order: GambitOrder | null;
@@ -145,15 +141,8 @@ export interface HeroState {
   posture: Posture;
   disposition: Disposition;
   jungler: boolean;
-  items: string[];
-  /**
-   * The piece's armory plan: six item ids it buys in order (set at an Act break), or null to
-   * follow its build path's list (its archetype's list from Rank 4).
-   */
-  plan: string[] | null;
-  flaws: Record<string, string>;
-  /** Techniques held, in slot order; present only in a match with `MatchConfig.techniques`. */
-  techniques?: HeldTechnique[];
+  /** Techniques held, in slot order. */
+  techniques: HeldTechnique[];
   /** Techniques: skills due to strike again (the `recast` effect). */
   recasts?: PendingRecast[];
   /** Techniques: a skill was cast since the piece's last hit (`afterCast` triggers). */
@@ -180,7 +169,6 @@ export interface HeroState {
   holdTicks: number;
   /** Tick the current flee began (for the minimum flee time). */
   fleeSince: number;
-  lastRecallTick: number;
   lossStreak: number;
   lastDeathTick: number;
   lastStandUsed: boolean;
@@ -301,7 +289,7 @@ export interface Unit {
   lane: LaneId | null;
   structWindow?: { tick: number; taken: number };
   /** `origin` (Techniques only): what dealt the killing blow, e.g. `ability:l_leap`. */
-  pendingKill: { killerId: number; origin?: string } | null;
+  pendingKill: { killerId: number; origin: string } | null;
   bounty: number;
   hero?: HeroState;
   tower?: TowerState;
@@ -328,12 +316,10 @@ export interface Unit {
 
 interface TeamState {
   points: number;
-  unlocks: string[];
   heroIds: number[];
   kills: number;
   towersDown: number;
   guardianId: number;
-  curseOffers: number;
 }
 
 export interface SlotState {
@@ -344,20 +330,6 @@ export interface SlotState {
   campIds: number[][];
   types: string[];
   mirrored: boolean;
-}
-
-export interface CurseOffer {
-  heroId: number;
-  itemId: string;
-  phase: number;
-  resolved: boolean;
-  accepted: boolean;
-}
-
-interface KeeperState {
-  unitId: number;
-  spot: string;
-  stock: string[];
 }
 
 interface PhaseState {
@@ -607,13 +579,12 @@ export interface FightRecord {
 
 export interface SetupEntry {
   piece: PieceId;
-  path: Path;
   lane: LaneId;
-  /** Techniques on: the card taken from this piece's Setup offer (else the AI picks). */
+  /** The card taken from this piece's Setup offer (else the AI picks). */
   firstMove?: string;
 }
 
-/** One side's setup: its opening and its five pieces (path and lane each). */
+/** One side's setup: its opening and its five pieces (lane and first move each). */
 export interface TeamSetup {
   opening: string;
   pieces: SetupEntry[];
@@ -631,8 +602,8 @@ interface HandSlot {
 
 interface PendingFork {
   heroId: number;
-  /** Rank 4 is the archetype choice, Rank 8 the style's two-option fork. */
-  rank: 4 | 8;
+  /** Rank 4: the archetype choice. */
+  rank: 4;
   /** Tick the AI picks for the player; null when the game pauses for forks (no timeout). */
   deadlineTick: number | null;
 }
@@ -674,8 +645,6 @@ export interface MatchState {
   rng: RngState;
   teams: Record<PlayTeam, TeamState>;
   slots: SlotState[];
-  curseOffers: CurseOffer[];
-  keeper: KeeperState;
   tagMult: Record<string, number>;
   pressure: string[];
   winner: PlayTeam | null;
@@ -715,8 +684,6 @@ export interface MatchState {
   bell: BellState;
   /** White's standing pawn plan; absent until the player sets one (the AI never does). */
   pawnPlan?: PawnPlan;
-  /** The Act break's armory: open while the break resolves; White's pieces bought or sold for. */
-  armory: ArmoryState;
   actTally: ActTally;
   feedback: FeedbackState;
   relics: RelicState;
@@ -724,10 +691,8 @@ export interface MatchState {
   run?: RunRules;
   /** Set only for a Blitz match (`MatchConfig.pace`); absent in Classical, so its state is unchanged. */
   pace?: 'blitz';
-  /** Piece builds (`MatchConfig.techniques`); absent otherwise, so a match without them is unchanged. */
-  builds?: BuildState;
-  /** `MatchConfig.items: false`: nothing is bought and Ranks grow by `builds.rankGrowth`. */
-  noItems?: true;
+  /** Piece builds: offers, the break's gold rules and what each Technique did. */
+  builds: BuildState;
 }
 
 /** A Technique a piece holds, at its grade. */
@@ -749,8 +714,12 @@ export interface BuildOffer {
   at: number;
   grade: Grade;
   cards: OfferCard[];
-  /** Rerolls bought at this break (the next one costs more). */
+  /** Rerolls drawn at this break, free ones included (each gives the next draw). */
   rerolls: number;
+  /** Rerolls paid for at this break (the next one costs more). */
+  paid: number;
+  /** Free rerolls left at this break (an obelisk's reward); used before any paid one. */
+  free: number;
   decided: 'taken' | 'passed' | null;
 }
 
@@ -780,6 +749,8 @@ export interface BuildState {
   touched: number[];
   /** Pieces whose Rank 8 Brilliant offer has been drawn. */
   brilliantUsed: number[];
+  /** Obelisk rewards: free rerolls for each of a side's pieces at the next break. */
+  freeRerolls: Record<PlayTeam, number>;
   /** Key `${heroId}:${techniqueId}`. */
   act: Record<string, TechTally>;
   lastAct: Record<string, TechTally>;
@@ -818,11 +789,11 @@ export interface CarriedRelic {
   reserve: number | null;
 }
 
-/** What one side brings into a match (a Tournament run): held relics, items, book moves, Tempo. */
+/** What one side brings into a match (a Tournament run): held relics, heirlooms, book moves, Tempo. */
 export interface TeamStart {
   /** Held from Act 1; an aim that no longer fits (a piece, an Opening's card) falls back to the default aim. */
   relics?: CarriedRelic[];
-  /** One item per piece, owned from the start (free). */
+  /** One Technique per piece, held at Plain grade from the start. */
   heirlooms?: Partial<Record<PieceId, string>>;
   /** Cards drawn twice as often (stacks with the Opening's ×2). */
   books?: string[];
@@ -849,7 +820,6 @@ export interface EventPayloads {
       def: string;
       role: string;
       style: string | null;
-      path: string;
     }[];
   };
   phaseStart: { phase: number; kind: PhaseKind };
@@ -891,11 +861,6 @@ export interface EventPayloads {
   };
   respawn: { id: number };
   gold: { id: number; amount: number; source: string };
-  /** `at: 'break'` marks a purchase made at the Act break (the armory or the AI's break shop). */
-  purchase: { id: number; item: string; price: number; consumed: string[]; at?: 'break' };
-  sell: { id: number; item: string; refund: number; at?: 'break' };
-  /** White changed a piece's armory plan at the break (null: back to the path's list). */
-  planSet: { id: number; plan: string[] | null };
   rankUp: { id: number; rank: number; bonus: string };
   /** `locked`: a Tournament run's carried archetype resolved the Rank 4 choice (`lockStyles`). */
   fork: { id: number; rank: number; optionId: string; auto: boolean; locked?: true };
@@ -945,8 +910,7 @@ export interface EventPayloads {
   sealedMove: { team: PlayTeam; card: string; trigger: SealedTrigger; outcome: 'fired' | 'lapsed' };
   relicTriggered: { team: PlayTeam; relic: string; lane: LaneId };
   laneSet: { id: number; lane: LaneId };
-  pathSet: { id: number; path: Path };
-  /** A piece's offer was drawn (`reroll` counts the rerolls before it). */
+  /** A piece's offer was drawn (`reroll` counts the rerolls before it, free ones included). */
   buildOffer: {
     id: number;
     team: PlayTeam;
@@ -995,12 +959,8 @@ export interface EventPayloads {
   obeliskSpawn: { unit: number; node: string; x: number; y: number };
   obeliskClaimed: { team: PlayTeam; node: string; reward: string; value: number };
   obeliskExpired: { node: string };
-  curseOffered: { hero: number; item: string; flawType: string };
-  curseAccepted: { hero: number; item: string; flaw: string };
-  curseRefused: { hero: number; item: string };
   pressure: { event: string; name: string };
   laneSwap: { a: number; b: number };
-  keeperMoved: { spot: string; x: number; y: number; stock: string[] };
   commandRejected: { cmd: string; reason: string };
   /** `adjudicated`: no Checkmate; the winner came from `MatchConfig.adjudicate` (null: a dead tie). */
   matchEnd: { winner: PlayTeam | null; phase: number; adjudicated?: true };
@@ -1067,7 +1027,6 @@ export type Command =
   | { type: 'autoForks' }
   | { type: 'playGambit'; slot: number; lane?: LaneId; x?: number; y?: number; targetId?: number }
   | { type: 'setLane'; heroId: number; lane: LaneId }
-  | { type: 'setPath'; heroId: number; path: Path }
   | { type: 'fieldPawn'; lane: LaneId }
   /** White's standing pawn plan: pawns to keep fielded per lane (total within the cap). */
   | { type: 'setPawnPlan'; quota: PawnQuota }
@@ -1075,14 +1034,6 @@ export type Command =
   | { type: 'setPawnAuto'; auto: boolean }
   /** Leaves the Act break sheet and starts the next Act (after a relic is taken). */
   | { type: 'resumeAct' }
-  /** Armory (Act break only): White's piece buys an item from the full shop, all tiers. */
-  | { type: 'buy'; heroId: number; item: string }
-  /** Armory (Act break only): White's piece sells an item for half its price (not cursed ones). */
-  | { type: 'sell'; heroId: number; item: string }
-  /** Armory (Act break only): six distinct item ids the piece buys in order, or null for its path's list. */
-  | { type: 'setPlan'; heroId: number; plan: string[] | null }
-  /** Armory (Act break only): the AI shops now for one White piece, or all five (null). */
-  | { type: 'autoShop'; heroId: number | null }
   /** Takes one of the break's offered relics, aimed; with three held, `replace` names the one it replaces. */
   | ({ type: 'pickRelic'; relicId: string; replace?: string } & Partial<RelicAim>)
   /** A full hand of three keeps what it holds and takes none of the offers. */
@@ -1101,60 +1052,6 @@ export type Command =
   | { type: 'upgradeTechnique'; heroId: number; techniqueId: string }
   /** Builds (Act break only): the AI's pick ("AI suggests") for one White piece, or all (null). */
   | { type: 'autoBuild'; heroId: number | null };
-
-export interface ArmoryState {
-  /** True from the bell's break until the next Act starts (the break shop sells every tier). */
-  open: boolean;
-  /** White's hero ids bought or sold for at this break: they keep their gold on resume. */
-  touched: number[];
-}
-
-/** One item in the armory grid, priced for one piece. */
-export interface ArmoryTile {
-  id: string;
-  name: string;
-  tier: number;
-  category: string;
-  /** List price. */
-  cost: number;
-  /** Price for this piece now: parts it owns come off, and the obelisk discount on a Masterwork. */
-  price: number;
-  /** The parts it is built from, and those the piece owns (consumed on purchase). */
-  parts: string[];
-  partsOwned: string[];
-  owned: boolean;
-  inPlan: boolean;
-  /** The AI's next buy for this piece (the "AI suggests" pip). */
-  suggested: boolean;
-  /** Buyable now: armory open, not blocked, price within the piece's gold. */
-  affordable: boolean;
-  /** Why it cannot be bought (duplicate, no free slot, armory closed), or null. */
-  blocked: string | null;
-}
-
-/** What the armory shows for one piece. */
-export interface ArmoryView {
-  heroId: number;
-  piece: PieceId;
-  gold: number;
-  /** Items held (cursed ones included), and the slot count. */
-  items: string[];
-  slots: number;
-  /** The six-item plan the piece shops by (its path's list until changed), and whether it was changed. */
-  plan: string[];
-  customPlan: boolean;
-  /** Plan items the piece does not have yet, in order (the ghost tiles). */
-  planLeft: string[];
-  /** The AI's next buy at the break (null when it would buy nothing). */
-  suggestion: string | null;
-  /** Bought or sold for at this break: keeps its gold on resume instead of the AI shopping. */
-  touched: boolean;
-  /** Sale price per held item (null for cursed items, which cannot be sold). */
-  sellRefund: Record<string, number | null>;
-  open: boolean;
-  /** Tier 1, 2 and 3 tiles for every item. */
-  tiles: ArmoryTile[];
-}
 
 export interface CommandResult {
   ok: boolean;
@@ -1194,7 +1091,7 @@ export interface MatchConfig {
   map?: 'default' | 'long';
   /** Tournament run: what each side brings into the match (relics, heirlooms, book moves, Tempo). */
   start?: { A?: TeamStart; B?: TeamStart };
-  /** Tournament run: White's Rank 4 resolves at once to these archetypes (Rank 8 still pauses). */
+  /** Tournament run: White's Rank 4 resolves at once to these archetypes. */
   lockStyles?: { A?: Partial<Record<PieceId, string>> };
   /** Tournament run: a match without Checkmate is decided by Bastions destroyed, then Throne health. */
   adjudicate?: boolean;
@@ -1209,13 +1106,6 @@ export interface MatchConfig {
    * match with no Checkmate when Act 3 ends is adjudicated. Default `classical`: the full match.
    */
   pace?: 'classical' | 'blitz';
-  /**
-   * Piece builds with Techniques (SPEC-PIECE-BUILDS-2026-10-18): offers at Setup and every Act
-   * break. Default off until items retire, so matches without it play exactly as before.
-   */
-  techniques?: boolean;
-  /** `false`: no item is bought (shops, the break shop, the AI) and Ranks grow by `builds.rankGrowth`. */
-  items?: boolean;
 }
 
 export interface Replay {
@@ -1240,7 +1130,6 @@ export interface SnapUnit {
   alive: boolean;
   piece: PieceId | null;
   style: string | null;
-  path: Path | null;
   rank: number;
   forkPending: boolean;
   /** Elite pawn fielded with Tempo (pawnlings are false). */
@@ -1266,7 +1155,6 @@ export interface SnapUnit {
   slot: number;
   range: number;
   claim: number;
-  curse: boolean;
   target: number | null;
   flash: boolean;
   /** Dealt or took damage within the last 1.5 s (the bell's calm test). */
@@ -1300,7 +1188,6 @@ export interface Snapshot {
   }[];
   pressure: string[];
   points: Record<PlayTeam, number>;
-  keeper: { x: number; y: number; spot: string } | null;
   phaseTicksLeft: number;
   events: SnapEvent[];
   act: SnapAct;
@@ -1399,11 +1286,11 @@ export interface SnapGambit {
 export interface SnapFork {
   heroId: number;
   piece: PieceId;
-  /** 'archetype' at Rank 4 (options are the piece's three styles), 'skill' at Rank 8. */
-  kind: 'archetype' | 'skill';
-  /** The piece's style key (as `SnapUnit.style`); null for an archetype fork. */
+  /** Rank 4: the options are the piece's three styles (archetypes). */
+  kind: 'archetype';
+  /** The piece's style key (as `SnapUnit.style`): null until it picks. */
   style: string | null;
-  rank: 4 | 8;
+  rank: 4;
   options: { id: string; name: string; desc: string }[];
   /** Ticks until the AI picks; null when there is no timeout (`pauseForForks`). */
   ticksLeft: number | null;
@@ -1514,6 +1401,8 @@ export interface BuildView {
     at: number;
     grade: Grade;
     rerolls: number;
+    /** Free rerolls left (an obelisk's reward); the next reroll costs 0 while any are left. */
+    freeRerolls: number;
     rerollCost: number;
     passGold: number;
     decided: 'taken' | 'passed' | null;

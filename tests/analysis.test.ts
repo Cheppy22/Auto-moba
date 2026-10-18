@@ -93,9 +93,8 @@ describe('plain-language event text', () => {
     expect(teamLabel('A')).toBe('your team');
     expect(teamLabel('B')).toBe('the enemy');
     expect(slotName('tlc')).toBe('left jungle');
-    const text = obeliskRewardText('unlock:hundred_hand_ledger', 0, content);
-    expect(text).toMatch(/^25% off .+ at the jungle stalls$/);
-    expect(text).not.toContain('hundred_hand_ledger');
+    expect(obeliskRewardText('reroll', 1)).toBe('a free reroll for each piece at the next break');
+    expect(obeliskRewardText('buff:moveSpeed', 1.06)).toBe('+6% move speed for the team');
     expect(
       structureText({ tick: 0, kind: 'tower', team: 'B', lane: 'bot', index: 0, killer: 1 }),
     ).toBe('Enemy outer Bastion (Right lane) fell');

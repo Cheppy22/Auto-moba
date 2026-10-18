@@ -1,7 +1,7 @@
 import { TPS } from './combat';
 import { pick, weightedPick } from './core/rng';
 import type { Ctx } from './ctx';
-import { giveGold } from './shop';
+import { giveGold } from './gold';
 import { newUnit } from './units';
 import type { Stats } from './content/schema';
 import type { PlayTeam } from './types';
@@ -80,17 +80,10 @@ function claim(ctx: Ctx, ob: ReturnType<Ctx['unit']> & object, team: PlayTeam): 
       h.dirty = true;
     }
     label = `buff:${reward.stat}`;
-  } else if (reward.kind === 'unlock') {
-    const locked = ctx.c.items.filter((i) => i.tier === 3 && !teamState.unlocks.includes(i.id));
-    if (locked.length) {
-      const it = pick(ctx.s.rng, 'loot', locked);
-      teamState.unlocks.push(it.id);
-      label = `unlock:${it.id}`;
-    } else {
-      teamState.points += 3;
-      label = 'points';
-      value = 3;
-    }
+  } else if (reward.kind === 'reroll') {
+    // a free reroll of each of the side's offers at the next break (`builds.freeRerolls`)
+    ctx.s.builds.freeRerolls[team] += 1;
+    value = 1;
   }
   ctx.emit('obeliskClaimed', { team, node: ob.obelisk!.nodeId, reward: label, value });
   ob.alive = false;

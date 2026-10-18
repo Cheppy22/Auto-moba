@@ -483,7 +483,7 @@ describe('a match with Techniques', () => {
         if (
           e.type === 'damage' &&
           e.payload.src === Number(hero) &&
-          e.payload.origin === `item:tech:${id}`
+          e.payload.origin === `trigger:tech:${id}`
         )
           sum += e.payload.amount;
       expect(row.damage).toBeCloseTo(sum, -1);

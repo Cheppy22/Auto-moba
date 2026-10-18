@@ -3,7 +3,7 @@ import { pick, weightedPick } from './core/rng';
 import type { Ctx } from './ctx';
 import type { CampTypeDef, BiomeDef, Stats } from './content/schema';
 import { onCampCleared } from './relicsLive';
-import { giveGold } from './shop';
+import { giveGold } from './gold';
 import { addMod } from './stats';
 import { healUnit } from './combat';
 import { newUnit } from './units';

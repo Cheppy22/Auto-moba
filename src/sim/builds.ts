@@ -1,7 +1,6 @@
 // Piece builds with Techniques (SPEC-PIECE-BUILDS-2026-10-18, phase 1): offers at Setup and each
 // Act break, grades, the gold rules (reroll, upgrade, pass), the AI's pick, "Pick for me" advice
-// and the read-only Builds view. Everything here runs only when the match has `s.builds`
-// (`MatchConfig.techniques`), so a match without Techniques is unchanged.
+// and the read-only Builds view.
 //
 // Offers are drawn from a private generator per offer, seeded by (match seed, side, piece, break,
 // reroll count): the same seed always gives the same offers, a reroll gives the next draw, and
@@ -55,6 +54,7 @@ export const freshBuilds = (): BuildState => ({
   offers: [],
   touched: [],
   brilliantUsed: [],
+  freeRerolls: { A: 0, B: 0 },
   act: {},
   lastAct: {},
   match: {},
@@ -190,11 +190,16 @@ export function drawOffer(
   const rolled = rollGrade(t, at, rng());
   const g = grade ?? rolled;
   const taken = takenIds(c, subj.held);
+  // at Setup the only card held is a run's heirloom: the first move is drawn for another slot
+  const filled = new Set(
+    at === 0 ? subj.held.map((h) => def(c, h.id)?.slot).filter((x) => x !== undefined) : [],
+  );
   const pool = c.techniques.filter(
     (d) =>
       d.pool !== 'combination' &&
       d.weight > 0 &&
       !taken.has(d.id) &&
+      !filled.has(d.slot) &&
       slotOpen(subj, d.slot) &&
       inPool(d, subj),
   );
@@ -389,7 +394,7 @@ export function subjectOf(ctx: Ctx, u: Unit): BuildSubject {
     piece: h.defId,
     style: h.style,
     rank: h.rank,
-    held: h.techniques ?? [],
+    held: h.techniques,
     schools: openingSchools(ctx, team),
     behind: ctx.s.relics.behind[team],
   };
@@ -403,10 +408,12 @@ function piecesInSlotOrder(ctx: Ctx, team: PlayTeam): Unit[] {
 }
 
 const offerOf = (ctx: Ctx, heroId: number): BuildOffer | undefined =>
-  ctx.s.builds?.offers.find((o) => o.heroId === heroId);
+  ctx.s.builds.offers.find((o) => o.heroId === heroId);
 
+/** Gold for the next reroll: free while the offer has an obelisk's free reroll left. */
 export function rerollCost(t: Tuning, offer: BuildOffer): number {
-  return t.builds.reroll.base + t.builds.reroll.step * offer.rerolls;
+  if (offer.free > 0) return 0;
+  return t.builds.reroll.base + t.builds.reroll.step * offer.paid;
 }
 
 /** Gold to raise a held Technique one grade, or null at Brilliant. */
@@ -430,7 +437,7 @@ function takeCard(ctx: Ctx, u: Unit, offer: BuildOffer, idx: number, auto: boole
   const card = offer.cards[idx];
   const d = def(ctx.c, card.id)!;
   const h = u.hero!;
-  const held = h.techniques ?? [];
+  const held = h.techniques;
   const old = replacedBy(ctx.c, held, card.id);
   h.techniques = withTechnique(ctx.c, held, card.id, card.grade);
   offer.decided = 'taken';
@@ -455,7 +462,10 @@ function passCard(ctx: Ctx, u: Unit, offer: BuildOffer): void {
 }
 
 function reroll(ctx: Ctx, u: Unit, offer: BuildOffer): void {
-  u.hero!.gold -= rerollCost(ctx.t, offer);
+  const cost = rerollCost(ctx.t, offer);
+  u.hero!.gold -= cost;
+  if (offer.free > 0) offer.free -= 1;
+  else offer.paid += 1;
   offer.rerolls += 1;
   const d = drawOffer(ctx.c, ctx.t, subjectOf(ctx, u), offer.at, offer.rerolls, offer.grade);
   offer.cards = d.cards;
@@ -464,7 +474,7 @@ function reroll(ctx: Ctx, u: Unit, offer: BuildOffer): void {
 
 function upgrade(ctx: Ctx, u: Unit, id: string): number {
   const h = u.hero!;
-  const held = (h.techniques ?? []).find((x) => x.id === id)!;
+  const held = (h.techniques).find((x) => x.id === id)!;
   const cost = upgradeCost(ctx.t, held.grade)!;
   h.gold -= cost;
   held.grade = GRADES[gradeIndex(held.grade) + 1];
@@ -474,15 +484,13 @@ function upgrade(ctx: Ctx, u: Unit, id: string): number {
 }
 
 /**
- * The match starts: every piece holds no Technique, then each draws its Setup offer (White, then
- * Black, in slot order). White takes its `firstMove` when it is one of the cards; Black takes its
- * court's fixed first move (`content/courts.json`) whatever the offer holds; the AI picks the rest.
+ * The match starts: each piece (holding nothing, or a run's heirloom) draws its Setup offer
+ * (White, then Black, in slot order). White takes its `firstMove` when it is one of the cards;
+ * Black takes its court's fixed first move (`content/courts.json`) whatever the offer holds; the
+ * AI picks the rest.
  */
 export function startBuilds(ctx: Ctx): void {
   const b = ctx.s.builds;
-  if (!b) return;
-  for (const team of PLAY_TEAMS)
-    for (const u of piecesInSlotOrder(ctx, team)) u.hero!.techniques = [];
   for (const team of PLAY_TEAMS) {
     for (const u of piecesInSlotOrder(ctx, team)) {
       const subj = subjectOf(ctx, u);
@@ -499,6 +507,8 @@ export function startBuilds(ctx: Ctx): void {
         grade: d.grade,
         cards,
         rerolls: 0,
+        paid: 0,
+        free: 0,
         decided: null,
       };
       b.offers.push(offer);
@@ -513,10 +523,12 @@ export function startBuilds(ctx: Ctx): void {
   }
 }
 
-/** The Act break: last Act's tallies are kept, and both sides draw their offers (White first). */
+/**
+ * The Act break: last Act's tallies are kept, and both sides draw their offers (White first). A
+ * side's obelisk rewards become free rerolls on each of its offers.
+ */
 export function openBuilds(ctx: Ctx): void {
   const b = ctx.s.builds;
-  if (!b) return;
   b.lastAct = b.act;
   b.act = {};
   b.lastPieces = b.pieces;
@@ -526,6 +538,8 @@ export function openBuilds(ctx: Ctx): void {
   b.offers = [];
   const at = ctx.s.phase.n;
   for (const team of PLAY_TEAMS) {
+    const free = b.freeRerolls[team];
+    b.freeRerolls[team] = 0;
     for (const u of piecesInSlotOrder(ctx, team)) {
       let grade: Grade | undefined;
       const rank8 = u.hero!.rank >= 8 && !b.brilliantUsed.includes(u.id);
@@ -540,6 +554,8 @@ export function openBuilds(ctx: Ctx): void {
         grade: d.grade,
         cards: d.cards,
         rerolls: 0,
+        paid: 0,
+        free,
         decided: null,
       };
       b.offers.push(offer);
@@ -551,13 +567,12 @@ export function openBuilds(ctx: Ctx): void {
 /** The next Act starts: offers close. */
 export function closeBuilds(ctx: Ctx): void {
   const b = ctx.s.builds;
-  if (!b) return;
   b.open = false;
   b.touched = [];
 }
 
 function damageLastAct(ctx: Ctx, heroId: number): number {
-  return ctx.s.builds?.lastPieces[String(heroId)]?.damage ?? 0;
+  return ctx.s.builds.lastPieces[String(heroId)]?.damage ?? 0;
 }
 
 function effectOf(row: TechTally | undefined): number {
@@ -567,11 +582,11 @@ function effectOf(row: TechTally | undefined): number {
 /** The AI's gold after the pick: upgrade the held Technique that did the most last Act, while gold allows. */
 function aiUpgrades(ctx: Ctx, u: Unit): void {
   const h = u.hero!;
-  const b = ctx.s.builds!;
+  const b = ctx.s.builds;
   for (let guard = 0; guard < 12; guard++) {
     let best: HeldTechnique | null = null;
     let bestEffect = -1;
-    for (const x of h.techniques ?? []) {
+    for (const x of h.techniques) {
       const cost = upgradeCost(ctx.t, x.grade);
       if (cost === null || cost > h.gold) continue;
       const e = effectOf(b.lastAct[`${u.id}:${x.id}`]);
@@ -591,11 +606,12 @@ function aiPieceTurn(ctx: Ctx, u: Unit, allowReroll: boolean, spend: boolean): v
   const a = ctx.t.builds.ai;
   if (offer && offer.decided === null) {
     const h = u.hero!;
-    while (allowReroll && offer.rerolls < a.maxRerolls) {
+    // a free reroll (an obelisk's) needs no gold; a paid one keeps enough for an upgrade after it
+    while (allowReroll && (offer.free > 0 || offer.paid < a.maxRerolls)) {
       const subj = subjectOf(ctx, u);
       const best = Math.max(...offer.cards.map((x) => scoreCard(ctx.c, ctx.t, subj, x, offer.at)));
-      if (best >= a.rerollBelow || h.gold < rerollCost(ctx.t, offer) + ctx.t.builds.upgrade[0])
-        break;
+      if (best >= a.rerollBelow) break;
+      if (offer.free === 0 && h.gold < rerollCost(ctx.t, offer) + ctx.t.builds.upgrade[0]) break;
       reroll(ctx, u, offer);
     }
     const subj = subjectOf(ctx, u);
@@ -624,7 +640,7 @@ function aiTeamBuilds(
 
 /** Headless and Black: the AI's full turn for a side (rerolls, passes, picks and upgrades). */
 export function aiBuilds(ctx: Ctx, team: PlayTeam): void {
-  if (!ctx.s.builds?.open) return;
+  if (!ctx.s.builds.open) return;
   aiTeamBuilds(ctx, team, true, []);
 }
 
@@ -634,7 +650,7 @@ export function aiBuilds(ctx: Ctx, team: PlayTeam): void {
  */
 export function resumeBuilds(ctx: Ctx): void {
   const b = ctx.s.builds;
-  if (!b?.open) return;
+  if (!b.open) return;
   aiTeamBuilds(ctx, 'A', false, b.touched);
 }
 
@@ -646,7 +662,6 @@ function whiteOffer(
   needOffer: boolean,
 ): { u: Unit; offer: BuildOffer | undefined } | string {
   const b = ctx.s.builds;
-  if (!b) return 'Techniques are off in this match';
   if (!b.open || ctx.s.bell.stage !== 'break') return 'builds open only at the Act break';
   const u = ctx.unit(heroId);
   if (!u?.hero || u.team !== 'A') return 'not one of your pieces';
@@ -656,7 +671,7 @@ function whiteOffer(
 }
 
 function touch(ctx: Ctx, heroId: number): void {
-  const b = ctx.s.builds!;
+  const b = ctx.s.builds;
   if (!b.touched.includes(heroId)) b.touched.push(heroId);
 }
 
@@ -690,7 +705,7 @@ export function rerollOffer(ctx: Ctx, heroId: number): CommandResult {
 export function upgradeTechnique(ctx: Ctx, heroId: number, techniqueId: string): CommandResult {
   const r = whiteOffer(ctx, heroId, false);
   if (typeof r === 'string') return { ok: false, reason: r };
-  const held = (r.u.hero!.techniques ?? []).find((x) => x.id === techniqueId);
+  const held = r.u.hero!.techniques.find((x) => x.id === techniqueId);
   if (!held) return { ok: false, reason: 'the piece does not hold that Technique' };
   const cost = upgradeCost(ctx.t, held.grade);
   if (cost === null) return { ok: false, reason: 'already Brilliant' };
@@ -703,7 +718,6 @@ export function upgradeTechnique(ctx: Ctx, heroId: number, techniqueId: string):
 /** "Let the AI choose" (one piece) / "AI picks for all" (null): takes the card the AI suggests. */
 export function autoBuild(ctx: Ctx, heroId: number | null): CommandResult {
   const b = ctx.s.builds;
-  if (!b) return { ok: false, reason: 'Techniques are off in this match' };
   if (!b.open || ctx.s.bell.stage !== 'break')
     return { ok: false, reason: 'builds open only at the Act break' };
   const ids = heroId === null ? piecesInSlotOrder(ctx, 'A').map((u) => u.id) : [heroId];
@@ -788,7 +802,7 @@ const zeroTally = (): TechTally => ({ damage: 0, heal: 0, shield: 0, procs: 0 })
 export function buildView(ctx: Ctx, heroId: number): BuildView | null {
   const b = ctx.s.builds;
   const u = ctx.unit(heroId);
-  if (!b || !u?.hero || u.team === 'neutral') return null;
+  if (!u?.hero || u.team === 'neutral') return null;
   const h = u.hero;
   const subj = subjectOf(ctx, u);
   const c = ctx.c;
@@ -835,6 +849,7 @@ export function buildView(ctx: Ctx, heroId: number): BuildView | null {
       at: o.at,
       grade: o.grade,
       rerolls: o.rerolls,
+      freeRerolls: o.free,
       rerollCost: rerollCost(ctx.t, o),
       passGold: ctx.t.builds.passGold,
       decided: o.decided,
@@ -870,7 +885,7 @@ export function buildView(ctx: Ctx, heroId: number): BuildView | null {
 /** "Pick for me" at a break: the AI's pick for each of a side's open offers and the 1-2 that matter most. */
 export function buildAdvice(ctx: Ctx, team: PlayTeam): BuildAdvice {
   const b = ctx.s.builds;
-  if (!b?.open) return { pieces: [], highlight: [] };
+  if (!b.open) return { pieces: [], highlight: [] };
   const units = piecesInSlotOrder(ctx, team);
   let carry: number | null = null;
   let most = 0;

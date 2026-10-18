@@ -17,24 +17,14 @@ export function kitOf(c: Content, h: HeroState): AbilityDef[] {
   return h.style === null ? pieceDef(c, h).abilities : c.kitByKey.get(`${h.defId}/${h.style}`)!;
 }
 
-/** The path's build list (its style's list when the style has one): the AI's suggested plan. */
-export function pathListOf(c: Content, h: HeroState): string[] {
-  return styleDef(c, h)?.paths?.[h.path] ?? pieceDef(c, h).paths[h.path];
-}
-
-/** The list the piece buys by: its armory plan when one is set, else its path's list. */
-export function buildListOf(c: Content, h: HeroState): string[] {
-  return h.plan ?? pathListOf(c, h);
-}
-
 export function attackKindOf(c: Content, h: HeroState): 'melee' | 'ranged' {
   return styleDef(c, h)?.attackKind ?? pieceDef(c, h).attackKind;
 }
 
 /**
- * The bonus a perk reference stands for: the piece's generic bonus (Ranks 2-3), the style's rank
- * bonus (5-7) or the chosen Rank 8 option. Rank 4 is the archetype choice and has no bonus of its
- * own. Style bonuses are undefined until the style exists.
+ * The bonus a perk reference stands for: the piece's generic bonus (Ranks 2-3) or the style's
+ * rank bonus (5-7). Rank 4 is the archetype choice and Rank 8 makes the next Technique offer
+ * Brilliant; neither has a bonus of its own. Style bonuses are undefined until the style exists.
  */
 export function perkOf(
   piece: PieceDef,
@@ -42,9 +32,7 @@ export function perkOf(
   ref: PerkRef,
 ): PerkDef | undefined {
   if (ref.rank === 2 || ref.rank === 3) return piece.generic[String(ref.rank) as '2' | '3'];
-  if (!style || ref.rank === 4) return undefined;
-  if (ref.optionId !== null)
-    return ref.rank === 8 ? style.forks['8'].find((o) => o.id === ref.optionId) : undefined;
+  if (!style || ref.rank === 4 || ref.rank === 8 || ref.optionId !== null) return undefined;
   return style.ranks[String(ref.rank) as keyof StyleDef['ranks']];
 }
 

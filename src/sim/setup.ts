@@ -1,5 +1,5 @@
 import type { Content } from './content/loader';
-import { PATHS, PIECE_IDS, type LaneId, type Path, type PieceDef } from './content/schema';
+import { PIECE_IDS, type LaneId } from './content/schema';
 import { pick, rand, shuffle, type RngState } from './core/rng';
 import type { Ctx } from './ctx';
 import { makeHero } from './units';
@@ -9,29 +9,15 @@ const LANE_COUNT: Record<LaneId, number> = { top: 2, bot: 2, mid: 1 };
 const LANE_ORDER: LaneId[] = ['top', 'bot', 'mid'];
 const LANE_ORDER_TURNED: LaneId[] = ['bot', 'top', 'mid'];
 
-export function naturalPath(p: PieceDef): Path {
-  if (p.defaultPath) return p.defaultPath;
-  if (p.disposition === 'defender') return 'defense';
-  if (p.disposition === 'attacker') return 'offense';
-  return p.attackKind === 'ranged' ? 'utility' : 'offense';
-}
-
 /**
- * The AI's seeded setup (Black's pick, and White's pre-filled default): a random opening, mostly
- * each piece's natural build path, an attacker in Mid where possible and side lanes paired so each
- * holds different dispositions. (Styles are chosen later, at Rank 4.)
+ * The AI's seeded setup (Black's pick, and White's pre-filled default): a random opening, an
+ * attacker in Mid where possible and side lanes paired so each holds different dispositions.
+ * (First moves are picked when the match starts, styles at Rank 4.)
  */
 export function aiSetup(c: Content, rng: RngState): TeamSetup {
   const opening = pick(rng, 'draft', c.openings).id;
   const out: SetupEntry[] = [];
-  for (const id of PIECE_IDS) {
-    const p = c.pieceById.get(id)!;
-    const nat = naturalPath(p);
-    const roll = rand(rng, 'draft');
-    const others = PATHS.filter((x) => x !== nat);
-    const path = roll < 0.5 ? nat : roll < 0.75 ? others[0] : others[1];
-    out.push({ piece: id, path, lane: 'mid' });
-  }
+  for (const id of PIECE_IDS) out.push({ piece: id, lane: 'mid' });
   const disp = (e: SetupEntry): string => c.pieceById.get(e.piece)!.disposition;
   let rest = shuffle(rng, 'draft', out);
   const mid = rest.find((e) => disp(e) === 'attacker') ?? rest[0];
@@ -61,7 +47,6 @@ export function validateSetup(c: Content, setup: unknown): string | null {
     if (!p) return 'unknown piece';
     if (seen.has(p.id)) return `${p.name} is listed twice`;
     seen.add(p.id);
-    if (!(PATHS as readonly string[]).includes(e.path)) return 'unknown build path';
     if (!(e.lane in lanes)) return 'unknown lane';
     lanes[e.lane]++;
   }

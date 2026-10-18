@@ -353,12 +353,5 @@ export function validateTechniques(c: Content): string[] {
         errs.push(`${at}: \`skill\` works on cast and kill triggers only`);
     }
   }
-  // the Rank 8 options live on as archetype Techniques (same id, piece and archetype)
-  for (const st of c.pieces.flatMap((p) => p.styles.map((s) => ({ p, s }))))
-    for (const f of st.s.forks['8']) {
-      const d = c.techniqueById.get(f.id);
-      if (!d || d.pool !== 'archetype' || d.piece !== st.p.id || d.archetype !== st.s.id)
-        errs.push(`Rank 8 option ${f.id}: needs an archetype Technique of the same id`);
-    }
   return errs;
 }

@@ -6,7 +6,6 @@ import { closeDraft, resolveDraft } from './draft';
 import { actTicks, endAct, enterAct } from './phase';
 import type { BellStage, BellState } from './types';
 import { PLAY_TEAMS } from './names';
-import { closeArmory, openArmory, teamBreakShop } from './armory';
 import { aiBuilds, closeBuilds, openBuilds, resumeBuilds } from './builds';
 import { adjudicate } from './runRules';
 
@@ -43,8 +42,9 @@ function boardCalm(ctx: Ctx): boolean {
 }
 
 /**
- * The Act ends: the report is cut, both AIs re-plan, relics are offered, the armory opens and
- * Black break-shops; the sheet waits (or, headless, White and then Black shop and play resumes).
+ * The Act ends: the report is cut, both AIs re-plan, relics are offered, both sides draw their
+ * Technique offers and Black's AI builds; the sheet waits (or, headless, White and then Black
+ * build and play resumes).
  */
 function enterBreak(ctx: Ctx): void {
   const s = ctx.s;
@@ -54,35 +54,26 @@ function enterBreak(ctx: Ctx): void {
   replanLanes(ctx, 'B', report);
   if (!ctx.pauseForBreak) replanLanes(ctx, 'A', report);
   resolveDraft(ctx, report);
-  // Techniques (when on): both sides' offers, then the AI's picks, before the break shop
   openBuilds(ctx);
-  openArmory(ctx);
   if (!ctx.pauseForBreak) {
     aiBuilds(ctx, 'A');
     aiBuilds(ctx, 'B');
-    teamBreakShop(ctx, 'A');
-    teamBreakShop(ctx, 'B');
     resumeFromBreak(ctx);
     return;
   }
   aiBuilds(ctx, 'B');
-  teamBreakShop(ctx, 'B');
   setStage(ctx, 'break');
 }
 
 /**
  * Starts the next Act from the break; the next pawnling wave follows right after. On the sheet's
- * Resume, White's pieces the player did not buy or sell for get the AI's break shop first.
+ * Resume, the AI picks for White's pieces the player left undecided first.
  */
 export function resumeFromBreak(ctx: Ctx): void {
   const s = ctx.s;
   const next = s.phase.n + 1;
-  if (ctx.pauseForBreak) {
-    resumeBuilds(ctx);
-    teamBreakShop(ctx, 'A', s.armory.touched);
-  }
+  if (ctx.pauseForBreak) resumeBuilds(ctx);
   closeBuilds(ctx);
-  closeArmory(ctx);
   closeDraft(ctx);
   s.bell = freshBell();
   enterAct(ctx, next);

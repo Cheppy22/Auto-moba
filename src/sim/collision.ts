@@ -7,7 +7,7 @@ import type { Unit } from './types';
 /**
  * Soft body collision. After everyone has moved, overlapping bodies are shoved apart along the line
  * between them, the lighter one moving further (piece > pawn > pawnling). Bodies that never move
- * (Bastions, Thrones, obelisks, the Keeper) still shove others out. A small overlap is tolerated and
+ * (Bastions, Thrones, obelisks) still shove others out. A small overlap is tolerated and
  * a push is capped, so crowds settle instead of jittering; a unit walking head-on into a blocker
  * also steps sideways, so two columns pass each other instead of freezing nose to nose. Teammates
  * keep a little extra personal space while either of them is fighting (`spacing.combatSpace`), so a
@@ -48,7 +48,7 @@ let posY = new Float64Array(256);
 let teamOf = new Int8Array(256);
 
 function isFixed(u: Unit): boolean {
-  return u.kind === 'tower' || u.kind === 'guardian' || u.kind === 'obelisk' || u.kind === 'keeper';
+  return u.kind === 'tower' || u.kind === 'guardian' || u.kind === 'obelisk';
 }
 
 /** Ghosts (the procession, the oni) drift through everything. */
@@ -67,8 +67,6 @@ export function bodyRadius(ctx: Ctx, u: Unit): number {
       return r.guardian;
     case 'obelisk':
       return r.obelisk;
-    case 'keeper':
-      return r.keeper;
     case 'camp':
       return Math.min(r.neutralMax, r.neutralBase + r.neutralPerHp * u.base.maxHp);
     default:

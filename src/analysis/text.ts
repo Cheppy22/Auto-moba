@@ -107,21 +107,15 @@ function buffText(stat: string, value: number): string {
   return value >= 1 ? `+${pct}% ${name} for the team` : `${pct}% ${name} for the team`;
 }
 
-/** Obelisk reward label (e.g. "unlock:hundred_hand_ledger") -> plain English. */
-export function obeliskRewardText(reward: string, value: number, c: Content): string {
-  if (reward.startsWith('unlock:')) {
-    const id = reward.slice(7);
-    const name = c.items.find((i) => i.id === id)?.name ?? id.replace(/_/g, ' ');
-    const off = Math.round(c.tuning.shop.unlockDiscount * 100);
-    return `${off}% off ${name} at the jungle stalls`;
-  }
+/** Obelisk reward label (e.g. "buff:moveSpeed") -> plain English. */
+export function obeliskRewardText(reward: string, value: number): string {
   if (reward.startsWith('buff:')) {
     const stat = reward.slice(5);
     return buffText(stat, value);
   }
   if (reward === 'points') return `+${value} points`;
   if (reward === 'gold') return `+${value} gold for each piece`;
-  if (reward === 'unlock') return 'a discount at the jungle stalls';
+  if (reward === 'reroll') return 'a free reroll for each piece at the next break';
   return reward.replace(/_/g, ' ');
 }
 
@@ -143,7 +137,7 @@ function obeliskText(
   c: Content,
   viewer: PlayTeam = 'A',
 ): string {
-  return `${teamLabelCap(o.team, viewer)} claimed the obelisk at ${slotName(o.node)}: ${obeliskRewardText(o.reward, o.value, c)}`;
+  return `${teamLabelCap(o.team, viewer)} claimed the obelisk at ${slotName(o.node)}: ${obeliskRewardText(o.reward, o.value)}`;
 }
 
 function biomeText(b: Report['special']['biomes'][number], c: Content): string {

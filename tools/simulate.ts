@@ -6,7 +6,7 @@ import {
   type RelicMode,
   type TeamSetup,
 } from '../src/sim';
-import { teamNetWorth } from '../src/sim/curses';
+import { teamGoldEarned } from '../src/sim/gold';
 import { PLAY_TEAMS } from '../src/sim';
 import { aiCardPick, cardBlock } from '../src/sim/gambits';
 import { highGroundEdge } from '../src/sim/world/height';
@@ -17,17 +17,15 @@ export interface HeroResult {
   def: string;
   /** The archetype the piece chose at Rank 4; '' if it never reached Rank 4. */
   style: string;
-  path: string;
   role: string;
   won: boolean;
   kills: number;
   deaths: number;
   assists: number;
   goldEarned: number;
-  items: string[];
   rank: number;
-  /** Techniques held at match end (`id:grade`); only with `--techniques`. */
-  techniques?: string[];
+  /** Techniques held at match end (`id:grade`). */
+  techniques: string[];
 }
 
 export interface MatchSummary {
@@ -38,12 +36,6 @@ export interface MatchSummary {
   ticks: number;
   ms: number;
   heroes: HeroResult[];
-  curses: {
-    offered: number;
-    accepted: number;
-    refused: number;
-    acceptedBy: { item: string; won: boolean }[];
-  };
   lead1: PlayTeam | null;
   comeback: boolean;
   obelisks: Record<PlayTeam, number>;
@@ -66,34 +58,30 @@ export interface MatchSummary {
   pace: Record<PlayTeam, TempoPace>;
   /** The Long Board's high-ground eye badge (`SnapUnit.highGround`), read every tick. */
   eye: EyeRead;
-  /** Each Act break: every piece's gold and Masterworks (break index 0 = after Act 1). */
+  /** Each Act break: every piece's gold and Techniques (break index 0 = after Act 1). */
   breaks: BreakRead[];
-  /** Masterwork purchases (any time), by item id. */
-  masterworks: Record<string, number>;
   /** No Checkmate: the winner came from adjudication (a run or Blitz). */
   adjudicated: boolean;
-  /** With `--techniques`: every card dealt (rerolls included) and every card taken, per side. */
-  builds?: Record<
+  /** Every card dealt (rerolls included) and every card taken, per side. */
+  builds: Record<
     PlayTeam,
     { offered: string[]; taken: string[]; passes: number; rerolls: number; upgrades: number }
   >;
 }
 
-/** One piece at one Act break (gold before and after the break shop, items after it). */
+/** One piece at one Act break, read when the next Act starts. */
 export interface BreakRead {
   act: number;
   team: PlayTeam;
   piece: string;
-  /** Gold banked when the bell broke (before any break shopping). */
-  goldBefore: number;
   /** Gold left when the next Act starts. */
   goldAfter: number;
-  /** Gold spent at the break (net of sell refunds). */
+  /** Gold spent at the break on rerolls and upgrades (net of the gold a pass gives). */
   spent: number;
-  items: number;
-  /** Masterworks owned when the next Act starts, and those bought at this break. */
-  masterworks: number;
-  boughtMasterworks: number;
+  /** Techniques held when the next Act starts. */
+  techniques: number;
+  /** Upgrades bought at this break. */
+  upgrades: number;
 }
 
 export interface TempoPace {
@@ -146,44 +134,11 @@ export interface SimOptions {
   whitePlayer?: boolean;
   /** With `whitePlayer`: the stand-in plays at most one card per this many seconds (0 = no limit). */
   whiteEvery?: number;
-  /** White's pieces buy by a fixed greedy plan from the start (see `PLAN_PRESETS`). */
-  plans?: PlanPreset;
   /** `blitz`: the short pace (at most 3 Acts, adjudicated without Checkmate). */
   pace?: 'blitz';
-  /** Both sides play piece builds (`MatchConfig.techniques`). */
-  techniques?: boolean;
-  /** No items; Ranks grow by `builds.rankGrowth` (`MatchConfig.items: false`). */
-  noItems?: boolean;
 }
 
 const TPS = 20;
-
-/**
- * Greedy fixed plans for White (`--plans A=<preset>`, spec 1C balance plan step 3):
- * `mind-queen` (the Queen rushes the three Mind Masterworks), `body-rook` (the Rook rushes the three
- * Body Masterworks), `stack` (every piece stacks its main category: the four tier-2 items for the
- * 4-item attunement, then two Masterworks).
- */
-export const PLAN_PRESETS = ['mind-queen', 'body-rook', 'stack'] as const;
-export type PlanPreset = (typeof PLAN_PRESETS)[number];
-
-function presetPlans(content: Content, m: Match, preset: PlanPreset): void {
-  const byCat = (cat: string, tier: number) =>
-    content.items.filter((i) => i.category === cat && i.tier === tier).map((i) => i.id);
-  const rush = (cat: string) => [...byCat(cat, 3), ...byCat(cat, 2)].slice(0, 6);
-  for (const id of m.state.teams.A.heroIds) {
-    const h = m.unitById(id)!.hero!;
-    let plan: string[] | null = null;
-    if (preset === 'mind-queen' && h.defId === 'queen') plan = rush('mind');
-    else if (preset === 'body-rook' && h.defId === 'rook') plan = rush('body');
-    else if (preset === 'stack') {
-      const st = content.pieceById.get(h.defId)!.stats;
-      const cat = st.soulPower > st.bladeDmg * 0.8 ? 'soul' : 'mind';
-      plan = [...byCat(cat, 2), ...byCat(cat, 3)].slice(0, 6);
-    }
-    if (plan) h.plan = plan;
-  }
-}
 
 export function simulateMatch(content: Content, seed: number, opts: SimOptions = {}): MatchSummary {
   const t0 = process.hrtime.bigint();
@@ -195,55 +150,49 @@ export function simulateMatch(content: Content, seed: number, opts: SimOptions =
     relics: opts.relics,
     map: opts.map,
     ...(opts.pace ? { pace: opts.pace } : {}),
-    ...(opts.techniques ? { techniques: true } : {}),
-    ...(opts.noItems ? { items: false } : {}),
     autoGambits: { A: !opts.noGambitsA && !opts.whitePlayer, B: !opts.noGambitsB },
     // The baseline removes Tempo spending only; forks still pick at once as the AI does.
     autoForks: { A: true, B: true },
   });
   if (m.state.phase.kind === 'setup') m.issue({ type: 'setupTeam', ...m.defaultSetup() });
   if (opts.whitePlayer) m.issue({ type: 'setPawnPlan', quota: { top: 2, mid: 2, bot: 2 } });
-  if (opts.plans) presetPlans(content, m, opts.plans);
   const reads = paceReader(m, !!opts.whitePlayer && !opts.noGambitsA, opts.whiteEvery ?? 0);
   const act = content.tuning.phaseSeconds * content.tuning.tickRate;
   const breaks: BreakRead[] = [];
-  let evSeen = 0;
+  const goldBefore = new Map<number, number>();
   const readBreak = (act: number): void => {
-    // the break resolved inside this tick (headless): purchases and sells marked `at: 'break'`
-    const spent = new Map<number, number>();
-    const bought = new Map<number, number>();
+    // the break resolved inside this tick (headless): the upgrades it bought are its events
+    const upgrades = new Map<number, number>();
     for (let k = evSeen; k < m.events.length; k++) {
       const e = m.events[k];
-      if (e.type === 'purchase' && e.payload.at === 'break') {
-        spent.set(e.payload.id, (spent.get(e.payload.id) ?? 0) + e.payload.price);
-        if (content.itemById.get(e.payload.item)?.tier === 3)
-          bought.set(e.payload.id, (bought.get(e.payload.id) ?? 0) + 1);
-      } else if (e.type === 'sell' && e.payload.at === 'break')
-        spent.set(e.payload.id, (spent.get(e.payload.id) ?? 0) - e.payload.refund);
+      if (e.type === 'techniqueUpgrade')
+        upgrades.set(e.payload.id, (upgrades.get(e.payload.id) ?? 0) + 1);
     }
     for (const team of PLAY_TEAMS) {
       for (const id of m.state.teams[team].heroIds) {
         const h = m.unitById(id)!.hero!;
-        const sp = spent.get(id) ?? 0;
         breaks.push({
           act,
           team,
           piece: h.defId,
-          goldBefore: h.gold + sp,
           goldAfter: h.gold,
-          spent: sp,
-          items: h.items.length,
-          masterworks: h.items.filter((x) => content.itemById.get(x)?.tier === 3).length,
-          boughtMasterworks: bought.get(id) ?? 0,
+          spent: (goldBefore.get(id) ?? h.gold) - h.gold,
+          techniques: h.techniques.length,
+          upgrades: upgrades.get(id) ?? 0,
         });
       }
     }
   };
+  let evSeen = 0;
   const run = (ticks: number): void => {
     for (let i = 0; i < ticks; i++) {
       reads.before();
       const act = m.state.phase.n;
       evSeen = m.events.length;
+      if (m.state.bell.stage === 'halt')
+        for (const team of PLAY_TEAMS)
+          for (const id of m.state.teams[team].heroIds)
+            goldBefore.set(id, m.unitById(id)!.hero!.gold);
       if (m.step(1) === 0) return;
       if (m.state.phase.kind === 'live' && m.state.phase.n > act) readBreak(act);
       reads.after();
@@ -252,8 +201,8 @@ export function simulateMatch(content: Content, seed: number, opts: SimOptions =
   run(act);
   let lead1: PlayTeam | null = null;
   if (m.state.phase.kind === 'live') {
-    const a = teamNetWorth(m.ctx, 'A');
-    const b = teamNetWorth(m.ctx, 'B');
+    const a = teamGoldEarned(m.ctx, 'A');
+    const b = teamGoldEarned(m.ctx, 'B');
     lead1 = a === b ? null : a > b ? 'A' : 'B';
   }
   while (m.state.phase.kind === 'live' && m.state.phase.n <= maxPhases) run(act);
@@ -267,25 +216,17 @@ export function simulateMatch(content: Content, seed: number, opts: SimOptions =
         team,
         def: h.defId,
         style: h.style ?? '',
-        path: h.path,
         role: h.role,
         won: winner === team,
         kills: h.kills,
         deaths: h.deaths,
         assists: h.assists,
         goldEarned: h.goldEarned,
-        items: h.items.slice(),
         rank: h.rank,
-        ...(h.techniques ? { techniques: h.techniques.map((x) => `${x.id}:${x.grade}`) } : {}),
+        techniques: h.techniques.map((x) => `${x.id}:${x.grade}`),
       });
     }
   }
-  const curses = {
-    offered: 0,
-    accepted: 0,
-    refused: 0,
-    acceptedBy: [] as { item: string; won: boolean }[],
-  };
   const teamOfHero = new Map<number, PlayTeam>();
   for (const team of PLAY_TEAMS) for (const id of s.teams[team].heroIds) teamOfHero.set(id, team);
   const obelisks: Record<PlayTeam, number> = { A: 0, B: 0 };
@@ -298,7 +239,6 @@ export function simulateMatch(content: Content, seed: number, opts: SimOptions =
     B: { offered: [], taken: [], held: s.relics.held.B.map((h) => h.id) },
   };
   const rankMinute: (number | null)[] = Array.from({ length: 9 }, () => null);
-  const masterworks: Record<string, number> = {};
   let campsCleared = 0;
   let firstTowerMinute: number | null = null;
   let throneAt = -1;
@@ -307,13 +247,7 @@ export function simulateMatch(content: Content, seed: number, opts: SimOptions =
   for (const e of m.events) {
     if (e.type === 'relicOffered') relics[e.payload.team].offered.push(...e.payload.ids);
     else if (e.type === 'relicTaken') relics[e.payload.team].taken.push(e.payload.relic);
-    else if (e.type === 'curseOffered') curses.offered++;
-    else if (e.type === 'curseRefused') curses.refused++;
-    else if (e.type === 'curseAccepted') {
-      curses.accepted++;
-      const t = teamOfHero.get(e.payload.hero);
-      curses.acceptedBy.push({ item: e.payload.item, won: t !== undefined && t === winner });
-    } else if (e.type === 'obeliskClaimed') obelisks[e.payload.team]++;
+    else if (e.type === 'obeliskClaimed') obelisks[e.payload.team]++;
     else if (e.type === 'campCleared') campsCleared++;
     else if (e.type === 'gambit') {
       const g = gambits[e.payload.team];
@@ -323,8 +257,6 @@ export function simulateMatch(content: Content, seed: number, opts: SimOptions =
       pawns[e.payload.team]++;
       tempoSpent[e.payload.team].pawns += content.tuning.pawns.cost;
     } else if (e.type === 'check') checks[e.payload.team]++;
-    else if (e.type === 'purchase' && content.itemById.get(e.payload.item)?.tier === 3)
-      masterworks[e.payload.item] = (masterworks[e.payload.item] ?? 0) + 1;
     else if (e.type === 'rankUp') {
       if (rankMinute[e.payload.rank] === null) rankMinute[e.payload.rank] = min(e.tick);
     } else if (e.type === 'throneDown' && winner && e.payload.team !== winner) throneAt = e.tick;
@@ -337,34 +269,30 @@ export function simulateMatch(content: Content, seed: number, opts: SimOptions =
       firstTowerMinute = min(e.tick);
     }
   }
-  let builds: MatchSummary['builds'];
-  if (s.builds) {
-    const blank = () => ({
-      offered: [] as string[],
-      taken: [] as string[],
-      passes: 0,
-      rerolls: 0,
-      upgrades: 0,
-    });
-    const b = { A: blank(), B: blank() };
-    for (const e of m.events) {
-      if (e.type === 'buildOffer') {
-        b[e.payload.team].offered.push(...e.payload.cards);
-        if (e.payload.reroll > 0) b[e.payload.team].rerolls++;
-      } else if (e.type === 'technique') b[e.payload.team].taken.push(e.payload.technique);
-      else if (e.type === 'offerPassed') {
-        const t = teamOfHero.get(e.payload.id);
-        if (t) b[t].passes++;
-      } else if (e.type === 'techniqueUpgrade') {
-        const t = teamOfHero.get(e.payload.id);
-        if (t) b[t].upgrades++;
-      }
+  const blank = () => ({
+    offered: [] as string[],
+    taken: [] as string[],
+    passes: 0,
+    rerolls: 0,
+    upgrades: 0,
+  });
+  const builds = { A: blank(), B: blank() };
+  for (const e of m.events) {
+    if (e.type === 'buildOffer') {
+      builds[e.payload.team].offered.push(...e.payload.cards);
+      if (e.payload.reroll > 0) builds[e.payload.team].rerolls++;
+    } else if (e.type === 'technique') builds[e.payload.team].taken.push(e.payload.technique);
+    else if (e.type === 'offerPassed') {
+      const t = teamOfHero.get(e.payload.id);
+      if (t) builds[t].passes++;
+    } else if (e.type === 'techniqueUpgrade') {
+      const t = teamOfHero.get(e.payload.id);
+      if (t) builds[t].upgrades++;
     }
-    builds = b;
   }
   const ms = Number(process.hrtime.bigint() - t0) / 1e6;
   return {
-    ...(builds ? { builds } : {}),
+    builds,
     seed,
     winner,
     phases: s.phase.n,
@@ -372,7 +300,6 @@ export function simulateMatch(content: Content, seed: number, opts: SimOptions =
     ticks: s.tick,
     ms,
     heroes,
-    curses,
     lead1,
     comeback: lead1 !== null && winner !== null && winner !== lead1,
     obelisks,
@@ -390,7 +317,6 @@ export function simulateMatch(content: Content, seed: number, opts: SimOptions =
     pace: reads.pace(),
     eye: reads.eye,
     breaks,
-    masterworks,
     adjudicated: m.events.some((e) => e.type === 'matchEnd' && !!e.payload.adjudicated),
   };
 }

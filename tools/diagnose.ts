@@ -39,10 +39,7 @@ const agg = {
   maxDeaths: [] as number[],
   feeders8: 0,
   streak4: 0,
-  t3: [] as { min: number; disp: Disp; hero: string; item: string }[],
   heroMatches: 0,
-  heroesWithT3: 0,
-  unlocks: [] as number[],
   entryHp: [] as number[],
   killerKinds: {} as Record<string, number>,
   deathsByStreak: [0, 0, 0, 0, 0, 0] as number[],
@@ -137,17 +134,6 @@ for (let k = 0; k < N; k++) {
             });
           const u = m.unitById(e.payload.src as number);
           if (u?.hero) agg.byDisp[u.hero.disposition as Disp].heroDmg += e.payload.amount as number;
-        }
-        if (e.type === 'purchase') {
-          const it = content.itemById.get(e.payload.item as string);
-          const u = m.unitById(e.payload.id as number);
-          if (it?.tier === 3 && u?.hero)
-            agg.t3.push({
-              min: tick / 1200,
-              disp: u.hero.disposition as Disp,
-              hero: u.hero.defId,
-              item: it.id,
-            });
         }
         if (e.type === 'death' && e.payload.kind === 'hero') {
           const v = m.unitById(e.payload.id as number)!;
@@ -287,12 +273,10 @@ for (let k = 0; k < N; k++) {
   }
   agg.matches++;
   agg.minutes += ctx.s.tick / 1200;
-  agg.unlocks.push(ctx.s.teams.A.unlocks.length + ctx.s.teams.B.unlocks.length);
   let worst = 0;
   for (const u of heroes()) {
     const h = u.hero!;
     agg.heroMatches++;
-    if (h.items.some((id) => content.itemById.get(id)?.tier === 3)) agg.heroesWithT3++;
     const dd = agg.byDisp[h.disposition as Disp];
     dd.n++;
     const bh = (agg.byHero[h.defId] ??= { n: 0, d: 0, k: 0 });
@@ -371,10 +355,3 @@ console.log(
     .map(([k, v]) => `${k} ${(v.d / v.n).toFixed(1)}/${(v.k / v.n).toFixed(1)}`)
     .join(', '),
 );
-console.log('\n== Tier 3 ==');
-console.log(
-  `hero-games ending with a tier-3: ${pct(agg.heroesWithT3, agg.heroMatches)}; tier-3 buys ${agg.t3.length} (${(agg.t3.length / agg.matches).toFixed(1)}/match), median minute ${med(agg.t3.map((x) => x.min)).toFixed(1)}; unlocks/match ${(agg.unlocks.reduce((a, b) => a + b, 0) / agg.matches).toFixed(1)}`,
-);
-const byD: Record<string, number> = {};
-for (const t of agg.t3) byD[t.disp] = (byD[t.disp] ?? 0) + 1;
-console.log('tier-3 buys by disposition', byD);

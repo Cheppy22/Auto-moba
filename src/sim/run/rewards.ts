@@ -2,49 +2,42 @@
 // a relic, an heirloom and a book move. Offers are seeded by the run seed and the round, so a
 // saved run shows the same cards after a reload.
 import type { Content } from '../content/loader';
-import { PIECE_IDS, type ItemDef, type PieceId } from '../content/schema';
+import { PIECE_IDS, type PieceId } from '../content/schema';
 import { mixSeed, pick, seedStreams, shuffle } from '../core/rng';
 import { defaultAim } from '../runRules';
+import { isFirstMove } from '../techniques';
 import { tournamentOf } from './opponents';
 import type { Reward, RunState, RunStep } from './types';
 
-/** Heirloom candidates: tier-1 and tier-2 items up to the price limit, the piece's build first. */
-function heirloomItems(c: Content, run: RunState, piece: PieceId): ItemDef[] {
-  const max = tournamentOf(c).heirloomMaxPrice;
-  const fits = (it: ItemDef | undefined): it is ItemDef => !!it && it.tier <= 2 && it.cost <= max;
-  const path = run.court.pieces.find((e) => e.piece === piece)?.path ?? 'offense';
-  const list = c.pieceById.get(piece)?.paths[path] ?? [];
-  const out: ItemDef[] = [];
-  for (const id of list) {
-    const it = c.itemById.get(id);
-    for (const part of [it, ...(it?.from ?? []).map((p) => c.itemById.get(p))])
-      if (fits(part) && !out.includes(part)) out.push(part);
-  }
-  return out.length > 0 ? out : c.items.filter(fits);
-}
+/** Heirloom candidates: the Setup cards (common or the piece's own) the piece held at the end. */
+const heirloomCards = (c: Content, piece: PieceId, held: readonly string[]): string[] =>
+  held.filter((id) => isFirstMove(c, piece, id));
 
 /**
  * The three Spoils cards after a win. Relic: one White does not hold. Heirloom: for the piece
- * without one that ended the match holding the fewest items (ties in a seeded order), an item from
- * its build. Book move: a card from the court's Opening schools (any school for the Italian Game)
- * that is not a book move yet.
+ * without one that ended the match holding the fewest Techniques (ties in a seeded order), one of
+ * the Techniques it held (not an archetype card or a Combination, which need more than the piece).
+ * Book move: a card from the court's Opening schools (any school for the Italian Game) that is not
+ * a book move yet.
  */
 export function rewardOffers(
   c: Content,
   run: RunState,
-  items: Partial<Record<PieceId, number>> = {},
+  techniques: Partial<Record<PieceId, string[]>> = {},
 ): Reward[] {
   const rng = seedStreams(mixSeed(run.seed, 'spoils', run.results.length));
   const out: Reward[] = [];
   const held = new Set(run.relics.map((r) => r.id));
   const relics = c.relics.filter((r) => !held.has(r.id));
   if (relics.length > 0) out.push({ kind: 'relic', relic: pick(rng, 'loot', relics).id });
+  const kept = (p: PieceId): string[] => techniques[p] ?? [];
   const pieces = shuffle(rng, 'loot', PIECE_IDS)
-    .filter((p) => !run.heirlooms[p])
-    .sort((a, b) => (items[a] ?? 0) - (items[b] ?? 0));
+    .filter((p) => !run.heirlooms[p] && heirloomCards(c, p, kept(p)).length > 0)
+    .sort((a, b) => kept(a).length - kept(b).length);
   if (pieces.length > 0) {
     const piece = pieces[0];
-    out.push({ kind: 'heirloom', piece, item: pick(rng, 'loot', heirloomItems(c, run, piece)).id });
+    const technique = pick(rng, 'loot', heirloomCards(c, piece, kept(piece)));
+    out.push({ kind: 'heirloom', piece, technique });
   }
   const schools = c.openingById.get(run.court.opening)?.schools ?? [];
   const free = c.gambits.filter((g) => g.weight > 0 && !run.books.includes(g.id));
@@ -56,7 +49,10 @@ export function rewardOffers(
 
 const sameOffer = (a: Reward, b: Reward): boolean =>
   (a.kind === 'relic' && b.kind === 'relic' && a.relic === b.relic) ||
-  (a.kind === 'heirloom' && b.kind === 'heirloom' && a.piece === b.piece && a.item === b.item) ||
+  (a.kind === 'heirloom' &&
+    b.kind === 'heirloom' &&
+    a.piece === b.piece &&
+    a.technique === b.technique) ||
   (a.kind === 'book' && b.kind === 'book' && a.card === b.card);
 
 /**
@@ -80,7 +76,7 @@ export function applyReward(c: Content, run: RunState, reward: Reward): RunStep 
     next.relics.push({ id: def.id, ...defaultAim(c, next.court, def) });
   } else if (reward.kind === 'heirloom') {
     if (next.heirlooms[reward.piece]) return { ok: false, reason: 'that piece has an heirloom' };
-    next.heirlooms[reward.piece] = reward.item;
+    next.heirlooms[reward.piece] = reward.technique;
   } else next.books.push(reward.card);
   next.offers = null;
   return { ok: true, run: next };
@@ -88,8 +84,8 @@ export function applyReward(c: Content, run: RunState, reward: Reward): RunStep 
 
 /**
  * "Let the AI choose" (and headless runs): a relic while the row has room; otherwise the heirloom
- * or the book move, whichever is worth more gold: the heirloom its item's price, a book move
- * `tournament.aiBookGold` (so a tier-1 heirloom loses to a book move and a tier-2 one beats it).
+ * or the book move, whichever is worth more gold (`tournament.aiHeirloomGold` against
+ * `tournament.aiBookGold`, so the heirloom wins).
  */
 export function aiReward(c: Content, run: RunState): Reward | null {
   const offers = run.offers ?? [];
@@ -97,7 +93,7 @@ export function aiReward(c: Content, run: RunState): Reward | null {
   const relic = offers.find((o) => o.kind === 'relic');
   if (relic && run.relics.length < t.relicMax) return relic;
   const worth = (o: Reward): number =>
-    o.kind === 'heirloom' ? (c.itemById.get(o.item)?.cost ?? 0) : t.aiBookGold;
+    o.kind === 'heirloom' ? t.aiHeirloomGold : t.aiBookGold;
   let best: Reward | null = null;
   for (const o of offers) if (o.kind !== 'relic' && (!best || worth(o) > worth(best))) best = o;
   return best;

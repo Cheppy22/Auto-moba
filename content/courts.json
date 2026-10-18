@@ -21,27 +21,22 @@
       "pieces": [
         {
           "piece": "king",
-          "path": "defense",
           "lane": "top"
         },
         {
           "piece": "rook",
-          "path": "defense",
           "lane": "top"
         },
         {
           "piece": "queen",
-          "path": "utility",
           "lane": "mid"
         },
         {
           "piece": "bishop",
-          "path": "utility",
           "lane": "bot"
         },
         {
           "piece": "knight",
-          "path": "utility",
           "lane": "bot"
         }
       ],
@@ -84,27 +79,22 @@
       "pieces": [
         {
           "piece": "knight",
-          "path": "offense",
           "lane": "top"
         },
         {
           "piece": "bishop",
-          "path": "utility",
           "lane": "top"
         },
         {
           "piece": "queen",
-          "path": "utility",
           "lane": "mid"
         },
         {
           "piece": "king",
-          "path": "offense",
           "lane": "bot"
         },
         {
           "piece": "rook",
-          "path": "offense",
           "lane": "bot"
         }
       ],
@@ -147,27 +137,22 @@
       "pieces": [
         {
           "piece": "rook",
-          "path": "defense",
           "lane": "top"
         },
         {
           "piece": "knight",
-          "path": "utility",
           "lane": "top"
         },
         {
           "piece": "queen",
-          "path": "utility",
           "lane": "mid"
         },
         {
           "piece": "king",
-          "path": "defense",
           "lane": "bot"
         },
         {
           "piece": "bishop",
-          "path": "utility",
           "lane": "bot"
         }
       ],
@@ -210,27 +195,22 @@
       "pieces": [
         {
           "piece": "rook",
-          "path": "defense",
           "lane": "top"
         },
         {
           "piece": "knight",
-          "path": "offense",
           "lane": "top"
         },
         {
           "piece": "queen",
-          "path": "offense",
           "lane": "mid"
         },
         {
           "piece": "king",
-          "path": "defense",
           "lane": "bot"
         },
         {
           "piece": "bishop",
-          "path": "utility",
           "lane": "bot"
         }
       ],
@@ -273,27 +253,22 @@
       "pieces": [
         {
           "piece": "king",
-          "path": "offense",
           "lane": "top"
         },
         {
           "piece": "rook",
-          "path": "offense",
           "lane": "top"
         },
         {
           "piece": "queen",
-          "path": "offense",
           "lane": "mid"
         },
         {
           "piece": "knight",
-          "path": "offense",
           "lane": "bot"
         },
         {
           "piece": "bishop",
-          "path": "utility",
           "lane": "bot"
         }
       ],
@@ -336,27 +311,22 @@
       "pieces": [
         {
           "piece": "king",
-          "path": "defense",
           "lane": "top"
         },
         {
           "piece": "bishop",
-          "path": "utility",
           "lane": "top"
         },
         {
           "piece": "queen",
-          "path": "offense",
           "lane": "mid"
         },
         {
           "piece": "knight",
-          "path": "offense",
           "lane": "bot"
         },
         {
           "piece": "rook",
-          "path": "offense",
           "lane": "bot"
         }
       ],
@@ -400,27 +370,22 @@
       "pieces": [
         {
           "piece": "rook",
-          "path": "defense",
           "lane": "top"
         },
         {
           "piece": "bishop",
-          "path": "utility",
           "lane": "top"
         },
         {
           "piece": "queen",
-          "path": "utility",
           "lane": "mid"
         },
         {
           "piece": "king",
-          "path": "defense",
           "lane": "bot"
         },
         {
           "piece": "knight",
-          "path": "offense",
           "lane": "bot"
         }
       ],
@@ -463,27 +428,22 @@
       "pieces": [
         {
           "piece": "queen",
-          "path": "offense",
           "lane": "top"
         },
         {
           "piece": "bishop",
-          "path": "utility",
           "lane": "top"
         },
         {
           "piece": "king",
-          "path": "defense",
           "lane": "mid"
         },
         {
           "piece": "rook",
-          "path": "offense",
           "lane": "bot"
         },
         {
           "piece": "knight",
-          "path": "offense",
           "lane": "bot"
         }
       ],
@@ -526,27 +486,22 @@
       "pieces": [
         {
           "piece": "rook",
-          "path": "defense",
           "lane": "top"
         },
         {
           "piece": "bishop",
-          "path": "offense",
           "lane": "top"
         },
         {
           "piece": "queen",
-          "path": "offense",
           "lane": "mid"
         },
         {
           "piece": "king",
-          "path": "defense",
           "lane": "bot"
         },
         {
           "piece": "knight",
-          "path": "offense",
           "lane": "bot"
         }
       ],
@@ -590,27 +545,22 @@
       "pieces": [
         {
           "piece": "king",
-          "path": "defense",
           "lane": "top"
         },
         {
           "piece": "rook",
-          "path": "defense",
           "lane": "top"
         },
         {
           "piece": "knight",
-          "path": "offense",
           "lane": "mid"
         },
         {
           "piece": "queen",
-          "path": "offense",
           "lane": "bot"
         },
         {
           "piece": "bishop",
-          "path": "offense",
           "lane": "bot"
         }
       ],

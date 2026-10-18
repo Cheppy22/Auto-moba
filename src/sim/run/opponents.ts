@@ -87,10 +87,7 @@ function authoredOpponent(
 ): OpponentDef {
   const setup: TeamSetup = {
     opening: court.opening,
-    pieces: court.pieces.map((e) => ({
-      ...e,
-      ...(court.firstMoves ? { firstMove: court.firstMoves[e.piece] } : {}),
-    })),
+    pieces: court.pieces.map((e) => ({ ...e, firstMove: court.firstMoves[e.piece] })),
   };
   const def = c.relicById.get(court.signature.relic)!;
   const aim = defaultAim(c, setup, def);
@@ -122,7 +119,7 @@ function authoredOpponent(
  * The four courts of a run, seeded by the run seed. With courts content: one hand-made court per
  * round from that round's pool (the Final's pool holds the Black Queen's Court). Without it (or
  * with a round that has no court): the stand-in generator, three names from the pool and the Black
- * Queen's Court for the Final; each court's Opening, paths and lanes by Black's setup AI; starting
+ * Queen's Court for the Final; each court's Opening and lanes by Black's setup AI; starting
  * relics and Tempo by the round table. Generated rounds with a counter-Opening get it when they
  * come up (`revealOpponent`), against the Opening White played last; hand-made courts keep theirs.
  */

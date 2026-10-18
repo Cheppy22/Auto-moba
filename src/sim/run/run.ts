@@ -30,7 +30,7 @@ const copySetup = (t: TeamSetup): TeamSetup => ({
 export function newRun(c: Content, seed: number, pace: RunPace = 'classical'): RunState {
   tournamentOf(c);
   return {
-    v: 1,
+    v: 2,
     seed,
     pace,
     round: 0,
@@ -101,7 +101,7 @@ export function beginMatch(c: Content, run: RunState, court: TeamSetup): RunStep
 
 /**
  * What a finished match hands the run: the winner, length, adjudication, White's relics (by piece
- * type), archetypes and item counts. `mvp` is White's best piece from the report, if the caller
+ * type), archetypes and the Techniques each piece held. `mvp` is White's best piece from the report, if the caller
  * has one.
  */
 export function outcomeOf(match: Match, mvp: PieceId | null = null): MatchOutcome {
@@ -110,12 +110,12 @@ export function outcomeOf(match: Match, mvp: PieceId | null = null): MatchOutcom
   const pieceOf = (id: number | null): PieceId | null =>
     id === null ? null : (match.unitById(id)?.hero?.defId ?? null);
   const styles: MatchOutcome['styles'] = {};
-  const items: MatchOutcome['items'] = {};
+  const techniques: MatchOutcome['techniques'] = {};
   for (const id of s.teams.A.heroIds) {
     const h = match.unitById(id)?.hero;
     if (!h) continue;
     if (h.style) styles[h.defId] = h.style;
-    items[h.defId] = h.items.length;
+    techniques[h.defId] = h.techniques.map((x) => x.id);
   }
   const end = match.events.findLast((e) => e.type === 'matchEnd');
   return {
@@ -133,7 +133,7 @@ export function outcomeOf(match: Match, mvp: PieceId | null = null): MatchOutcom
       reserve: h.reserve,
     })),
     styles,
-    items,
+    techniques,
   };
 }
 
@@ -167,7 +167,7 @@ export function recordResult(c: Content, run: RunState, outcome: MatchOutcome): 
   }
   next.round = run.round + 1;
   next.opponents[next.round] = revealOpponent(c, next, next.round);
-  next.offers = rewardOffers(c, next, outcome.items);
+  next.offers = rewardOffers(c, next, outcome.techniques);
   next.status = 'between';
   return next;
 }

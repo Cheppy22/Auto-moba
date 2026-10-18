@@ -11,7 +11,6 @@ import { strategicUpdate } from './ai/strategic';
 import { updateFronts } from './ai/lanes';
 import { tickEvents } from './events';
 import { DESPERADO_MOD, POISON_MOD, cardBlock, initHands, tickGambits } from './gambits';
-import { createKeeper } from './keeper';
 import { tickObelisks } from './obelisks';
 import { pawnCap, pawnsAlive } from './pawns';
 import { cardCost, formationError, pawnCost, refillSec, tempoCap } from './relics';
@@ -27,9 +26,6 @@ import { forkOptions, tickForks } from './ranks';
 import { attackKindOf } from './pieces';
 import { aiSetup, placeTeam, validateSetup } from './setup';
 import { applyStart, runRulesFor } from './runRules';
-import { aiShop, nextTarget } from './ai/shopping';
-import { armoryOpen, nearBase } from './shop';
-import { armoryQuote, armoryView } from './armory';
 import { forkPreview, techniquePreview, type ForkPreview } from './preview';
 import { buildAdvice, buildView, firstMoves, freshBuilds, startBuilds } from './builds';
 import {
@@ -45,7 +41,6 @@ import { makeGuardian, makeTower } from './units';
 import { LANES, buildWorld } from './world/map';
 import { highGroundEdge } from './world/height';
 import type {
-  ArmoryView,
   Command,
   BuildAdvice,
   BuildView,
@@ -82,12 +77,10 @@ function initialState(content: Content, config: MatchConfig): MatchState {
   const pickB = aiSetup(content, rng);
   const team = (): MatchState['teams']['A'] => ({
     points: 0,
-    unlocks: [],
     heroIds: [],
     kills: 0,
     towersDown: 0,
     guardianId: -1,
-    curseOffers: 0,
   });
   return {
     seed,
@@ -106,8 +99,6 @@ function initialState(content: Content, config: MatchConfig): MatchState {
       types: [],
       mirrored: false,
     })),
-    curseOffers: [],
-    keeper: { unitId: -1, spot: '', stock: [] },
     tagMult: {},
     pressure: [],
     winner: null,
@@ -143,7 +134,6 @@ function initialState(content: Content, config: MatchConfig): MatchState {
     eventSchedule: [],
     nextEventId: 1,
     bell: freshBell(),
-    armory: { open: false, touched: [] },
     actTally: freshTally(0),
     feedback: freshFeedback(),
     relics: {
@@ -157,8 +147,7 @@ function initialState(content: Content, config: MatchConfig): MatchState {
     },
     ...(run ? { run } : {}),
     ...(config.pace === 'blitz' ? { pace: 'blitz' as const } : {}),
-    ...(config.techniques ? { builds: freshBuilds() } : {}),
-    ...(config.items === false ? { noItems: true as const } : {}),
+    builds: freshBuilds(),
   };
 }
 
@@ -219,7 +208,6 @@ function startMatch(ctx: Ctx, white: TeamSetup, start?: MatchConfig['start']): v
     }
     makeGuardian(ctx, team);
   }
-  createKeeper(ctx);
   placeTeam(ctx, 'A', s.setup.A.pieces);
   placeTeam(ctx, 'B', s.setup.B.pieces);
   // the removed auction drew once from the loot stream here: keep that draw so seeds replay the same
@@ -227,7 +215,7 @@ function startMatch(ctx: Ctx, white: TeamSetup, start?: MatchConfig['start']): v
   const heroes = [...s.teams.A.heroIds, ...s.teams.B.heroIds].map((id) => {
     const u = ctx.unit(id)!;
     const h = u.hero!;
-    return { id, team: u.team, def: u.defId, role: h.role, style: h.style, path: h.path };
+    return { id, team: u.team, def: u.defId, role: h.role, style: h.style };
   });
   ctx.emit('matchStart', { seed: s.seed, heroes });
   s.tempo = { A: ctx.t.gambits.tempoStart, B: ctx.t.gambits.tempoStart };
@@ -261,14 +249,6 @@ function stepTick(ctx: Ctx): void {
       const u = ctx.unit(id);
       if (!u || !u.alive) continue;
       if ((s.tick + (u.hero ? u.hero.slot : id) * 3) % 20 === 0) strategicUpdate(ctx, u);
-      if (
-        u.hero &&
-        (s.tick + id) % 20 === 0 &&
-        u.hero.gold >= ctx.t.ai.shopAtBaseGold &&
-        nearBase(ctx, u)
-      ) {
-        aiShop(ctx, u);
-      }
     }
   }
   stepUnits(ctx);
@@ -400,20 +380,12 @@ export class Match {
     const s = this.ctx.s;
     const c = this.content;
     const units: SnapUnit[] = [];
-    let keeper: Snapshot['keeper'] = null;
     const need = this.ctx.t.obelisk.claimSec * TPS;
     const forkIds = new Set(s.forks.map((f) => f.heroId));
     for (const u of s.units) {
       if (!u.alive && !u.hero) continue;
-      if (u.kind === 'keeper') keeper = { x: u.x, y: u.y, spot: s.keeper.spot };
       const shield = u.shields.reduce((a, b) => a + b.amount, 0);
       const h = u.hero;
-      let curse = false;
-      if (h) {
-        for (const id of h.items) {
-          if (c.cursedById.has(id)) curse = true;
-        }
-      }
       units.push({
         id: u.id,
         kind: u.kind,
@@ -429,7 +401,6 @@ export class Match {
         alive: u.alive,
         piece: h ? h.defId : null,
         style: h ? h.style : null,
-        path: h ? h.path : null,
         rank: h ? h.rank : 0,
         forkPending: forkIds.has(u.id),
         pawn: !!u.pawn,
@@ -447,7 +418,6 @@ export class Match {
         slot: h ? h.slot : 0,
         range: u.stats.range,
         claim: u.obelisk ? Math.max(u.obelisk.claim.A, u.obelisk.claim.B) / need : 0,
-        curse,
         target: u.targetId,
         inCombat: inCombat(s.tick, u),
         ...(h ? { inDuel: inDuel(this.ctx, u), laneNow: laneNow(this.ctx, u) } : {}),
@@ -493,7 +463,6 @@ export class Match {
       }),
       pressure: s.pressure.slice(),
       points: { A: s.teams.A.points, B: s.teams.B.points },
-      keeper,
       phaseTicksLeft: live ? Math.max(0, actTicks(this.ctx) - (s.tick - s.phase.startTick)) : 0,
       events: s.events.map((e) => {
         const def = c.eventById.get(e.defId)!;
@@ -542,10 +511,10 @@ export class Match {
           return {
             heroId: f.heroId,
             piece: u.hero!.defId,
-            kind: f.rank === 4 ? ('archetype' as const) : ('skill' as const),
+            kind: 'archetype' as const,
             style: u.hero!.style,
             rank: f.rank,
-            options: forkOptions(this.ctx, u, f.rank).map((o) => ({
+            options: forkOptions(this.ctx, u).map((o) => ({
               id: o.id,
               name: o.name,
               desc: o.desc,
@@ -616,47 +585,18 @@ export class Match {
     };
   }
 
-  /** The build-path item a piece buys next (the Armory's "next buy"). */
-  nextBuy(heroId: number): string | null {
-    const u = this.ctx.unit(heroId);
-    return u?.hero ? nextTarget(this.ctx, u) : null;
-  }
-
-  /** True at an Act break while the armory sells (from the sheet opening until Resume). */
-  get armoryOpen(): boolean {
-    return armoryOpen(this.ctx);
-  }
-
-  /** The Armory tab's data for one piece (either side; read-only): items, plan, tiles, suggestion. */
-  armoryView(heroId: number): ArmoryView | null {
-    return armoryView(this.ctx, heroId);
-  }
-
-  /** What one item costs a piece at the break, or why it cannot be bought (read-only). */
-  armoryQuote(
-    heroId: number,
-    item: string,
-  ): { price: number; consumed: string[] } | { error: string } {
-    return armoryQuote(this.ctx, heroId, item);
-  }
-
   /** White's Tempo cost for a card, less an extra relic `discount` (read-only; never below the minimum). */
   cardCost(cardId: string, discount = 0): number {
     const def = this.ctx.c.gambitById.get(cardId);
     return def ? cardCost(this.ctx, 'A', def, discount) : 0;
   }
 
-  /** What one option of a piece's pending fork would change: stats before and after, skills (read-only). */
+  /** What one archetype of a piece's pending fork would change: stats before and after, its skill (read-only). */
   forkPreview(heroId: number, optionId: string): ForkPreview | null {
     return forkPreview(this.ctx, heroId, optionId);
   }
 
-  /** True when this match plays with Techniques (`MatchConfig.techniques`). */
-  get techniquesOn(): boolean {
-    return !!this.ctx.s.builds;
-  }
-
-  /** The Builds tab's data for one piece (either side; read-only); null without Techniques. */
+  /** The Builds tab's data for one piece (either side; read-only); null when the id is not a piece. */
   buildView(heroId: number): BuildView | null {
     return buildView(this.ctx, heroId);
   }
@@ -674,10 +614,8 @@ export class Match {
   /**
    * Setup's First moves for White (before the match starts): each piece's offer for this Opening,
    * the AI's pick and the picks that matter most; the same cards the match deals when it starts.
-   * Null without Techniques.
    */
-  firstMoves(opening?: string): FirstMoveView | null {
-    if (!this.ctx.s.builds) return null;
+  firstMoves(opening?: string): FirstMoveView {
     const setup = this.ctx.s.setup.A;
     return firstMoves(
       this.content,

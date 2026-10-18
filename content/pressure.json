@@ -19,16 +19,6 @@
       "rules": ["spiritTide"]
     },
     {
-      "id": "keeper_debts",
-      "name": "The Cheshire Keeper Calls In Debts",
-      "fromPhase": 6,
-      "desc": "Cursed items double in both power and flaw.",
-      "tagMult": {
-        "curse": 2
-      },
-      "rules": []
-    },
-    {
       "id": "endgame",
       "name": "Endgame",
       "fromPhase": 7,
