@@ -4,6 +4,8 @@ Newest first. One entry per change: what changed, why, and any measured effect. 
 
 ## 2026-10-18
 
+- **Piece builds spec (draft, docs only)** ([SPEC-PIECE-BUILDS-2026-10-18.md](SPEC-PIECE-BUILDS-2026-10-18.md)). Why: Cheppy is not a fan of the Offense / Defense / Utility split and finds the items uninspired and hard to read; he wants mostly-luck piece builds with limited but informed choices. Proposes **Techniques** (Hades-style pick 1 of 3 per piece at Setup and each Act break, one per skill slot, three grades, Combinations), gold kept for rerolls and upgrades only, the six gambit schools as families, Rank 8 options moved into the pool; about 20 agent-days. Measured for the diagnosis (30 AI-vs-AI matches, Long Board): Rank 4 at 6.5 min, Rank 8 reached by 13% of pieces, 94 item purchases a match (72% during Acts); at match end items give a median +24% health and +63% main damage; 15 of 36 items are in no build list and Wanderer's Boots open all 60. No code changed.
+
 - **Overnight AAA proposal shipped** (`proposal/aaa-overnight` fast-forwarded into `test-product-2`; [PROPOSAL-AAA-2026-10-17.md](PROPOSAL-AAA-2026-10-17.md)). Why: Cheppy played it on `/proposal/` and approved ("It's amazing. Keep it."). Same tree that passed 414 unit and 98 browser tests.
 
 ## 2026-10-17
