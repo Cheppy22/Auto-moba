@@ -431,4 +431,8 @@ Built on branch `wip/techniques-ui-b` (from `wip/techniques-retire`; it also mer
 9. **Landscape fork sheet (test fix):** an option that changes four stats needs two delta rows and was cut by 14 px on a 390 px-tall phone; the landscape model, delta text and tab height are tightened so it fits whole.
 10. **The Result scoreboard's "Items" column heading** reads "Techniques".
 
+**Screenshots:** `docs/img/builds-setup-*.png` (First moves at 360, 390, landscape, desktop; a pick overridden with Pick for me off; a run's heirloom), `builds-tally-*.png` (Act report top three, Adjourn, end report; both board themes), `builds-spoils-*.png`, `builds-kit-heirloom-phone.png`, `builds-draw-phone.png`.
+
+**Also fixed (mobile spec, found on the merged tree):** the portrait piece card with six slots and the trays covered the middle of the screen; the slot tiles are three a row held upright, and Black's card in the stack HUD ends at the middle of the screen and scrolls inside (`hud2.css`).
+
 **Not built:** the Setup "Last Act" line (nothing to count), a Reroll or Upgrade control outside the break (spec 4.1: break only), Black's first moves on the in-match Setup page (they are on the Draw and the Spoils).
