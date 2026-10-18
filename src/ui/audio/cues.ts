@@ -84,8 +84,8 @@ export const CUE_INFO: Record<Cue, { cooldownMs: number; desc: string }> = {
   rank: { cooldownMs: 500, desc: 'Rank up: a small bright three-note sparkle' },
   rankBig: { cooldownMs: 0, desc: 'Rank 4 or 8: a fuller bell chord with shimmer' },
   relic: { cooldownMs: 0, desc: 'Relic taken: a glassy rising arpeggio' },
-  buy: { cooldownMs: 120, desc: 'Armory buy: two coin pings' },
-  sell: { cooldownMs: 120, desc: 'Armory sell: a falling coin clink' },
+  buy: { cooldownMs: 120, desc: 'Gold spent at the break (reroll, upgrade): two coin pings' },
+  sell: { cooldownMs: 120, desc: 'Gold gained at the break (pass): a falling coin clink' },
   spoils: { cooldownMs: 0, desc: 'Spoils pick: a warm, settled major chord' },
   roundWin: { cooldownMs: 0, desc: 'Tournament round won: a short brass fanfare' },
   roundLoss: { cooldownMs: 0, desc: 'Tournament round lost: a slow low descent' },
@@ -213,10 +213,10 @@ export function commandCue(type: string): Cue | null {
     case 'pickRelic':
     case 'autoRelic':
       return 'relic';
-    case 'buy':
-    case 'autoShop':
+    case 'rerollOffer':
+    case 'upgradeTechnique':
       return 'buy';
-    case 'sell':
+    case 'passOffer':
       return 'sell';
     default:
       return null;

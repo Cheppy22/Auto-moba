@@ -149,8 +149,9 @@ describe('which sim events make which cue', () => {
   });
 
   it('commands, taps and round results', () => {
-    expect(commandCue('buy')).toBe('buy');
-    expect(commandCue('sell')).toBe('sell');
+    expect(commandCue('upgradeTechnique')).toBe('buy');
+    expect(commandCue('rerollOffer')).toBe('buy');
+    expect(commandCue('passOffer')).toBe('sell');
     expect(commandCue('pickRelic')).toBe('relic');
     expect(commandCue('setLane')).toBeNull();
     expect(tapCue(true)).toBe('tab');

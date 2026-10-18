@@ -246,7 +246,7 @@ function Report(props: { report: ActReport; snap: Snapshot }) {
 
 /**
  * The Act break sheet: play is frozen. A bottom sheet slides up with the Act report and the
- * Orders (lanes and paths), the Armory (items) and the Relics; "Resume" starts the next Act. No time limit.
+ * Orders (lanes and pawns), the Builds (Techniques) and the Relics; "Resume" starts the next Act. No time limit.
  */
 export function BreakSheet(props: { snap: Snapshot }) {
   const s = useSession();

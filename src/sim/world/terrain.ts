@@ -5,7 +5,7 @@ import type { Pt } from './map';
 /**
  * Walkable space. The map is solid terrain except inside these capsules: lane corridors, the
  * two bases, jungle clearings and their gate paths (only while the clearing is open, unless the
- * map has `openJungle`), the jungle shops and their paths, and the Keeper's spots. The Long Board
+ * map has `openJungle`), the Squares and their paths, and the small clearings. The Long Board
  * adds its areas (groves, the Pit, Squares, verges, the River Road, Sally Paths); its lanes are
  * flat-ended boxes that narrow on the ramps. The sim keeps every unit inside them; the 3D view
  * builds its cliffs and walls from the same shapes.

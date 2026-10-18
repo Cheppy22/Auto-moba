@@ -190,7 +190,7 @@
     "short": "A permanent bonus your court drafts at each Act break: pick one of three, and hold up to three (five in a tournament).",
     "more": "A relic takes effect from the next Act. Black drafts relics too, and its newest one stays hidden until that Act starts.",
     "see": ["act", "rally"],
-    "group": "Armory"
+    "group": "Break"
   },
   {
     "id": "rally",
@@ -199,7 +199,7 @@
     "short": "A kind of relic that works only while your court is behind when the break begins.",
     "more": "Closed Position, King's Ransom, Compensation and Sortie are Rally relics; whether they apply is read once, at the start of the break.",
     "see": ["relic"],
-    "group": "Armory"
+    "group": "Break"
   },
   {
     "id": "tournament",

@@ -777,15 +777,11 @@ export function paintLongStyled(
     const [x, y] = place(sl.x, sl.y, sl.radius * 0.92, CAMP_BADGE, false);
     badge(g, x, y, CAMP_BADGE, 'paw', st, upright);
   }
-  for (const s of of('shop')) {
-    const [x, y] = place(s.ax, s.ay, s.r * 0.72, 34, false);
-    badge(g, x, y, 34, 'gem', st, upright);
-  }
   for (const s of of('pit')) {
     const [x, y] = place(s.ax, s.ay, s.r * 0.93, 42, true);
     badge(g, x, y, 42, 'star', st, upright);
   }
-  // the Keeper's other spots (in the groves, on the River Road): a badge alone
+  // the small clearings (in the groves, on the River Road): a badge alone
   const pits = of('pit');
   for (const s of of('spot')) {
     if (pits.some((p) => Math.hypot(p.ax - s.ax, p.ay - s.ay) < p.r)) continue;

@@ -30,7 +30,6 @@ const KILLER_NAME: Record<string, string> = {
   tower: 'Bastion',
   guardian: 'guardian',
   camp: 'camp creature',
-  keeper: 'keeper',
   obelisk: 'obelisk',
 };
 

@@ -3,7 +3,6 @@ export const STREAMS = [
   'ai',
   'combat',
   'loot',
-  'keeper',
   'draft',
   'events',
   'gambit',
