@@ -10,7 +10,7 @@ import { rand, seedStreams } from './core/rng';
 import { strategicUpdate } from './ai/strategic';
 import { updateFronts } from './ai/lanes';
 import { tickEvents } from './events';
-import { POISON_MOD, cardBlock, initHands, tickGambits } from './gambits';
+import { DESPERADO_MOD, POISON_MOD, cardBlock, initHands, tickGambits } from './gambits';
 import { createKeeper } from './keeper';
 import { tickObelisks } from './obelisks';
 import { pawnCap, pawnsAlive } from './pawns';
@@ -110,6 +110,7 @@ function initialState(content: Content, config: MatchConfig): MatchState {
     setup: { A: config.setup?.A ?? defaultA, B: config.setup?.B ?? pickB },
     opening: { A: (config.setup?.A ?? defaultA).opening, B: (config.setup?.B ?? pickB).opening },
     teamDamage: { A: null, B: null },
+    breakthrough: { A: {}, B: {} },
     forceStyles: { A: config.forceStyles?.A ?? {}, B: config.forceStyles?.B ?? {} },
     autoGambits: { A: config.autoGambits?.A ?? false, B: config.autoGambits?.B ?? true },
     autoForks: {
@@ -426,6 +427,8 @@ export class Match {
         marked: u.mods.some((m) => m.id === 'gambit:check'),
         poisoned: u.mods.some((m) => m.id === POISON_MOD),
         stunned: u.stunUntil !== undefined && u.stunUntil > s.tick,
+        ...(u.rootUntil !== undefined && u.rootUntil > s.tick ? { pinned: true as const } : {}),
+        ...(u.mods.some((m) => m.id === DESPERADO_MOD) ? { desperate: true as const } : {}),
         attackKind: h ? attackKindOf(c, h) : null,
         recalling: !!h?.recall,
         goal: h?.goal ? h.goal.kind : null,

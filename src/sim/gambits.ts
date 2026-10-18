@@ -29,12 +29,16 @@ import { aiTempoTurn } from './pawnPlan';
 
 /** The mod that marks a Poisoned Pawn (a no-op multiplier; its presence is the mark). */
 export const POISON_MOD = 'gambit:poisoned_pawn';
+/** The mod Desperado puts on a piece (its damage boost; its presence is the mark). */
+export const DESPERADO_MOD = 'gambit:desperado:b';
 
 export interface GambitTarget {
   lane?: LaneId;
   x?: number;
   y?: number;
   targetId?: number;
+  /** Pin: the enemy piece behind the pinned one (set when the target is checked). */
+  behindId?: number;
 }
 
 const p = (def: GambitDef, key: string, fallback: number): number => def.params[key] ?? fallback;
@@ -130,6 +134,8 @@ export function cardBlock(ctx: Ctx, team: PlayTeam, slot: number): string {
   const eff = gambitEffect(def);
   if (eff === 'castle' && !teamPiece(ctx, team, 'rook')?.alive) return 'Rook is down';
   if (eff === 'pawn_sacrifice' && pawnsAlive(ctx, team) === 0) return 'no pawn to sacrifice';
+  if (eff === 'desperado' && !desperadoPieces(ctx, team, def).length)
+    return `none of your pieces is under ${Math.round(p(def, 'hpMax', 0.4) * 100)}% health`;
   return '';
 }
 
@@ -210,6 +216,49 @@ function sacrificePlan(
   return { pawn, tower };
 }
 
+// ---- wave 3 helpers (Breakthrough, Pin, Desperado, Fortify)
+
+/** Your pieces Desperado can lift: alive and under the card's health line. */
+function desperadoPieces(ctx: Ctx, team: PlayTeam, def: GambitDef): Unit[] {
+  return alivePieces(ctx, team).filter((u) => hpPct(u) < p(def, 'hpMax', 0.4));
+}
+
+/** Your front Bastion in a lane (outer, then inner), or the Throne once none stand. */
+function ownFront(ctx: Ctx, team: PlayTeam, lane: LaneId): Unit | null {
+  const [o, i] = ctx.towers[team][lane];
+  const st = o?.alive ? o : i?.alive ? i : ctx.guardians[team];
+  return st?.alive ? st : null;
+}
+
+/** Pin: the enemy piece nearest behind the pinned one (toward its own base), within reach. */
+function pinBehind(ctx: Ctx, def: GambitDef, pinned: Unit): Unit | null {
+  if (pinned.team === 'neutral') return null;
+  const home = ctx.world.basePos[pinned.team];
+  const own = dist(pinned.x, pinned.y, home.x, home.y);
+  const reach = p(def, 'behindR', 300) * ctx.world.k;
+  let best: Unit | null = null;
+  let bestD = Infinity;
+  for (const u of alivePieces(ctx, pinned.team)) {
+    if (u === pinned || dist(u.x, u.y, home.x, home.y) >= own) continue;
+    const d = dist(u.x, u.y, pinned.x, pinned.y);
+    if (d <= reach && d < bestD) {
+      bestD = d;
+      best = u;
+    }
+  }
+  return best;
+}
+
+const isPinned = (ctx: Ctx, u: Unit): boolean =>
+  u.rootUntil !== undefined && u.rootUntil > ctx.s.tick;
+
+/** Breakthrough: the extra melee pawnlings a side's wave in this lane carries, taken once. */
+export function takeBreakthrough(ctx: Ctx, team: PlayTeam, lane: LaneId): number {
+  const n = ctx.s.breakthrough[team][lane] ?? 0;
+  if (n > 0) delete ctx.s.breakthrough[team][lane];
+  return n;
+}
+
 const WALLED: readonly WalkShape['kind'][] = ['lane', 'port', 'road', 'sally'];
 
 /** The wall a Barricade raises: across the gate path or lane corridor nearest to the point. */
@@ -278,6 +327,14 @@ function validTarget(
         const pawn = frontPawn(ctx, team, t.lane);
         return pawn ? { lane: t.lane, targetId: pawn.id } : 'no elite pawn of yours in that lane';
       }
+      if (eff === 'breakthrough' && ctx.s.breakthrough[team][t.lane])
+        return 'a Breakthrough already waits in that lane';
+      if (eff === 'fortify') {
+        const st = ownFront(ctx, team, t.lane);
+        if (!st) return 'no Bastion of yours stands in that lane';
+        if (st.shields.length > 0) return 'that Bastion already has a shield';
+        return { lane: t.lane, targetId: st.id };
+      }
       return { lane: t.lane };
     }
     case 'point': {
@@ -311,6 +368,8 @@ function validTarget(
     case 'ally': {
       const u = t.targetId !== undefined ? ctx.unit(t.targetId) : undefined;
       if (!u || !u.alive || u.team !== team || !u.hero) return 'pick one of your pieces';
+      if (gambitEffect(def) === 'desperado' && hpPct(u) >= p(def, 'hpMax', 0.4))
+        return `that piece is over ${Math.round(p(def, 'hpMax', 0.4) * 100)}% health`;
       return { targetId: u.id };
     }
     case 'enemy': {
@@ -323,6 +382,10 @@ function validTarget(
       if (eff === 'fork') {
         const k = teamPiece(ctx, team, 'knight')!;
         if (dist(k.x, k.y, u.x, u.y) > p(def, 'reach', 975)) return 'out of the Knight’s reach';
+      }
+      if (eff === 'pin') {
+        const behind = pinBehind(ctx, def, u);
+        return behind ? { targetId: u.id, behindId: behind.id } : { targetId: u.id };
       }
       return { targetId: u.id };
     }
@@ -548,6 +611,32 @@ function applyCard(ctx: Ctx, team: PlayTeam, def: GambitDef, t: GambitTarget): v
       stunUnit(ctx, foe, p(def, 'stunSec', 1));
       break;
     }
+    case 'breakthrough':
+      s.breakthrough[team][t.lane!] = Math.round(p(def, 'extraMelee', 3));
+      break;
+    case 'pin': {
+      const foe = ctx.unit(t.targetId!)!;
+      foe.rootUntil = Math.max(foe.rootUntil ?? 0, s.tick + Math.round(p(def, 'rootSec', 3) * TPS));
+      foe.path = [];
+      foe.detour = null;
+      if (foe.hero?.recall) foe.hero.recall = null;
+      const behind = t.behindId !== undefined ? ctx.unit(t.behindId) : undefined;
+      if (behind?.alive)
+        timedMod(ctx, behind, `${tag}:slow`, 'moveSpeed', p(def, 'slowMul', 0.6), dur);
+      break;
+    }
+    case 'desperado': {
+      const u = ctx.unit(t.targetId!)!;
+      const up = p(def, 'damageMul', 1.6);
+      timedMod(ctx, u, DESPERADO_MOD, 'bladeDmg', up, dur);
+      timedMod(ctx, u, `${tag}:s`, 'soulPower', up, dur);
+      break;
+    }
+    case 'fortify': {
+      const st = ctx.unit(t.targetId!)!;
+      st.shields.push({ amount: st.stats.maxHp * p(def, 'shieldPct', 0.2), expiresTick: until });
+      break;
+    }
   }
 }
 
@@ -739,6 +828,18 @@ export function onPoisonedDeath(ctx: Ctx, victim: Unit, killer: Unit | null): vo
       p(def, 'slowMul', 0.6),
       p(def, 'slowSec', 4),
     );
+}
+
+/**
+ * Desperado: a piece that falls while its boost lasts gives its team Tempo back. Called for
+ * every unit that dies (a no-op unless it carries the mark).
+ */
+export function onDesperadoDeath(ctx: Ctx, victim: Unit): void {
+  const mark = victim.mods.find((m) => m.id === DESPERADO_MOD);
+  if (!mark || (mark.expiresTick !== null && mark.expiresTick <= ctx.s.tick)) return;
+  if (victim.team === 'neutral') return;
+  const def = ctx.c.gambitById.get('desperado');
+  if (def) addTempo(ctx, victim.team, p(def, 'refund', 10));
 }
 
 // ---------------------------------------------------------------- AI
@@ -1032,6 +1133,63 @@ function plan(ctx: Ctx, team: PlayTeam, def: GambitDef): Plan | null {
         if (n < 3 || e === 0) continue;
         const score = 0.25 * n + 0.2 * e;
         if (!best || score > best.score) best = { score, target: { x: u.x, y: u.y } };
+      }
+      return best;
+    }
+    case 'breakthrough': {
+      let best: Plan | null = null;
+      for (const lane of seatLanes(ctx.world, team)) {
+        if (ctx.s.breakthrough[team][lane]) continue;
+        const st = frontStructure(ctx, team, lane);
+        if (!st) continue;
+        const a = mine.filter((u) => u.hero!.lane === lane && hpPct(u) > 0.5).length;
+        if (a === 0) continue;
+        const defenders = countNear(ctx, foe, st.x, st.y, 700, isPiece);
+        const score = 0.45 + 0.3 * a + 0.8 * (1 - hpPct(st)) - 0.15 * defenders;
+        if (!best || score > best.score) best = { score, target: { lane } };
+      }
+      return best;
+    }
+    case 'pin': {
+      let best: Plan | null = null;
+      for (const e of theirs) {
+        if (!inFight(ctx, e) || isPinned(ctx, e)) continue;
+        const a = countNear(ctx, team, e.x, e.y, 350, isPiece);
+        if (a < 2) continue;
+        const score = 0.45 + 0.25 * a + (1 - hpPct(e)) * 0.4 + (pinBehind(ctx, def, e) ? 0.15 : 0);
+        if (!best || score > best.score) best = { score, target: { targetId: e.id } };
+      }
+      return best;
+    }
+    case 'desperado': {
+      const line = p(def, 'hpMax', 0.4);
+      let best: Plan | null = null;
+      for (const u of desperadoPieces(ctx, team, def)) {
+        if (!inFight(ctx, u)) continue;
+        const e = countNear(ctx, foe, u.x, u.y, u.stats.range + 150, isPiece);
+        if (e === 0) continue;
+        const score = 0.8 + 0.3 * Math.min(2, e) + 0.3 * (1 - hpPct(u) / line);
+        if (!best || score > best.score) best = { score, target: { targetId: u.id } };
+      }
+      return best;
+    }
+    case 'fortify': {
+      let best: Plan | null = null;
+      for (const lane of seatLanes(ctx.world, team)) {
+        const st = ownFront(ctx, team, lane);
+        if (!st || st.shields.length > 0 || hpPct(st) >= 0.8) continue;
+        const e = countNear(ctx, foe, st.x, st.y, 550, isPiece);
+        const n = countNear(
+          ctx,
+          foe,
+          st.x,
+          st.y,
+          450,
+          (u) => u.kind === 'hero' || (u.kind === 'minion' && !u.ev),
+        );
+        if (e < 2 && n < 4) continue;
+        const score = 0.6 + 0.2 * e + 0.06 * n + 0.8 * (0.8 - hpPct(st));
+        if (!best || score > best.score) best = { score, target: { lane } };
       }
       return best;
     }

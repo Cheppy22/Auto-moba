@@ -35,19 +35,23 @@ describe('content', () => {
     ]);
   });
 
-  it('has the sixteen gambit cards, one signature card per piece, each in a school', () => {
+  it('has the twenty gambit cards, one signature card per piece, each in a school', () => {
     expect(content.gambits.map((g) => g.effect ?? g.id).sort()).toEqual([
       'advance',
       'barricade',
+      'breakthrough',
       'castle',
       'check',
+      'desperado',
       'exchange',
       'fork',
+      'fortify',
       'hold_the_file',
       'open_file',
       'outpost',
       'pawn_sacrifice',
       'pawn_storm',
+      'pin',
       'poisoned_pawn',
       'queens_gambit',
       'regroup',
@@ -55,9 +59,13 @@ describe('content', () => {
       'siege',
     ]);
     const school = (id: string): string => content.gambitById.get(id)!.school;
-    expect(['advance', 'pawn_storm', 'siege'].map(school)).toEqual(['march', 'march', 'march']);
-    expect(['check', 'fork'].map(school)).toEqual(['initiative', 'initiative']);
-    expect(['hold_the_file', 'castle', 'sanctuary'].map(school)).toEqual(Array(3).fill('fortress'));
+    expect(['advance', 'pawn_storm', 'siege', 'breakthrough'].map(school)).toEqual(
+      Array(4).fill('march'),
+    );
+    expect(['check', 'fork', 'pin', 'desperado'].map(school)).toEqual(Array(4).fill('initiative'));
+    expect(['hold_the_file', 'castle', 'sanctuary', 'fortify'].map(school)).toEqual(
+      Array(4).fill('fortress'),
+    );
     expect(school('queens_gambit')).toBe('sacrifice');
     expect(school('regroup')).toBe('position');
     expect(content.openings.map((o) => o.id)).toEqual([

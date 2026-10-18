@@ -25,9 +25,9 @@ import { other } from './types';
 import { onCampUnitDeath } from './camps';
 import { endAllEvents, onEventUnitDeath } from './events';
 import { removeBoardClaim } from './ai/claims';
-import { addTempo, onPoisonedDeath } from './gambits';
+import { addTempo, onDesperadoDeath, onPoisonedDeath, takeBreakthrough } from './gambits';
 import { classifyFall, flushFights, noteFall, noteMinionLoss } from './feedback';
-import { flushRuns, noteDeath } from './impact';
+import { flushRuns, noteBreakthrough, noteDeath } from './impact';
 import { PLAY_TEAMS } from './names';
 
 export function spawnWaves(ctx: Ctx): void {
@@ -49,13 +49,18 @@ export function spawnWaves(ctx: Ctx): void {
   for (const team of PLAY_TEAMS) {
     for (const lane of LANES) {
       const lead = lane === 'mid' && team === leader ? w.midLeadUnits : 0;
-      const melee = baseMelee + wingMelee(ctx, team, lane);
+      const bonus = takeBreakthrough(ctx, team, lane);
+      const melee = baseMelee + wingMelee(ctx, team, lane) + bonus;
       const gap = ctx.t.collision.spawnGap;
       const stagger = ctx.t.collision.spawnStagger;
       // Alternating sides of the lane's centre line, so a wave marches abreast, not in single file.
       const row = (i: number): number => (i % 2 === 0 ? stagger : -stagger);
-      for (let i = 0; i < melee; i++)
-        makeMinion(ctx, team, lane, 'melee', scale, i * gap + lead, row(i));
+      const sent: number[] = [];
+      for (let i = 0; i < melee; i++) {
+        const m = makeMinion(ctx, team, lane, 'melee', scale, i * gap + lead, row(i));
+        if (i >= melee - bonus) sent.push(m.id);
+      }
+      if (bonus > 0) noteBreakthrough(ctx, team, lane, sent);
       for (let i = 0; i < w.ranged; i++)
         makeMinion(ctx, team, lane, 'ranged', scale, (melee + i) * gap + lead, row(melee + i));
     }
@@ -165,6 +170,7 @@ function killUnit(ctx: Ctx, u: Unit): void {
   u.pendingKill = null;
   u.targetId = null;
   onPoisonedDeath(ctx, u, killer);
+  onDesperadoDeath(ctx, u);
   noteDeath(ctx, u, killer);
   switch (u.kind) {
     case 'hero': {
@@ -340,6 +346,7 @@ export function respawnHeroes(ctx: Ctx): void {
       u.hero.respawnAt = null;
       u.hero.lastStandUsed = false;
       u.stunUntil = undefined;
+      u.rootUntil = undefined;
       if (u.hero.defId === 'king') ctx.s.check[team] = false;
       u.hero.engage = 'fight';
       u.shields = [];

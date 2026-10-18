@@ -258,6 +258,11 @@ export const GAMBIT_EFFECTS = [
   'barricade',
   'open_file',
   'outpost',
+  // wave 3
+  'breakthrough',
+  'pin',
+  'desperado',
+  'fortify',
 ] as const;
 
 const GambitSchema = z.object({

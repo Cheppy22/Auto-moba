@@ -283,6 +283,8 @@ export interface Unit {
   pawn?: boolean;
   /** Stunned (no moving, attacking or casting) until this tick. */
   stunUntil?: number;
+  /** Pinned (no moving; it can still attack and cast) until this tick. */
+  rootUntil?: number;
   /** Taunted: must attack unit `by` until the tick. */
   taunt?: { by: number; untilTick: number };
   lastDamagedTick: number;
@@ -370,7 +372,7 @@ export interface CardMetrics {
   /** Piece kills and losses next to the card's effect. */
   kills: number;
   deaths: number;
-  /** Barricade: enemy units that came up to the wall. */
+  /** Barricade: enemy units that came up to the wall. Breakthrough: the extra pawnlings sent. */
   met: number;
   /** Enemy Tempo drained. */
   drained: number;
@@ -643,6 +645,8 @@ export interface MatchState {
   opening: Record<PlayTeam, string>;
   /** Exchange: a team-wide damage multiplier until the tick (null when none). */
   teamDamage: Record<PlayTeam, { value: number; untilTick: number } | null>;
+  /** Breakthrough: extra melee pawnlings waiting for a side's next wave in a lane. */
+  breakthrough: Record<PlayTeam, Partial<Record<LaneId, number>>>;
   /** `MatchConfig.forceStyles`. */
   forceStyles: Record<PlayTeam, Partial<Record<PieceId, string>>>;
   autoGambits: Record<PlayTeam, boolean>;
@@ -793,6 +797,8 @@ export interface EventPayloads {
     x?: number;
     y?: number;
     targetId?: number;
+    /** Pin: the enemy piece behind the pinned one, if any (for the view). */
+    behindId?: number;
   };
   fightEnd: FightRecord;
   gambitEnd: CardMetrics & {
@@ -1094,6 +1100,10 @@ export interface SnapUnit {
   /** Marked by the Poisoned Pawn gambit (its killer is slowed and the killer's team loses Tempo). */
   poisoned?: boolean;
   stunned: boolean;
+  /** Pinned by the Pin gambit (cannot move). */
+  pinned?: boolean;
+  /** Under Desperado (deals more damage while it lasts). */
+  desperate?: boolean;
   /** Final melee/ranged for a piece (its style can override the piece). */
   attackKind: 'melee' | 'ranged' | null;
   recalling: boolean;

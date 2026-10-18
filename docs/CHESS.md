@@ -128,6 +128,17 @@ Both teams field the same five pieces, so balance lives in roles, styles, paths 
 | Sanctuary      | 23   | Bishop | point  | A zone that heals allies 6% max health per second, 6 s                   |
 | Fork           | 30   | Knight | enemy  | Knight leaps to an enemy piece within reach and stuns it 1.5 s           |
 
+**Wave 3 (2026-10-18, [spec](SPEC-GAMBITS-OPENINGS-2026-10-18.md) Phase B):** four more universal cards, weight 1.5 each, the first of the original plan's wave 3 (numbers in `content/gambits.json`, effects in `src/sim/gambits.ts`):
+
+| Card         | Cost | Target                      | Effect                                                                                                                                          |
+| ------------ | ---- | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| Breakthrough | 13   | lane                        | Your next pawnling wave in that lane has 3 extra melee pawnlings (they do not count toward the pawn cap). One per lane at a time                |
+| Pin          | 17   | enemy piece                 | It cannot move for 3 s (it can still attack and cast); the enemy piece nearest behind it, toward its own base within 300, is slowed 40% for 3 s |
+| Desperado    | 13   | your piece under 40% health | It deals 60% more damage for 6 s; if it falls in that time, your team gets 10 Tempo back                                                        |
+| Fortify      | 17   | lane                        | Your front Bastion in that lane (the Throne if none stand) gets a shield of 20% of its max health for 20 s; not while it already has a shield   |
+
+Engine notes: Pin needs a real "cannot move" flag (`Unit.rootUntil`; `stepToward`, dashes and recall check it), because slows stop at a floor. Fortify uses the unit shields items already give; shields soak damage before the Bastion's per-second damage cap, and Pawn Sacrifice's hit (about 3,060) breaks one (720 on an outer Bastion). Breakthrough is a per-lane count in `MatchState.breakthrough`, read by the wave spawn (`takeBreakthrough`, next to Wing Gambit's `wingMelee`). A Desperado that falls returns the Tempo through `onDesperadoDeath`. The AI plays them like the older cards (`plan` in `gambits.ts`): Breakthrough in the lane where its pieces push at the weakest Bastion, Pin like Check, Desperado on a hurt piece in a fight with an enemy in reach, Fortify on a front Bastion under 80% health with 2+ enemy pieces or 4+ units near. In the 3D view: Pin draws a brass base ring on the piece and a line of light to the one behind it, Desperado a beating red rim, Fortify a stone flare and a shield segment on the Bastion's bar.
+
 ## Gambit schools (2026-10-10)
 
 Every gambit belongs to one of six **schools**. Each card shows its school's colour and glyph (**school markings**).
@@ -142,7 +153,7 @@ Every gambit belongs to one of six **schools**. Each card shows its school's col
 | Clock      | Bend the Tempo economy and gather information         | bone, clock face              | March                  |
 
 - **Counters work through effects, never by cancelling a card.** Each pairing below is designed into the cards' effects and checked with school-vs-school balance runs:
-  - **Fortress vs March:** armor/resist and Bastion shields soak a push longer than its buff lasts.
+  - **Fortress vs March:** armor/resist and Bastion shields (Fortify) soak a push longer than its buff lasts.
   - **Position vs March:** Barricade blocks the lane's gate or bridge, so a pushing wave stalls or reroutes; Outpost holds a choke.
   - **Fortress vs Initiative:** shields, heals and Castle save the marked or pinned piece.
   - **Sacrifice vs Fortress:** burst damage (Pawn Sacrifice) and the team damage spike (Exchange) break shields and armor that are built for sustained pressure.
@@ -153,10 +164,10 @@ Every gambit belongs to one of six **schools**. Each card shows its school's col
   - **March vs Clock:** steady cheap pressure wins while Clock spends Tempo on information instead of force.
 - **Openings** (picked at setup; Black's AI picks one too, revealed on contact): each weights the random draws toward two schools (×2). Italian (balanced, the default), Sicilian (Initiative + March), French (Fortress + Position), King's Gambit (Sacrifice + March). English (Clock + Position) arrives with wave 2.
 - **Line bonus:** not yet.
-- **Cards by school** (★ = wave 1, new):
-  - March: Advance, Pawn Storm, Siege (Rook). Wave 3: Breakthrough.
-  - Initiative: Check, Fork (Knight). Wave 3: Pin, Desperado.
-  - Fortress: Hold the File, Castle (King), Sanctuary (Bishop). Wave 3: Fortify.
+- **Cards by school** (★ = new in wave 1 or wave 3):
+  - March: Advance, Pawn Storm, Siege (Rook), ★Breakthrough (13: your next wave in a lane brings 3 extra melee pawnlings).
+  - Initiative: Check, Fork (Knight), ★Pin (17: an enemy piece cannot move for 3 s; the piece behind it is slowed), ★Desperado (13: a piece under 40% health deals +60% for 6 s; Tempo back if it falls).
+  - Fortress: Hold the File, Castle (King), Sanctuary (Bishop), ★Fortify (17: a shield of 20% of a Bastion's health for 20 s).
   - Sacrifice: Queen's Gambit (Queen), ★Pawn Sacrifice (7 + one of your pawns: a burst of three times its health on the nearest enemy Bastion in that lane), ★Exchange (13: a piece gives up 25% of its health; your team +22% damage for 10 s), ★Poisoned Pawn (10: mark a pawn for 20 s; whoever kills it is slowed for 6 s and loses 15 Tempo).
   - Position: Regroup, ★Barricade (17: seal a gate path or bridge for 20 s), ★Open File (13: allies +38% move speed in one lane for 15 s), ★Outpost (20: a banner; allies near it get +30 armor and resist for 25 s).
   - Clock (wave 2): Zugzwang, Time Trouble, Opening Book, Blitz.
@@ -192,7 +203,7 @@ Owner-approved. The player is a commander: the decisions happen at setup and at 
 
 1. **Fight verdicts.** A fight is a cluster of pieces in combat (the `inCombat` signal, within `fight.radius` of each other) that holds at least one piece of each side. It ends `fight.endSec` after no such cluster is in combat (with the 1.5 s combat timer, about 3 s after the last blow) and emits `fightEnd`: zone (Left/Mid/Right lane, jungle, or a base), world position, pieces per side, pieces each side **lost**, pawnlings and elite pawns lost per side, Bastion/Throne damage each side took. A fight with no piece lost is a skirmish: no tag. Otherwise a small verdict tag fades in at the fight's position in the 3D view for about 4 s: "Left lane — won 3 for 1" (your kills for your losses), "Mid — lost 0 for 2", "Right lane — even trade, 1 for 1". Open fights are closed when the Act ends and at checkmate.
 2. **Why a piece fell.** Each piece keeps its last `death.windowSec` (5 s) of hits (merged per attacker per 0.2 s, at most 64). On death the cause is the first that applies: **burst** (at least `burstFrac` of max health inside `burstSec`), **focus** (at least `focusAttackers` distinct enemy pieces hit it), **out of position** (no allied piece or structure within `isolatedRadius`, or farther than `laneOffMax` from its assigned lane with no ally piece near), **outnumbered** (more enemy pieces than allied pieces, itself included, within `nearRadius`), else **traded**. The `death` event carries `fall` (cause, killer piece, up to three attacking pieces by damage); the piece keeps it while it waits to respawn. Shown as a toast "Your Rook fell — focused by Queen, Knight", and on the fallen piece's roster tile as the killer's icon and the cause word beside the respawn timer.
-3. **Gambit impact.** Every played card is measured while it is active (`gambitEnd` event). Only what the sim can attribute is shown: damage turned away by Hold the File and Outpost (computed from the armor bonus), healing by Sanctuary, the multiplier's own share of damage for Pawn Storm, Check, Queen's Gambit (net of the backlash), Siege and Exchange, Bastion damage for Advance, Siege and Pawn Sacrifice, enemy units that reached a Barricade's wall, Tempo drained by Poisoned Pawn. A card with nothing attributable (Regroup, Open File, Castle, Fork) shows how long it ran. Piece kills and losses beside the card's effect are always added. A line shows near the hand for about 3 s when the effect ends ("Outpost — turned away about 286 damage"). The Report keeps a per-card tally for the Act: plays, Tempo spent, result.
+3. **Gambit impact.** Every played card is measured while it is active (`gambitEnd` event). Only what the sim can attribute is shown: damage turned away by Hold the File and Outpost (computed from the armor bonus), healing by Sanctuary, the multiplier's own share of damage for Pawn Storm, Check, Queen's Gambit (net of the backlash), Siege and Exchange, Bastion damage for Advance, Siege and Pawn Sacrifice, enemy units that reached a Barricade's wall, Tempo drained by Poisoned Pawn. Wave 3: the extra pawnlings Breakthrough sent and their Bastion damage, how long Pin held its piece, Desperado's extra damage (and that its piece fell), the damage Fortify's shield soaked. A card with nothing attributable (Regroup, Open File, Castle, Fork) shows how long it ran. Piece kills and losses beside the card's effect are always added. A line shows near the hand for about 3 s when the effect ends ("Outpost — turned away about 286 damage"). The Report keeps a per-card tally for the Act: plays, Tempo spent, result.
 4. **Lane momentum.** `Snapshot.momentum` per lane, -1 (Black) to 1 (White): the point where the two pawnling fronts meet (weight 0.5), Bastion health left on each side (0.3) and net piece kills in that lane over the last 30 s (0.2). Drawn as three small tug-of-war bars L / M / R under the Act clock (ivory is White's push, slate Black's; the seam glides, no numbers). The same bars, labelled, open the Report as "Lanes at the bell".
 
 - **One calm lane.** Fight tags, falls and gambit lines share a cap of two at a time, newest wins; none appear while the bell has halted play.
@@ -345,7 +356,7 @@ BroadcastView.pickGround(clientX, clientY): { x: number; y: number } | null   //
 BroadcastView.pickUnit(clientX, clientY): number | null                        // unit id
 ```
 
-New events: `bell { stage, toll?, act }`, `rankUp { id, rank, bonus }`, `fork { id, rank, optionId, auto }`, `gambit { team, cardId, lane?, x?, y?, targetId? }`, `check { team }`, `throneDown { team }`, `checkmate { winner }`.
+New events: `bell { stage, toll?, act }`, `rankUp { id, rank, bonus }`, `fork { id, rank, optionId, auto }`, `gambit { team, cardId, lane?, x?, y?, targetId?, behindId? }`, `check { team }`, `throneDown { team }`, `checkmate { winner }`.
 
 ## Visual distinction and a calmer screen (owner feedback, 2026-10-08)
 
