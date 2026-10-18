@@ -1,0 +1,791 @@
+/* ---------- piece builds: the Technique card, the six slots, the Act break's Builds tab ---------- */
+
+/* ===== the Technique card: the relic card's look in its school's colour ===== */
+.tcard {
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: 7px;
+  min-width: 0;
+  padding: 0 12px 12px;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--school) 10%, transparent), transparent 42%),
+    rgba(255, 255, 255, 0.03);
+  border: 1px solid color-mix(in srgb, var(--school) 40%, var(--rule));
+  border-radius: 6px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 8px 20px rgba(0, 0, 0, 0.35);
+}
+.tcard::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: var(--school);
+}
+.tcard > * {
+  min-width: 0;
+}
+/* the AI's pick: a brass frame, and a ribbon that says so */
+.tcard.mark-picked {
+  border-color: var(--brass);
+  box-shadow:
+    inset 0 0 0 1px rgba(240, 213, 138, 0.35),
+    0 0 18px rgba(201, 163, 90, 0.28),
+    0 8px 20px rgba(0, 0, 0, 0.35);
+}
+.tcard-mark {
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  right: 10px;
+  padding: 1px 9px;
+  font-size: 11px;
+  line-height: 18px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #2a1e10;
+  background: linear-gradient(180deg, var(--brass-hi), var(--brass));
+  border-radius: 0 0 6px 6px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+.tcard.mark-suggested .tcard-mark {
+  color: var(--brass-hi);
+  background: rgba(20, 15, 10, 0.75);
+  border: 1px solid var(--brass-dim);
+  border-top: 0;
+  box-shadow: none;
+}
+.tcard-plate {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 -12px;
+  padding: 20px 12px 9px;
+  background:
+    radial-gradient(
+      circle at 34px 50%,
+      color-mix(in srgb, var(--school) 30%, transparent),
+      transparent 70px
+    ),
+    repeating-radial-gradient(
+      circle at 34px 50%,
+      rgba(240, 213, 138, 0.05) 0 1px,
+      transparent 1px 7px
+    );
+  border-bottom: 1px solid color-mix(in srgb, var(--school) 30%, var(--rule));
+}
+/* the school medallion: the school's mark on enamel in a brass ring, the grade on its rim */
+.tcard-medal {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 40% 35%,
+    color-mix(in srgb, var(--school) 40%, #2b2017),
+    #16110c 75%
+  );
+  border: 2px solid var(--brass);
+  box-shadow:
+    inset 0 0 0 2px rgba(0, 0, 0, 0.45),
+    0 4px 10px rgba(0, 0, 0, 0.5);
+}
+.tcard-grade {
+  position: absolute;
+  right: -7px;
+  bottom: -5px;
+  min-width: 20px;
+  padding: 0 4px;
+  font-family: var(--font-display);
+  font-size: 13px;
+  line-height: 18px;
+  text-align: center;
+  color: #2a1e10;
+  background: linear-gradient(180deg, var(--brass-hi), var(--brass));
+  border-radius: 9px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+.tcard-title {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.tcard-name {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 21px;
+  line-height: 1.1;
+  letter-spacing: 0.03em;
+  color: #f6edd6;
+  overflow-wrap: anywhere;
+}
+.tcard-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.tcard-school,
+.tcard-gradeword,
+.tcard-dubious,
+.tcard-combo {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 7px;
+  font-size: 11px;
+  line-height: 18px;
+  white-space: nowrap;
+  border-radius: 3px;
+}
+.tcard-school {
+  color: color-mix(in srgb, var(--school) 55%, white);
+  border: 1px solid color-mix(in srgb, var(--school) 55%, transparent);
+  background: color-mix(in srgb, var(--school) 14%, transparent);
+}
+.tcard-gradeword {
+  color: var(--bone);
+  border: 1px solid var(--rule);
+}
+.tcard-gradeword.sharp {
+  color: var(--brass-hi);
+  border-color: var(--brass-dim);
+  background: rgba(201, 163, 90, 0.12);
+}
+.tcard-gradeword.brilliant {
+  color: #2a1e10;
+  border-color: var(--brass-hi);
+  background: linear-gradient(180deg, var(--brass-hi), var(--brass));
+}
+.tcard-dubious {
+  color: #ffd9d2;
+  border: 1px solid var(--clock-hi);
+  background: rgba(184, 57, 44, 0.28);
+}
+.tcard-combo {
+  color: #2a1e10;
+  background: linear-gradient(180deg, var(--brass-hi), var(--brass));
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.tcard-slot {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--bone);
+}
+.tcard-slot b {
+  color: var(--brass-hi);
+  font-weight: 600;
+}
+.tcard-replaces b {
+  color: #ffc4bb;
+}
+.tcard-plays {
+  margin: 0;
+  font-size: var(--fs-md);
+  font-style: italic;
+  line-height: 1.3;
+  color: #f3e9d0;
+}
+.tcard-desc {
+  margin: 0;
+  font-size: var(--fs-md);
+  line-height: 1.35;
+  color: var(--ivory);
+}
+.tcard-price {
+  margin: 0;
+  padding: 4px 8px;
+  font-size: var(--fs-sm);
+  line-height: 1.35;
+  color: var(--ivory);
+  background: rgba(184, 57, 44, 0.14);
+  border-left: 3px solid var(--clock-hi);
+  border-radius: 3px;
+}
+.tcard-price i,
+.tcard-leads i,
+.tslot-did i,
+.bld-why i,
+.bld-upnext i {
+  margin-right: 4px;
+  font-style: normal;
+  font-size: var(--fs-xs);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+.tcard-price i {
+  color: #ffbfb5;
+}
+.tcard-change {
+  display: grid;
+  gap: 3px;
+  padding: 6px 9px 7px;
+  background: rgba(10, 8, 6, 0.35);
+  border: 1px solid rgba(201, 163, 90, 0.18);
+  border-radius: 4px;
+}
+.tcard-change dl {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+}
+.tcard-change-h {
+  font-family: var(--font-display);
+  font-size: var(--fs-sm);
+  letter-spacing: 0.04em;
+  color: var(--brass-hi);
+}
+.tcard-change-empty {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--dim);
+}
+.tcard-est {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--brass-hi);
+}
+.tcard-leads {
+  margin: 0;
+  font-size: var(--fs-sm);
+  line-height: 1.35;
+  color: var(--bone);
+}
+.tcard-leads b {
+  color: #f3e9d0;
+  font-weight: 600;
+}
+.tcard-leads.ready {
+  padding: 5px 8px;
+  color: var(--ivory);
+  background: rgba(201, 163, 90, 0.14);
+  border-left: 3px solid var(--brass);
+  border-radius: 3px;
+}
+.tcard-leads.ready i {
+  color: var(--brass-hi);
+}
+.tcard-take {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ===== the six slots ===== */
+.tslots {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+}
+.tslot {
+  position: relative;
+  display: grid;
+  align-content: center;
+  gap: 1px;
+  min-width: 0;
+  min-height: 48px;
+  padding: 4px 7px 5px;
+  font: inherit;
+  text-align: left;
+  color: var(--ivory);
+  border-radius: var(--r-1);
+}
+.tslot.empty {
+  border: 1px dashed rgba(203, 189, 159, 0.3);
+}
+.tslot.locked {
+  border: 1px dashed rgba(203, 189, 159, 0.16);
+  background: repeating-linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.02) 0 6px,
+    transparent 6px 12px
+  );
+}
+.tslot.held {
+  cursor: pointer;
+  background: color-mix(in srgb, var(--school) 14%, rgba(0, 0, 0, 0.25));
+  border: 1px solid color-mix(in srgb, var(--school) 55%, transparent);
+  border-left: 3px solid var(--school);
+}
+.tslot.held:hover,
+.tslot.held:focus-visible {
+  border-color: var(--brass-hi);
+}
+.tslot.held.on {
+  border-color: var(--brass-hi);
+  box-shadow: var(--glow-brass);
+}
+.tslot.fresh {
+  animation: tslot-land 0.7s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+@keyframes tslot-land {
+  0% {
+    transform: scale(1.08);
+    box-shadow:
+      0 0 0 3px var(--brass-hi),
+      0 0 26px var(--brass);
+  }
+  100% {
+    transform: none;
+  }
+}
+.tslot-label {
+  overflow: hidden;
+  font-size: 11px;
+  line-height: 14px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--dim);
+}
+.tslot-name {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  font-size: var(--fs-sm);
+  line-height: 1.2;
+}
+.tslot-name svg {
+  flex: none;
+}
+.tslot-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tslot-away {
+  position: absolute;
+  top: 2px;
+  right: 3px;
+  font-style: normal;
+  font-size: 10px;
+  line-height: 13px;
+  color: var(--brass-hi);
+}
+.tslots.compact .tslot {
+  min-height: 44px;
+  padding: 3px 6px 4px;
+}
+.tslot-detail {
+  display: grid;
+  gap: 5px;
+  padding: 8px 10px 9px;
+  background: color-mix(in srgb, var(--school) 8%, rgba(10, 8, 6, 0.4));
+  border: 1px solid color-mix(in srgb, var(--school) 40%, var(--rule));
+  border-left: 3px solid var(--school);
+  border-radius: var(--r-1);
+}
+.tslot-detail header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 7px;
+}
+.tslot-detail header b {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--fs-lg);
+  color: #f6edd6;
+}
+.tslot-detail-tags {
+  font-size: var(--fs-xs);
+  color: var(--dim);
+}
+.tslot-detail-desc,
+.tslot-did {
+  margin: 0;
+  font-size: var(--fs-sm);
+  line-height: 1.35;
+  color: var(--ivory);
+}
+
+/* ===== the Builds tab ===== */
+.bld,
+.bld-piece,
+.bld-l,
+.bld-r,
+.bld-side {
+  display: grid;
+  align-content: start;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+.bld-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 10px;
+}
+.bld-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 44px;
+  padding: 0 4px;
+  font-family: var(--font-display);
+  font-size: var(--fs-md);
+  letter-spacing: 0.04em;
+  color: var(--ivory);
+  cursor: pointer;
+  background: none;
+  border: 0;
+}
+.bld-track {
+  position: relative;
+  flex: none;
+  width: 40px;
+  height: 22px;
+  border-radius: 11px;
+  background: #1d1510;
+  border: 1px solid var(--brass-dim);
+  transition: background-color var(--t-fast) var(--ease);
+}
+.bld-track i {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--bone);
+  transition: transform var(--t-med) var(--ease);
+}
+.bld-switch.on .bld-track {
+  background: linear-gradient(180deg, #2c6249 0%, var(--baize) 100%);
+  border-color: var(--baize-hi);
+}
+.bld-switch.on .bld-track i {
+  transform: translateX(18px);
+  background: var(--ivory);
+}
+.bld-all {
+  min-height: 44px;
+  padding: 0 12px;
+  font-size: var(--fs-sm);
+  color: var(--brass-hi);
+  border-color: var(--brass-dim);
+}
+.bld-intro,
+.bld-foot {
+  margin: 0;
+  line-height: 1.35;
+}
+.bld-intro {
+  font-size: var(--fs-sm);
+  color: var(--ivory);
+}
+/* the piece strip: glyph, gold, and a star (worth a look) or a tick (decided) */
+.bld-strip {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 4px;
+}
+.bld-chip {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 1px;
+  min-height: 52px;
+  padding: 4px 2px 3px;
+  cursor: pointer;
+  color: var(--ivory);
+  background: linear-gradient(180deg, #33231a, #211812);
+  border: 1px solid #4f3f27;
+  border-radius: var(--r-1);
+}
+.bld-chip.on {
+  border-color: var(--brass-hi);
+  background: linear-gradient(180deg, #4a3622, #2a1e15);
+  box-shadow: var(--glow-brass);
+}
+.bld-chip.star {
+  border-color: var(--brass);
+}
+.bld-chip-gold {
+  font-size: 12px;
+  line-height: 14px;
+  font-variant-numeric: tabular-nums;
+  color: var(--brass-hi);
+}
+.bld-chip-state {
+  position: absolute;
+  top: 1px;
+  right: 3px;
+  font-style: normal;
+  font-size: 12px;
+  line-height: 14px;
+  color: var(--brass-hi);
+}
+.bld-chip[data-state='done'] .bld-chip-state {
+  color: var(--baize-hi);
+}
+.bld-chip[data-state='open']::after {
+  content: '';
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--brass);
+}
+.bld-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding-top: 2px;
+}
+.bld-head-name {
+  display: grid;
+  flex: 1 1 auto;
+  min-width: 0;
+  line-height: 1.2;
+}
+.bld-head-name b {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--fs-lg);
+  letter-spacing: 0.04em;
+  color: #f6edd6;
+}
+.bld-head-sub {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--fs-sm);
+  color: var(--bone);
+}
+.bld-gold {
+  flex: none;
+  font-size: var(--fs-md);
+  font-variant-numeric: tabular-nums;
+  color: var(--brass-hi);
+}
+.bld-why {
+  margin: 0;
+  padding: 6px 9px;
+  font-size: var(--fs-sm);
+  line-height: 1.35;
+  color: var(--ivory);
+  background: rgba(201, 163, 90, 0.15);
+  border-left: 3px solid var(--brass);
+  border-radius: 3px;
+}
+.bld-why i {
+  color: var(--brass-hi);
+}
+.bld-hint {
+  margin: 0;
+}
+.bld-offer-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+.bld-offer-head b {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--fs-lg);
+  letter-spacing: 0.04em;
+  color: var(--brass-hi);
+}
+.bld-cards {
+  display: grid;
+  gap: var(--sp-2);
+}
+.bld-cards.deal .tcard {
+  animation: rl-deal 0.62s cubic-bezier(0.2, 0.9, 0.25, 1) both;
+  animation-delay: calc(var(--i, 0) * 0.12s + 0.05s);
+  transform-origin: 50% 60%;
+  backface-visibility: hidden;
+}
+.bld-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+.bld-act {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 0;
+  min-width: 0;
+  min-height: 48px;
+  padding: 3px 4px;
+  line-height: 1.15;
+}
+.bld-act b {
+  font-weight: 400;
+  font-size: var(--fs-sm);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.bld-act small {
+  font-size: 11.5px;
+  color: var(--brass-hi);
+  white-space: nowrap;
+}
+.bld-act:disabled small {
+  color: var(--dim);
+}
+.bld-decided {
+  margin: 0;
+  padding: 8px 10px;
+  font-size: var(--fs-md);
+  line-height: 1.35;
+  color: var(--ivory);
+  background: rgba(95, 174, 134, 0.1);
+  border-left: 3px solid var(--baize-hi);
+  border-radius: 3px;
+}
+.bld-decided b {
+  color: #f6edd6;
+}
+.bld-upgrade {
+  display: grid;
+  gap: 5px;
+}
+.bld-upnext,
+.bld-upnote {
+  margin: 0;
+  font-size: var(--fs-sm);
+  line-height: 1.35;
+  color: var(--ivory);
+}
+.bld-upnext i {
+  color: var(--brass-hi);
+}
+.bld-upbtn {
+  min-height: 44px;
+}
+
+/* a phone held upright: the strip stays at the top, the cards sit side by side and swipe */
+html[data-layout='portrait'] .bld-strip {
+  position: sticky;
+  /* stick to the top of the sheet's padding, so nothing shows in a gap above the strip */
+  top: calc(-1 * var(--sp-3));
+  z-index: 3;
+  padding: 6px 0;
+  background: rgb(36, 28, 20);
+  border-bottom: 1px solid var(--rule);
+}
+html[data-layout='portrait'] .bld-cards {
+  display: flex;
+  gap: 10px;
+  margin: 0 -12px;
+  padding: 2px 12px 8px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scroll-padding: 0 12px;
+  scrollbar-width: none;
+}
+html[data-layout='portrait'] .bld-cards::-webkit-scrollbar {
+  display: none;
+}
+html[data-layout='portrait'] .bld-cards .tcard {
+  flex: 0 0 86%;
+  scroll-snap-align: center;
+}
+
+/* landscape phones and desktop: two columns (strip and slots left, the cards right) */
+html[data-layout='landscape'] .bld-piece,
+html[data-layout='desktop'] .bld-piece {
+  grid-template-columns: minmax(230px, 0.62fr) minmax(0, 1.7fr);
+  align-items: start;
+  gap: var(--sp-3);
+}
+html[data-layout='landscape'] .bld-cards,
+html[data-layout='desktop'] .bld-cards {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: start;
+}
+html[data-layout='desktop'] .breaksheet:has(.bld) {
+  padding-left: max(calc(12px + env(safe-area-inset-left)), calc((100% - 1180px) / 2));
+  padding-right: max(calc(12px + env(safe-area-inset-right)), calc((100% - 1180px) / 2));
+}
+html[data-layout='landscape'] .breaksheet:has(.bld) {
+  padding-left: calc(10px + env(safe-area-inset-left));
+  padding-right: calc(10px + env(safe-area-inset-right));
+}
+html[data-layout='landscape'] .bld-intro {
+  display: none;
+}
+html[data-layout='landscape'] .bld-piece {
+  grid-template-columns: 268px minmax(0, 1fr);
+}
+html[data-layout='landscape'] .bld-switch {
+  gap: 7px;
+  font-size: var(--fs-sm);
+}
+html[data-layout='landscape'] .bld-all {
+  padding: 0 8px;
+}
+html[data-layout='landscape'] .bld-chip {
+  min-height: 44px;
+}
+html[data-layout='landscape'] .tcard {
+  gap: 5px;
+  padding: 0 9px 9px;
+}
+html[data-layout='landscape'] .tcard-plate {
+  gap: 8px;
+  margin: 0 -9px;
+  padding: 18px 9px 7px;
+}
+html[data-layout='landscape'] .tcard-medal {
+  width: 36px;
+  height: 36px;
+}
+html[data-layout='landscape'] .tcard-medal svg {
+  width: 22px;
+  height: 22px;
+}
+html[data-layout='landscape'] .tcard-name {
+  font-size: var(--fs-md);
+}
+html[data-layout='landscape'] .tcard-plays {
+  display: none;
+}
+html[data-layout='landscape'] .tcard-desc,
+html[data-layout='landscape'] .tcard-slot {
+  font-size: var(--fs-sm);
+}
+html[data-layout='landscape'] .tcard .rrow dt,
+html[data-layout='landscape'] .tcard .rrow dd {
+  font-size: var(--fs-xs);
+}
+html[data-layout='landscape'] .tcard-take {
+  min-height: 44px;
+}
+html[data-layout='desktop'] .tcard-medal {
+  width: 54px;
+  height: 54px;
+}
+html[data-layout='desktop'] .tcard-medal svg {
+  width: 32px;
+  height: 32px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bld-cards.deal .tcard,
+  .tslot.fresh {
+    animation: none;
+  }
+}
