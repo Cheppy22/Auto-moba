@@ -86,15 +86,17 @@ Branch `wip/techniques-content`. All 84 Techniques, both sides AI, `--techniques
 
 Branch `wip/techniques-retire`. Items, shops, the Armory, the Keeper, cursed items, attunement, counter items, build paths and the Rank 8 fork are deleted; every match plays Techniques with the Rank growth `ranks.growth` (health +15.5%, main damage +40%, other +4.5% per Rank); the obelisk's old Masterwork discount is a free reroll per piece. AI vs AI unless noted, `--map long`, 2 workers. 200 matches is direction only (±7 points).
 
-| Run                                                | Matches | White     | Median min | p90 min  | Kills | At Rank 8 | Combination (White) |
-| -------------------------------------------------- | ------- | --------- | ---------- | -------- | ----- | --------- | ------------------- |
-| Phases 2–3 (`--techniques --no-items`), seed 29000 | 800     | 50.1%     | 12.6       | 18.9     | 23.3  | 17.1%     | 31.5%               |
-| p1: phase 4, seed 29000                            | 200     | 50.8%     | 12.6       | 19.3     | 23.4  | 17.6%     | 32.3%               |
-| **Confirm: phase 4, seed 29000**                   | 800     | **50.3%** | **13.0**   | **19.9** | 24.0  | 19.3%     | 33.0%               |
-| **Confirm: phase 4, seed 31000**                   | 800     | **52.8%** | **13.1**   | **20.2** | 24.0  | 20.3%     | 32.1%               |
-| Player probe (`--white-player --white-every 60`)   | 200     | 47.7%     | 13.4       | 20.0     | 24.4  | 21.0%     | 35.8%               |
-| Blitz (`--pace blitz`)                             | 200     | 45.5%     | 10.4       | 13.1     | 15.6  | 0.5%      | 18.2%               |
+| Run                                                                    | Matches | White     | Median min | p90 min  | Kills | At Rank 8 | Combination (White) |
+| ---------------------------------------------------------------------- | ------- | --------- | ---------- | -------- | ----- | --------- | ------------------- |
+| Phases 2–3 (`--techniques --no-items`), seed 29000                     | 800     | 50.1%     | 12.6       | 18.9     | 23.3  | 17.1%     | 31.5%               |
+| p1: phase 4, seed 29000                                                | 200     | 50.8%     | 12.6       | 19.3     | 23.4  | 17.6%     | 32.3%               |
+| **Confirm: phase 4, seed 29000**                                       | 800     | **50.3%** | **13.0**   | **19.9** | 24.0  | 19.3%     | 33.0%               |
+| **Confirm: phase 4, seed 31000**                                       | 800     | **52.8%** | **13.1**   | **20.2** | 24.0  | 20.3%     | 32.1%               |
+| **Confirm after merging proposal/next (Openings phase C), seed 29000** | 800     | **48.0%** | **13.3**   | **20.8** | 24.6  | 22.1%     | 34.5%               |
+| Player probe (`--white-player --white-every 60`)                       | 200     | 47.7%     | 13.4       | 20.0     | 24.4  | 21.0%     | 35.8%               |
+| Blitz (`--pace blitz`)                                                 | 200     | 45.5%     | 10.4       | 13.1     | 15.6  | 0.5%      | 18.2%               |
 
+- **After merging the Openings (phase C, `proposal/next` 6169f80):** 800 on seed 29000 reads White **48.0%**, median 13.3 min, p90 20.8 (inside 48–52% at its edge; the Openings change alone read 52.0% / 48.5% on seeds 29000 / 31000). The player, Blitz and ladder probes above were run before the merge.
 - **BLUF: AI vs AI stays in range with items gone; nothing was tuned.** 50.3% and 52.8% White on the two seeds (51.6% over 1,600; 52.8% is 0.8 over the band on one seed, inside its ±3.5 noise), median 13.0–13.1 min, p90 about 20. Matches are 0.4 min longer at the median than phases 2–3 (items off by switch); kills and Ranks are unchanged.
 - **Player and Blitz probes read low** (47.7% and 45.5%, 200 each, ±7): phase 6 items with their own runs. Before (items era, same commands) they read 55.5% and 51.5%; phases 2–3 player probe 53.5%. A likely part of the player drop is the comeback bounty: it now reads lifetime gold earned (items era: gold plus item value), while phases 2–3 read only the gold a piece held, which spending kept level. Blitz decided on points 25% (items era 20.5%).
 - **Breaks:** each piece spends a median 1,800 gold at break 1 (two upgrades) and 1,200 after; 0.1 rerolls and no passes per match (the AI's reroll rule, phase 6). Obelisk free rerolls go mostly unused by the AI for the same reason.
