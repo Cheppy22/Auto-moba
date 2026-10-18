@@ -44,6 +44,7 @@ test('the Draw shows a named court: seal, portrait, motto, Opening, archetypes a
   await expect(page.getByTestId('rung-motto-1')).not.toBeEmpty();
   await expect(now.locator('.opening-line')).toBeVisible();
   await expect(now.getByTestId('court-styles').locator('li')).toHaveCount(5);
+  await expect(now.getByTestId('court-first-moves').locator('li')).toHaveCount(5);
   await expect(now.getByTestId('signature-relic')).toBeVisible();
   // the later rounds show their name, motto and seal
   for (const i of [2, 3, 4]) {

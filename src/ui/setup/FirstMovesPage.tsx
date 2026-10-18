@@ -1,9 +1,11 @@
 import { useState } from 'preact/hooks';
 import type { FirstMoveView, PieceId } from '../../sim';
-import { faceOfDef, faceOfView, TechniqueCard } from '../builds/TechniqueCard';
+import { TechniqueCard, techniqueFace, type CardMark } from '../TechniqueCard';
 import { Term } from '../glossary';
 import { PieceGlyph, pieceLabel } from '../pieces';
+import { RichText } from '../richtext';
 import { useSession } from '../session';
+import { TechniqueChip } from '../TechniqueChip';
 import {
   chosenIndex,
   lostPicks,
@@ -14,6 +16,28 @@ import {
 } from './firstMoves';
 
 const SOURCE_WORD = { yours: 'Your pick', ai: 'AI pick', open: 'Open' } as const;
+
+/** A run's heirloom, already held: its chip, the part of the piece it changes and its rule. */
+function Heirloom(props: { piece: PieceId; id: string }) {
+  const s = useSession();
+  const face = techniqueFace(s.content, props.id, 'plain', props.piece);
+  if (!face) return null;
+  return (
+    <div class="fm-heir" data-testid={`fm-heirloom-${props.piece}`}>
+      <span class="fm-heir-label tiny">
+        <Term id="heirloom">Heirloom</Term>: already taken, so the three cards below are for other
+        parts of the piece
+      </span>
+      <span class="fm-heir-body">
+        <TechniqueChip c={s.content} id={face.id} grade={face.grade} />
+        <span class="tiny dim">Changes: {face.slotName}</span>
+      </span>
+      <p class="fm-heir-rule tiny">
+        <RichText text={face.desc} />
+      </p>
+    </div>
+  );
+}
 
 /**
  * Page 1: each piece's first Technique. One tab per piece, three cards each. With "Pick for me" on
@@ -101,39 +125,30 @@ export function FirstMovesPage(props: {
               <b>Worth a look.</b> {reasonLine(row.reasons)}
             </p>
           )}
-          {heirlooms[row.piece] && (
-            <div class="fm-heir" data-testid={`fm-heirloom-${row.piece}`}>
-              <span class="fm-heir-label tiny">
-                <Term id="heirloom">Heirloom</Term>: already taken
-              </span>
-              {(() => {
-                const face = faceOfDef(s.content, heirlooms[row.piece]!, 'plain', row.piece);
-                return face && <TechniqueCard face={face} compact />;
-              })()}
-            </div>
-          )}
-          <p class="fm-for tiny dim">
-            {pieceLabel(s.content, row.piece)}: pick one of three
-            {heirlooms[row.piece] ? ' for another part of the piece' : ''}.
-          </p>
+          {heirlooms[row.piece] && <Heirloom piece={row.piece} id={heirlooms[row.piece]!} />}
+          <p class="fm-for tiny dim">{pieceLabel(s.content, row.piece)}: pick one of three.</p>
           <ul class="fm-cards" aria-label={`${pieceLabel(s.content, row.piece)} first move`}>
             {row.cards.map((card, i) => {
               const chosen = chosenIndex(row, picks[row.piece], pickForMe) === i;
+              const src = sourceOf(row, picks[row.piece], pickForMe);
+              // the AI's pre-selected card says "Picked for you"; an open piece only says "AI suggests"
+              const mark: CardMark =
+                chosen && src === 'ai' ? 'picked' : !chosen && card.suggested ? 'suggested' : null;
               return (
-                <li key={card.id}>
+                <li key={card.id} class={`fm-card ${chosen ? 'on' : ''}`} data-chosen={chosen}>
                   <TechniqueCard
-                    face={faceOfView(card)}
+                    card={card}
+                    mark={mark}
+                    index={i}
                     testid={`fm-card-${row.piece}-${i}`}
-                    on={chosen}
-                    suggested={card.suggested}
                   >
                     <button
-                      class={`btn tc-take ${chosen ? 'chosen' : 'primary'}`}
+                      class={`btn tcard-take ${chosen ? 'chosen' : 'primary'}`}
                       aria-pressed={chosen}
                       data-testid={`fm-take-${row.piece}-${i}`}
                       onClick={() => props.onPick(row.piece, card.id)}
                     >
-                      {chosen ? 'Chosen' : 'Take this'}
+                      {chosen ? 'Chosen' : `Take ${card.name}`}
                     </button>
                   </TechniqueCard>
                 </li>

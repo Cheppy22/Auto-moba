@@ -45,7 +45,7 @@ function heldByPiece(page: Page): Promise<Record<string, string[]>> {
 const cardIds = (page: Page, piece: string): Promise<(string | null)[]> =>
   page
     .getByTestId('first-move-' + piece)
-    .locator('.tc')
+    .locator('.tcard')
     .evaluateAll((els) => els.map((e) => e.getAttribute('data-technique')));
 
 test.describe('First moves: Pick for me and your own picks', () => {
@@ -66,11 +66,11 @@ test.describe('First moves: Pick for me and your own picks', () => {
       await page.getByTestId(`fm-chip-${piece}`).click();
       await expect(page.getByTestId(`fm-chip-${piece}`)).toHaveAttribute('aria-checked', 'true');
       const row = page.getByTestId(`first-move-${piece}`);
-      await expect(row.locator('.tc')).toHaveCount(3);
-      await expect(row.locator('.tc.on')).toHaveCount(1);
-      await expect(row.locator('.tc.on .tc-ai')).toHaveCount(1);
+      await expect(row.locator('.tcard')).toHaveCount(3);
+      await expect(row.locator('.fm-card.on')).toHaveCount(1);
+      await expect(row.locator('.fm-card.on .tcard[data-mark="picked"]')).toHaveCount(1);
       await expect(page.getByTestId(`fm-chip-${piece}`)).toHaveAttribute('data-source', 'ai');
-      suggested[piece] = (await row.locator('.tc.on').getAttribute('data-technique'))!;
+      suggested[piece] = (await row.locator('.fm-card.on .tcard').getAttribute('data-technique'))!;
     }
     // one or two picks are marked as worth a look
     const hot = await page.locator('.fm-chip.hot').count();
@@ -86,8 +86,10 @@ test.describe('First moves: Pick for me and your own picks', () => {
       'aria-pressed',
       'true',
     );
-    await expect(page.getByTestId(`fm-card-queen-${other}`)).toHaveClass(/\bon\b/);
-    await expect(page.getByTestId('first-move-queen').locator('.tc.on')).toHaveCount(1);
+    await expect(page.getByTestId(`fm-card-queen-${other}`).locator('xpath=..')).toHaveClass(
+      /\bon\b/,
+    );
+    await expect(page.getByTestId('first-move-queen').locator('.fm-card.on')).toHaveCount(1);
     await expect(page.getByTestId('fm-chip-queen')).toHaveAttribute('data-source', 'yours');
     await expect(page.getByTestId('pick-note')).toContainText('except the 1 you picked');
 
@@ -97,9 +99,11 @@ test.describe('First moves: Pick for me and your own picks', () => {
     await expect(page.getByTestId('fm-chip-queen')).toHaveAttribute('data-source', 'yours');
     await expect(page.getByTestId('fm-chip-king')).toHaveAttribute('data-source', 'open');
     await page.getByTestId('fm-chip-king').click();
-    await expect(page.getByTestId('first-move-king').locator('.tc.on')).toHaveCount(0);
+    await expect(page.getByTestId('first-move-king').locator('.fm-card.on')).toHaveCount(0);
     // an open piece still starts with the card marked "AI suggests"
-    await expect(page.getByTestId('first-move-king').locator('.tc-ai')).toHaveCount(1);
+    await expect(
+      page.getByTestId('first-move-king').locator('.tcard[data-mark="suggested"]'),
+    ).toHaveCount(1);
 
     // Begin: the Queen holds the card you took, the open King the AI's, the rest the AI's picks
     await page.getByTestId('quick-start').click();
@@ -117,14 +121,14 @@ test.describe('First moves: Pick for me and your own picks', () => {
     const ids = await cardIds(page, 'rook');
     const sug = await page
       .getByTestId('first-move-rook')
-      .locator('.tc.on')
+      .locator('.fm-card.on .tcard')
       .getAttribute('data-technique');
     const other = ids.findIndex((id) => id !== sug);
     await page.getByTestId(`fm-take-rook-${other}`).click();
     await expect(page.getByTestId('fm-chip-rook')).toHaveAttribute('data-source', 'yours');
     await page.getByTestId('fm-undo-rook').click();
     await expect(page.getByTestId('fm-chip-rook')).toHaveAttribute('data-source', 'ai');
-    await expect(page.getByTestId('first-move-rook').locator('.tc.on')).toHaveAttribute(
+    await expect(page.getByTestId('first-move-rook').locator('.fm-card.on .tcard')).toHaveAttribute(
       'data-technique',
       sug!,
     );

@@ -187,6 +187,12 @@ test('a run on a phone: draw, kit, win, Spoils, reload, Continue, lose, summary,
   await expect(page.getByTestId('spoil-relic')).toBeVisible();
   await expect(page.getByTestId('spoil-heirloom')).toBeAttached();
   await expect(page.getByTestId('spoil-book')).toBeAttached();
+  // the heirloom shows the Technique as a card face; the next court's five first moves are listed
+  await expect(page.getByTestId('spoil-heirloom-card')).toHaveAttribute('data-technique', /.+/);
+  await expect(page.getByTestId('spoil-heirloom-card')).toContainText('Changes:');
+  await expect(
+    page.getByTestId('next-court').getByTestId('court-first-moves').locator('li'),
+  ).toHaveCount(5);
   const snap = await page
     .getByTestId('spoil-row')
     .evaluate((el) => getComputedStyle(el).scrollSnapType);
@@ -210,6 +216,22 @@ test('a run on a phone: draw, kit, win, Spoils, reload, Continue, lose, summary,
   expect(mid.round).toBe(1);
   expect(Object.keys(mid.heirlooms)).toHaveLength(1);
   expect(mid.offers).toBeNull();
+  // page 1 (First moves): the heirloom shows as already taken on its piece, and that piece's three
+  // cards are dealt for other slots
+  const [heirPiece] = Object.keys(mid.heirlooms);
+  await page.getByTestId(`fm-chip-${heirPiece}`).click();
+  await expect(page.getByTestId(`fm-heirloom-${heirPiece}`)).toContainText('already taken');
+  await expect(
+    page.getByTestId(`fm-heirloom-${heirPiece}`).getByTestId('tech-chip'),
+  ).toHaveAttribute('data-technique', mid.heirlooms[heirPiece]);
+  await expect(page.getByTestId(`first-move-${heirPiece}`).locator('.tcard')).toHaveCount(3);
+  // the Run kit shows the heirloom as the Technique's card face under its piece
+  await page.getByTestId('run-strip').click();
+  await expect(page.getByTestId(`kit-heirloom-${heirPiece}`).locator('.tcard')).toHaveAttribute(
+    'data-technique',
+    mid.heirlooms[heirPiece],
+  );
+  await page.getByTestId('run-kit-close').click();
 
   // ---- reload: Continue picks the run up at round 2's court
   await page.reload();

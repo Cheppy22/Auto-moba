@@ -1,4 +1,5 @@
 import type { AdviceReason, FirstMoveView, PieceId } from '../../sim';
+import { REASON_TEXT } from '../hud/buildsData';
 
 export type FirstMoveRow = FirstMoveView['pieces'][number];
 
@@ -44,15 +45,9 @@ export function lostPicks(view: FirstMoveView, picks: Picks): PieceId[] {
     .map((r) => r.piece);
 }
 
-/** Why "Pick for me" points at a piece, in plain words. */
-export const REASON_TEXT: Record<AdviceReason, string> = {
-  combination: 'One card completes a Combination.',
-  sharp: 'The offer is Sharp, so every number is bigger.',
-  brilliant: 'The offer is Brilliant, so every number is bigger.',
-  carry: 'This piece will deal most of your damage.',
-  spread: 'The three cards are far apart in value.',
-};
-
+/** Why "Pick for me" points at a piece, in the Builds tab's words ("a Combination is on offer; …"). */
 export function reasonLine(reasons: readonly AdviceReason[]): string {
-  return reasons.length > 0 ? REASON_TEXT[reasons[0]] : 'The cards here differ the most.';
+  if (reasons.length === 0) return 'The three cards differ the most here.';
+  const text = reasons.map((r) => REASON_TEXT[r]).join('; ');
+  return `${text.charAt(0).toUpperCase()}${text.slice(1)}.`;
 }

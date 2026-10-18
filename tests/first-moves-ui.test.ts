@@ -8,7 +8,7 @@ import {
   reasonLine,
   sourceOf,
 } from '../src/ui/setup/firstMoves';
-import { ledgerRows } from '../src/ui/builds/ledger';
+import { ledgerRows } from '../src/ui/TechniqueCard';
 import { content, piece } from './helpers';
 
 const setupMatch = (seed = 41, heirlooms?: Partial<Record<PieceId, string>>): Match =>
@@ -56,7 +56,8 @@ describe('First moves page rules', () => {
   });
 
   it('every advice reason has a plain sentence', () => {
-    expect(reasonLine(['carry'])).toMatch(/damage/);
+    expect(reasonLine(['carry'])).toMatch(/top-damage piece/);
+    expect(reasonLine(['combination', 'sharp'])).toMatch(/^A Combination is on offer; /);
     expect(reasonLine([])).not.toBe('');
   });
 

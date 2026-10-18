@@ -69,138 +69,6 @@
   gap: 0.6rem;
 }
 
-/* ---------- the Technique card face (Setup's First moves, Spoils, the Run kit) ---------- */
-.tc {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-width: 0;
-  padding: 11px 12px 12px;
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--school) 10%, transparent), transparent 55%),
-    rgba(255, 255, 255, 0.03);
-  border: 1px solid color-mix(in srgb, var(--school) 38%, var(--rule));
-  border-radius: 6px;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.05),
-    0 6px 16px rgba(0, 0, 0, 0.3);
-}
-.tc::before {
-  content: '';
-  position: absolute;
-  inset: 0 0 auto;
-  height: 3px;
-  background: var(--school);
-  border-radius: 6px 6px 0 0;
-  pointer-events: none;
-}
-.tc.on {
-  border-color: var(--brass);
-  box-shadow: var(--glow-brass);
-}
-.tc-top {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px 8px;
-}
-.tc-school {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 12px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: color-mix(in srgb, var(--school) 60%, white);
-}
-.tc-ai {
-  margin-left: auto;
-  padding: 0 8px;
-  font-style: normal;
-  line-height: 18px;
-  color: var(--brass-hi);
-  border: 1px solid var(--brass-dim);
-  border-radius: 9px;
-  background: rgba(201, 163, 90, 0.12);
-}
-.tc-name {
-  margin: 0;
-  font-family: var(--font-display);
-  font-weight: 400;
-  font-size: 21px;
-  line-height: 1.1;
-  letter-spacing: 0.03em;
-  color: #f6edd6;
-}
-.tc-slot {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 6px;
-  margin: 0;
-}
-.tc-slotchip,
-.tc-tag {
-  padding: 1px 8px;
-  line-height: 18px;
-  border-radius: 10px;
-  color: #f3e9d0;
-  background: color-mix(in srgb, var(--school) 20%, transparent);
-  border: 1px solid color-mix(in srgb, var(--school) 55%, transparent);
-}
-.tc-tag.dubious {
-  color: var(--kw-price);
-  background: rgba(236, 106, 112, 0.1);
-  border-color: rgba(236, 106, 112, 0.5);
-}
-.tc-tag.combo {
-  color: var(--brass-hi);
-  background: rgba(201, 163, 90, 0.12);
-  border-color: var(--brass-dim);
-}
-.tc-plays {
-  margin: 0;
-  font-style: italic;
-  font-size: var(--fs-sm);
-  color: var(--bone);
-}
-.tc-rule {
-  margin: 0;
-  font-size: var(--fs-md);
-  line-height: 1.4;
-  color: #f6edd6;
-}
-.tc-price,
-.tc-note,
-.tc-leads {
-  margin: 0;
-  color: var(--bone);
-}
-.tc-leads b {
-  color: var(--brass-hi);
-  font-weight: 600;
-}
-.tc.compact {
-  gap: 4px;
-  padding: 8px 10px 9px;
-}
-.tc.compact .tc-name {
-  font-size: 17px;
-}
-.tc.compact .tc-rule {
-  font-size: var(--fs-sm);
-}
-.tc-take {
-  align-self: stretch;
-  min-height: 44px;
-  margin-top: auto;
-}
-.tc-take.chosen {
-  color: var(--ivory);
-  border-color: var(--brass);
-  background: rgba(201, 163, 90, 0.18);
-}
-
 /* ---------- Setup page 1: First moves ---------- */
 .fm-page {
   display: flex;
@@ -341,15 +209,40 @@
   display: flex;
   min-width: 0;
 }
-.fm-cards > li > .tc {
+.fm-cards > li > .tcard {
   flex: 1;
+}
+/* the card you chose: a brass frame (the AI's pre-selected card has its own, from its mark) */
+.fm-card.on > .tcard {
+  border-color: var(--brass);
+  box-shadow:
+    inset 0 0 0 1px rgba(240, 213, 138, 0.35),
+    0 0 18px rgba(201, 163, 90, 0.28);
 }
 .fm-heir {
   display: grid;
   gap: 4px;
+  padding: 8px 10px;
+  background: rgba(201, 163, 90, 0.08);
+  border: 1px solid var(--brass-dim);
+  border-radius: 4px;
 }
 .fm-heir-label {
   color: var(--brass-hi);
+}
+.fm-heir-body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+.fm-heir-rule {
+  margin: 0;
+}
+.tcard-take.chosen {
+  color: var(--ivory);
+  border-color: var(--brass);
+  background: rgba(201, 163, 90, 0.18);
 }
 .fm-undo {
   align-self: start;
@@ -370,16 +263,6 @@ html[data-layout='landscape'] .fm-chip {
 html[data-layout='landscape'] .fm-page {
   gap: 0.4rem;
 }
-html[data-layout='landscape'] .tc {
-  gap: 4px;
-  padding: 8px 10px 10px;
-}
-html[data-layout='landscape'] .tc-name {
-  font-size: 18px;
-}
-html[data-layout='landscape'] .tc-rule {
-  font-size: var(--fs-sm);
-}
 
 /* heirlooms on the Run kit: the card face, with the piece that holds it */
 .rk-heirs {
@@ -390,10 +273,10 @@ html[data-layout='landscape'] .tc-rule {
   gap: 8px;
 }
 .rk-heir-on {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 4px;
-  margin-left: auto;
+  gap: 6px;
+  margin-bottom: 4px;
   color: var(--ivory-2);
 }
 
@@ -534,34 +417,9 @@ html[data-layout='landscape'] .tc-rule {
   color: var(--bone);
 }
 
-/* the card's "What changes" ledger (the relic card's table, in the card's colour) */
-.tc-change {
-  display: grid;
-  gap: 2px;
-  padding: 6px 9px 7px;
-  background: rgba(10, 8, 6, 0.35);
-  border: 1px solid color-mix(in srgb, var(--school) 25%, rgba(201, 163, 90, 0.18));
-  border-radius: 4px;
-}
-.tc-change-h {
-  font-family: var(--font-display);
-  font-size: var(--fs-sm);
-  letter-spacing: 0.04em;
-  color: var(--brass-hi);
-}
-.tc-change dl {
-  display: grid;
-  gap: 1px;
-  margin: 0;
-}
-.tc.compact .tc-change {
-  display: none;
-}
-
 /* a phone held sideways is short: the cards keep to the essentials and the page scrolls */
 html[data-layout='landscape'] .fm-pick-note,
-html[data-layout='landscape'] .fm-for,
-html[data-layout='landscape'] .tc-change {
+html[data-layout='landscape'] .fm-for {
   display: none;
 }
 html[data-layout='landscape'] .fm-hot {

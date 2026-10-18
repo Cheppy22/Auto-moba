@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'preact/hooks';
 import type { PieceId, SetupEntry } from '../sim';
+import { loadPickForMe, savePickForMe } from './hud/buildsData';
 import { readOpening, storeOpening } from './openingPick';
 import { PacePicker } from './PacePicker';
 import { PIECE_ORDER } from './pieces';
@@ -35,7 +36,7 @@ export function Setup() {
   );
   // First moves: the player's own picks, and "Pick for me" (on: the AI's card is already chosen)
   const [picks, setPicks] = useState<Picks>({});
-  const [pickForMe, setPickForMe] = useState(true);
+  const [pickForMe, setPickForMe] = useState(loadPickForMe);
   const moves = useMemo(() => m.firstMoves(opening), [m, opening]);
   const [kit, setKit] = useState(false);
   const [page, setPage] = useState(0);
@@ -111,7 +112,10 @@ export function Setup() {
                 })
               }
               pickForMe={pickForMe}
-              onPickForMe={setPickForMe}
+              onPickForMe={(on) => {
+                savePickForMe(on);
+                setPickForMe(on);
+              }}
             />,
             <BoardPage
               key="board"

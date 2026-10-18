@@ -2,7 +2,7 @@ import type { ComponentChildren } from 'preact';
 import { useState } from 'preact/hooks';
 import { courtOf, roundName, type Reward } from '../../sim';
 import { Term, Terms } from '../glossary';
-import { faceOfDef, TechniqueCard } from '../builds/TechniqueCard';
+import { TechniqueCard, techniqueFace } from '../TechniqueCard';
 import { PieceGlyph, pieceLabel } from '../pieces';
 import { FamilyChip, RelicSeal, relicText } from '../relics';
 import { SchoolChip } from '../schools';
@@ -178,7 +178,7 @@ export function Spoils() {
             }
             if (o.kind === 'heirloom') {
               const tech = c.techniqueById.get(o.technique)!;
-              const face = faceOfDef(c, tech.id, 'plain', o.piece);
+              const face = techniqueFace(c, tech.id, 'plain', o.piece);
               return (
                 <Card
                   key="heirloom"
@@ -200,7 +200,7 @@ export function Spoils() {
                     Your {pieceLabel(c, o.piece)} keeps this <Term id="technique">Technique</Term>{' '}
                     and starts every later match holding it, at Plain grade.
                   </p>
-                  {face && <TechniqueCard face={face} compact testid="spoil-heirloom-card" />}
+                  {face && <TechniqueCard card={face} testid="spoil-heirloom-card" />}
                 </Card>
               );
             }

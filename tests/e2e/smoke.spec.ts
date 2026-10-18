@@ -47,7 +47,7 @@ test('title, setup, gambits, pawn, fork, adjourn, checkmate and report', async (
   await expect(page.getByTestId('pick-for-me')).toHaveAttribute('aria-checked', 'true');
   for (const piece of ['king', 'queen', 'rook', 'bishop', 'knight']) {
     await page.getByTestId(`fm-chip-${piece}`).click();
-    await expect(page.getByTestId(`first-move-${piece}`).locator('.tc.on')).toHaveCount(1);
+    await expect(page.getByTestId(`first-move-${piece}`).locator('.fm-card.on')).toHaveCount(1);
   }
   // page 2, board: swap the King into Mid, read a piece descriptor
   await page.getByTestId('next').click();
