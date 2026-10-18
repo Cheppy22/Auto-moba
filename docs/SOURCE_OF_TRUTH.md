@@ -6,8 +6,8 @@
 
 - What changed and when: [CHANGELOG.md](CHANGELOG.md). Never put history in this file.
 - How the code is organized: [ARCHITECTURE.md](ARCHITECTURE.md).
-- Dated specs and reports this file links to: [ITEMS.md](ITEMS.md), [PLAYTEST.md](PLAYTEST.md), [BALANCE_REPORT.md](BALANCE_REPORT.md), [WONDERLAND.md](WONDERLAND.md), [LOOK-TABLE-2026-10-11.md](LOOK-TABLE-2026-10-11.md) (the Tournament Table look, default since 2026-10-11 as variant c; `?variant=a|b` for the others; the square map's table), [QA-2026-10-11.md](QA-2026-10-11.md) (overnight playtest: findings, fixes, product review), [BALANCE-2026-10-11.md](BALANCE-2026-10-11.md), [FABLE-REVIEW-1-2026-10-11.md](FABLE-REVIEW-1-2026-10-11.md) (rated assessment of the chess variant and the approved order of work, 2026-10-11), [MAP-LONGBOARD-2026-10-11.md](MAP-LONGBOARD-2026-10-11.md) (the Long Board map, the default since 2026-10-12; rules and view in CHESS.md), [LOOK-LONGBOARD-2026-10-12.md](LOOK-LONGBOARD-2026-10-12.md) (the Long Board's visual language: one meaning per look; themes Slate garden and Lamplit parterre), [BALANCE-2026-10-12.md](BALANCE-2026-10-12.md), [SPEC-TOURNAMENT-ARMORY-2026-10-13.md](SPEC-TOURNAMENT-ARMORY-2026-10-13.md) (approved: Tournament run (built and balanced), interactive armory at the Act break (built), tappable glossary (built)), [BALANCE-2026-10-13.md](BALANCE-2026-10-13.md), [BALANCE-2026-10-14.md](BALANCE-2026-10-14.md) (cards a third cheaper and half again stronger; the AI plays cards again; the armory's phases 0–3 runs), [BALANCE-2026-10-15.md](BALANCE-2026-10-15.md) (Tournament round table, AI card reserve 50, AI reward pick, relic snowball), [PROPOSAL-AAA-2026-10-17.md](PROPOSAL-AAA-2026-10-17.md) (overnight AAA proposal branch), [SPEC-GAMBITS-OPENINGS-2026-10-18.md](SPEC-GAMBITS-OPENINGS-2026-10-18.md) (approved 2026-10-18: the Clock school and the original wave-3 cards, 24 cards in all; four new Openings, each with an opening card. Phase A, the four Clock cards, is built; rules in CHESS.md "Gambit schools"), [SPEC-PIECE-BUILDS-2026-10-18.md](SPEC-PIECE-BUILDS-2026-10-18.md) (approved: Techniques replace items; phases 0–3, the sim core, the engine additions and all 84 cards, built and off by default until items retire), [BALANCE-TECHNIQUES-2026-10-18.md](BALANCE-TECHNIQUES-2026-10-18.md) (what items add per Act, the Rank growth that replaces them, and the probes with the full card set).
-- Old design docs, kept for history only: [archive/](archive/) (among them [BROADCAST.md](archive/BROADCAST.md), the deleted Grand Board view's spec).
+- Dated specs and reports this file links to: [PLAYTEST.md](PLAYTEST.md), [BALANCE_REPORT.md](BALANCE_REPORT.md), [WONDERLAND.md](WONDERLAND.md), [LOOK-TABLE-2026-10-11.md](LOOK-TABLE-2026-10-11.md) (the Tournament Table look, default since 2026-10-11 as variant c; `?variant=a|b` for the others; the square map's table), [QA-2026-10-11.md](QA-2026-10-11.md) (overnight playtest: findings, fixes, product review), [BALANCE-2026-10-11.md](BALANCE-2026-10-11.md), [FABLE-REVIEW-1-2026-10-11.md](FABLE-REVIEW-1-2026-10-11.md) (rated assessment of the chess variant and the approved order of work, 2026-10-11), [MAP-LONGBOARD-2026-10-11.md](MAP-LONGBOARD-2026-10-11.md) (the Long Board map, the default since 2026-10-12; rules and view in CHESS.md), [LOOK-LONGBOARD-2026-10-12.md](LOOK-LONGBOARD-2026-10-12.md) (the Long Board's visual language: one meaning per look; themes Slate garden and Lamplit parterre), [BALANCE-2026-10-12.md](BALANCE-2026-10-12.md), [SPEC-TOURNAMENT-ARMORY-2026-10-13.md](SPEC-TOURNAMENT-ARMORY-2026-10-13.md) (approved: Tournament run (built and balanced), interactive armory at the Act break (built), tappable glossary (built)), [BALANCE-2026-10-13.md](BALANCE-2026-10-13.md), [BALANCE-2026-10-14.md](BALANCE-2026-10-14.md) (cards a third cheaper and half again stronger; the AI plays cards again; the armory's phases 0–3 runs), [BALANCE-2026-10-15.md](BALANCE-2026-10-15.md) (Tournament round table, AI card reserve 50, AI reward pick, relic snowball), [PROPOSAL-AAA-2026-10-17.md](PROPOSAL-AAA-2026-10-17.md) (overnight AAA proposal branch), [SPEC-GAMBITS-OPENINGS-2026-10-18.md](SPEC-GAMBITS-OPENINGS-2026-10-18.md) (approved 2026-10-18: the Clock school and the original wave-3 cards, 24 cards in all; four new Openings, each with an opening card. Phase A, the four Clock cards, is built; rules in CHESS.md "Gambit schools"), [SPEC-PIECE-BUILDS-2026-10-18.md](SPEC-PIECE-BUILDS-2026-10-18.md) (approved: Techniques replace items; phases 0–4 built: the sim, the 84 cards, items retired, Techniques always on; the Builds screens are phase 5), [BALANCE-TECHNIQUES-2026-10-18.md](BALANCE-TECHNIQUES-2026-10-18.md) (what items add per Act, the Rank growth that replaces them, and the probes with the full card set).
+- Old design docs, kept for history only: [archive/](archive/) (among them [BROADCAST.md](archive/BROADCAST.md), the deleted Grand Board view's spec, and [ITEMS.md](archive/ITEMS.md), the retired item sheet).
 
 ## Update rules (every session must follow these)
 
@@ -34,11 +34,11 @@
 
 ## Identity
 
-- **Pitch:** a single-player auto-battler MOBA. You pick one hero and a lane on a 5v5 team of AI, then shape the match through items, upgrades, shop suggestions and timing.
+- **Pitch:** a single-player auto-battler MOBA. You pick one hero and a lane on a 5v5 team of AI, then shape the match through upgrades, suggestions and timing (chess branch: lanes, piece builds with Techniques, gambits and relics).
 - **Setting:** a pocket dimension pulling from many places and times (xxxHolic). Spirits and esoteric entities everywhere; every wish has a price. Wonderland is the newest realm it pulls from, with Lewis Carroll's two Alice books and Tenniel's illustrations as the only sources (spec: [WONDERLAND.md](WONDERLAND.md)).
 - **Why the teams fight:** the pocket dimension is a Looking-Glass chessboard in the back room of a wish-shop. Everyone who fell down the rabbit hole made a wish, and the price is to serve as a piece in the game between the White Queen and the Red Queen. Team A (yours) is the **White Court** and Team B is the **Red Court**; interface text keeps "your team" and "the enemy" where those read better.
-- **References:** Guildrun (build depth, role-bending builds); Deadlock (shop, item categories, boss guardian, minimap feel).
-- **Look:** Dishonored-inspired with xxxHolic: ink and lacquer surfaces, brass and washi accents, seal red, spirit violet, ofuda paper tags, glass HUD panels, Japanese seal glyphs (対価詛). Wonderland adds card suits, clock faces, keyholes and a low-contrast checkerboard floor under the bases (never in item category colors). Art is drawn by code: sigils and shapes, no image files. Quality bar: "AAA grade", polished, easy to follow, information shown unintrusively.
+- **References:** Guildrun (build depth, role-bending builds); Deadlock (boss guardian, minimap feel); Hades and Vampire Survivors (Techniques: boons by slot, Combinations).
+- **Look:** Dishonored-inspired with xxxHolic: ink and lacquer surfaces, brass and washi accents, seal red, spirit violet, ofuda paper tags, glass HUD panels, Japanese seal glyphs (対価詛). Wonderland adds card suits, clock faces, keyholes and a low-contrast checkerboard floor under the bases (never in the stat-word colours). Art is drawn by code: sigils and shapes, no image files. Quality bar: "AAA grade", polished, easy to follow, information shown unintrusively.
 
 ## The game
 
@@ -60,18 +60,17 @@
 - **Chess branch:** the default map is the **Long Board** (two chessboards end to end, three height tiers), drawn full screen; `?map=square` plays the square map. Rules and view: [CHESS.md](CHESS.md) "The Long Board". The rest of this section is the main game's island.
 - A 3D island (three.js, the only view): bases on raised daises at opposite corners, lanes as valley roads, cliffs and forest outside the walkable shapes, a river crossing Mid with fords, and jungle clearings sealed by mist and ofuda until their phase opens them. Units walk inside the walkable shapes in `src/sim/world/terrain.ts`; cliffs match those edges. Height is visual only.
 - **Jungle areas** connect to lanes through gates. The 3-lane skeleton is fixed; jungle zones open in mirrored pairs over phases 1–3 (shown as "Uncharted" until then) with randomized biomes (five: Midnight Station, Hollow Foundry, Drowned Shrine, Tea Party Glade and Croquet Rose Garden). Mirrored pairing is a fairness requirement (guarded by `tests/symmetry.test.ts`).
-- **Two jungle shops** sit diagonally: Western Stall (bottom-left of the screen) and Eastern Stall (top-right), mirrored for fairness. Standing at one lets a hero buy the base catalog and tier 3.
-- **Cheshire Keeper:** a roaming NPC (a crescent grin on the map, labelled "Cheshire", that fades in and out as it moves) that stocks a few tier-3 items during a phase and moves each phase. It is reached on foot. The Keeper teleport no longer exists.
-- **Recall** goes only to base (3 s), is interrupted by damage, and auto-opens the shop for the player's own recalls.
+- **Two Squares** sit diagonally (once the jungle shops; mirrored for fairness): open places with their own paths to the lanes. Nothing is sold anywhere (chess branch, 2026-10-18), and the Cheshire Keeper is gone.
+- **Recall** goes only to base (3 s) and is interrupted by damage.
 
 ### Phases and pace
 
 - Phases last about 4 minutes (240 s) of play; there is no phase cap. The median match is about 12–16 minutes.
-- **Pressure events** stack from phase 4: Thinning Veil (phase 4, healing reduced map-wide), Spirit Tide (5, jungle camps push into lanes), The Cheshire Keeper Calls In Debts (6, cursed items double in power and flaw), The Kings Wake (7+, both Kings leave their bases and fight in the lanes; this ends the game).
-- **Between phases:** phase report, then pick 1 of 3 ability upgrades, then shop (tiers 1–2 only), then any curse offer. Heroes keep their position and health and shop remotely.
-- **Speed:** pause, 1×, 2×, 4×, 8× (on the chess branch, holding the Act clock also toggles pause). The match is paused while the shop is open.
+- **Pressure events** stack from phase 4: Thinning Veil (phase 4, healing reduced map-wide), Spirit Tide (5, jungle camps push into lanes), The Kings Wake (7+, both Kings leave their bases and fight in the lanes; this ends the game; the chess branch has Endgame instead). Calls In Debts (cursed items doubled) was retired with the cursed items.
+- **Between phases:** phase report, then pick 1 of 3 ability upgrades. Heroes keep their position and health. Chess branch: the Act break (CHESS.md "Act break"), with each piece's Technique offer.
+- **Speed:** pause, 1×, 2×, 4×, 8× (on the chess branch, holding the Act clock also toggles pause).
 - **Respawn:** starts short, grows during a phase, carries over between phases.
-- **Growth:** no XP or levels. Heroes grow by phase stat growth (8% health, Blade damage and Soul power per phase), items and ability upgrades.
+- **Growth:** no XP or levels. Chess branch: pieces grow by Rank (health +15.5%, the main damage stat +40%, the other +4.5% per Rank above 1) and by their Techniques.
 
 ### Structures
 
@@ -97,39 +96,16 @@ Timed events pull heroes out of lanes. They are announced 10 s ahead, run, then 
 
 ### Obelisks
 
-Minor random objectives that give team points plus a small buff, gold, or a **25% discount on one tier-3 item** (at the jungle shops).
+Minor random objectives that give team points plus a small buff, gold, or a **free reroll** for each of the side's pieces at the next Act break (chess branch, 2026-10-18; it was 25% off a tier-3 item).
 
-### Items and shop
+### Piece builds (Techniques)
 
-- **Categories:**
-  - **Mind** is technique and skill with a weapon: Blade damage, attack speed, move speed.
-  - **Body** is the vessel: health, armor, regeneration, shields.
-  - **Soul** is the spirit, with a price: Soul power, resist, cooldowns.
-- **36 items:** 12 per category over three tiers (5 tier 1, 4 tier 2, 3 tier 3). Tier 2 combines two tier-1 parts; tier 3 combines one or two tier-2 parts. Prices run about 250–350, 800–1000 and 1700–2100. Six item slots.
-- **Items have character:** at most two stats plus **one named rule**. Tier 3 items are **Masterworks** whose rules change how a hero plays (cheat death, execute, cleave, cooldown resets, team shields, self-cost auras). The sheet is in [ITEMS.md](ITEMS.md); the numbers live in `content/items/*.json`.
-- **Attunement:** owning 2, 4 and 6 items of one category gives titled bonuses.
-- **Where to buy:** tiers 1–2 at base and at the jungle shops; tier 3 at the jungle shops (and from the Keeper's stock). Never in the between-phase shop. A dead hero can still buy base items. **Chess branch:** also at every Act break, where the armory sells all tiers, Masterworks included, to every piece wherever it stands, by its own gold; each piece buys by a six-item **plan** (its build path's list until the player changes it in the Armory tab). Untouched pieces and Black shop by the AI. Built and balanced 2026-10-14; rules in [CHESS.md](CHESS.md) "Act break".
-- **Auto-buy:** the player's hero buys its build list on its own by default, as AI heroes do. It can be turned off; manual buying always works. The next build item shows beside the gold.
-- **Shop UI:** Deadlock style. Click an item to read it, then confirm the purchase. The detail panel is always on screen. The recommended next item is preselected.
-- **Shop suggestions:** tapping a shop pin (or a shop in the shop panel) queues it (up to 3) as a **suggestion, not a command**. Rescuing allies and defending outrank it. A toast shows the travel time.
-- **Colors (the item color theory):**
-  - Each category owns one hue: Mind is cobalt steel, Body is moss, Soul is lantern violet. No other part of the game uses those hues.
-  - Brightness shows tier: tier 1 muted, tier 2 full, Masterwork brightest with a brass rim.
-  - Brass means gold and rarity, seal red means anything that costs you, warm white means true damage.
-  - Descriptions color the stat words, never the grammar. Rule names are brass small caps.
-  - The color follows the stat, not the item: move speed is Mind-colored even on a Body item.
-  - Markup: `{m|}` mind, `{b|}` body, `{s|}` soul, `{t|}` true, `{g|}` gold, `{p|}` price, `{r|}` rule. Text contrast is at least 5.7:1 and color is never the only signal.
-  - The palette is in [ITEMS.md](ITEMS.md); the tokens are in `src/ui/css/tokens.css`.
+- **Chess branch, since 2026-10-18:** there are **no items, shops, cursed items or attunement**. Pieces are built with **Techniques**: cards that change how one of a piece's skills or attacks works, one per slot (Attack, three skills, the Signature from Rank 4, the Trait), in the six gambit schools, at three grades (Plain, Sharp, Brilliant). Each piece takes one of three at Setup (its first move) and at every Act break; its own gold buys rerolls and upgrades at the break, a pass gives gold, and nothing is bought during an Act. Two named Techniques on one piece unlock a Combination; six Dubious cards (the old cursed items) state their price up front. Ranks grow health and the main damage stat by themselves (`ranks.growth`). Rules, numbers and the screens: [CHESS.md](CHESS.md) "Piece builds: Techniques"; spec [SPEC-PIECE-BUILDS-2026-10-18.md](SPEC-PIECE-BUILDS-2026-10-18.md); the retired item sheet is in [archive/ITEMS.md](archive/ITEMS.md).
+- **Colours:** the stat words keep their colours in text (the colour follows the stat: Blade cobalt, health moss, Soul violet); brass means gold and rarity, seal red means anything that costs you, warm white means true damage; rule names are brass small caps. Markup: `{m|}` Blade, `{b|}` health, `{s|}` Soul, `{t|}` true, `{g|}` gold, `{p|}` price, `{r|}` rule. Text contrast is at least 5.7:1 and colour is never the only signal. Technique cards and chips wear their school's colour. Tokens: `src/ui/css/tokens.css`.
 
-### Cursed items
+### AI behavior### AI behavior
 
-- **Cursed items** (six, including **Drink Me**: +20% move speed and +15% attack speed for −15% max health; and **Eat Me**: +25% max health and +10 armor for −15% move speed): offered to the furthest-behind hero on the losing team (below 75% of average net worth), at most one per phase, from phase 2. The flaw type is visible and the exact flaw is hidden until accepted. Curses are permanent, can be refused, and AI heroes take them too. Every flaw text starts "The price:".
-- **When a hero takes one,** a clear map notification, a screen pulse for your own hero, and a pulsing aura for the rest of the match make it obvious.
-- There are no holy items and no auction (deleted 2026-10-11, see Reversed decisions).
-
-### AI behavior
-
-Each hero re-plans about once per second and scores goals (farm lane, push tower, defend, clear camp, join fight, hunt, take obelisk, contest event, visit shop, retreat) as a base value times its disposition weights, with a small bonus for its current goal.
+Each hero re-plans about once per second and scores goals (farm lane, push tower, defend, clear camp, join fight, hunt, take obelisk, contest event, retreat) as a base value times its disposition weights, with a small bonus for its current goal.
 
 - **Early game:** constant skirmishing from the start, never idling at spawn.
 - **Fight assessment:** a hero counts itself in the fight math. This is why farmers now join fights and allies rescue the ganked.
@@ -137,18 +113,18 @@ Each hero re-plans about once per second and scores goals (farm lane, push tower
 - **Healing:** a hero below 45% health with no enemy close recalls; hurt heroes avoid starting fights. The player's hero recalls too.
 - **Judgement (chess branch, 2026-10-11):** below its retreat line a piece breaks off and walks home (hits back only at what is in reach), never takes a fight at clearly bad odds (a 2v1 at even strength), never follows a target into enemy Bastion or Throne range unless healthy, the structure is busy with pawns and the kill is sure, and a flight lasts at least 2 s with a margin before it turns back. Outmatched but healthy pieces fall back to the nearest own structure of their lane instead of going home. Details in [CHESS.md](CHESS.md) "Combat spacing and AI judgement".
 - **Anti-feeding:**
-  - Two deaths without a kill (or deaths minus kills of 3 or more) puts a hero in **wary mode**: no hunting, less pushing, more farming and defending, and a counter-item bought first.
+  - Two deaths without a kill (or deaths minus kills of 3 or more) puts a hero in **wary mode**: no hunting, less pushing, more farming and defending, and a higher retreat line.
   - Three deaths in a row **swaps lanes** with the best teammate.
 - **Team siege:** with 4 or more heroes alive, as many as the enemy and healthy, the team converges on the enemy lane with the fewest towers (or the exposed guardian), staging until two heroes gather or a wave arrives.
 - **Lane discipline:** lane-bound goals follow the lane path, not the shortest path through the middle. Mid's share of hero time stays around a quarter.
 - **Base defense:** threats near the guardian pull defenders at high priority.
-- **Shopping:** AI heroes recall to base to spend gold and walk to a jungle shop when they can afford a tier-3 item. **Chess branch:** the shop trip is blocked only by an enemy piece within 420 (pawnlings no longer block it; before, pieces saving for a Masterwork almost never made the trip). The counter item (riveted plate or spirit lens against the enemy's damage type; first when wary) is added only to a build-path plan, never to a plan the player changed.
+- **Builds:** nothing is bought during play, so pieces never recall to spend or walk to a shop. At each Act break the AI picks Techniques and spends gold on upgrades by the rule in CHESS.md "Piece builds: Techniques".
 - **Comeback:** killing a hero on the richer team pays a bonus bounty.
 
 ### Reports
 
 - Data and factual badges only, never conclusions or advice; learning what patterns mean is part of the game.
-- One screen after each phase: three or four takeaway lines, one 10-hero scoreboard (your row first), and a collapsed Details section with hero view, path replay and an event log written in plain words (Left/Mid/Right, "your team"/"the enemy", item names).
+- One screen after each phase: three or four takeaway lines, one 10-hero scoreboard (your row first), and a collapsed Details section with hero view, path replay and an event log written in plain words (Left/Mid/Right, "your team"/"the enemy", Technique names).
 
 ### Interface
 
@@ -167,8 +143,8 @@ Each hero re-plans about once per second and scores goals (farm lane, push tower
 - **Glossary (chess branch, 2026-10-13):** game words carry a dotted brass underline where the player reads (first appearance per block of text); tap one for a one-sentence definition. A Rules list sits on the Title and in Adjourn. Words live in `content/glossary.json`; details in [CHESS.md](CHESS.md) "Interface".
 - **First-match nudges (proposal, 2026-10-17):** five once-only hints teach Tempo, the high-ground eye badge, a capture, the first fork and the first Act break; skippable, remembered on this device, **Replay tutorial** on the Title and in Adjourn. In portrait the top HUD is two rows, not three. Details: [CHESS.md](CHESS.md) "Interface".
 - **Gambit cards (chess branch, 2026-10-18):** 24 cards in six schools, four each (the Clock cards are in CHESS.md "Gambit schools"). Wave 3 added Breakthrough (March: 3 extra pawnlings in your next wave in a lane), Pin (Initiative: an enemy piece cannot move for 3 s, the piece behind it is slowed), Desperado (Initiative: a piece under 40% health deals +60% for 6 s, Tempo back if it falls) and Fortify (Fortress: a shield of 20% of a Bastion's health for 20 s). Full list and numbers: [CHESS.md](CHESS.md) "Gambits"; spec: [SPEC-GAMBITS-OPENINGS-2026-10-18.md](SPEC-GAMBITS-OPENINGS-2026-10-18.md).
-- Escape closes overlays; an unspent-gold reminder appears before starting a phase; the Shop tab shows your gold.
-- **View:** the three.js 3D view is the only game view, and it fills the whole screen; the HUD floats over it as glass panels (chess branch, 2026-10-12). The 2D map is removed. Jungle shops are tapped as HTML pins over the 3D view.
+- Escape closes overlays.
+- **View:** the three.js 3D view is the only game view, and it fills the whole screen; the HUD floats over it as glass panels (chess branch, 2026-10-12). The 2D map is removed.
   - **Free** camera is the default on the chess branch: it starts on the board's full width from White's end, and the player pans, zooms, turns and tilts it (touch: one finger, pinch, twist, two-finger drag; desktop: drag, wheel, right drag, Q / E); a compass shows while it is turned and resets the angle. Spec: [CHESS.md](CHESS.md) "Interface", Camera.
   - **Auto** is an on / off switch: the camera works like an NFL broadcast: a high wide shot when it's quiet, a sideline camera that dollies onto the most important play (guardian siege, tower falls, multi-kills, team fights, kills, jungle events, skirmishes), and a lower-third caption naming the play. Any drag, pinch or twist turns it off.
   - **Follow:** tap a piece or pawn in the 3D view (or a roster portrait) to follow it. **Lane:** tap a lane (or its chip) to lean in on it. A tap on open ground returns to the free camera.
@@ -177,20 +153,17 @@ Each hero re-plans about once per second and scores goals (farm lane, push tower
 ## Balance targets and method
 
 - **Targets:** hero win rates 45–55%, Team A about 50%, median match about 12–16 minutes, Mid about a quarter to a third of hero time.
-- **Method:** `npm run balance -- --matches 800 --seed 29000 --quiet` writes `out/balance.md`. `npm run diagnose` measures engagement, healing, rescues, feeding and tier-3 buys. `tools/lane-share.ts` measures lane share. Test hero scaling with the `BALANCE_SCALE` environment variable, then bake it into `content/heroes/*.json`.
+- **Method:** `npm run balance -- --matches 800 --seed 29000 --quiet` writes `out/balance.md` (add `--map long` for the Long Board). `npm run diagnose` measures engagement, healing, rescues and feeding. `tools/lane-share.ts` measures lane share. Test hero scaling with the `BALANCE_SCALE` environment variable, then bake it into `content/heroes/*.json`.
 - **Noise:** 400 matches gives about ±3.5% per hero. Decide on 800.
 - **Last measured** (after the Wonderland content pass, 800 matches, seed 29000): heroes 43.3–57.7%, Team A 52.8%, median 16.0 minutes (p90 22.1). Outside the 44–56% band: Rabbit 57.7%, Hatter 56.8% (high) and Sweep 43.3% (low); not yet retuned. Drink Me and Eat Me teams won 40.2% and 45.6% when accepted (about 200 cases each). Item numbers are untuned.
 
 ## Known weaknesses and open questions
 
 - **Balance:** a few heroes (Oiran, the White Rabbit, the Queen of Hearts, Ronin) die 8 or more times per match, mostly durability balance. Matches got longer after the tower change (median about 16 minutes); the owner accepted this pending playtest feedback.
-- **Masterworks:** it hasn't been verified that every Masterwork rule fires in real simulated matches; each is unit-tested individually.
-- **Hands-off player:** your team's win rate with a player who never touches the shop was 36–50% over 28 matches (14% before auto-buy). Re-check.
 - **Interface gaps:**
   - The event prompt doesn't pause the match and always says "starting".
   - Phone roster icons are shrunk, not moved to the corner bands.
   - Report takeaways fold only in landscape.
-  - The portrait shop's docked panel may still cover tiles.
 - **Untested:** real phones and iOS Safari. The Pages blank-page report from early on was never confirmed resolved.
 - **Undecided:** a sixth hero per team so Mid also has a pair; ability text using the same color markup (recommended).
 - **Engagement:** the in-phase decision space is still thin: suggestions, recall, farm toggle, event prompts. Does the player feel in control?
@@ -243,12 +216,21 @@ Meta-progression between matches; era-themed lane identity; "The Core" alternate
 | The Long Board camera starts behind White's base on every screen shape (chess branch)                                              | Wide screens (wider than 1.3 : 1) start side-on, White on the left; portrait unchanged (Fable review 4D, approved 2026-10-13; built 2026-10-17 as a proposal)                                                                                                                                                 |
 | Semifinal/Final courts counter your Opening (1B stand-in)                                                                          | Named courts keep their own fixed Opening (3B, 2026-10-17)                                                                                                                                                                                                                                                    |
 | Blitz as 3 Acts of 150 s (Fable review pass 1), then Blitz with the Endgame rule from Act 3 (pass 2 definition)                    | Blitz keeps 240 s Acts: at most 3, Thrones 3000, Endgame from Act 2 (the 200-match probe put the Act 3 version at an 11.3 min median and 28.5% decided on points); built 2026-10-17 as a proposal, CHESS.md "Blitz and Classical"                                                                             |
+| 36 items in Mind / Body / Soul with attunement (chess branch)                                                                      | Techniques by gambit school, one per slot, three grades, Combinations (SPEC-PIECE-BUILDS-2026-10-18, built 2026-10-18); items, attunement and `content/items/` deleted                                                                                                                                        |
+| Build paths (Offense / Defense / Utility) pick a piece's item list (chess branch)                                                  | First moves at Setup and Technique offers at every break; a piece's lean comes from what it takes (2026-10-18)                                                                                                                                                                                                |
+| Interactive Armory at every Act break, Masterworks sold at the break (chess branch, 1C)                                            | Builds tab: take, reroll, upgrade or pass Techniques; nothing is bought (2026-10-18)                                                                                                                                                                                                                          |
+| Jungle shops stay (CHESS.md owner table, 2026-10-08); the Keeper's stock                                                           | No shops at all and no Keeper; the Squares are map places only; gold is spent only at the Act break (2026-10-18)                                                                                                                                                                                              |
+| Rank 8 fork pauses the match with two options (chess branch)                                                                       | The Rank 8 options are archetype Techniques (same ids and effects); reaching Rank 8 makes the next offer Brilliant (2026-10-18)                                                                                                                                                                               |
+| Heirloom item spoils (Tournament run)                                                                                              | Heirloom Technique: one piece keeps one Technique it held, Plain grade, every later match; run save version 2 (a version-1 save is discarded with a note) (2026-10-18)                                                                                                                                        |
+| Counter item (riveted plate or spirit lens against the enemy's damage type)                                                        | None (2026-10-18)                                                                                                                                                                                                                                                                                             |
+| Cursed items offered to the trailing piece; Calls In Debts doubles them                                                            | Dubious Techniques with their price shown up front, drawn twice as often for the trailing side; Calls In Debts deleted (2026-10-18)                                                                                                                                                                           |
+| Obelisk reward: 25% off a tier-3 item                                                                                              | A free reroll for each of the side's pieces at the next Act break (2026-10-18)                                                                                                                                                                                                                                |
 
 ## Where to look first (for code work)
 
 1. `src/sim/ai/strategic.ts` and `src/sim/behavior.ts`: most of the AI heuristics; constants are inline or in `content/tuning.json` under `ai`.
 2. `src/sim/phase.ts` and `src/sim/commands.ts`: every rule the player can trip.
-3. `src/sim/combat.ts`: damage, effects, item triggers and custom behaviors.
-4. `src/sim/shop.ts` and `src/sim/ai/shopping.ts`: access rules and AI purchases.
+3. `src/sim/combat.ts`: damage, effects, the trigger engine (pieces, styles, Techniques) and custom behaviors.
+4. `src/sim/builds.ts` and `src/sim/techniques.ts`: Technique offers, the break's gold rules and the AI's picks; `src/sim/gold.ts`: gold income.
 5. `src/analysis/index.ts`: report numbers and event text.
 6. Determinism: any new `Map` or `Object.entries` iteration in `src/sim` must have a stable order; lint bans `Math.random`, `Date.now` and platform globals there.

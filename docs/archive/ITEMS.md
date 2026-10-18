@@ -1,6 +1,8 @@
-# Item sheet v2 and item color theory (draft for approval)
+# Item sheet v2 and item color theory (archived)
 
-> Tier 3 items were called Relics until 2026-10-10. They are now **Masterworks** (labels only, no rule change) so that "relic" means the Act-break draft in [RELICS.md](RELICS.md).
+> **Retired 2026-10-18 on the chess branch:** items, shops and the Armory were replaced by Techniques ([SPEC-PIECE-BUILDS-2026-10-18.md](../SPEC-PIECE-BUILDS-2026-10-18.md)). Kept for history only. The stat-word colours of the colour theory still apply to description text.
+
+> Tier 3 items were called Relics until 2026-10-10. They are now **Masterworks** (labels only, no rule change) so that "relic" means the Act-break draft in [RELICS.md](../RELICS.md).
 
 The goal is to give each of the 36 items its own character. Every item gets **at most two stats and one signature rule**. Tier 3 items become **Masterworks**, each with a rule that changes how the hero plays.
 

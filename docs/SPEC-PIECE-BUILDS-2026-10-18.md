@@ -2,7 +2,7 @@
 
 > **Status: approved by Cheppy 2026-10-18 (all decisions as recommended).** Owner change: a **"Pick for me"** option is on by default — each break, the AI picks for every piece and the screen highlights the 1–2 picks that matter most, so the player chooses only where they want to. Built on branch `proposal/next`, playable at `/proposal/` before it ships.
 
-Status: **draft for approval** (nothing built). Written by Opus (planner) after owner feedback on items. Belongs to [CHESS.md](CHESS.md). Replaces, once approved and built, the item parts of [ITEMS.md](ITEMS.md) and the 1C Armory in [SPEC-TOURNAMENT-ARMORY-2026-10-13.md](SPEC-TOURNAMENT-ARMORY-2026-10-13.md).
+Status: **draft for approval** (nothing built). Written by Opus (planner) after owner feedback on items. Belongs to [CHESS.md](CHESS.md). Replaces, once approved and built, the item parts of [ITEMS.md](archive/ITEMS.md) and the 1C Armory in [SPEC-TOURNAMENT-ARMORY-2026-10-13.md](SPEC-TOURNAMENT-ARMORY-2026-10-13.md).
 
 **Owner feedback this answers (2026-10-18):** "Not really a fan of the offense/defense/utility split. The items themselves seem unoriginal or uninspired and hard to tell what makes a difference. I like to imagine you choose a tree that's mostly RNG. You have limited agency, but you can still make somewhat informed decisions and influence the build of your pieces. Keyword here is **piece builds**."
 
@@ -369,4 +369,27 @@ Built on branch `wip/techniques-content` (from `proposal/next`). Still **off by 
 10. **The AI's fit for repeat effects:** a card that repeats or readies a skill leans the way that skill does (damage, protection or utility), and a Dubious price is no lean (`perkAxes` in `ranks.ts`).
 11. **Glossary:** Upgrade, Slot (redefined), Builds and Heirloom (redefined) wait for phase 5, where the screens use them; today's Slot and Heirloom still mean items.
 
-**Not built yet (later phases):** retiring items, shops, the curse offer and the forks, the obelisk reroll and the heirloom Technique (phase 4), every screen (phase 5), the build symmetry test.
+**Not built yet (later phases):** see "Build notes: phase 4" below.
+
+## Build notes: phase 4 (2026-10-18)
+
+Built on branch `wip/techniques-retire` (from `proposal/next`). **Techniques are always on and items are gone:** no `MatchConfig.techniques` or `items` switch any more, and no `--techniques`, `--no-items` or `--plans` balance flags. Rules as built: [CHESS.md](CHESS.md) "Piece builds: Techniques"; reversed rows in [SOURCE_OF_TRUTH.md](SOURCE_OF_TRUTH.md); numbers in [BALANCE-TECHNIQUES-2026-10-18.md](BALANCE-TECHNIQUES-2026-10-18.md) "Phase 4". Baselines re-recorded once, on purpose.
+
+**Deleted:** the 36 items and 6 cursed items (`content/items/`), attunement, every shop (base, jungle, the break Armory; `shop.ts` became `gold.ts`, `armory.ts`, `ai/shopping.ts`), the AI's shop trips and recall-to-spend (`visitShop`), the counter item, the curse offer (`curses.ts`), the Keeper (`keeper.ts`, its model and map icon), build paths (`Path`, `setPath`, path lists in pieces, styles and courts, Orders → Paths, Setup page 1), the Rank 8 fork (`styles[].forks`), the Armory tab, item icons and the item glossary words, `tools/item-power.ts` and the item tests.
+
+**Where the build differs from the text above, and why:**
+
+1. **An old run save is discarded, not migrated** (spec 4.9: "dropped with the existing warning"). A version-1 run named heirloom items, carried build paths in its court and could hold an open Spoils card for an item, so a conversion would keep a half-run. It is deleted once at start-up and the Title says why (`dropStaleRun` in `src/ui/run/save.ts`); a saved match in progress no longer replays (content changed) and is dropped by the existing Resume check.
+2. **The Keeper is gone, not just its stock.** It only sold items (and walked to the curse target), so the unit, its model, its map badge and the Calls In Debts pressure event (it only doubled cursed items) went with it. Its spots stay in the map data as walkable clearings, because the square map's terrain uses them.
+3. **The Squares' medallion goes on both maps** (the Long Board's gem badge and brass ring, the square map's brass rings), as the migration table says ("one meaning per look").
+4. **"How far ahead" is lifetime gold earned**, not gold plus item value: the comeback bounty and the balance report's "ahead after Act 1" read it. Spending at the break never lowers it.
+5. **Black's archetype pick leans by its Techniques** (it leaned by its build path): 0.6 on each of damage, toughness and support plus the held Techniques' share of each; a relic carrier still leans to damage. Style pick rates stay 22–46% (200-match probe).
+6. **Rank growth is one block, `ranks.growth`** (`health`, `main`, `other`: 0.155, 0.40, 0.045) instead of `builds.rankGrowth` beside a single `ranks.growth`.
+7. **The heirloom is a Setup card** (common or the piece's own pool) the piece held at the end, never an archetype card or a Combination: those need an archetype or a parent the next match may not have. A piece that held none is skipped; the AI values the heirloom at 900 gold (`tournament.aiHeirloomGold`) against the book move's 500, so it takes it.
+8. **The obelisk's free reroll** stacks per claim, is used before any paid reroll and does not raise the paid price. The AI uses it by its normal reroll rule (only when its best card scores under 1.2), so it rarely does; White can use it once the Builds screen has a Reroll button (phase 5).
+9. **Screens are placeholders until phase 5:** the break sheet's Builds tab and Setup's First moves page are read only, and every White piece takes the card "AI suggests" (on Resume, and at the start). Adjourn and the piece card list held Techniques; the report, Spoils, Run kit and run summary show Techniques where they showed items.
+10. **Trigger origins are `trigger:<source>`** (they were `item:<source>`), e.g. `trigger:tech:family_fork`.
+11. **Glossary:** Build path, Armory, Plan, Slot, Built from, AI suggests and Masterwork removed; Heirloom, Rank, Fork, Archetype, Spoils, Tournament and Adjourn reworded; the group Armory is now Break. Upgrade, Slot and Builds still wait for the screens.
+12. **The coin sounds** (`buy`, `sell`) now play for a reroll or upgrade and a pass.
+
+**Phase 5 must build** (the placeholders above): the Builds tab (piece strip, slot row with "what it did" and Upgrade, three offer cards with the What changes ledger and Last Act line, Take, Reroll with the free-reroll count, Pass, Let the AI choose, AI picks for all, "Pick for me" highlights from `buildAdvice`), Setup's First moves page with a pick per piece (`SetupEntry.firstMove`; the run's heirloom shown as taken), Adjourn's read-only Builds with what each did, the Report's top three Techniques, the end report's per-Technique totals, Spoils and Run kit heirloom cards with the Technique's card face, and the glossary words Upgrade, Slot and Builds.

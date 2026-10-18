@@ -34,7 +34,7 @@ The prototype is one browser game in TypeScript. A deterministic simulation core
 | Node scripts        | `tsx`                                                         | Runs headless matches and the balance runner         |
 
 ```
-content/         JSON: heroes, items, upgrades, biomes, pressure, badges, map, tuning
+content/         JSON: pieces, techniques, gambits, openings, relics, courts, biomes, pressure, badges, map, tuning
 src/sim/         pure simulation: core, world, systems, ai, events, commands, content loader,
                  names (PLAY_TEAMS, team/lane/piece words), world/map (nearestBy, laneDist);
                  run/ = the Tournament run over matches (pure RunState steps), runRules.ts =
@@ -94,12 +94,12 @@ A fixed-step state machine at 20 ticks per second, driven by commands, reading n
 **State**
 
 - One `MatchState` object holds everything: plain serializable data, no classes, closures or browser references.
-- Entities are typed records keyed by numeric id: hero, minion, tower, guardian, camp monster, projectile, obelisk, keeper. Shared fields (position, team, hp, stats) sit on a common unit shape. Not a full ECS.
-- Teams are `A`, `B` and `neutral` from day one (camps, Spirit Tide waves, keeper).
+- Entities are typed records keyed by numeric id: hero (piece), minion (pawnling or pawn), tower, guardian, camp monster, projectile, obelisk. Shared fields (position, team, hp, stats) sit on a common unit shape. Not a full ECS.
+- Teams are `A`, `B` and `neutral` from day one (camps, Spirit Tide waves, event units).
 
 **Randomness**
 
-- A seeded generator in state, split into independent streams: `mapgen`, `ai`, `combat`, `loot`, `keeper`, `draft`. A new roll in one system never shifts another.
+- A seeded generator in state, split into independent streams: `mapgen`, `ai`, `combat`, `loot`, `draft`, `events`, `gambit`, `relic` (each seeded from the match seed and its own name). A new roll in one system never shifts another. Technique offers use private generators per offer (`builds.ts`).
 
 **Determinism limits**
 
@@ -133,7 +133,7 @@ Each system owns one slice of `MatchState`, runs at a fixed point in the tick or
 - **Biome slots:** 6 regions between lanes. 2 open at phase 1 (inner jungle), 2 at phase 2, 2 at phase 3. When a slot opens, the `mapgen` stream draws a biome template.
 - **Biome template (data):** camp spots, a reward table and nav nodes that attach to the slot's fixed entry points.
 - **Navigation:** a waypoint graph (lanes, jungle, open biome nodes) with shortest-path search. Local steering only inside fights. No grid pathfinding.
-- **Walkable space** (`world/terrain.ts`): capsules for lane corridors, bases, open jungle clearings and their gate paths, shops and Keeper spots (sizes in `map.json` → `walk`). Every move is confined to them; a chase whose straight line crosses solid ground detours through the nav graph. The 3D view builds its cliffs from the same shapes.
+- **Walkable space** (`world/terrain.ts`): capsules for lane corridors, bases, open jungle clearings and their gate paths, the Squares and the small clearings (`keeperSpots` in the map data; sizes in `map.json` → `walk`). Every move is confined to them; a chase whose straight line crosses solid ground detours through the nav graph. The 3D view builds its cliffs from the same shapes.
 - **Jungle refresh:** at each phase start, camp types in open slots are re-rolled from their biome's table.
 - **Spatial index:** a uniform grid for range and target queries.
 
@@ -142,80 +142,77 @@ Each system owns one slice of `MatchState`, runs at a fixed point in the tick or
 - **Damage types:** Blade (reduced by armor), Soul (reduced by resist), True (unreduced; curses and guardians only).
 - **Stat block:** hp, regen, armor, resist, blade damage, attack speed, soul power, move speed, cooldown reduction, range.
 - **Modifier stack:** every stat change is `{stat, add | mul, value, source, tags}`; stats recompute when the stack changes; the source is kept for reports.
-- **Global tag multipliers:** match-wide rules scale everything carrying a tag (Thinning Veil scales `heal`; Keeper Calls In Debts doubles `curse`). No special cases in combat code.
+- **Global tag multipliers:** match-wide rules scale everything carrying a tag (Thinning Veil scales `heal`; Endgame scales `throneDamage` and `respawn`). No special cases in combat code.
 - **Effect primitives (v1 only):** damage, heal, shield, stat modifier, damage over time, dash, aura. Triggers: on hit, on cast, on damaged, on kill, periodic, on low hp.
 - **Escape hatch:** a registry of named custom behaviors in TypeScript, capped at 5 entries for the prototype, each with a test.
 - **Abilities:** 3 plus an ultimate per hero, all auto-cast; cast conditions are data.
 
 ### AI
 
-- **Strategic layer (1 Hz, staggered):** utility scoring over a fixed goal list: farm lane, clear camp, push tower, defend tower, join fight, retreat, recall, take obelisk, visit keeper. Score = base considerations × posture weight.
+- **Strategic layer (1 Hz, staggered):** utility scoring over a fixed goal list: farm lane, clear camp, push tower, defend tower, join fight, retreat, recall, take obelisk, contest event. Score = base considerations × posture weight.
 - **Posture:** a data table of goal weights for Push / Farm / Defend / Default. Never a hard override; danger checks always run.
 - **Personality:** changes tactical parameters only (retreat hp threshold, engage odds, chase distance). How a posture plays out, never which goals it favors.
 - **Team blackboard:** per-team shared memory (threats, claimed goals, fights) so five heroes do not pile onto one camp.
 - **Tactical layer (every tick):** target selection, ability casts from data conditions, spacing.
-- **Non-player decision AIs:** shopping (build list in data plus one adaptation rule against the enemy's main damage type), upgrade picks, auction bids, curse acceptance; weighted by personality, using the `ai` stream.
-- **Player hero rule:** same brain, but it never recalls to shop on its own. It still retreats.
+- **Non-player decision AIs:** Technique picks and break gold (`builds.ts`), the Rank 4 archetype (`ranks.ts`), relic drafts (`draft.ts`), cards and pawns (`gambits.ts`, `pawnPlan.ts`); seeded, never `Math.random`.
+- **Player side (chess branch):** White's pieces use the same brain; the player steers through setup, lanes, gambits, forks, relics and Techniques.
 
-### Economy and shop
+### Economy (gold)
 
-- **Gold sources:** minion last hits plus a nearby share, kills and assists, towers, camps, obelisks, passive income; values in tuning data.
-- **Net worth** = gold plus item value; drives the curse trigger and team comparison.
-- **Shop:** 6 item slots per hero; recipes and tier upgrades in data; sell refunds 50%; cursed items cannot be sold.
-- **Catalog per team:** base catalog plus obelisk unlocks plus the keeper's stock for the phase.
-- **Access:** every hero shops between phases; during a phase, only at base or within the keeper's radius.
-- **Recall:** a channel, then a teleport. Base: short. Keeper: longer. Damage interrupts it.
+- **Gold sources:** minion last hits plus a nearby share, kills and assists, towers, camps, obelisks, passive income; values in tuning data. `src/sim/gold.ts` (`giveGold`, `teamGoldEarned`).
+- **How far a side is ahead** = its pieces' lifetime gold earned (spending never lowers it): the comeback bounty reads it.
+- **Spending:** only at the Act break, on Technique rerolls and upgrades (`builds.ts`); a pass gives gold. Items, shops, the Keeper and attunement were deleted on 2026-10-18 (`shop.ts`, `armory.ts`, `ai/shopping.ts`, `curses.ts`, `keeper.ts`, `content/items/`).
+- **Recall:** a channel, then a teleport to base. Damage interrupts it.
 
-### Piece builds (Techniques; built 2026-10-18, off by default)
+### Piece builds (Techniques; built 2026-10-18, always on)
 
-Spec [SPEC-PIECE-BUILDS-2026-10-18.md](SPEC-PIECE-BUILDS-2026-10-18.md), phases 0–3. A match plays with them only with `MatchConfig.techniques`; without it no state, event or random draw is added, so `npm run baseline` is unchanged.
+Spec [SPEC-PIECE-BUILDS-2026-10-18.md](SPEC-PIECE-BUILDS-2026-10-18.md), phases 0–4 (the screens are phase 5).
 
-- **Content:** `content/techniques.json` (`TechniqueSchema` in `content/schema.ts`; checks in `validateTechniques`). Card text writes every number as a `{path|format}` placeholder into the card's own data, so text at any grade is filled from the graded numbers. Tuning: `builds` in `tuning.json`.
+- **Content:** `content/techniques.json` (`TechniqueSchema` in `content/schema.ts`; checks in `validateTechniques`). Card text writes every number as a `{path|format}` placeholder into the card's own data, so text at any grade is filled from the graded numbers. Tuning: `builds` in `tuning.json`; Rank growth per stat in `ranks.growth`.
 - **`src/sim/techniques.ts`** (pure): slots and the skill each changes, grade scaling (`gradedTechnique`, cached), card text, the held-list rule (`withTechnique`: one per slot, a Combination takes its first parent's slot), content checks.
-- **`src/sim/builds.ts`:** offers (`drawOffer`: own pool, common pool, wild card; a private generator per offer seeded by match seed, side, piece, break and reroll count, so reading an offer never moves a match stream), the AI's card score (`scoreCard`, `aiChoice`), "Pick for me" advice (`buildAdvice`, `firstMoves`), the break hooks (`startBuilds`, `openBuilds`, `aiBuilds`, `resumeBuilds`, `closeBuilds`, called from `match.ts` and `bell.ts`), White's commands and `buildView`.
-- **`src/sim/buildTally.ts`:** what each Technique did (damage, healing, shields, procs; trigger effects by their `item:tech:<id>` origin, skill boosts by their share of the skill) and each piece's hits, casts and damage per Act. Hooks in `combat.ts`, guarded by `s.builds`.
-- **Engine additions (phase 2, `combat.ts` and `systems.ts`):** trigger kinds `cast` (after a skill's cooldown is set; `skill` names it), `death` (the holder fell; `attacker` is the killer), `takedown` (kill or assist on a piece) and `pawnlingKill` (the side killed an enemy pawnling; `near` gates the distance); trigger targets `landing` (enemies around the caster after its dash), `aroundVictim`, `nearVictim`, `castTargets`, `allies`, `lowestAlly`; trigger conditions `vs: structure`, `quietSec` (out of combat before the hit), `afterCast`, `victimMarked`, `near`, `perTarget` cooldowns, plus `filter` (pieces or pawns) and `maxTargets`; effects `tempo`, `ready`, `recast` (queued on `HeroState.recasts`, run by `tickRecasts`), `echo` (the cast skill's effects on another target at a share), `mark` (`Unit.mark`: more damage from the marking side), `push`, `cleanse`, `regen`, `payHp`; damage effects take `dmgType: hit`, `fractionOfDamage` and `ownMaxHpPct`; a statMod's `key` can replace a skill's own modifier; aura `filter`. Technique fields `dashMul`, `skillRule` (`minEnemies`, `structures`), `knockbackMul` and the Dubious `retreatMul` (read by `ai/judgement.ts`). Every hook runs only with `s.builds` or a held Technique, so matches without them are unchanged. With Techniques, Rank 8 opens no fork (`ranks.ts`). The AI's fit (`perkAxes` in `ranks.ts`) reads `echo`, `recast` and `ready` by the lean of the skill they repeat, and a Dubious `payHp` as no lean. Unit tests: `tests/techniques-engine.test.ts`.
-- **Content (phase 3):** 84 Techniques (18 common, 6 Dubious moved from the cursed items, 20 piece, 30 archetype copied from the Rank 8 options with the same ids, 10 Combinations); a content check keeps every Rank 8 option present as an archetype Technique until phase 4 deletes the forks. Named courts' fixed first moves: `firstMoves` in `content/courts.json`, carried into Black's `SetupEntry.firstMove` (`run/opponents.ts`) and taken by `startBuilds`.
-- **State:** `MatchState.builds` and `HeroState.techniques` (both absent without Techniques). `MatchConfig.items: false` (`MatchState.noItems`) turns item buying off and grows Ranks by `builds.rankGrowth`, the curve measured to replace items (phase 0).
+- **`src/sim/builds.ts`:** offers (`drawOffer`: own pool, common pool, wild card; a private generator per offer seeded by match seed, side, piece, break and reroll count, so reading an offer never moves a match stream; at Setup a held heirloom's slot is skipped), the AI's card score (`scoreCard`, `aiChoice`), "Pick for me" advice (`buildAdvice`, `firstMoves`), the break hooks (`startBuilds`, `openBuilds`, `aiBuilds`, `resumeBuilds`, `closeBuilds`, called from `match.ts` and `bell.ts`), the obelisk's free rerolls (`BuildState.freeRerolls` → `BuildOffer.free`), White's commands and `buildView`.
+- **`src/sim/buildTally.ts`:** what each Technique did (damage, healing, shields, procs; trigger effects by their `trigger:tech:<id>` origin, skill boosts by their share of the skill) and each piece's hits, casts and damage per Act. Hooks in `combat.ts`.
+- **Engine (phase 2, `combat.ts` and `systems.ts`):** trigger kinds `cast` (after a skill's cooldown is set; `skill` names it), `death` (the holder fell; `attacker` is the killer), `takedown` (kill or assist on a piece) and `pawnlingKill` (the side killed an enemy pawnling; `near` gates the distance); trigger targets `landing` (enemies around the caster after its dash), `aroundVictim`, `nearVictim`, `castTargets`, `allies`, `lowestAlly`; trigger conditions `vs: structure`, `quietSec` (out of combat before the hit), `afterCast`, `victimMarked`, `near`, `perTarget` cooldowns, plus `filter` (pieces or pawns) and `maxTargets`; effects `tempo`, `ready`, `recast` (queued on `HeroState.recasts`, run by `tickRecasts`), `echo` (the cast skill's effects on another target at a share), `mark` (`Unit.mark`: more damage from the marking side), `push`, `cleanse`, `regen`, `payHp`; damage effects take `dmgType: hit`, `fractionOfDamage` and `ownMaxHpPct`; a statMod's `key` can replace a skill's own modifier; aura `filter`. Technique fields `dashMul`, `skillRule` (`minEnemies`, `structures`), `knockbackMul` and the Dubious `retreatMul` (read by `ai/judgement.ts`). Rank 8 opens no fork (`ranks.ts`). The AI's fit (`perkAxes` in `ranks.ts`) reads `echo`, `recast` and `ready` by the lean of the skill they repeat, and a Dubious `payHp` as no lean; Black's archetype pick at Rank 4 leans by the Techniques the piece holds. Unit tests: `tests/techniques-engine.test.ts`, `tests/trigger-engine.test.ts`.
+- **Content (phase 3):** 84 Techniques (18 common, 6 Dubious, 20 piece, 30 archetype with the old Rank 8 option ids, 10 Combinations). Named courts' fixed first moves: `firstMoves` in `content/courts.json` (required), carried into Black's `SetupEntry.firstMove` (`run/opponents.ts`) and taken by `startBuilds`.
+- **State:** `MatchState.builds`, `HeroState.techniques` (always present). Tournament heirlooms (`TeamStart.heirlooms`, run save version 2) are given at Plain grade by `runRules.ts` before `startBuilds`.
 - **Read-only:** `Match.buildView`, `Match.buildAdvice`, `Match.techniquePreview` (on a copy of the piece, like `forkPreview`), `Match.firstMoves`. **Commands:** `takeTechnique`, `passOffer`, `rerollOffer`, `upgradeTechnique`, `autoBuild` (White, break only); Setup's pick rides on `setupTeam` (`SetupEntry.firstMove`). **Events:** `buildOffer`, `technique`, `techniqueUpgrade`, `offerPassed`.
+- **Screens (placeholders until phase 5):** `src/ui/hud/BuildsTab.tsx` (the break sheet's Builds tab, read only), `src/ui/setup/FirstMovesPage.tsx` (Setup page 1, read only), Adjourn's Builds tab, `src/ui/TechniqueChip.tsx` (the held-card chip shared by the piece card, report, Spoils and Run kit), `src/ui/hud/blackTechniques.ts` (Black's picks hidden until the next Act), styles `src/ui/css/techniques.css`.
 
 ### Phases and pressure
 
 - **Controller:** `DRAFT → PREP(1) → LIVE(1) → REPORT(1) → PREP(2) → … → END`, unbounded. Only LIVE ticks.
-- Between phases, heroes keep their position and hp and shop remotely.
+- Between Acts, pieces keep their position and hp (the Act break sheet).
 - **Respawn time** = phase base + growth × seconds into the phase; the phase base rises each phase.
 - **Pressure events** (phase 4+) are data entries that switch on rules and stack:
   - Thinning Veil: global heal multiplier.
   - Spirit Tide: neutral waves from camps walk the lanes, reusing the wave system with team `neutral`.
-  - Keeper Calls In Debts: the `curse` tag multiplier goes to 2.
+  - Endgame (chess branch, from Act 7, Act 2 in Blitz): Thrones take +50% damage and respawns are +50%.
   - The Kings Wake (id `restless_guardians`, rule `roamingGuardians`): guardian (King) AI switches from stationary to roaming.
 
-### Keeper, curses, auction, obelisks
+### Obelisks, team points
 
-- **Keeper:** neutral, untargetable. Each PREP it relocates (`keeper` stream) and rolls its stock from data. If a curse is offered, it is placed near that hero.
-- **Curse offer (each PREP):** losing team = lower team net worth; candidate = its lowest-net-worth hero, only if below 75% of the match average; at most one per phase. Flaw type shown; exact flaw rolled from the item's flaw pool on acceptance (`loot` stream). Permanent.
-- **Holy auction (deleted 2026-10-11; this text describes the old hero game):** bid windows in PREP 1, 2 and 3; bids add up. Bid = team points plus the player's own gold, points converted at a tuning rate. Sealed. Resolves at the end of PREP 3. Ties: more points, then a `loot` roll. The loser gets 50% of its gold back. The winning team picks the recipient.
 - **Team points:** from obelisks and major camps, in a team pool.
-- **Obelisks:** spawn on a schedule at random eligible nodes during phases 1–3; claimed by holding the radius uncontested for a set time; reward = points plus one small effect (buff, gold, or a team shop unlock).
+- **Obelisks:** spawn on a schedule at random eligible nodes during phases 1–3; claimed by holding the radius uncontested for a set time; reward = points plus one small effect (points, gold, a buff, or a free reroll for each of the side's pieces at the next Act break).
+- The Keeper, the curse offer and the holy auction are deleted (the auction on 2026-10-11, the rest with items on 2026-10-18).
 
 ## Content and data
 
 All game content is JSON in `content/`, with one Zod schema per file type.
 
-| File(s)           | Defines                                                                                                                                                   |
-| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `heroes/*.json`   | Stats, 3 abilities plus ultimate (as effect compositions), default posture, personality trait, upgrade pool, AI build list, sigil visual parameters       |
-| `items/*.json`    | Category, tier, cost, modifiers and effects, recipe partners, upgrade target; cursed items add boons, flaw type and flaw pool; holy items add a hint text |
-| `upgrades/*.json` | Ability tweaks offered in the pick 1 of 3 screen                                                                                                          |
-| `biomes/*.json`   | Camp spots, camp types per phase, reward table, nav nodes, palette                                                                                        |
-| `pressure.json`   | The 4 events in order, as rule switches and tag multipliers                                                                                               |
-| `badges.json`     | Report badges: metric, rank rule (max or min), factual label                                                                                              |
-| `map.json`        | Lane polylines, tower and base positions, biome slots and entry points                                                                                    |
-| `tuning.json`     | Every number not tied to one hero or item: phase length, gold values, respawn curve, curse threshold, auction rate, obelisk schedule                      |
-| `techniques.json` | Piece-build Techniques: school, slot, pool (common, piece, archetype, Combination), skill tweaks, mods, triggers, Dubious price, card text                |
+| File(s)           | Defines                                                                                                                                                                                               |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `heroes/*.json`   | Stats, 3 abilities plus ultimate (as effect compositions), default posture, personality trait, upgrade pool, AI build list, sigil visual parameters                                                   |
+| `techniques.json` | Techniques: school, slot, pool (common, piece, archetype, combination), graded mods and triggers, skill tweaks, Combination parents, Dubious price, plays-like line and text with number placeholders |
+| `upgrades/*.json` | Ability tweaks offered in the pick 1 of 3 screen                                                                                                                                                      |
+| `biomes/*.json`   | Camp spots, camp types per phase, reward table, nav nodes, palette                                                                                                                                    |
+| `pressure.json`   | The 4 events in order, as rule switches and tag multipliers                                                                                                                                           |
+| `badges.json`     | Report badges: metric, rank rule (max or min), factual label                                                                                                                                          |
+| `map.json`        | Lane polylines, tower and base positions, biome slots and entry points                                                                                                                                |
+| `tuning.json`     | Every number not tied to one piece or card: Act length, gold values, Rank thresholds and growth, the builds block (grades, odds, gold costs, AI weights), respawn curve, obelisk schedule             |
+| `techniques.json` | Piece-build Techniques: school, slot, pool (common, piece, archetype, Combination), skill tweaks, mods, triggers, Dubious price, card text                                                            |
 
 - The loader takes plain objects. The browser bundles JSON by static import; Node tools read it from disk. The sim never touches the file system or the bundler.
-- Ids are stable strings (`item.hungry_mask`). Cross-references are checked by a content test.
+- Ids are stable strings (`family_fork`). Cross-references are checked by a content test.
 - A content hash is stored in every replay.
 - Badge labels state a metric ("Most damage taken from Soul"), never a judgment.
 
@@ -225,8 +222,8 @@ The sim records; `src/analysis` turns the log into numbers; the UI displays. No 
 
 **Event log**
 
-- Each event is `{tick, seq, type, payload}`: damage, heal, death, respawn, gold gained (with source), purchase, sell, upgrade pick, posture change, recall, tower or guardian destroyed, camp cleared, obelisk claimed, bid placed, auction resolved, curse offered / accepted / refused, phase start and end, pressure event, command rejected.
-- Damage and heal events carry source, target, amount, damage type and origin (auto attack, ability id, item id).
+- Each event is `{tick, seq, type, payload}`: damage, heal, death, respawn, gold gained (with source), rank up, fork, Technique offer, pick, upgrade and pass, gambit, recall, tower or guardian destroyed, camp cleared, obelisk claimed, relic offered and taken, phase start and end, pressure event, command rejected.
+- Damage and heal events carry source, target, amount, damage type and origin (auto attack, ability id, `trigger:<source>` for trigger effects, e.g. `trigger:tech:family_fork`).
 - **Volume rule:** hero-involved events are logged individually; minion-versus-minion and camp damage are summed into 1-second buckets.
 - **Position samples:** every hero every 10 ticks (0.5 s).
 - Append-only, in memory, exportable as JSON with the replay.

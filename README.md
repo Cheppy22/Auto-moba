@@ -5,7 +5,7 @@ A single-player autobattler MOBA set in an xxxHolic-style pocket dimension. You 
 - **Source of truth** (how the game works now): [docs/SOURCE_OF_TRUTH.md](docs/SOURCE_OF_TRUTH.md)
 - **Changelog** (what changed and when): [docs/CHANGELOG.md](docs/CHANGELOG.md)
 - Architecture and milestone tasks: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
-- Dated specs and reports: [items](docs/ITEMS.md), [playtest](docs/PLAYTEST.md), [balance](docs/BALANCE_REPORT.md)
+- Dated specs and reports: [items (archived)](docs/archive/ITEMS.md), [playtest](docs/PLAYTEST.md), [balance](docs/BALANCE_REPORT.md)
 - Old design docs, for history: [docs/archive/](docs/archive/)
 
 ## Quick start
@@ -31,7 +31,7 @@ Balance experiments without editing content (tools only): `BALANCE_SCALE='{"miko
 ## Layout
 
 ```
-content/    JSON: heroes, items (incl. cursed), upgrades, biomes, pressure, badges, map, tuning
+content/    JSON: pieces, Techniques, gambits, relics, biomes, pressure, badges, map, tuning
 src/sim/    deterministic simulation (no browser code; the only way in is src/sim/index.ts)
 src/analysis/  event log -> report models (stats, fights, badges, paths)
 src/render/ Canvas drawing: map, sigils, replay

@@ -1,5 +1,7 @@
 # Pieces design sheet (chess variant, 2026-10-08)
 
+> **2026-10-18:** items and build paths are retired and the Rank 8 fork is gone: its two options per style live on as archetype Techniques (same ids and effects; [CHESS.md](CHESS.md) "Piece builds: Techniques"). The path build lists and Rank 8 tables below are history; the styles, rank bonuses and kits are current.
+
 The five chess pieces as characters: what each one is for, its three styles, what it gains at each rank, the two forks, and the item build for each path. Also the Gambit numbers and four example team doctrines. This sheet belongs to [CHESS.md](CHESS.md). The numbers live in `content/pieces/*.json` and `content/gambits.json`, and the tables below were generated from those files. If they disagree, the JSON is right; regenerate this sheet.
 
 Status: **first tuning pass 2026-10-11** (six style numbers, see [BALANCE-2026-10-11.md](BALANCE-2026-10-11.md)). Aim: every style wins 45–55% of its matches against the other styles of the same piece.
