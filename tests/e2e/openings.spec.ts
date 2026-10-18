@@ -77,6 +77,9 @@ for (const v of SHAPES) {
       await page.getByTestId('opening-more-kings_indian').click();
       const body = page.getByTestId('opening-body-kings_indian');
       await expect(body).toContainText('Exchange');
+      // the opened text scrolls into view (the row's own top stays on screen)
+      await expect(body).toBeInViewport();
+      await expect(page.getByTestId('opening-kings_indian')).toBeInViewport();
       await expect(body).toContainText('Example hands');
       await expect(page.getByTestId('opening-card-kings_indian')).toContainText('opening card');
       await expect(body.locator('.hcard.opening')).toHaveCount(3);
