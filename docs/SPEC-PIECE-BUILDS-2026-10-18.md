@@ -1,5 +1,7 @@
 # Spec: Piece builds with Techniques (2026-10-18)
 
+> **Status: approved by Cheppy 2026-10-18 (all decisions as recommended).** Owner change: a **"Pick for me"** option is on by default — each break, the AI picks for every piece and the screen highlights the 1–2 picks that matter most, so the player chooses only where they want to. Built on branch `proposal/next`, playable at `/proposal/` before it ships.
+
 Status: **draft for approval** (nothing built). Written by Opus (planner) after owner feedback on items. Belongs to [CHESS.md](CHESS.md). Replaces, once approved and built, the item parts of [ITEMS.md](ITEMS.md) and the 1C Armory in [SPEC-TOURNAMENT-ARMORY-2026-10-13.md](SPEC-TOURNAMENT-ARMORY-2026-10-13.md).
 
 **Owner feedback this answers (2026-10-18):** "Not really a fan of the offense/defense/utility split. The items themselves seem unoriginal or uninspired and hard to tell what makes a difference. I like to imagine you choose a tree that's mostly RNG. You have limited agency, but you can still make somewhat informed decisions and influence the build of your pieces. Keyword here is **piece builds**."

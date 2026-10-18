@@ -1,5 +1,7 @@
 # More gambits and Openings (spec, 2026-10-18)
 
+> **Status: approved by Cheppy 2026-10-18 (all decisions as recommended).** Built on branch `proposal/next`, playable at `/proposal/` before it ships.
+
 Status: **proposal, waiting for owner approval.** No code changed. Branch `test-product-2`; rules today are in [CHESS.md](CHESS.md) "Gambits" and "Gambit schools". Owner request: "add more gambits, openings… more gambit types and associated openers", going back to the original proposal.
 
 ## Decisions for the owner (read this first)
