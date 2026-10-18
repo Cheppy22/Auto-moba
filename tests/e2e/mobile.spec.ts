@@ -70,17 +70,12 @@ for (const v of views) {
       await expect(page.getByTestId('setup')).toBeVisible();
       await shot(page, `${v.name}-setup`);
       expect(await overflow(page)).toBeLessThanOrEqual(0);
-      // page 1: all five piece tabs, the three paths and Next are on screen without scrolling
+      // page 1 (first moves, read only): Quick start, Next and the steps are on screen
       for (const id of ['quick-start', 'next', 'step-2', 'step-3']) {
         await expect(page.getByTestId(id)).toBeInViewport({ ratio: 1 });
         await bigEnough(page, id);
       }
-      for (const piece of ['king', 'queen', 'rook', 'bishop', 'knight']) {
-        await expect(page.getByTestId(`piece-${piece}`)).toBeInViewport({ ratio: 1 });
-        await bigEnough(page, `piece-${piece}`);
-      }
-      for (const el of await page.locator('[data-testid^="path-"][role="radio"]').all())
-        expect((await el.boundingBox())!.height).toBeGreaterThanOrEqual(40);
+      await expect(page.getByTestId('first-moves')).toBeVisible();
       // page 2: the lane board and its pieces are big enough to tap; the King goes to Mid
       await page.getByTestId('next').tap();
       await expect(page.getByTestId('step-2')).toHaveAttribute('aria-current', 'step');
@@ -274,20 +269,15 @@ for (const v of views) {
       expect(await overflow(page)).toBeLessThanOrEqual(0);
       await expect(page.getByTestId('resume')).toBeInViewport({ ratio: 1 });
       await bigEnough(page, 'resume');
-      for (const t of ['lanes', 'paths', 'armory']) await bigEnough(page, `tab-${t}-btn`);
+      for (const t of ['lanes', 'builds', 'rules']) await bigEnough(page, `tab-${t}-btn`);
       const panel = (await page.locator('.adjourn-panel').boundingBox())!;
       expect(panel.y).toBeGreaterThanOrEqual(0);
       expect(panel.y + panel.height).toBeLessThanOrEqual(vp.height + 1);
       expect(panel.x + panel.width).toBeLessThanOrEqual(vp.width + 1);
-      await page.getByTestId('tab-armory-btn').tap();
-      await expect(page.getByTestId('tab-armory')).toBeVisible();
-      await shot(page, `${v.name}-armory`);
-      await page.getByTestId('tab-paths-btn').tap();
-      await page.getByTestId('setpath-king-defense').tap();
-      await expect(page.getByTestId('setpath-king-defense')).toHaveAttribute(
-        'aria-checked',
-        'true',
-      );
+      await page.getByTestId('tab-builds-btn').tap();
+      await expect(page.getByTestId('tab-builds')).toBeVisible();
+      await shot(page, `${v.name}-builds`);
+      expect(await overflow(page)).toBeLessThanOrEqual(0);
       await page.getByTestId('tab-lanes-btn').tap();
       await page.getByTestId('resume').tap();
       await expect(page.getByTestId('adjourn-panel')).toHaveCount(0);

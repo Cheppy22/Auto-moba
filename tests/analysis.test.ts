@@ -30,7 +30,10 @@ describe('analysis', () => {
     expect(kills).toBeLessThanOrEqual(whole.heroes.reduce((a, h) => a + h.kills, 0));
     const buys = (r: ReturnType<typeof buildReport>): number =>
       r.heroes.reduce((a, h) => a + h.techniques.length, 0);
-    expect(slices.reduce((a, r) => a + buys(r), 0)).toBe(buys(whole));
+    // the first moves are taken at Setup, before Act 1 starts
+    const setup = m.events.filter((e) => e.type === 'technique' && e.payload.at === 0).length;
+    expect(setup).toBe(10);
+    expect(slices.reduce((a, r) => a + buys(r), 0)).toBe(buys(whole) - setup);
     const picks = (r: ReturnType<typeof buildReport>): number =>
       r.heroes.reduce((a, h) => a + h.ranks.length, 0);
     expect(slices.reduce((a, r) => a + picks(r), 0)).toBe(picks(whole));
@@ -72,7 +75,9 @@ describe('analysis', () => {
       const pawns = m.events.filter((e) => e.type === 'pawnFielded' && e.payload.team === t);
       expect(whole.teams[t].pawnsFielded).toBe(pawns.length);
     }
-    expect(whole.roster.every((r) => r.style.length > 0)).toBe(true);
+    // a piece that never reached Rank 4 stays generic ('')
+    for (const r of whole.roster)
+      expect(r.style === '' || content.styleByKey.has(`${r.def}/${r.style}`)).toBe(true);
   });
 
   it('reports the damage type a hero took most of', () => {

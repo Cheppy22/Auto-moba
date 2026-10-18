@@ -25,7 +25,9 @@ describe('match summary: shape and names', () => {
       const piece = content.pieceById.get(r.piece as 'king')!;
       expect(r.pieceName).toBe(piece.name);
       expect(r.name).toBe(`${r.team === 'A' ? 'White' : 'Black'} ${piece.name}`);
-      expect(r.styleName).toBe(content.styleByKey.get(`${r.piece}/${r.style}`)!.name);
+      expect(r.styleName).toBe(
+        r.style ? content.styleByKey.get(`${r.piece}/${r.style}`)!.name : 'Generic',
+      );
       expect(r.rank).toBeGreaterThanOrEqual(1);
       expect(r.rank).toBeLessThanOrEqual(8);
       // one Technique per slot, six slots

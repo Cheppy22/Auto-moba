@@ -160,7 +160,7 @@ test.describe('first match', () => {
     await expect(tour).toHaveAttribute('data-step', 'report');
     await page.waitForTimeout(700); // the sheet slides up
     await shot(page, 'docs/img/aaa-onboarding-5-break.png');
-    for (const tab of ['orders', 'armory', 'relics']) {
+    for (const tab of ['orders', 'builds', 'relics']) {
       await page.getByTestId('tutor-ok').click();
       await expect(tour).toHaveAttribute('data-step', tab);
       await expect(page.getByTestId(`break-tab-${tab}`)).toHaveAttribute('aria-selected', 'true');

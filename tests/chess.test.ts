@@ -12,6 +12,7 @@ import { findPath, lanePoint } from '../src/sim/world/map';
 import { walkable } from '../src/sim/world/terrain';
 import { seedStreams } from '../src/sim/core/rng';
 import { giveGold } from '../src/sim/gold';
+import { recompute } from '../src/sim/stats';
 import { content, liveMatch, logHash, piece } from './helpers';
 
 const TPS = content.tuning.tickRate;
@@ -233,23 +234,18 @@ describe('ranks and forks', () => {
     expect(ev?.type === 'fork' && ev.payload.auto).toBe(true);
   });
 
-  it('chooseFork applies the player pick; Black picks at once; several forks can queue', () => {
+  it('chooseFork applies the player pick; Black picks at once; Rank 8 opens no fork', () => {
     const m = playerMatch(12);
     const u = piece(m, 'A', 'rook');
     giveGold(m.ctx, u, content.tuning.ranks.goldThresholds[7], 'test');
     expect(u.hero!.rank).toBe(8);
-    expect(m.snapshot().forks.map((f) => f.rank)).toEqual([4, 8]);
-    expect(m.snapshot().forks.map((f) => f.kind)).toEqual(['archetype', 'skill']);
-    // The skill options exist once the archetype does.
-    expect(m.snapshot().forks[1].options).toHaveLength(0);
+    expect(m.snapshot().forks.map((f) => f.rank)).toEqual([4]);
+    expect(m.snapshot().forks.map((f) => f.kind)).toEqual(['archetype']);
     expect(m.issue({ type: 'chooseFork', heroId: u.id, optionId: 'nope' }).ok).toBe(false);
     expect(m.issue({ type: 'chooseFork', heroId: u.id, optionId: 'vanguard' }).ok).toBe(true);
     expect(u.hero!.style).toBe('vanguard');
-    expect(m.snapshot().forks.map((f) => f.rank)).toEqual([8]);
-    const opt8 = m.snapshot().forks[0].options[1].id;
-    expect(m.issue({ type: 'chooseFork', heroId: u.id, optionId: opt8 }).ok).toBe(true);
-    expect(u.hero!.perks).toContainEqual({ rank: 8, optionId: opt8 });
     expect(m.snapshot().forks).toHaveLength(0);
+    expect(u.hero!.perks.some((p) => p.rank === 8)).toBe(false);
     // Rank 5-7 bonuses earned before the archetype count once it exists.
     expect(u.hero!.perks.filter((p) => p.optionId === null).map((p) => p.rank)).toEqual([
       2, 3, 5, 6, 7,
@@ -393,6 +389,9 @@ describe('Check and Checkmate', () => {
     expect(m.events.some((e) => e.type === 'throneDown' && e.payload.team === 'A')).toBe(true);
     expect(m.state.phase.kind).toBe('live');
     const king = piece(m, 'A', 'king');
+    // no Technique that saves him (The Vault, the Lantern) may spoil the reading
+    king.hero!.techniques = [];
+    recompute(m.ctx, king);
     kill(m, king);
     expect(m.state.phase.kind).toBe('end');
     expect(m.state.winner).toBe('B');

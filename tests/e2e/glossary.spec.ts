@@ -108,7 +108,7 @@ async function rulesFromTitle(page: Page): Promise<void> {
     await expect(list.getByTestId(`rule-${id}`), id).toBeAttached();
   for (const id of ['throne', 'check', 'checkmate', 'high-ground', 'eye-badge', 'line-of-sight'])
     await expect(list.getByTestId(`rule-${id}`), id).toBeAttached();
-  for (const id of ['opening', 'archetype', 'rank', 'school', 'rally', 'armory', 'grove'])
+  for (const id of ['opening', 'archetype', 'rank', 'school', 'rally', 'technique', 'grove'])
     await expect(list.getByTestId(`rule-${id}`), id).toBeAttached();
   await expect(list.getByTestId('rule-tempo')).toContainText('spending meter');
   await page.getByTestId('rules-close').click();
@@ -161,7 +161,7 @@ test.describe('desktop', () => {
     await startLive(page, '42');
     await page.getByTestId('adjourn').click();
     await expect(page.getByTestId('adjourn-panel')).toBeVisible();
-    // a marked word in the scoreboard line, and in the Armory tab
+    // a marked word in the scoreboard line
     await term(page, 'tempo').click();
     await expect(page.getByTestId('gloss-pop')).toBeVisible();
     await expect(page.getByTestId('gloss-short')).toContainText('spending meter');

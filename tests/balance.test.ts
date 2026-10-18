@@ -23,10 +23,10 @@ describe('balance tooling', () => {
       'High-ground eye badge',
       'Pieces',
       'Styles',
-      'Build paths',
       'Lanes',
-      'Items',
-      'Curses, comebacks, obelisks',
+      'Techniques',
+      'Gold and Techniques at the Act breaks',
+      'Comebacks, obelisks',
       'Targets',
     ]) {
       expect(md).toContain(h);

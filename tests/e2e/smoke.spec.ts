@@ -42,19 +42,10 @@ test('title, setup, gambits, pawn, fork, adjourn, checkmate and report', async (
   await page.getByTestId('seed').fill('42');
   await page.getByTestId('start').click();
   await expect(page.getByTestId('setup')).toBeVisible();
-  // page 1, build paths: a tab per piece, three paths and three first buys each
-  await expect(page.locator('[data-testid^="piece-"]')).toHaveCount(5);
-  for (const piece of ['king', 'queen', 'rook', 'bishop', 'knight']) {
-    await page.getByTestId(`piece-${piece}`).click();
-    await expect(page.getByTestId(`style-desc-${piece}`)).toContainText('archetype at Rank 4');
-    await expect(page.locator(`[data-testid^="path-${piece}-"]`)).toHaveCount(3);
-    await expect(page.locator(`[data-testid^="path-${piece}-"].on`)).toHaveCount(1);
-    await expect(page.locator('[data-testid="first-buys"] > li')).toHaveCount(3);
-  }
-  await page.getByTestId('piece-queen').click();
-  await expect(page.getByTestId('path-queen-offense')).toHaveClass(/on/);
-  await page.getByTestId('path-queen-utility').click();
-  await expect(page.getByTestId('path-queen-utility')).toHaveClass(/on/);
+  // page 1, first moves: each piece's Setup cards, the AI's pick marked (read only for now)
+  await expect(page.getByTestId('first-moves')).toBeVisible();
+  for (const piece of ['king', 'queen', 'rook', 'bishop', 'knight'])
+    await expect(page.getByTestId(`first-move-${piece}`).locator('li.on')).toHaveCount(1);
   // page 2, board: swap the King into Mid, read a piece descriptor
   await page.getByTestId('next').click();
   await expect(page.getByTestId('step-2')).toHaveAttribute('aria-current', 'step');
@@ -121,7 +112,10 @@ test('title, setup, gambits, pawn, fork, adjourn, checkmate and report', async (
   else await expect(page.getByTestId('unit-card-style')).not.toBeEmpty();
   await expect(page.getByTestId('unit-card-piece')).toContainText('Queen');
   await expect(page.getByTestId('unit-card-piece')).toContainText('Black');
-  await expect(page.getByTestId('unit-card-items')).toBeVisible();
+  await expect(page.getByTestId('unit-card-techniques')).toBeVisible();
+  await expect(page.getByTestId('unit-card-techniques').getByTestId('tech-chip')).not.toHaveCount(
+    0,
+  );
   await page.getByTestId('unit-card-close').click();
   await expect(page.getByTestId('unit-card')).toHaveCount(0);
   // holding a portrait opens the card at once, for either team
@@ -287,7 +281,7 @@ test('title, setup, gambits, pawn, fork, adjourn, checkmate and report', async (
   expect(await camMode(page)).toBe('follow');
   await setAuto(page, true);
 
-  // ---- Adjourn: the clock stops, lanes and paths change, the Armory is readable, Resume goes on
+  // ---- Adjourn: the clock stops, lanes change, each piece's Techniques are readable, Resume goes on
   s = await snap(page);
   await setSpeed(page, 2);
   await playPast(page, s.tick + 40);
@@ -299,14 +293,11 @@ test('title, setup, gambits, pawn, fork, adjourn, checkmate and report', async (
   await page.getByTestId('adjourn-board').getByTestId('chip-knight').click();
   await page.getByTestId('adjourn-board').getByTestId('zone-bot').click();
   await expect(page.getByTestId('adjourn-board').getByTestId('zone-bot')).toContainText('Knight');
-  await page.getByTestId('tab-paths-btn').click();
-  await page.getByTestId('setpath-queen-offense').click();
-  await expect(page.getByTestId('setpath-queen-offense')).toHaveAttribute('aria-checked', 'true');
-  await page.getByTestId('tab-armory-btn').click();
-  await expect(page.locator('[data-testid^="armory-"]')).toHaveCount(5);
-  await expect(page.locator('[data-testid="armory-queen"] .atile').first()).toBeVisible();
-  await page.locator('[data-testid="armory-queen"] .atile').first().click();
-  await expect(page.locator('[data-testid="armory-queen"] .adesc')).toBeVisible();
+  await page.getByTestId('tab-builds-btn').click();
+  await expect(page.locator('[data-testid^="adjourn-builds-"]')).toHaveCount(5);
+  await expect(
+    page.getByTestId('adjourn-builds-queen').getByTestId('tech-chip').first(),
+  ).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(page.getByTestId('adjourn-panel')).toHaveCount(0);
   await playPast(page, frozen);

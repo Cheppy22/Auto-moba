@@ -117,7 +117,7 @@
     "id": "rank",
     "term": "Rank",
     "aliases": ["Rank", "Ranks", "rank", "ranks"],
-    "short": "A piece's level from 1 to 8, earned from the gold it collects; ranks grow its stats, Rank 4 brings the archetype fork and Rank 8 a Brilliant Technique offer.",
+    "short": "A piece's level from 1 to 8, earned from its gold; Rank 4 brings the archetype fork, Rank 8 a Brilliant Technique offer.",
     "see": ["fork", "archetype"],
     "group": "Pieces"
   },
