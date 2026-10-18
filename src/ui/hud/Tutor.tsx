@@ -263,7 +263,7 @@ const TOUR: { tab: 'report' | 'orders' | 'builds' | 'relics'; text: string }[] =
   },
   {
     tab: 'builds',
-    text: 'Builds: each piece is offered three Techniques; it takes one, and its gold buys rerolls and upgrades.',
+    text: 'Builds: each piece takes one of three Techniques. Pick for me has already chosen; ★ marks the picks worth a look. Take another card to change one; gold buys rerolls and upgrades.',
   },
   {
     tab: 'relics',

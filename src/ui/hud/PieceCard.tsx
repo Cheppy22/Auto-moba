@@ -1,4 +1,5 @@
-import type { Unit } from '../../sim';
+import { useState } from 'preact/hooks';
+import type { TechniqueSlot, Unit } from '../../sim';
 import { Term, Terms } from '../glossary';
 import {
   LANE_LABEL,
@@ -10,8 +11,9 @@ import {
   styleLabel,
 } from '../pieces';
 import { forkOptionName, useEscape, useSession } from '../session';
-import { TechniqueChip } from '../TechniqueChip';
+import { SlotDetail, SlotRow, slotTiles, type SlotTile } from '../TechniqueSlots';
 import { shownTechniques } from './blackTechniques';
+import { buildViewOf } from './buildsData';
 import { courtName } from '../../analysis/text';
 
 const RANKS = [1, 2, 3, 4, 5, 6, 7, 8];
@@ -25,6 +27,7 @@ export function PieceCard() {
   const m = s.match!;
   const id = s.ui.card;
   const u: Unit | undefined = id === null ? undefined : m.unitById(id);
+  const [slot, setSlot] = useState<{ id: number; slot: TechniqueSlot } | null>(null);
   useEscape(id !== null, () => s.closeCard());
   if (!u || !u.hero) return null;
   const h = u.hero;
@@ -37,7 +40,12 @@ export function PieceCard() {
       name: forkOptionName(s.content, h.defId, p.optionId ?? ''),
     }))
     .filter((p) => p.name);
-  const techniques = shownTechniques(m, u);
+  // Black's picks at an open break stay hidden: its slots are drawn from what it held at the bell
+  const hidden = team === 'B' && m.state.builds.open;
+  const tiles: SlotTile[] = hidden
+    ? slotTiles(s.content, h.defId, h.style, shownTechniques(m, u))
+    : (buildViewOf(m, u.id)?.slots ?? slotTiles(s.content, h.defId, h.style, h.techniques));
+  const open = slot && slot.id === u.id ? tiles.find((t) => t.slot === slot.slot && t.held) : null;
   const snap = m.snapshot();
   const waiting = snap.forks.some((f) => f.heroId === u.id);
   const highGround = snap.units.some((x) => x.id === u.id && x.highGround === true);
@@ -137,12 +145,14 @@ export function PieceCard() {
           <span class="dim">Rank {t.rank} archetype:</span> {t.name}
         </p>
       ))}
-      <div class="ucard-items" data-testid="unit-card-techniques">
-        {techniques.length === 0 && <span class="dim tiny">No Techniques yet.</span>}
-        {techniques.map((x) => (
-          <TechniqueChip key={x.id} c={s.content} id={x.id} grade={x.grade} />
-        ))}
-      </div>
+      <SlotRow
+        tiles={tiles}
+        selected={open ? open.slot : null}
+        onSelect={(x) => setSlot(x ? { id: u.id, slot: x } : null)}
+        testid="unit-card-techniques"
+        compact
+      />
+      {open && <SlotDetail tile={open} testid="unit-card-slot-detail" />}
     </div>
   );
 }

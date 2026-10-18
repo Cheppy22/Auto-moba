@@ -320,7 +320,7 @@ export function BuildsTab() {
                 max={1}
                 text={
                   pickForMe
-                    ? 'Every piece has a pick ready (“Picked for you”). ★ marks the ones worth a look; Take another card to change a pick.'
+                    ? 'Every piece has a pick ready. ★ marks the ones worth a look; Take another card to change a pick.'
                     : 'Each piece takes one of three Techniques, or rerolls or passes with its gold.'
                 }
               />

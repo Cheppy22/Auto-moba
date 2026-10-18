@@ -362,8 +362,10 @@
 .tslot-text {
   min-width: 0;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 .tslot-away {
   position: absolute;
@@ -377,6 +379,13 @@
 .tslots.compact .tslot {
   min-height: 44px;
   padding: 3px 6px 4px;
+}
+/* the piece card is narrow: two slots a row */
+.ucard .tslots {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.ucard .tslot-detail {
+  padding: 6px 8px 7px;
 }
 .tslot-detail {
   display: grid;
@@ -788,4 +797,18 @@ html[data-layout='desktop'] .tcard-medal svg {
   .tslot.fresh {
     animation: none;
   }
+}
+
+/* the fork sheet: the Signature slot line, under the preview in the sheet's scrolling middle */
+.fs-slotline {
+  margin: 0;
+  padding-top: 4px;
+  font-size: var(--fs-xs);
+  line-height: 1.35;
+  color: var(--bone);
+  border-top: 1px dotted rgba(203, 189, 159, 0.2);
+}
+.fs-slotline b {
+  font-weight: 600;
+  color: var(--brass-hi);
 }

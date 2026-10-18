@@ -202,6 +202,12 @@ export function ForkSheet(props: { forks: SnapFork[] }) {
             portrait={portraits.get(look)}
             look={look}
           />
+          {f.kind === 'archetype' && (
+            <p class="fs-slotline" data-testid="fork-signature-slot">
+              Every archetype also opens the <b>Signature</b> slot for{' '}
+              <Term id="technique">Techniques</Term>.
+            </p>
+          )}
         </div>
         <div class="fs-actions">
           <button
