@@ -63,8 +63,10 @@ async function toBreak(page: Page): Promise<void> {
 }
 
 for (const v of [
-  { name: 'phone', viewport: { width: 390, height: 844 }, touch: true },
-  { name: 'desktop', viewport: { width: 1440, height: 900 }, touch: false },
+  { name: 'phone', theme: 'a', viewport: { width: 390, height: 844 }, touch: true },
+  { name: 'phone-b', theme: 'b', viewport: { width: 390, height: 844 }, touch: true },
+  { name: 'desktop', theme: 'a', viewport: { width: 1440, height: 900 }, touch: false },
+  { name: 'desktop-b', theme: 'b', viewport: { width: 1440, height: 900 }, touch: false },
 ]) {
   test.describe(`Technique tallies, ${v.name}`, () => {
     test.use({ viewport: v.viewport, hasTouch: v.touch, isMobile: v.touch });
@@ -74,7 +76,7 @@ for (const v of [
     }) => {
       test.setTimeout(300_000);
       const errors = watchErrors(page);
-      await startLive(page, '7');
+      await startLive(page, '7', true, false, `&mapstyle=${v.theme}`);
       await toBreak(page);
 
       // ---- the Act report: "What your Techniques did", the top three of the Act that ended

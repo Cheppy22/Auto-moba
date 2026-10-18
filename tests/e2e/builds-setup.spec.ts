@@ -135,6 +135,38 @@ test.describe('First moves: Pick for me and your own picks', () => {
   });
 });
 
+test.describe('First moves follow the Opening', () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+
+  test('a pick the new Opening no longer deals is dropped with a note; a pick still dealt stays yours', async ({
+    page,
+  }) => {
+    await openSetup(page);
+    await page.getByTestId('fm-chip-king').click();
+    const before = await cardIds(page, 'king');
+    const sug = await page
+      .getByTestId('first-move-king')
+      .locator('.fm-card.on .tcard')
+      .getAttribute('data-technique');
+    const other = before.findIndex((id) => id !== sug);
+    await page.getByTestId(`fm-take-king-${other}`).click();
+    const picked = before[other];
+    // another Opening deals again (the schools it favours are drawn twice as often)
+    await page.getByTestId('step-3').click();
+    await page.getByTestId('opening-french').click();
+    await page.getByTestId('step-1').click();
+    await page.getByTestId('fm-chip-king').click();
+    const after = await cardIds(page, 'king');
+    if (after.includes(picked)) {
+      await expect(page.getByTestId('fm-chip-king')).toHaveAttribute('data-source', 'yours');
+      await expect(page.getByTestId('fm-lost')).toHaveCount(0);
+    } else {
+      await expect(page.getByTestId('fm-lost')).toContainText('King');
+      await expect(page.getByTestId('fm-chip-king')).toHaveAttribute('data-source', 'ai');
+    }
+  });
+});
+
 for (const v of views) {
   test(`First moves fit and can be tapped: ${v.name}`, async ({ browser }) => {
     test.setTimeout(120_000);
