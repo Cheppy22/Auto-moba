@@ -109,13 +109,15 @@ export function SlotRow(props: {
             style={{ '--school': SCHOOL_COLOR[t.held.school] }}
             onClick={() => props.onSelect(on ? null : t.slot)}
           >
-            <span class="tslot-label">{t.name}</span>
+            <span class="tslot-top">
+              <span class="tslot-label">{t.name}</span>
+              {t.held.oneAway.length > 0 && <i class="tslot-away">1 away</i>}
+            </span>
             <span class="tslot-name">
               <SchoolGlyph school={t.held.school} size={13} />
               <span class="tslot-text">{t.held.name}</span>
               {gm && <b class="tech-grade">{gm}</b>}
             </span>
-            {t.held.oneAway.length > 0 && <i class="tslot-away">1 away</i>}
           </button>
         );
       })}
