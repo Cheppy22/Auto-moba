@@ -17,7 +17,8 @@ import {
 } from '../src/sim';
 import { CUSTOM_BEHAVIORS } from '../src/sim/combat';
 import { computeStats } from '../src/sim/stats';
-import { withTechnique } from '../src/sim/techniques';
+import { perkAxes } from '../src/sim/ranks';
+import { techniqueAbility, withTechnique } from '../src/sim/techniques';
 import { content, liveMatch, logHash, piece, toBell } from './helpers';
 
 const t = content.tuning;
@@ -304,6 +305,25 @@ describe('the AI pick', () => {
     const fill = scoreCard(content, t, subj, { id: 'pin', grade: 'plain' }, 1);
     const swap = scoreCard(content, t, subj, { id: 'toll', grade: 'plain' }, 1);
     expect(fill).toBeGreaterThan(swap);
+  });
+
+  it("a card that repeats a skill leans the way that skill does (the AI's fit)", () => {
+    const kitOf = (p: PieceId) => content.pieceById.get(p)!.abilities;
+    const lean = (id: string, p: PieceId) => {
+      const d = tech(id);
+      return perkAxes({ ...d, ability: techniqueAbility(d) ?? undefined }, kitOf(p));
+    };
+    // Echoing Decree repeats a damage skill: offense; Shared Guard repeats Royal Guard's shield: defense
+    const decree = lean('echoing_decree', 'queen');
+    expect(decree[0]).toBeGreaterThan(decree[1]);
+    expect(decree[0]).toBeGreaterThan(decree[2]);
+    const guard = lean('shared_guard', 'king');
+    expect(guard[1]).toBeGreaterThan(guard[0]);
+    expect(guard[1]).toBeGreaterThan(guard[2]);
+    // Hit and Run readies L-Leap: offense too; a Dubious price is no lean
+    const run = lean('hit_and_run', 'knight');
+    expect(run[0]).toBeGreaterThan(0);
+    expect(lean('blood_price', 'knight')[2]).toBe(0);
   });
 });
 

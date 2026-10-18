@@ -47,15 +47,26 @@ function modValue(m: ModDef): number {
 }
 
 /** Which axis an effect serves: damage hurts, heals and shields protect, the rest is utility. */
-function effectAxes(e: EffectDef, out: Axes, w: number): void {
+function effectAxes(e: EffectDef, out: Axes, w: number, skillAxes?: Axes): void {
   switch (e.type) {
     case 'damage':
     case 'dot':
+    case 'mark':
       out[0] += w;
       break;
     case 'heal':
     case 'shield':
+    case 'regen':
       out[1] += w;
+      break;
+    // a Technique's repeat of a skill serves what that skill serves (the cast trigger names it)
+    case 'echo':
+    case 'recast':
+      if (skillAxes) for (let i = 0; i < 3; i++) out[i] += w * skillAxes[i];
+      else out[2] += w;
+      break;
+    // a Dubious price is not a lean
+    case 'payHp':
       break;
     case 'statMod':
     case 'aura': {
@@ -100,7 +111,14 @@ export function perkAxes(p: PerkDef, kit: AbilityDef[] = []): Axes {
     const w = 0.12;
     if (t.custom && CUSTOM_AXIS[t.custom] !== undefined) out[CUSTOM_AXIS[t.custom]] += w;
     if (t.effects.length === 0) continue;
-    for (const e of t.effects) effectAxes(e, out, w / t.effects.length);
+    for (const e of t.effects) {
+      // `ready` follows the skill it readies; echo and recast the skill the cast trigger names
+      const skill = e.type === 'ready' ? e.skill : t.on === 'cast' ? t.skill : undefined;
+      const ax = skill !== undefined && kit[skill] ? abilityAxes(kit[skill]) : undefined;
+      if (e.type === 'ready' && ax)
+        for (let i = 0; i < 3; i++) out[i] += (w / t.effects.length) * ax[i];
+      else effectAxes(e, out, w / t.effects.length, ax);
+    }
   }
   return out;
 }
