@@ -347,4 +347,26 @@ Built on branch `wip/techniques-core` (from `proposal/next`). **Off by default:*
 12. **"Last Act" counts** (hits, hits on pieces, casts, damage taken) are kept by the builds tally per piece, not added to the Act report.
 13. **"Pick for me"** is UI state (default on). The sim gives `Match.buildAdvice(team)`: the AI's pick per open offer, a stake per piece (score spread + grade + Combination + the side's top-damage piece) and the 1–2 to highlight (the second only when its stake is at least 75% of the first's).
 
-**Not built yet (later phases):** engine additions (phase 2), the full content set, court first moves and glossary words (phase 3), retiring items, shops and the curse offer, the obelisk reroll and the heirloom Technique (phase 4), every screen (phase 5), the build symmetry test.
+**Not built yet:** see "Build notes: phases 2–3" below.
+
+## Build notes: phases 2–3 (2026-10-18)
+
+Built on branch `wip/techniques-content` (from `proposal/next`). Still **off by default** (`MatchConfig.techniques`); items, shops and the Armory stay live; no screen changed. `npm run baseline` identical on both maps. Code map: [ARCHITECTURE.md](ARCHITECTURE.md) "Piece builds". Probes: [BALANCE-TECHNIQUES-2026-10-18.md](BALANCE-TECHNIQUES-2026-10-18.md) "Phases 2–3".
+
+**Built:** every engine addition in 4.7 (the `cast` trigger, `recast`, `ready`, `tempo`, the landing area, the pawn aura filter) plus what the 4.3 cards needed: `death`, `takedown` and `pawnlingKill` triggers; targets around the victim, nearest to the victim, the cast's own targets, allies and the most wounded ally; a structure filter, out-of-combat and after-skill hits, marked victims, per-target cooldowns; `echo` (a skill's effects again on another target at a share), `mark`, `push`, `cleanse`, `regen` and `payHp`; per-Technique dash length, skill rules (fewer enemies needed, may target a structure), knockback and retreat line. The full set of 4.3: 84 Techniques (18 common, 6 Dubious, 20 piece, 30 archetype, 10 Combinations), the ten courts' first moves, glossary words (Technique, Grade, Combination, Dubious, Reroll). Each engine addition has a unit test (`tests/techniques-engine.test.ts`).
+
+**Where the build differs from the text above, and why:**
+
+1. **Windmill is Wind-up + Spare Minute, Swindle is Desperado + Shove** (spec: Wind-up + Time Pressure, Desperado + Slip). The spec's pairs share a slot, so one piece can never hold both (note 3 of phases 0–1).
+2. **Swindle keeps Desperado's price** (retreat line halved), so it stays Dubious.
+3. **A card whose only effect cannot grade gets a small number that can:** King's Walk and Quake hit 15% harder, Counter-Gambit and Hit and Run come back 15% sooner. A "readies a skill" or "no longer needs 2 enemies" rule is the same at every grade, and a Brilliant card has to be better than a Plain one.
+4. **Strikes on extra targets are a share of the skill, not a full copy:** Family Fork and Through Line 80%, Long Diagonal 75%, Twin Blessing's second heal 70%, Shared Guard 60% (spec), Living Wall 50% (spec). Through Line lands where Royal Lunge lands (it does not pass through the target). Stampede's +50% to pawns is a second strike on the pawns it hits.
+5. **Toll's "14 s"** is its cooldown; the shield lasts 4 s.
+6. **Archetype cards are copies** of the Rank 8 options with the same ids; the forks stay in content until phase 4 deletes them (a content check keeps them in step). With Techniques, Rank 8 opens no fork; it makes the next offer Brilliant.
+7. **The six moved Dubious cards are drawn half as often as other common cards** (`weight` 0.5; ×2 for the trailing side), so a piece is not offered a price in most breaks. Blood Price, Desperado and Poisoned Piece (the common Sacrifice cards) are Dubious too and weigh 1.
+8. **Combinations come up more:** a card whose Combination partner is already held is drawn 4× as often (`builds.weights.partner`), and the AI scores a Combination parent +0.6 (spec +0.3) and +1 when its partner is held.
+9. **Rank growth with Techniques:** main damage stat +40% per Rank (phase 0 chose 45% for items off without Techniques, which add power of their own). See the probes.
+10. **The AI's fit for repeat effects:** a card that repeats or readies a skill leans the way that skill does (damage, protection or utility), and a Dubious price is no lean (`perkAxes` in `ranks.ts`).
+11. **Glossary:** Upgrade, Slot (redefined), Builds and Heirloom (redefined) wait for phase 5, where the screens use them; today's Slot and Heirloom still mean items.
+
+**Not built yet (later phases):** retiring items, shops, the curse offer and the forks, the obelisk reroll and the heirloom Technique (phase 4), every screen (phase 5), the build symmetry test.
