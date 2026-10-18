@@ -62,6 +62,11 @@ const plans = plansSpec ? (plansSpec.replace(/^A=/, '') as PlanPreset) : undefin
 if (plans && !PLAN_PRESETS.includes(plans))
   throw new Error(`--plans expects A=${PLAN_PRESETS.join('|')}: got "${plansSpec}"`);
 
+// --techniques: both sides play piece builds (SPEC-PIECE-BUILDS-2026-10-18; items stay on).
+// --no-items: nothing is bought and Ranks grow by `builds.rankGrowth` (the items-retired curve).
+const techniques = flag('techniques');
+const noItems = flag('no-items');
+
 async function main(): Promise<void> {
   const seeds = Array.from({ length: total }, (_, i) => startSeed + i);
   const results: MatchSummary[] = [];
@@ -87,6 +92,8 @@ async function main(): Promise<void> {
               whiteEvery,
               plans,
               pace,
+              techniques,
+              noItems,
             }),
           ],
           {
@@ -124,7 +131,8 @@ async function main(): Promise<void> {
     : withPool;
   const withPlans = plans ? `${withRelics}-plans-${plans}` : withRelics;
   const withMap0 = map ? `${withPlans}-long` : withPlans;
-  const withMap = pace ? `${withMap0}-blitz` : withMap0;
+  const withMap1 = pace ? `${withMap0}-blitz` : withMap0;
+  const withMap = `${withMap1}${techniques ? '-techniques' : ''}${noItems ? '-no-items' : ''}`;
   // --tag NAME: appended to the output file name, so parallel runs do not overwrite each other.
   const tagIdx = process.argv.indexOf('--tag');
   const name = tagIdx >= 0 ? `${withMap}-${process.argv[tagIdx + 1]}` : withMap;

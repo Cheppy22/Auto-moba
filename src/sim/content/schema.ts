@@ -715,6 +715,124 @@ const MinionSchema = z.object({
   gold: z.number(),
 });
 
+export const TECHNIQUE_SLOTS = [
+  'attack',
+  'skill1',
+  'skill2',
+  'skill3',
+  'signature',
+  'trait',
+] as const;
+const TechniqueSlotSchema = z.enum(TECHNIQUE_SLOTS);
+export const GRADES = ['plain', 'sharp', 'brilliant'] as const;
+export const TECHNIQUE_POOLS = ['common', 'piece', 'archetype', 'combination'] as const;
+/** What a card's "last Act" line counts (the piece's own tally from the Act before the break). */
+export const ESTIMATE_COUNTS = ['hits', 'pieceHits', 'casts', 'damageTaken'] as const;
+
+/**
+ * A Technique (SPEC-PIECE-BUILDS 4.3): a card that changes one part of a piece. The ability tweak
+ * fields work as a fork option's do; for a skill or Signature slot they act on that slot's skill.
+ * Grades scale the bonus (`builds.grades`); a Dubious price never scales.
+ */
+const TechniqueSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  school: SchoolSchema,
+  slot: TechniqueSlotSchema,
+  /** common: any piece (Attack or Trait); piece: one piece type; archetype: one Rank 4 style; combination: two parents. */
+  pool: z.enum(TECHNIQUE_POOLS),
+  piece: PieceIdSchema.optional(),
+  /** Style id for the archetype pool (with `piece`). */
+  archetype: z.string().optional(),
+  /** Combination: parent 1 (upgraded into this, in its slot) and parent 2 (stays). */
+  parents: z.tuple([z.string(), z.string()]).optional(),
+  weight: z.number().min(0).default(1),
+  /** The skill the tweak acts on (0-2 base skills, 3 the Signature); defaults to the slot's skill. */
+  ability: z.number().int().min(0).max(3).optional(),
+  cooldownMul: z.number().default(1),
+  powerMul: z.number().default(1),
+  rangeMul: z.number().default(1),
+  radiusMul: z.number().default(1),
+  mods: z.array(ModSchema).default([]),
+  triggers: z.array(TriggerSchema).default([]),
+  /** Grades also scale the triggers' custom `param` (e.g. seconds of cooldown ticked). */
+  scaleParam: z.boolean().default(false),
+  /** Dubious (?!): the stated price, the same at every grade. */
+  dubious: z
+    .object({
+      mods: z.array(ModSchema).default([]),
+      triggers: z.array(TriggerSchema).default([]),
+      text: z.string(),
+    })
+    .optional(),
+  /** The card's "last Act" line: `count` from the piece's last Act, divided by `per`, then `label`. */
+  estimate: z
+    .object({
+      count: z.enum(ESTIMATE_COUNTS),
+      per: z.number().positive().default(1),
+      label: z.string(),
+    })
+    .optional(),
+  /** One plain line on how the piece plays with it. */
+  playsLike: z.string(),
+  /**
+   * The rule, with every number as a `{path|format}` placeholder into this Technique's own (graded)
+   * data, e.g. `{triggers.0.effects.0.bladeScale|pct}`. Formats: pct (x100), mul ((x-1)x100),
+   * less ((1-x)x100), num.
+   */
+  desc: z.string(),
+});
+
+export const TechniqueFileSchema = z.object({ techniques: z.array(TechniqueSchema).min(1) });
+
+const BuildsTuningSchema = z.object({
+  /** Bonus multiplier per grade (Plain, Sharp, Brilliant). */
+  grades: z.object({ plain: z.number(), sharp: z.number(), brilliant: z.number() }),
+  /** Odds of [Plain, Sharp, Brilliant] at Setup, break 1, break 2, break 3 and later. */
+  gradeOdds: z.array(z.tuple([z.number(), z.number(), z.number()])).min(2),
+  reroll: z.object({ base: z.number(), step: z.number() }),
+  /** Gold to upgrade Plain to Sharp, and Sharp to Brilliant. */
+  upgrade: z.tuple([z.number(), z.number()]),
+  passGold: z.number(),
+  /** Draw weights: the Opening's schools, schools the piece holds, the cap, Dubious for the trailing side. */
+  weights: z.object({
+    opening: z.number(),
+    held: z.number(),
+    max: z.number(),
+    dubiousBehind: z.number(),
+  }),
+  /** The AI's card score (spec 4.6). */
+  ai: z.object({
+    grade: z.tuple([z.number(), z.number(), z.number()]),
+    fills: z.number(),
+    replaces: z.number(),
+    replacesGrade: z.number(),
+    replacesCombination: z.number(),
+    fit: z.number(),
+    school: z.number(),
+    combination: z.number(),
+    parent: z.number(),
+    parentReady: z.number(),
+    jitter: z.number(),
+    rerollBelow: z.number(),
+    maxRerolls: z.number().int(),
+  }),
+  /** "Pick for me": how the 1-2 picks that matter most are chosen. */
+  advice: z.object({
+    gradeStakes: z.tuple([z.number(), z.number(), z.number()]),
+    combination: z.number(),
+    carry: z.number(),
+    secondShare: z.number(),
+  }),
+  /**
+   * The Rank growth that replaces item stats once items retire (spec 4.8, measured in
+   * BALANCE-TECHNIQUES-2026-10-18): per Rank above 1, + this fraction of health and of the piece's
+   * main damage stat (Blade or Soul, whichever its base is higher in), in place of `ranks.growth`,
+   * in a match with `items: false`. The other damage stat keeps `ranks.growth`.
+   */
+  rankGrowth: z.object({ health: z.number(), damage: z.number() }),
+});
+
 export const TuningSchema = z.object({
   tickRate: z.number(),
   phaseSeconds: z.number(),
@@ -752,6 +870,11 @@ export const TuningSchema = z.object({
     /** The AI moves one piece with at least `minDeaths` deaths in the Act, with this chance. */
     replan: z.object({ minDeaths: z.number().int(), chance: z.number() }),
   }),
+  /**
+   * Piece builds with Techniques (SPEC-PIECE-BUILDS-2026-10-18): grades, offer odds, gold costs and
+   * the AI's pick weights. Read only when a match plays with `MatchConfig.techniques`.
+   */
+  builds: BuildsTuningSchema,
   /** Ranks 1-8 from lifetime gold earned. */
   ranks: z.object({
     goldThresholds: z.array(z.number()).length(8),
@@ -1176,3 +1299,7 @@ export type EventUnitDef = z.infer<typeof EventUnitSchema>;
 export type PressureDef = z.infer<typeof PressureSchema>['events'][number];
 export type BadgeDef = z.infer<typeof BadgesSchema>['badges'][number];
 export type Tuning = z.infer<typeof TuningSchema>;
+export type TechniqueDef = z.infer<typeof TechniqueSchema>;
+export type TechniqueSlot = z.infer<typeof TechniqueSlotSchema>;
+export type Grade = (typeof GRADES)[number];
+export type EstimateCount = (typeof ESTIMATE_COUNTS)[number];

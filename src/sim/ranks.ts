@@ -35,7 +35,7 @@ const WEIGHTS: Record<Path, Axes> = {
   utility: [0.9, 0.9, 1.6],
 };
 /** How much a perk adds to [offense, defense, utility]. */
-type Axes = [number, number, number];
+export type Axes = [number, number, number];
 
 function statAxis(stat: StatKey): 0 | 1 | 2 {
   return OFFENSE.has(stat) ? 0 : DEFENSE.has(stat) ? 1 : 2;
@@ -71,7 +71,7 @@ function effectAxes(e: EffectDef, out: Axes, w: number): void {
 }
 
 /** The axis an ability mostly serves, from its effects. */
-function abilityAxes(a: AbilityDef | undefined): Axes {
+export function abilityAxes(a: AbilityDef | undefined): Axes {
   const out: Axes = [0, 0, 0];
   if (!a) return [0, 0, 1];
   for (const e of a.effects) effectAxes(e, out, 1);
@@ -87,7 +87,7 @@ const CUSTOM_AXIS: Record<string, 0 | 1 | 2> = {
 };
 
 /** A perk's contribution to each axis (the AI's fork choice; no randomness). */
-function perkAxes(p: PerkDef, kit: AbilityDef[] = []): Axes {
+export function perkAxes(p: PerkDef, kit: AbilityDef[] = []): Axes {
   const out: Axes = [0, 0, 0];
   if (p.ability !== undefined) {
     const ax = abilityAxes(kit[p.ability]);
@@ -131,7 +131,7 @@ export function forkOptions(ctx: Ctx, u: Unit, rank: 4 | 8): ForkChoice[] {
 }
 
 /** What a style leans toward: its signature skill, stat tilt and passives (for the AI's pick). */
-function styleAxes(st: StyleDef): Axes {
+export function styleAxes(st: StyleDef): Axes {
   const out: Axes = [0, 0, 0];
   const sig = abilityAxes(st.ability);
   for (let i = 0; i < 3; i++) out[i] += sig[i];

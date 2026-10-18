@@ -8,6 +8,7 @@ import { fieldPawn } from './pawns';
 import { setPawnAuto, setPawnPlan } from './pawnPlan';
 import { formationError } from './relics';
 import { autoForks, chooseFork } from './ranks';
+import { autoBuild, passOffer, rerollOffer, takeTechnique, upgradeTechnique } from './builds';
 import { assignJunglers, validateSetup } from './setup';
 import { LANES } from './world/map';
 import type { Command, CommandResult, TeamSetup, Unit } from './types';
@@ -37,7 +38,12 @@ function run(ctx: Ctx, cmd: Command, startMatch: StartMatchFn): CommandResult {
     if (err) return { ok: false, reason: err };
     startMatch(ctx, {
       opening: cmd.opening,
-      pieces: cmd.pieces.map((e) => ({ piece: e.piece, path: e.path, lane: e.lane })),
+      pieces: cmd.pieces.map((e) => ({
+        piece: e.piece,
+        path: e.path,
+        lane: e.lane,
+        ...(e.firstMove !== undefined ? { firstMove: e.firstMove } : {}),
+      })),
     });
     return { ok: true };
   }
@@ -70,6 +76,16 @@ function run(ctx: Ctx, cmd: Command, startMatch: StartMatchFn): CommandResult {
       return autoRelic(ctx);
     case 'aimRelic':
       return aimRelic(ctx, cmd.relicId, cmd);
+    case 'takeTechnique':
+      return takeTechnique(ctx, cmd.heroId, cmd.cardIndex);
+    case 'passOffer':
+      return passOffer(ctx, cmd.heroId);
+    case 'rerollOffer':
+      return rerollOffer(ctx, cmd.heroId);
+    case 'upgradeTechnique':
+      return upgradeTechnique(ctx, cmd.heroId, cmd.techniqueId);
+    case 'autoBuild':
+      return autoBuild(ctx, cmd.heroId);
     case 'chooseFork':
       if (!whitePiece(ctx, cmd.heroId)) return { ok: false, reason: 'not one of your pieces' };
       return chooseFork(ctx, cmd.heroId, cmd.optionId);

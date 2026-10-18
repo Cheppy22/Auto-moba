@@ -22,6 +22,36 @@
     "growth": 0.045,
     "forkSec": 10
   },
+  "builds": {
+    "grades": { "plain": 1, "sharp": 1.5, "brilliant": 2 },
+    "gradeOdds": [
+      [1, 0, 0],
+      [0.75, 0.22, 0.03],
+      [0.55, 0.35, 0.1],
+      [0.4, 0.4, 0.2]
+    ],
+    "reroll": { "base": 200, "step": 100 },
+    "upgrade": [600, 1200],
+    "passGold": 150,
+    "weights": { "opening": 2, "held": 1.5, "max": 3, "dubiousBehind": 2 },
+    "ai": {
+      "grade": [1, 1.5, 2],
+      "fills": 1,
+      "replaces": -0.5,
+      "replacesGrade": -0.5,
+      "replacesCombination": -2,
+      "fit": 0.6,
+      "school": 0.4,
+      "combination": 1.5,
+      "parent": 0.3,
+      "parentReady": 0.6,
+      "jitter": 0.3,
+      "rerollBelow": 1.2,
+      "maxRerolls": 1
+    },
+    "advice": { "gradeStakes": [0, 0.5, 1], "combination": 1, "carry": 0.5, "secondShare": 0.75 },
+    "rankGrowth": { "health": 0.155, "damage": 0.45 }
+  },
   "pawns": {
     "cost": 15,
     "capBase": 8,

@@ -53,7 +53,7 @@ interface Purchase {
 
 export function nextPurchase(ctx: Ctx, u: Unit, where: Where = 'here'): Purchase | null {
   const h = u.hero;
-  if (!h) return null;
+  if (!h || ctx.s.noItems) return null;
   const targets = [...buildList(ctx, u)];
   // The counter item goes into the build path's list only; a plan the player wrote stays as written.
   const adapt = h.plan === null ? adaptTarget(ctx, u) : null;

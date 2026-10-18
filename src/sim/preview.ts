@@ -1,9 +1,10 @@
 import { abilityMods } from './combat';
-import type { Stats } from './content/schema';
+import type { Grade, Stats } from './content/schema';
 import type { Ctx } from './ctx';
 import { kitOf, styleDef } from './pieces';
 import { computeStats } from './stats';
-import type { HeroState, Unit } from './types';
+import { replacedBy, techniqueAbility, withTechnique } from './techniques';
+import type { HeroState, TechniquePreview, Unit } from './types';
 
 /** One ability's numbers as the piece would cast it now (Ranks, perks and cooldown reduction in). */
 export interface AbilityNumbers {
@@ -74,4 +75,41 @@ export function forkPreview(ctx: Ctx, heroId: number, optionId: string): ForkPre
     }
   }
   return { before, after, signature, ability };
+}
+
+/**
+ * Read-only: what taking a Technique at a grade would do to a piece, computed on a copy of the
+ * piece holding it (the slot's old Technique gone), with the sim's own stat and skill rules. Null
+ * when the id is not a piece or not a Technique.
+ */
+export function techniquePreview(
+  ctx: Ctx,
+  heroId: number,
+  techniqueId: string,
+  grade: Grade,
+): TechniquePreview | null {
+  const u = ctx.unit(heroId);
+  const h = u?.hero;
+  const def = ctx.c.techniqueById.get(techniqueId);
+  if (!u || !h || !def) return null;
+  const held = h.techniques ?? [];
+  const old = replacedBy(ctx.c, held, techniqueId);
+  const hero: HeroState = { ...h, techniques: withTechnique(ctx.c, held, techniqueId, grade) };
+  const copy: Unit = { ...u, hero };
+  const before = computeStats(ctx, u).stats;
+  const after = computeStats(ctx, copy).stats;
+  const idx = techniqueAbility(def);
+  let ability: TechniquePreview['ability'] = null;
+  if (idx !== null) {
+    const b = numbers(ctx, u, before, idx);
+    const a = numbers(ctx, copy, after, idx);
+    if (b && a) ability = { before: b, after: a };
+  }
+  let estimate: TechniquePreview['estimate'] = null;
+  const est = def.estimate;
+  if (est && ctx.s.builds) {
+    const last = ctx.s.builds.lastPieces[String(heroId)]?.[est.count] ?? 0;
+    estimate = { count: est.count, last, value: Math.round(last / est.per), label: est.label };
+  }
+  return { before, after, ability, replaces: old ? old.id : null, estimate };
 }

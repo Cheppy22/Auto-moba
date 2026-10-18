@@ -7,6 +7,7 @@ import { actTicks, endAct, enterAct } from './phase';
 import type { BellStage, BellState } from './types';
 import { PLAY_TEAMS } from './names';
 import { closeArmory, openArmory, teamBreakShop } from './armory';
+import { aiBuilds, closeBuilds, openBuilds, resumeBuilds } from './builds';
 import { adjudicate } from './runRules';
 
 export const freshBell = (): BellState => ({
@@ -53,13 +54,18 @@ function enterBreak(ctx: Ctx): void {
   replanLanes(ctx, 'B', report);
   if (!ctx.pauseForBreak) replanLanes(ctx, 'A', report);
   resolveDraft(ctx, report);
+  // Techniques (when on): both sides' offers, then the AI's picks, before the break shop
+  openBuilds(ctx);
   openArmory(ctx);
   if (!ctx.pauseForBreak) {
+    aiBuilds(ctx, 'A');
+    aiBuilds(ctx, 'B');
     teamBreakShop(ctx, 'A');
     teamBreakShop(ctx, 'B');
     resumeFromBreak(ctx);
     return;
   }
+  aiBuilds(ctx, 'B');
   teamBreakShop(ctx, 'B');
   setStage(ctx, 'break');
 }
@@ -71,7 +77,11 @@ function enterBreak(ctx: Ctx): void {
 export function resumeFromBreak(ctx: Ctx): void {
   const s = ctx.s;
   const next = s.phase.n + 1;
-  if (ctx.pauseForBreak) teamBreakShop(ctx, 'A', s.armory.touched);
+  if (ctx.pauseForBreak) {
+    resumeBuilds(ctx);
+    teamBreakShop(ctx, 'A', s.armory.touched);
+  }
+  closeBuilds(ctx);
   closeArmory(ctx);
   closeDraft(ctx);
   s.bell = freshBell();

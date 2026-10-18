@@ -2,6 +2,8 @@ import type { Ctx } from './ctx';
 import type { ModDef, Stats, StatKey, TriggerDef } from './content/schema';
 import { perksOf, pieceDef, styleDef } from './pieces';
 import { LANE_SPEED_TAG, relicMods } from './relics';
+import { TECH_SRC } from './buildTally';
+import { gradeMult, gradedTechnique } from './techniques';
 import type { Modifier, Unit } from './types';
 
 interface TrigInst {
@@ -47,6 +49,18 @@ function equipment(ctx: Ctx, u: Unit): { mods: TaggedMod[]; trigs: TrigInst[] } 
     for (const m of perk.mods) mods.push({ ...m, tags: [] });
     perk.triggers.forEach((def, idx) => trigs.push({ src: `perk:${pd.id}/${n}`, idx, def }));
   });
+  for (const held of h.techniques ?? []) {
+    const def = ctx.c.techniqueById.get(held.id);
+    if (!def) continue;
+    const g = gradedTechnique(def, gradeMult(ctx.t, held.grade));
+    const src = `${TECH_SRC}${def.id}`;
+    for (const m of g.mods) mods.push({ ...m, tags: [] });
+    g.triggers.forEach((d, idx) => trigs.push({ src, idx, def: d }));
+    if (def.dubious) {
+      for (const m of def.dubious.mods) mods.push({ ...m, tags: [] });
+      def.dubious.triggers.forEach((d, idx) => trigs.push({ src: `${src}:price`, idx, def: d }));
+    }
+  }
   for (const id of h.items) {
     const item = ctx.c.itemById.get(id);
     if (item) {
@@ -97,11 +111,23 @@ function tagFactor(ctx: Ctx, tags: string[]): number {
  */
 export function computeStats(ctx: Ctx, u: Unit): { stats: Stats; trigs: TrigInst[] } {
   const out: Stats = { ...u.base };
-  const growth = u.hero ? 1 + ctx.t.ranks.growth * (u.hero.rank - 1) : 1;
-  if (growth !== 1) {
-    out.maxHp *= growth;
-    out.bladeDmg *= growth;
-    out.soulPower *= growth;
+  if (u.hero && u.hero.rank > 1) {
+    const steps = u.hero.rank - 1;
+    const g = ctx.t.ranks.growth;
+    if (ctx.s.noItems) {
+      // without items, Ranks carry what items gave (`builds.rankGrowth`, phase 0 of the builds
+      // spec): health, and the damage stat the piece is built on (items left the other one alone)
+      const rg = ctx.t.builds.rankGrowth;
+      const soulMain = out.soulPower > out.bladeDmg;
+      out.maxHp *= 1 + rg.health * steps;
+      out.bladeDmg *= 1 + (soulMain ? g : rg.damage) * steps;
+      out.soulPower *= 1 + (soulMain ? rg.damage : g) * steps;
+    } else {
+      const growth = 1 + g * steps;
+      out.maxHp *= growth;
+      out.bladeDmg *= growth;
+      out.soulPower *= growth;
+    }
   }
   const add: Partial<Record<StatKey, number>> = {};
   const mul: Partial<Record<StatKey, number>> = {};

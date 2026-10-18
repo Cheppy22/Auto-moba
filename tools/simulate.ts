@@ -143,6 +143,10 @@ export interface SimOptions {
   plans?: PlanPreset;
   /** `blitz`: the short pace (at most 3 Acts, adjudicated without Checkmate). */
   pace?: 'blitz';
+  /** Both sides play piece builds (`MatchConfig.techniques`). */
+  techniques?: boolean;
+  /** No items; Ranks grow by `builds.rankGrowth` (`MatchConfig.items: false`). */
+  noItems?: boolean;
 }
 
 const TPS = 20;
@@ -184,6 +188,8 @@ export function simulateMatch(content: Content, seed: number, opts: SimOptions =
     relics: opts.relics,
     map: opts.map,
     ...(opts.pace ? { pace: opts.pace } : {}),
+    ...(opts.techniques ? { techniques: true } : {}),
+    ...(opts.noItems ? { items: false } : {}),
     autoGambits: { A: !opts.noGambitsA && !opts.whitePlayer, B: !opts.noGambitsB },
     // The baseline removes Tempo spending only; forks still pick at once as the AI does.
     autoForks: { A: true, B: true },

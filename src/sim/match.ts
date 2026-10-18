@@ -30,7 +30,8 @@ import { applyStart, runRulesFor } from './runRules';
 import { aiShop, nextTarget } from './ai/shopping';
 import { armoryOpen, nearBase } from './shop';
 import { armoryQuote, armoryView } from './armory';
-import { forkPreview, type ForkPreview } from './preview';
+import { forkPreview, techniquePreview, type ForkPreview } from './preview';
+import { buildAdvice, buildView, firstMoves, freshBuilds, startBuilds } from './builds';
 import {
   passiveGold,
   processDeaths,
@@ -46,6 +47,11 @@ import { highGroundEdge } from './world/height';
 import type {
   ArmoryView,
   Command,
+  BuildAdvice,
+  BuildView,
+  FirstMoveView,
+  Grade,
+  TechniquePreview,
   CommandResult,
   EventPayloads,
   EventType,
@@ -150,6 +156,8 @@ function initialState(content: Content, config: MatchConfig): MatchState {
     },
     ...(run ? { run } : {}),
     ...(config.pace === 'blitz' ? { pace: 'blitz' as const } : {}),
+    ...(config.techniques ? { builds: freshBuilds() } : {}),
+    ...(config.items === false ? { noItems: true as const } : {}),
   };
 }
 
@@ -223,6 +231,7 @@ function startMatch(ctx: Ctx, white: TeamSetup, start?: MatchConfig['start']): v
   ctx.emit('matchStart', { seed: s.seed, heroes });
   s.tempo = { A: ctx.t.gambits.tempoStart, B: ctx.t.gambits.tempoStart };
   applyStart(ctx, start);
+  startBuilds(ctx);
   initHands(ctx);
   enterAct(ctx, 1);
 }
@@ -637,6 +646,43 @@ export class Match {
   /** What one option of a piece's pending fork would change: stats before and after, skills (read-only). */
   forkPreview(heroId: number, optionId: string): ForkPreview | null {
     return forkPreview(this.ctx, heroId, optionId);
+  }
+
+  /** True when this match plays with Techniques (`MatchConfig.techniques`). */
+  get techniquesOn(): boolean {
+    return !!this.ctx.s.builds;
+  }
+
+  /** The Builds tab's data for one piece (either side; read-only); null without Techniques. */
+  buildView(heroId: number): BuildView | null {
+    return buildView(this.ctx, heroId);
+  }
+
+  /** "Pick for me" at a break: the AI's pick per open offer and the 1-2 picks that matter most. */
+  buildAdvice(team: PlayTeam = 'A'): BuildAdvice {
+    return buildAdvice(this.ctx, team);
+  }
+
+  /** What taking a Technique at a grade would change on a piece (read-only). */
+  techniquePreview(heroId: number, techniqueId: string, grade: Grade): TechniquePreview | null {
+    return techniquePreview(this.ctx, heroId, techniqueId, grade);
+  }
+
+  /**
+   * Setup's First moves for White (before the match starts): each piece's offer for this Opening,
+   * the AI's pick and the picks that matter most; the same cards the match deals when it starts.
+   * Null without Techniques.
+   */
+  firstMoves(opening?: string): FirstMoveView | null {
+    if (!this.ctx.s.builds) return null;
+    const setup = this.ctx.s.setup.A;
+    return firstMoves(
+      this.content,
+      this.ctx.t,
+      this.ctx.s.seed,
+      opening ?? setup.opening,
+      setup.pieces.map((e) => e.piece),
+    );
   }
 
   unitById(id: number): Unit | undefined {

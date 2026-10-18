@@ -142,6 +142,7 @@ export function quote(
 export function buyItem(ctx: Ctx, u: Unit, itemId: string, where: Where = 'here'): CommandResult {
   const h = u.hero;
   if (!h) return { ok: false, reason: 'not a hero' };
+  if (ctx.s.noItems) return { ok: false, reason: 'no items in this match' };
   const q = quote(ctx, u, itemId, where);
   if ('error' in q) return { ok: false, reason: q.error };
   if (h.gold < q.price) return { ok: false, reason: 'not enough gold' };
