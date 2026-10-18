@@ -1,6 +1,6 @@
 # Overnight AAA proposal (2026-10-17)
 
-Branch `proposal/aaa-overnight`, built overnight by the lead session and nine agents against the Fable review ([FABLE-REVIEW-1-2026-10-11.md](FABLE-REVIEW-1-2026-10-11.md)). Nothing here is live on `/v2/` until the owner approves it. The illustrated walkthrough with a playable build is published as an artifact (link in HANDOFF.md).
+Branch `proposal/aaa-overnight`, built overnight by the lead session and nine agents against the Fable review ([FABLE-REVIEW-1-2026-10-11.md](FABLE-REVIEW-1-2026-10-11.md)). **Shipped to `/v2/` on 2026-10-18** (owner: "It's amazing. Keep it."). The illustrated walkthrough with a playable build is published as an artifact (link in HANDOFF.md).
 
 ## What the branch adds
 

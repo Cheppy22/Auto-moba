@@ -2,6 +2,10 @@
 
 Newest first. One entry per change: what changed, why, and any measured effect. How the game works _now_ is in [SOURCE_OF_TRUTH.md](SOURCE_OF_TRUTH.md); this file is history. Commit ids are on branch `test-product`.
 
+## 2026-10-18
+
+- **Overnight AAA proposal shipped** (`proposal/aaa-overnight` fast-forwarded into `test-product-2`; [PROPOSAL-AAA-2026-10-17.md](PROPOSAL-AAA-2026-10-17.md)). Why: Cheppy played it on `/proposal/` and approved ("It's amazing. Keep it."). Same tree that passed 414 unit and 98 browser tests.
+
 ## 2026-10-17
 
 - **Overnight AAA proposal summary** ([PROPOSAL-AAA-2026-10-17.md](PROPOSAL-AAA-2026-10-17.md), branch `proposal/aaa-overnight`). Why: Cheppy asked for an overnight push toward AAA with a walkthrough by morning. One page listing every area built, its status, the owner's decisions and known gaps.
