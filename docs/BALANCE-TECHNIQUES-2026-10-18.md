@@ -81,3 +81,22 @@ Branch `wip/techniques-content`. All 84 Techniques, both sides AI, `--techniques
 - **Held win rates outside 44–58%** (at least 100 holders): Soul Harvest (Shadow Bishop) 74% (106), Split Shot (Huntress Queen) 70% (120), Pact of Ash 60% (101), Siegebreaker (Errant Knight) 58% (122) high; Slip 39% (113), Sanctified 40% (107), Deep Breath 43% (265), Swindle 44% (153) low. Held win rate also reflects who is winning (a piece that lives longer keeps its cards), so read these as leads for phase 6.
 - **Player probe** (`--white-player --white-every 60`, same flags, 200): White **53.5%**, median 12.4 min, p90 19.8; Combination on 31.0% of White's pieces. Today's game with items reads 55.5% (wave 3 merge; target 55–60%), so the card-a-minute player keeps its edge within noise. White's pieces pick by the same AI rule here, so this checks the gambit player, not the build choices (the spec's AI-vs-random and greedy-preset tests are phase 6).
 - p1 (200) agreed: White 50.5%, median 12.4, Combination 31.9%, the same four cards over 80%.
+
+## Phase 4: items retired, Techniques always on (2026-10-18)
+
+Branch `wip/techniques-retire`. Items, shops, the Armory, the Keeper, cursed items, attunement, counter items, build paths and the Rank 8 fork are deleted; every match plays Techniques with the Rank growth `ranks.growth` (health +15.5%, main damage +40%, other +4.5% per Rank); the obelisk's old Masterwork discount is a free reroll per piece. AI vs AI unless noted, `--map long`, 2 workers. 200 matches is direction only (±7 points).
+
+| Run                                                | Matches | White     | Median min | p90 min  | Kills | At Rank 8 | Combination (White) |
+| -------------------------------------------------- | ------- | --------- | ---------- | -------- | ----- | --------- | ------------------- |
+| Phases 2–3 (`--techniques --no-items`), seed 29000 | 800     | 50.1%     | 12.6       | 18.9     | 23.3  | 17.1%     | 31.5%               |
+| p1: phase 4, seed 29000                            | 200     | 50.8%     | 12.6       | 19.3     | 23.4  | 17.6%     | 32.3%               |
+| **Confirm: phase 4, seed 29000**                   | 800     | **50.3%** | **13.0**   | **19.9** | 24.0  | 19.3%     | 33.0%               |
+| **Confirm: phase 4, seed 31000**                   | 800     | **52.8%** | **13.1**   | **20.2** | 24.0  | 20.3%     | 32.1%               |
+| Player probe (`--white-player --white-every 60`)   | 200     | 47.7%     | 13.4       | 20.0     | 24.4  | 21.0%     | 35.8%               |
+| Blitz (`--pace blitz`)                             | 200     | 45.5%     | 10.4       | 13.1     | 15.6  | 0.5%      | 18.2%               |
+
+- **BLUF: AI vs AI stays in range with items gone; nothing was tuned.** 50.3% and 52.8% White on the two seeds (51.6% over 1,600; 52.8% is 0.8 over the band on one seed, inside its ±3.5 noise), median 13.0–13.1 min, p90 about 20. Matches are 0.4 min longer at the median than phases 2–3 (items off by switch); kills and Ranks are unchanged.
+- **Player and Blitz probes read low** (47.7% and 45.5%, 200 each, ±7): phase 6 items with their own runs. Before (items era, same commands) they read 55.5% and 51.5%; phases 2–3 player probe 53.5%. A likely part of the player drop is the comeback bounty: it now reads lifetime gold earned (items era: gold plus item value), while phases 2–3 read only the gold a piece held, which spending kept level. Blitz decided on points 25% (items era 20.5%).
+- **Breaks:** each piece spends a median 1,800 gold at break 1 (two upgrades) and 1,200 after; 0.1 rerolls and no passes per match (the AI's reroll rule, phase 6). Obelisk free rerolls go mostly unused by the AI for the same reason.
+- **Builds:** Combinations on 32–33% of White's pieces (target 30–60%). Still over-picked (80–92%): Shared Guard, Family Fork, Rallying Cry, Echoing Decree; Royal Court taken 99.9% when offered. Under 5%: Time Pressure 2.3%, Tempo Thief 3.6%, Tithe 4.2%. Style picks 21–44%: Black's archetype pick now leans by its Techniques (it leaned by its build path).
+- Commands: `npm run balance -- --matches 800 --seed 29000 --quiet --workers 2 --map long` (and `--seed 31000`); the probes add `--white-player --white-every 60` or `--pace blitz` with 200 matches.
