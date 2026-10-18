@@ -291,6 +291,66 @@
       "params": {
         "refund": 5
       }
+    },
+    {
+      "id": "breakthrough",
+      "name": "Breakthrough",
+      "desc": "Your next pawnling wave in that lane comes with 3 extra melee pawnlings.",
+      "school": "march",
+      "cost": 13,
+      "target": "lane",
+      "piece": null,
+      "weight": 1.5,
+      "durationSec": 0,
+      "params": {
+        "extraMelee": 3
+      }
+    },
+    {
+      "id": "pin",
+      "name": "Pin",
+      "desc": "An enemy piece cannot move for 3 s, and the enemy piece nearest behind it is slowed 40% for 3 s. A pinned piece can still attack and cast.",
+      "school": "initiative",
+      "cost": 17,
+      "target": "enemy",
+      "piece": null,
+      "weight": 1.5,
+      "durationSec": 3,
+      "params": {
+        "rootSec": 3,
+        "behindR": 300,
+        "slowMul": 0.6
+      }
+    },
+    {
+      "id": "desperado",
+      "name": "Desperado",
+      "desc": "One of your pieces under 40% health deals 60% more damage for 6 s; if it falls in that time, your team gets 10 Tempo back.",
+      "school": "initiative",
+      "cost": 13,
+      "target": "ally",
+      "piece": null,
+      "weight": 1.5,
+      "durationSec": 6,
+      "params": {
+        "damageMul": 1.6,
+        "hpMax": 0.4,
+        "refund": 10
+      }
+    },
+    {
+      "id": "fortify",
+      "name": "Fortify",
+      "desc": "Your front Bastion in that lane (the Throne if none stand) gets a shield of 20% of its max health for 20 s.",
+      "school": "fortress",
+      "cost": 17,
+      "target": "lane",
+      "piece": null,
+      "weight": 1.5,
+      "durationSec": 20,
+      "params": {
+        "shieldPct": 0.2
+      }
     }
   ]
 }

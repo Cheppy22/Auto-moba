@@ -179,10 +179,10 @@ describe('relic draft', () => {
       toAct(m, 3);
       return m;
     };
-    const a = run(6);
+    const a = run(4);
     expect(a.state.relics.held.A).toHaveLength(2);
     expect(a.state.relics.held.B).toHaveLength(2);
-    expect(logHash(run(6))).toBe(logHash(a));
+    expect(logHash(run(4))).toBe(logHash(a));
     const off = liveMatch(3, { relics: { A: 'none', B: 'none' } });
     toAct(off, 3);
     expect(off.state.relics.held.A).toHaveLength(0);

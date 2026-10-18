@@ -258,6 +258,11 @@ export const GAMBIT_EFFECTS = [
   'barricade',
   'open_file',
   'outpost',
+  // wave 3
+  'breakthrough',
+  'pin',
+  'desperado',
+  'fortify',
   // Clock school (spec 2026-10-18, phase A)
   'zugzwang',
   'time_trouble',

@@ -7,9 +7,11 @@ import { laneAt } from './feedback';
 import type { GambitTarget } from './gambits';
 import { teamPiece } from './pieces';
 import { cardCost } from './relics';
-import type { CardMetrics, CardRun, PlayTeam, Unit, ZoneState } from './types';
+import type { CardMetrics, CardRun, LaneId, PlayTeam, Unit, ZoneState } from './types';
 
 const MAX_SEEN = 40;
+/** Breakthrough: how long its pawnlings are watched after their wave spawns. */
+const WAVE_WATCH_SEC = 45;
 
 const zero = (): CardMetrics => ({
   dealt: 0,
@@ -149,6 +151,24 @@ export function startRun(ctx: Ctx, team: PlayTeam, def: GambitDef, t: GambitTarg
       run.scope = 'ids';
       run.ids = [...piece('knight'), ...(t.targetId !== undefined ? [t.targetId] : [])];
       break;
+    case 'breakthrough':
+      // watched from the cast; the extra pawnlings are named when the wave spawns (`noteBreakthrough`)
+      run.scope = 'ids';
+      sec = ctx.t.waves.intervalSec + WAVE_WATCH_SEC;
+      break;
+    case 'pin':
+      run.scope = 'ids';
+      run.ids = t.targetId !== undefined ? [t.targetId] : [];
+      break;
+    case 'desperado':
+      run.scope = 'ids';
+      run.ids = t.targetId !== undefined ? [t.targetId] : [];
+      run.attr = { on: 'dealt', mul: param(def, 'damageMul', 1.6), until, after: 1 };
+      break;
+    case 'fortify':
+      run.scope = 'ids';
+      run.ids = t.targetId !== undefined ? [t.targetId] : [];
+      break;
   }
   run.endTick = tick + Math.round(sec * TPS);
   fb.runs.push(run);
@@ -190,6 +210,7 @@ export function noteDamage(
   raw: number,
   dtype: string,
   amount: number,
+  absorbed = 0,
 ): void {
   const runs = ctx.s.feedback.runs;
   const tick = ctx.s.tick;
@@ -200,6 +221,8 @@ export function noteDamage(
       if (isStructure(tgt)) r.structure += amount;
     }
     const took = tgt.team === r.team && inScope(r, tgt);
+    // Fortify: what its shield soaked (the damage counted as "prevented")
+    if (took && absorbed > 0 && r.cardId === 'fortify') r.prevented += absorbed;
     if (took) {
       r.taken += amount;
       if (r.armor && (dtype === 'blade' || dtype === 'soul'))
@@ -251,6 +274,17 @@ export function noteDeath(ctx: Ctx, victim: Unit, killer: Unit | null): void {
     if (victim.team === r.team) r.deaths++;
     else r.kills++;
   }
+}
+
+/** Breakthrough's wave has spawned: its extra pawnlings are the units this card is measured by. */
+export function noteBreakthrough(ctx: Ctx, team: PlayTeam, lane: LaneId, ids: number[]): void {
+  const r = ctx.s.feedback.runs.find(
+    (x) => x.cardId === 'breakthrough' && x.team === team && x.lane === lane && x.ids.length === 0,
+  );
+  if (!r) return;
+  r.ids = ids;
+  r.met = ids.length;
+  r.endTick = ctx.s.tick + WAVE_WATCH_SEC * TPS;
 }
 
 /**

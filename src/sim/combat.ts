@@ -196,7 +196,8 @@ export function dealDamage(
   recordDamage(ctx, src, tgt, applied + absorbed, dtype, origin, lethal, mitigated, kb);
   if (ctx.s.builds) tallyDamage(ctx, src, tgt, applied + absorbed, origin);
   trackDamage(ctx, src, tgt, applied + absorbed);
-  if (ctx.s.feedback.runs.length > 0) noteDamage(ctx, src, tgt, raw, dtype, applied + absorbed);
+  if (ctx.s.feedback.runs.length > 0)
+    noteDamage(ctx, src, tgt, raw, dtype, applied + absorbed, absorbed);
   if (lethal) tgt.pendingKill = { killerId: src ? src.id : 0 };
   if (tgt.hero && !lethal)
     fireTriggers(ctx, tgt, 'damaged', {
@@ -247,6 +248,7 @@ function moveDash(
   target: Unit,
   e: Extract<EffectDef, { type: 'dash' }>,
 ): void {
+  if (caster.rootUntil !== undefined && caster.rootUntil > ctx.s.tick) return;
   const dx = target.x - caster.x;
   const dy = target.y - caster.y;
   const d = Math.sqrt(dx * dx + dy * dy) || 1;

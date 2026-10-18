@@ -184,6 +184,18 @@ function headline(
       return m.drained > 0 ? `drained ${num(m.drained)} Tempo` : null;
     case 'barricade':
       return m.met > 0 ? `${m.met} enemy ${m.met === 1 ? 'unit' : 'units'} reached the wall` : null;
+    case 'breakthrough': {
+      if (m.met < 1) return null;
+      const sent = `${m.met} extra ${m.met === 1 ? 'pawnling' : 'pawnlings'}`;
+      return m.structure >= 1 ? `${sent}, ${num(m.structure)} Bastion damage` : sent;
+    }
+    case 'desperado': {
+      const hit = m.bonus >= 10 ? `+${num(m.bonus)} damage` : null;
+      const back = m.refund >= 1 ? `fell, +${num(m.refund)} Tempo` : null;
+      return hit && back ? `${hit}; ${back}` : (hit ?? back);
+    }
+    case 'fortify':
+      return m.prevented >= 10 ? `shield soaked ${num(m.prevented)} damage` : null;
     // Clock school
     case 'zugzwang':
       if (single?.card) return `discarded ${single.card}`;
@@ -205,6 +217,9 @@ const INSTANT: Record<string, string> = {
   pawn_sacrifice: 'a pawn spent',
 };
 
+/** Cards whose line says what they did for the time they lasted. */
+const HELD: Record<string, string> = { pin: 'held a piece' };
+
 /**
  * One line on what a card did: the number the sim can attribute to it, else how long it ran;
  * always with the piece kills and losses beside it when there were any.
@@ -219,6 +234,7 @@ export function cardResult(
   const head = headline(id, m, single);
   if (head) parts.push(head);
   else if (INSTANT[id]) parts.push(INSTANT[id]);
+  else if (HELD[id]) parts.push(`${HELD[id]} ${Math.round(seconds)} s`);
   else parts.push(`ran ${Math.round(seconds)} s`);
   if (m.kills > 0 || m.deaths > 0)
     parts.push(`nearby: ${m.kills} ${m.kills === 1 ? 'piece' : 'pieces'} felled, ${m.deaths} lost`);

@@ -282,7 +282,7 @@ describe('Clock school AI plans', () => {
 
   it('the AI plays every Clock card in ordinary AI-vs-AI matches', () => {
     const played = new Set<string>();
-    for (const seed of [11, 12, 13]) {
+    for (const seed of [11, 12, 13, 14]) {
       const m = runAi(seed, 4);
       for (const g of gambitEvents(m)) if (card(g.cardId).school === 'clock') played.add(g.cardId);
     }

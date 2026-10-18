@@ -5,6 +5,7 @@ import type { Unit } from './types';
 export function startRecall(ctx: Ctx, u: Unit, dest: 'base', auto = false): boolean {
   const h = u.hero;
   if (!h || !u.alive || h.recall) return false;
+  if (u.rootUntil !== undefined && u.rootUntil > ctx.s.tick) return false;
   const sec = ctx.t.recall.baseSec;
   h.recall = { startTick: ctx.s.tick, endTick: ctx.s.tick + Math.round(sec * TPS), dest, auto };
   u.path = [];

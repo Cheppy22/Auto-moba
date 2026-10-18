@@ -59,6 +59,9 @@ const easeOut = (t: number): number => 1 - (1 - t) * (1 - t);
 const LOW_HP = 0.3;
 const LOW_HP_RED = '#ff5a48';
 const SHIELD = '#a9d0e0';
+const PIN_RIM = '#d6a63c';
+const DESPERATE_RIM = '#ff4a3a';
+const STONE = '#cfc3a1';
 const GOLD = '#ffd35a';
 const PICK_PX = 36;
 /** The old view's pieces were about this tall in world units; HUD lifts scale by the ratio. */
@@ -1394,6 +1397,10 @@ export class TableView {
       const pulse = fork ? 0.5 + 0.5 * Math.sin(this.time * 7) : 0;
       this.col.set(T.trim);
       if (fork) this.col.lerp(this.tmpCol.set(GOLD), pulse);
+      // Pin: a steady brass ring; Desperado: a red rim that beats
+      if (u.pinned === true) this.col.set(PIN_RIM);
+      else if (u.desperate === true)
+        this.col.lerp(this.tmpCol.set(DESPERATE_RIM), 0.55 + 0.45 * Math.sin(this.time * 9));
       this.rim.color(this.rim.addXYZ(v.x, gy, v.z, 0, br, 14, br), this.col);
       this.col.set(u.style ? styleEmblem(u.style).color : T.body);
       this.top.color(this.top.addXYZ(v.x, gy, v.z, 0, br, 14, br), this.col);
@@ -1517,16 +1524,36 @@ export class TableView {
         const i = c.add(v.x, gy, v.z, v.yaw, 0.85 * TOWER_S, A * 0.04, 0);
         c.color(i, this.damaged(v, frac));
         this.blobs.addXYZ(v.x, gy + 0.8, v.z, 0, 90 * TOWER_S, 1, 90 * TOWER_S);
-        if (frac < 0.999)
+        if (frac < 0.999 || u.shield > 0)
           this.bars.add(v.x, 200 * TOWER_S + gy, v.z, 26 * px, 2.8 * px, frac, markCol);
+        if (u.shield > 0)
+          this.bars.add(
+            v.x,
+            200 * TOWER_S + gy + 2.8 * px * 1.7,
+            v.z,
+            26 * px,
+            2.8 * px * 0.6,
+            Math.min(1, u.shield / u.maxHp),
+            SHIELD,
+          );
         break;
       }
       case 'guardian': {
         const c = this.crowds[`guardian${team}`];
         const i = c.add(v.x, gy, v.z, v.yaw, THRONE_S, 0, 0);
         c.color(i, this.damaged(v, frac));
-        if (frac < 0.999)
+        if (frac < 0.999 || u.shield > 0)
           this.bars.add(v.x, 262 * THRONE_S + gy, v.z, 34 * px, 3.2 * px, frac, markCol);
+        if (u.shield > 0)
+          this.bars.add(
+            v.x,
+            262 * THRONE_S + gy + 3.2 * px * 1.7,
+            v.z,
+            34 * px,
+            3.2 * px * 0.6,
+            Math.min(1, u.shield / u.maxHp),
+            SHIELD,
+          );
         break;
       }
       case 'camp': {
@@ -2205,6 +2232,26 @@ export class TableView {
             break;
           }
           this.gambits.flare(tv.x, 1 + this.up(tv.x, tv.z), tv.z, GOLD, 50, 0.9, 120);
+          break;
+        }
+        if (/^pin$/i.test(card) && tv) {
+          // a brass ring on the pinned piece and a thin line of light to the one behind it
+          const behind = num('behindId');
+          const bv = behind !== undefined ? this.recs.get(behind) : undefined;
+          if (bv) {
+            this.from.set(tv.x, 30 + tv.gy, tv.z);
+            this.to.set(bv.x, 30 + bv.gy, bv.z);
+            this.gambits.arc(this.from, this.to, PIN_RIM, 0.7);
+          }
+          this.gambits.flare(tv.x, 1 + this.up(tv.x, tv.z), tv.z, PIN_RIM, 52, 1.2, 140);
+          break;
+        }
+        if (/fortify/i.test(card) && tv) {
+          this.gambits.flare(tv.x, 1 + this.up(tv.x, tv.z), tv.z, STONE, 90, 1.6, 200);
+          break;
+        }
+        if (/desperado/i.test(card) && tv) {
+          this.gambits.flare(tv.x, 1 + this.up(tv.x, tv.z), tv.z, DESPERATE_RIM, 56, 1.1, 160);
           break;
         }
         if (tv) {

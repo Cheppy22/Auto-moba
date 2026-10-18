@@ -83,6 +83,7 @@ export function stepToward(
   speedMul = 1,
   routed = false,
 ): number {
+  if (u.rootUntil !== undefined && u.rootUntil > ctx.s.tick) return 0;
   const terrain = ctx.world.terrain;
   if (!detourActive(ctx, u) && routed && !clearLine(terrain, ctx.open, u.x, u.y, tx, ty))
     planDetour(ctx, u, tx, ty);
