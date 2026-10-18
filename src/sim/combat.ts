@@ -7,6 +7,8 @@ import { noteDamage } from './impact';
 import { kitOf, perksOf, pieceDef } from './pieces';
 import { campDamageMul, checkDamageMul, structureMul, throneDamageMul } from './relics';
 import { addMod, recompute, triggersOf } from './stats';
+import { tallyCast, tallyDamage, tallyHeal, tallyHit, tallyProc, tallyShield } from './buildTally';
+import { techniqueAbilityMods } from './techniques';
 import type { Unit } from './types';
 import { clearLine, confine, walkable } from './world/terrain';
 import { lineOfSight, slopeMul } from './world/height';
@@ -192,6 +194,7 @@ export function dealDamage(
   const lethal = tgt.hp <= 0;
   const kb = lethal ? 0 : knockback(ctx, src, tgt, applied + absorbed);
   recordDamage(ctx, src, tgt, applied + absorbed, dtype, origin, lethal, mitigated, kb);
+  if (ctx.s.builds) tallyDamage(ctx, src, tgt, applied + absorbed, origin);
   trackDamage(ctx, src, tgt, applied + absorbed);
   if (ctx.s.feedback.runs.length > 0) noteDamage(ctx, src, tgt, raw, dtype, applied + absorbed);
   if (lethal) tgt.pendingKill = { killerId: src ? src.id : 0 };
@@ -218,6 +221,7 @@ export function healUnit(
   const before = tgt.hp;
   tgt.hp = Math.min(tgt.stats.maxHp, tgt.hp + want);
   const done = tgt.hp - before;
+  if (ctx.s.builds) tallyHeal(ctx, src, done, origin);
   if (done > 0.5 && log && (tgt.kind === 'hero' || (src && src.kind === 'hero'))) {
     ctx.emit('heal', {
       src: src ? src.id : 0,
@@ -300,12 +304,15 @@ export function applyEffect(ctx: Ctx, e: EffectDef, ec: EffectCtx): void {
       healUnit(ctx, caster, target, amt, ec.origin);
       break;
     }
-    case 'shield':
+    case 'shield': {
+      const amount = amountOf(e, caster, ec.powerMul);
       target.shields.push({
-        amount: amountOf(e, caster, ec.powerMul),
+        amount,
         expiresTick: ctx.s.tick + Math.round(e.durationSec * TPS),
       });
+      if (ctx.s.builds) tallyShield(ctx, caster, amount, ec.origin);
       break;
+    }
     case 'statMod': {
       const id = `${ec.origin}:${e.stat}`;
       let value = e.value;
@@ -417,6 +424,13 @@ export function abilityMods(ctx: Ctx, hero: Unit, idx: number): AbilityMods {
       m.radiusMul *= u.radiusMul;
     }
   }
+  if (hero.hero.techniques) {
+    const t = techniqueAbilityMods(ctx.c, ctx.t, hero.hero.techniques, idx);
+    m.cooldownMul *= t.cooldownMul;
+    m.powerMul *= t.powerMul;
+    m.rangeMul *= t.rangeMul;
+    m.radiusMul *= t.radiusMul;
+  }
   return m;
 }
 
@@ -521,6 +535,7 @@ export function tryCast(ctx: Ctx, u: Unit, idx: number): boolean {
   if (cond.allyHpBelow !== undefined && !targets.some((t) => hpPct(t) < cond.allyHpBelow!))
     return false;
   castOn(ctx, u, def, targets, mods);
+  if (ctx.s.builds) tallyCast(ctx, u);
   const cdTicks = Math.round(def.cooldownSec * mods.cooldownMul * (1 - u.stats.cdr) * TPS);
   h.cd[idx] = Math.max(10, cdTicks);
   return true;
@@ -617,6 +632,7 @@ function runTrigger(
   }
   if (def.chance < 1 && rand(ctx.s.rng, 'combat') > def.chance) return;
   const proceed = def.custom ? runCustom(ctx, u, def, ev) : true;
+  if (proceed && ctx.s.builds) tallyProc(ctx, u, src);
   if (proceed) {
     const targets = resolveTrigTargets(ctx, u, def, ev);
     for (const t of targets) {
@@ -767,6 +783,7 @@ export function performAttack(ctx: Ctx, a: Unit, t: Unit): void {
       : ctx.t.minions.structureMul + ctx.t.minions.structureMulPerPhase * (ctx.s.phase.n - 1);
   const origin = a.kind === 'tower' || a.kind === 'guardian' ? a.kind : 'attack';
   dealDamage(ctx, a, t, dmg, a.atkType, origin);
+  if (a.hero && ctx.s.builds) tallyHit(ctx, a, t);
   if (a.hero) fireTriggers(ctx, a, 'hit', { victim: t, damage: dmg });
 }
 

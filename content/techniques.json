@@ -1,0 +1,491 @@
+{
+  "techniques": [
+    {
+      "id": "battering_hits",
+      "name": "Battering Hits",
+      "school": "march",
+      "slot": "attack",
+      "pool": "common",
+      "triggers": [
+        {
+          "on": "hit",
+          "vs": "other",
+          "target": "victim",
+          "effects": [{ "type": "damage", "dmgType": "blade", "bladeScale": 0.25 }]
+        }
+      ],
+      "playsLike": "A sieger that turns every push into a dent.",
+      "desc": "{r|Battering Hits}: hits on pawns, pawnlings, camps and structures add {m|{triggers.0.effects.0.bladeScale|pct}% Blade} damage (the structure cap still holds)."
+    },
+    {
+      "id": "wind_up",
+      "name": "Wind-up",
+      "school": "initiative",
+      "slot": "attack",
+      "pool": "common",
+      "triggers": [
+        {
+          "on": "hit",
+          "everyNth": 4,
+          "target": "victim",
+          "effects": [{ "type": "damage", "dmgType": "blade", "bladeScale": 1 }]
+        }
+      ],
+      "estimate": { "count": "hits", "per": 4, "label": "extra strikes" },
+      "playsLike": "Steady extra damage for fast attackers.",
+      "desc": "{r|Wind-up}: every {triggers.0.everyNth|num}th hit strikes again for {m|{triggers.0.effects.0.bladeScale|pct}% Blade}."
+    },
+    {
+      "id": "hunters_mark",
+      "name": "Hunter's Mark",
+      "school": "initiative",
+      "slot": "attack",
+      "pool": "common",
+      "triggers": [
+        {
+          "on": "hit",
+          "vs": "hero",
+          "target": "victim",
+          "cooldownSec": 10,
+          "effects": [
+            {
+              "type": "statMod",
+              "stat": "damageTakenMult",
+              "kind": "mul",
+              "value": 1.1,
+              "durationSec": 4
+            }
+          ]
+        }
+      ],
+      "playsLike": "Points the team at one target.",
+      "desc": "{r|Hunter's Mark}: a hit on an enemy piece marks it; it takes {r|{triggers.0.effects.0.value|mul}% more damage} for {triggers.0.effects.0.durationSec|num} s. {r|Every {triggers.0.cooldownSec|num} s}."
+    },
+    {
+      "id": "the_vault",
+      "name": "The Vault",
+      "school": "fortress",
+      "slot": "trait",
+      "pool": "common",
+      "triggers": [
+        {
+          "on": "lowHp",
+          "target": "self",
+          "custom": "lastStand",
+          "effects": [{ "type": "shield", "base": 300, "durationSec": 2 }]
+        }
+      ],
+      "playsLike": "Survives the one dive that should have killed it.",
+      "desc": "{r|The Vault}: once per life, lethal damage leaves it standing inside a {b|{triggers.0.effects.0.base|num} shield} for {triggers.0.effects.0.durationSec|num} s."
+    },
+    {
+      "id": "toll",
+      "name": "Toll",
+      "school": "fortress",
+      "slot": "trait",
+      "pool": "common",
+      "triggers": [
+        {
+          "on": "damaged",
+          "vs": "hero",
+          "target": "allyArea",
+          "radius": 150,
+          "cooldownSec": 14,
+          "effects": [{ "type": "shield", "base": 70, "durationSec": 4 }]
+        }
+      ],
+      "playsLike": "Every hit on the front line protects the back.",
+      "desc": "{r|Toll}: when an enemy piece hits it, it and allies within {triggers.0.radius|num} gain a {b|{triggers.0.effects.0.base|num} shield} for {triggers.0.effects.0.durationSec|num} s. {r|Every {triggers.0.cooldownSec|num} s}."
+    },
+    {
+      "id": "deep_breath",
+      "name": "Deep Breath",
+      "school": "fortress",
+      "slot": "trait",
+      "pool": "common",
+      "triggers": [
+        {
+          "on": "periodic",
+          "everySec": 1,
+          "target": "self",
+          "custom": "outOfCombat",
+          "param": 4,
+          "effects": [{ "type": "heal", "maxHpPct": 0.02 }]
+        }
+      ],
+      "playsLike": "Stays in lane instead of walking home.",
+      "desc": "{r|Deep Breath}: after {triggers.0.param|num} s out of combat it regains {b|{triggers.0.effects.0.maxHpPct|pct}% max health} a second."
+    },
+    {
+      "id": "blood_price",
+      "name": "Blood Price",
+      "school": "sacrifice",
+      "slot": "trait",
+      "pool": "common",
+      "mods": [
+        { "stat": "bladeDmg", "kind": "mul", "value": 1.2 },
+        { "stat": "soulPower", "kind": "mul", "value": 1.2 }
+      ],
+      "dubious": {
+        "mods": [{ "stat": "damageTakenMult", "kind": "mul", "value": 1.12 }],
+        "text": "{r|The price}: {p|it takes {dubious.mods.0.value|mul}% more damage}."
+      },
+      "playsLike": "Hits hard, must win fast.",
+      "desc": "{m|+{mods.0.value|mul}% Blade damage} and {s|+{mods.1.value|mul}% Soul power}."
+    },
+    {
+      "id": "drink_me",
+      "name": "Drink Me",
+      "school": "sacrifice",
+      "slot": "trait",
+      "pool": "common",
+      "mods": [
+        { "stat": "moveSpeed", "kind": "mul", "value": 1.2 },
+        { "stat": "atkSpeed", "kind": "mul", "value": 1.15 }
+      ],
+      "dubious": {
+        "mods": [{ "stat": "maxHp", "kind": "mul", "value": 0.85 }],
+        "text": "{r|The price}: {p|max health −{dubious.mods.0.value|less}%}."
+      },
+      "playsLike": "A little bottle, and a little less of it.",
+      "desc": "{m|+{mods.0.value|mul}% move speed} and {m|+{mods.1.value|mul}% attack speed}."
+    },
+    {
+      "id": "eat_me",
+      "name": "Eat Me",
+      "school": "sacrifice",
+      "slot": "trait",
+      "pool": "common",
+      "mods": [
+        { "stat": "maxHp", "kind": "mul", "value": 1.25 },
+        { "stat": "armor", "kind": "add", "value": 10 }
+      ],
+      "dubious": {
+        "mods": [{ "stat": "moveSpeed", "kind": "mul", "value": 0.85 }],
+        "text": "{r|The price}: {p|move speed −{dubious.mods.0.value|less}%}."
+      },
+      "playsLike": "A small cake, and a great deal more of it.",
+      "desc": "{b|+{mods.0.value|mul}% max health} and {b|+{mods.1.value|num} armor}."
+    },
+    {
+      "id": "desperado",
+      "name": "Desperado",
+      "school": "sacrifice",
+      "slot": "trait",
+      "pool": "common",
+      "triggers": [
+        {
+          "on": "lowHp",
+          "hpBelow": 0.4,
+          "target": "self",
+          "effects": [
+            {
+              "type": "statMod",
+              "stat": "atkSpeed",
+              "kind": "mul",
+              "value": 1.35,
+              "durationSec": 0.5
+            },
+            {
+              "type": "statMod",
+              "stat": "bladeDmg",
+              "kind": "mul",
+              "value": 1.15,
+              "durationSec": 0.5
+            },
+            {
+              "type": "statMod",
+              "stat": "soulPower",
+              "kind": "mul",
+              "value": 1.15,
+              "durationSec": 0.5
+            }
+          ]
+        }
+      ],
+      "playsLike": "Fights to the end instead of breaking off.",
+      "desc": "{r|Desperado}: below {b|{triggers.0.hpBelow|pct}% health}, {m|+{triggers.0.effects.0.value|mul}% attack speed} and {m|+{triggers.0.effects.1.value|mul}% damage}."
+    },
+    {
+      "id": "slip",
+      "name": "Slip",
+      "school": "position",
+      "slot": "trait",
+      "pool": "common",
+      "triggers": [
+        {
+          "on": "damaged",
+          "target": "attacker",
+          "hpBelow": 0.5,
+          "cooldownSec": 12,
+          "effects": [{ "type": "dash", "distance": 80, "toward": "away" }]
+        }
+      ],
+      "playsLike": "Escapes the first burst.",
+      "desc": "{r|Slip}: hit below {b|{triggers.0.hpBelow|pct}% health}, it dashes {triggers.0.effects.0.distance|num} away from its attacker. {r|Every {triggers.0.cooldownSec|num} s}."
+    },
+    {
+      "id": "pin",
+      "name": "Pin",
+      "school": "position",
+      "slot": "attack",
+      "pool": "common",
+      "triggers": [
+        {
+          "on": "hit",
+          "vs": "hero",
+          "everyNth": 4,
+          "target": "victim",
+          "effects": [
+            {
+              "type": "statMod",
+              "stat": "moveSpeed",
+              "kind": "mul",
+              "value": 0.6,
+              "durationSec": 1.5
+            }
+          ]
+        }
+      ],
+      "estimate": { "count": "pieceHits", "per": 4, "label": "slows" },
+      "playsLike": "Holds a target in place for the team.",
+      "desc": "{r|Pin}: every {triggers.0.everyNth|num}th hit on a piece slows it {r|{triggers.0.effects.0.value|less}%} for {triggers.0.effects.0.durationSec|num} s."
+    },
+    {
+      "id": "spare_minute",
+      "name": "Spare Minute",
+      "school": "clock",
+      "slot": "trait",
+      "pool": "common",
+      "scaleParam": true,
+      "triggers": [
+        { "on": "periodic", "everySec": 20, "target": "self", "custom": "cooldownTick", "param": 2 }
+      ],
+      "playsLike": "More skills, more often.",
+      "desc": "{r|Spare Minute}: every {triggers.0.everySec|num} s its cooldowns tick {s|{triggers.0.param|num} s}."
+    },
+    {
+      "id": "time_pressure",
+      "name": "Time Pressure",
+      "school": "clock",
+      "slot": "attack",
+      "pool": "common",
+      "scaleParam": true,
+      "triggers": [
+        { "on": "hit", "vs": "hero", "target": "self", "custom": "cooldownTick", "param": 0.3 }
+      ],
+      "playsLike": "The more it hits, the more it casts.",
+      "desc": "{r|Time Pressure}: each hit on a piece cuts its own cooldowns by {s|{triggers.0.param|num} s}."
+    },
+    {
+      "id": "rallying_cry",
+      "name": "Rallying Cry",
+      "school": "position",
+      "slot": "skill2",
+      "pool": "piece",
+      "piece": "king",
+      "powerMul": 1.3,
+      "radiusMul": 1.25,
+      "playsLike": "The King's heal reaches the whole fight.",
+      "desc": "{r|Rally} heals and speeds allies {b|{powerMul|mul}% more} and reaches {radiusMul|mul}% farther."
+    },
+    {
+      "id": "kings_guard",
+      "name": "King's Guard",
+      "school": "fortress",
+      "slot": "skill3",
+      "pool": "piece",
+      "piece": "king",
+      "powerMul": 1.4,
+      "cooldownMul": 0.8,
+      "playsLike": "A King who dares the enemy to dive him.",
+      "desc": "{r|Royal Guard} shields {b|{powerMul|mul}% more} and is ready {s|{cooldownMul|less}% sooner}."
+    },
+    {
+      "id": "long_range",
+      "name": "Long Range",
+      "school": "position",
+      "slot": "attack",
+      "pool": "piece",
+      "piece": "queen",
+      "mods": [{ "stat": "range", "kind": "mul", "value": 1.25 }],
+      "triggers": [
+        {
+          "on": "hit",
+          "vs": "hero",
+          "target": "victim",
+          "effects": [
+            {
+              "type": "statMod",
+              "stat": "moveSpeed",
+              "kind": "mul",
+              "value": 0.9,
+              "durationSec": 1
+            }
+          ]
+        }
+      ],
+      "playsLike": "Kites from farther back.",
+      "desc": "{m|+{mods.0.value|mul}% attack range}; her hits on pieces slow them {r|{triggers.0.effects.0.value|less}%} for {triggers.0.effects.0.durationSec|num} s."
+    },
+    {
+      "id": "wide_decree",
+      "name": "Wide Decree",
+      "school": "initiative",
+      "slot": "skill2",
+      "pool": "piece",
+      "piece": "queen",
+      "radiusMul": 1.35,
+      "powerMul": 1.15,
+      "playsLike": "Zone control from range: the blast catches the whole clump.",
+      "desc": "{r|Sweeping Decree} blasts {radiusMul|mul}% wider and hits {s|{powerMul|mul}% harder}."
+    },
+    {
+      "id": "granite_skin",
+      "name": "Granite Skin",
+      "school": "fortress",
+      "slot": "skill2",
+      "pool": "piece",
+      "piece": "rook",
+      "powerMul": 1.5,
+      "playsLike": "A tank who shrugs off the first burst.",
+      "desc": "{r|Stone Skin} shields {b|{powerMul|mul}% more}."
+    },
+    {
+      "id": "quake",
+      "name": "Quake",
+      "school": "position",
+      "slot": "skill3",
+      "pool": "piece",
+      "piece": "rook",
+      "radiusMul": 1.3,
+      "powerMul": 1.25,
+      "playsLike": "One slam holds the whole lane.",
+      "desc": "{r|Rampart Slam} reaches {radiusMul|mul}% wider and hits {m|{powerMul|mul}% harder}."
+    },
+    {
+      "id": "long_diagonal",
+      "name": "Long Diagonal",
+      "school": "initiative",
+      "slot": "skill1",
+      "pool": "piece",
+      "piece": "bishop",
+      "rangeMul": 1.4,
+      "powerMul": 1.1,
+      "playsLike": "Poke from out of reach.",
+      "desc": "{r|Diagonal Beam} reaches {rangeMul|mul}% farther and hits {s|{powerMul|mul}% harder}."
+    },
+    {
+      "id": "deep_blessing",
+      "name": "Deep Blessing",
+      "school": "fortress",
+      "slot": "skill2",
+      "pool": "piece",
+      "piece": "bishop",
+      "powerMul": 1.35,
+      "cooldownMul": 0.8,
+      "playsLike": "A healer who keeps one lane standing.",
+      "desc": "{r|Blessing} heals {b|{powerMul|mul}% more} and is ready {s|{cooldownMul|less}% sooner}."
+    },
+    {
+      "id": "stampede",
+      "name": "Stampede",
+      "school": "march",
+      "slot": "skill2",
+      "pool": "piece",
+      "piece": "knight",
+      "powerMul": 1.5,
+      "radiusMul": 1.2,
+      "playsLike": "Clears waves; splits pushes.",
+      "desc": "{r|Trample} hits {m|{powerMul|mul}% harder} and {radiusMul|mul}% wider."
+    },
+    {
+      "id": "restless_hooves",
+      "name": "Restless Hooves",
+      "school": "clock",
+      "slot": "skill1",
+      "pool": "piece",
+      "piece": "knight",
+      "cooldownMul": 0.7,
+      "playsLike": "Leaps in again before the enemy has turned round.",
+      "desc": "{r|L-Leap} is ready {s|{cooldownMul|less}% sooner}."
+    },
+    {
+      "id": "split_shot",
+      "name": "Split Shot",
+      "school": "initiative",
+      "slot": "signature",
+      "pool": "archetype",
+      "piece": "queen",
+      "archetype": "huntress",
+      "mods": [{ "stat": "moveSpeed", "kind": "add", "value": 3 }],
+      "triggers": [
+        {
+          "on": "hit",
+          "everyNth": 3,
+          "target": "enemyArea",
+          "radius": 160,
+          "effects": [{ "type": "damage", "dmgType": "blade", "bladeScale": 0.4 }]
+        }
+      ],
+      "estimate": { "count": "hits", "per": 3, "label": "splash shots" },
+      "playsLike": "Her shots splash: clears waves and hits whole team fights.",
+      "desc": "{r|Split Shot}: every {triggers.0.everyNth|num}rd attack also hits every enemy within {triggers.0.radius|num} for {m|{triggers.0.effects.0.bladeScale|pct}% Blade}. {m|+{mods.0.value|num} move speed}."
+    },
+    {
+      "id": "thousand_cuts",
+      "name": "Thousand Cuts",
+      "school": "initiative",
+      "slot": "signature",
+      "pool": "archetype",
+      "piece": "queen",
+      "archetype": "duelist",
+      "mods": [{ "stat": "bladeDmg", "kind": "mul", "value": 1.04 }],
+      "triggers": [
+        {
+          "on": "hit",
+          "everyNth": 4,
+          "target": "victim",
+          "effects": [{ "type": "damage", "dmgType": "true", "bladeScale": 0.5 }]
+        }
+      ],
+      "estimate": { "count": "hits", "per": 4, "label": "true-damage cuts" },
+      "playsLike": "Cuts through armor: Rooks and Kings melt as fast as anyone.",
+      "desc": "{r|Thousand Cuts}: every {triggers.0.everyNth|num}th hit deals {t|{triggers.0.effects.0.bladeScale|pct}% Blade as true damage}. {m|+{mods.0.value|mul}% Blade damage}."
+    },
+    {
+      "id": "windmill",
+      "name": "Windmill",
+      "school": "clock",
+      "slot": "attack",
+      "pool": "combination",
+      "parents": ["wind_up", "spare_minute"],
+      "scaleParam": true,
+      "triggers": [
+        {
+          "on": "hit",
+          "everyNth": 4,
+          "target": "victim",
+          "effects": [{ "type": "damage", "dmgType": "blade", "bladeScale": 1 }]
+        },
+        { "on": "hit", "everyNth": 4, "target": "self", "custom": "cooldownTick", "param": 1 }
+      ],
+      "estimate": { "count": "hits", "per": 4, "label": "extra strikes" },
+      "playsLike": "A fast attacker becomes a skill engine.",
+      "desc": "{r|Windmill}: every {triggers.0.everyNth|num}th hit strikes again for {m|{triggers.0.effects.0.bladeScale|pct}% Blade} and cuts its cooldowns by {s|{triggers.1.param|num} s}."
+    },
+    {
+      "id": "sanctified",
+      "name": "Sanctified",
+      "school": "fortress",
+      "slot": "skill2",
+      "pool": "combination",
+      "piece": "bishop",
+      "parents": ["deep_blessing", "deep_breath"],
+      "powerMul": 1.7,
+      "cooldownMul": 0.65,
+      "playsLike": "Healing that keeps a whole lane standing.",
+      "desc": "{r|Blessing} heals {b|{powerMul|mul}% more} and is ready {s|{cooldownMul|less}% sooner}."
+    }
+  ]
+}

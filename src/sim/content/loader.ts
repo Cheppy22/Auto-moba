@@ -14,6 +14,7 @@ import {
   PieceSchema,
   RelicFileSchema,
   RELIC_EFFECTS,
+  TechniqueFileSchema,
   TournamentSchema,
   TuningSchema,
   type BadgeDef,
@@ -34,8 +35,10 @@ import {
   type RelicDef,
   type TournamentDef,
   type RelicEffect,
+  type TechniqueDef,
   type Tuning,
 } from './schema';
+import { validateTechniques } from '../techniques';
 
 export interface RawContentFiles {
   pieces: unknown[];
@@ -54,6 +57,8 @@ export interface RawContentFiles {
   tournament?: unknown;
   /** The Tournament run's hand-made Black courts (`content/courts.json`, 3B). */
   courts?: unknown;
+  /** Piece builds (`content/techniques.json`); none when missing. */
+  techniques?: unknown;
   tuning: unknown;
 }
 
@@ -96,6 +101,9 @@ export interface Content {
   /** The hand-made courts (3B); empty when `content/courts.json` is missing (the run then falls back to generated courts). */
   courts: CourtDef[];
   courtById: Map<string, CourtDef>;
+  /** Piece builds (SPEC-PIECE-BUILDS-2026-10-18); empty when `content/techniques.json` is missing. */
+  techniques: TechniqueDef[];
+  techniqueById: Map<string, TechniqueDef>;
 }
 
 /** Deep-merges a JSON patch into a copy of `base` (objects merge, everything else is replaced). */
@@ -242,6 +250,7 @@ export function validateRefs(c: Content): string[] {
         if (!c.gambitById.has(card)) errs.push(`relic ${r.id}: unknown trigger card ${card}`);
   }
   errs.push(...validateCourts(c));
+  errs.push(...validateTechniques(c));
   if (!c.openingById.has('italian')) errs.push('openings: needs the balanced "italian" opening');
   if (!c.gambits.some((g) => g.piece === null && g.weight > 0))
     errs.push('gambits: needs at least one universal card');
@@ -280,6 +289,8 @@ export function loadContent(raw: RawContentFiles): Content {
   const openings = OpeningFileSchema.parse(raw.openings);
   const relics = RelicFileSchema.parse(raw.relics).relics;
   const courts = raw.courts === undefined ? [] : CourtFileSchema.parse(raw.courts).courts;
+  const techniques =
+    raw.techniques === undefined ? [] : TechniqueFileSchema.parse(raw.techniques).techniques;
   const itemFiles = raw.items.map((f) => ItemFileSchema.parse(f));
   const items = itemFiles.flatMap((f) => f.items);
   const cursed = itemFiles.flatMap((f) => f.cursed);
@@ -333,6 +344,8 @@ export function loadContent(raw: RawContentFiles): Content {
     tournament: raw.tournament === undefined ? null : TournamentSchema.parse(raw.tournament),
     courts,
     courtById: byId(courts, 'court'),
+    techniques,
+    techniqueById: byId(techniques, 'technique'),
   };
   const errs = validateRefs(content);
   if (longBoard) {

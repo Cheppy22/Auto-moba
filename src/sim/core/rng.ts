@@ -34,11 +34,31 @@ export function seedStreams(seed: number): RngState {
   return out;
 }
 
-export function rand(r: RngState, stream: StreamName): number {
-  let a = (r[stream] = (r[stream] + 0x6d2b79f5) >>> 0);
-  a = Math.imul(a ^ (a >>> 15), a | 1);
+/** One step of the generator: the next state and a number in [0, 1). */
+function stepRng(state: number): [number, number] {
+  const next = (state + 0x6d2b79f5) >>> 0;
+  let a = Math.imul(next ^ (next >>> 15), next | 1);
   a ^= a + Math.imul(a ^ (a >>> 7), a | 61);
-  return ((a ^ (a >>> 14)) >>> 0) / 4294967296;
+  return [next, ((a ^ (a >>> 14)) >>> 0) / 4294967296];
+}
+
+export function rand(r: RngState, stream: StreamName): number {
+  const [next, x] = stepRng(r[stream]);
+  r[stream] = next;
+  return x;
+}
+
+/**
+ * A private generator from a derived seed (see `mixSeed`): the same draws for the same parts, and
+ * using it never moves any match stream. Piece build offers draw from it.
+ */
+export function seededRng(seed: number): () => number {
+  let state = seed >>> 0 || 1;
+  return () => {
+    const [next, x] = stepRng(state);
+    state = next;
+    return x;
+  };
 }
 
 export function pick<T>(r: RngState, stream: StreamName, arr: readonly T[]): T {

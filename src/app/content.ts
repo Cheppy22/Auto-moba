@@ -39,6 +39,9 @@ export function loadBrowserContent(): Content {
     courts: Object.values(
       import.meta.glob('/content/courts.json', { eager: true, import: 'default' }),
     )[0],
+    techniques: Object.values(
+      import.meta.glob('/content/techniques.json', { eager: true, import: 'default' }),
+    )[0],
     tuning: Object.values(
       import.meta.glob('/content/tuning.json', { eager: true, import: 'default' }),
     )[0],

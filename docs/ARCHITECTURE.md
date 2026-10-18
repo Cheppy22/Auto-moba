@@ -166,6 +166,17 @@ Each system owns one slice of `MatchState`, runs at a fixed point in the tick or
 - **Access:** every hero shops between phases; during a phase, only at base or within the keeper's radius.
 - **Recall:** a channel, then a teleport. Base: short. Keeper: longer. Damage interrupts it.
 
+### Piece builds (Techniques; built 2026-10-18, off by default)
+
+Spec [SPEC-PIECE-BUILDS-2026-10-18.md](SPEC-PIECE-BUILDS-2026-10-18.md), phases 0–1. A match plays with them only with `MatchConfig.techniques`; without it no state, event or random draw is added, so `npm run baseline` is unchanged.
+
+- **Content:** `content/techniques.json` (`TechniqueSchema` in `content/schema.ts`; checks in `validateTechniques`). Card text writes every number as a `{path|format}` placeholder into the card's own data, so text at any grade is filled from the graded numbers. Tuning: `builds` in `tuning.json`.
+- **`src/sim/techniques.ts`** (pure): slots and the skill each changes, grade scaling (`gradedTechnique`, cached), card text, the held-list rule (`withTechnique`: one per slot, a Combination takes its first parent's slot), content checks.
+- **`src/sim/builds.ts`:** offers (`drawOffer`: own pool, common pool, wild card; a private generator per offer seeded by match seed, side, piece, break and reroll count, so reading an offer never moves a match stream), the AI's card score (`scoreCard`, `aiChoice`), "Pick for me" advice (`buildAdvice`, `firstMoves`), the break hooks (`startBuilds`, `openBuilds`, `aiBuilds`, `resumeBuilds`, `closeBuilds`, called from `match.ts` and `bell.ts`), White's commands and `buildView`.
+- **`src/sim/buildTally.ts`:** what each Technique did (damage, healing, shields, procs; trigger effects by their `item:tech:<id>` origin, skill boosts by their share of the skill) and each piece's hits, casts and damage per Act. Hooks in `combat.ts`, guarded by `s.builds`.
+- **State:** `MatchState.builds` and `HeroState.techniques` (both absent without Techniques). `MatchConfig.items: false` (`MatchState.noItems`) turns item buying off and grows Ranks by `builds.rankGrowth`, the curve measured to replace items (phase 0).
+- **Read-only:** `Match.buildView`, `Match.buildAdvice`, `Match.techniquePreview` (on a copy of the piece, like `forkPreview`), `Match.firstMoves`. **Commands:** `takeTechnique`, `passOffer`, `rerollOffer`, `upgradeTechnique`, `autoBuild` (White, break only); Setup's pick rides on `setupTeam` (`SetupEntry.firstMove`). **Events:** `buildOffer`, `technique`, `techniqueUpgrade`, `offerPassed`.
+
 ### Phases and pressure
 
 - **Controller:** `DRAFT → PREP(1) → LIVE(1) → REPORT(1) → PREP(2) → … → END`, unbounded. Only LIVE ticks.
@@ -199,6 +210,7 @@ All game content is JSON in `content/`, with one Zod schema per file type.
 | `badges.json`     | Report badges: metric, rank rule (max or min), factual label                                                                                              |
 | `map.json`        | Lane polylines, tower and base positions, biome slots and entry points                                                                                    |
 | `tuning.json`     | Every number not tied to one hero or item: phase length, gold values, respawn curve, curse threshold, auction rate, obelisk schedule                      |
+| `techniques.json` | Piece-build Techniques: school, slot, pool (common, piece, archetype, Combination), skill tweaks, mods, triggers, Dubious price, card text               |
 
 - The loader takes plain objects. The browser bundles JSON by static import; Node tools read it from disk. The sim never touches the file system or the bundler.
 - Ids are stable strings (`item.hungry_mask`). Cross-references are checked by a content test.

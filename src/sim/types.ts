@@ -1,8 +1,11 @@
 import type { RngState } from './core/rng';
+import type { AbilityNumbers } from './preview';
 import type {
   DamageType,
   Disposition,
+  EstimateCount,
   GambitTarget,
+  Grade,
   LaneId,
   Path,
   PieceId,
@@ -12,12 +15,15 @@ import type {
   SealedTrigger,
   StatKey,
   Stats,
+  TechniqueSlot,
 } from './content/schema';
 
 export type {
   DamageType,
   Disposition,
+  EstimateCount,
   GambitTarget,
+  Grade,
   LaneId,
   Path,
   PieceId,
@@ -27,6 +33,7 @@ export type {
   SealedTrigger,
   StatKey,
   Stats,
+  TechniqueSlot,
 };
 
 export type TeamId = 'A' | 'B' | 'neutral';
@@ -129,6 +136,8 @@ export interface HeroState {
    */
   plan: string[] | null;
   flaws: Record<string, string>;
+  /** Techniques held, in slot order; present only in a match with `MatchConfig.techniques`. */
+  techniques?: HeldTechnique[];
   gold: number;
   goldEarned: number;
   kills: number;
@@ -569,6 +578,8 @@ export interface SetupEntry {
   piece: PieceId;
   path: Path;
   lane: LaneId;
+  /** Techniques on: the card taken from this piece's Setup offer (else the AI picks). */
+  firstMove?: string;
 }
 
 /** One side's setup: its opening and its five pieces (path and lane each). */
@@ -674,6 +685,69 @@ export interface MatchState {
   run?: RunRules;
   /** Set only for a Blitz match (`MatchConfig.pace`); absent in Classical, so its state is unchanged. */
   pace?: 'blitz';
+  /** Piece builds (`MatchConfig.techniques`); absent otherwise, so a match without them is unchanged. */
+  builds?: BuildState;
+  /** `MatchConfig.items: false`: nothing is bought and Ranks grow by `builds.rankGrowth`. */
+  noItems?: true;
+}
+
+/** A Technique a piece holds, at its grade. */
+export interface HeldTechnique {
+  id: string;
+  grade: Grade;
+}
+
+/** One card of an offer (a Combination arrives at its own grade). */
+export interface OfferCard {
+  id: string;
+  grade: Grade;
+}
+
+/** A piece's offer of up to three cards at Setup (`at` 0) or at the break that ends Act `at`. */
+export interface BuildOffer {
+  heroId: number;
+  team: PlayTeam;
+  at: number;
+  grade: Grade;
+  cards: OfferCard[];
+  /** Rerolls bought at this break (the next one costs more). */
+  rerolls: number;
+  decided: 'taken' | 'passed' | null;
+}
+
+/** What one Technique did: damage, healing and shields it added, and how often it fired. */
+export interface TechTally {
+  damage: number;
+  heal: number;
+  shield: number;
+  procs: number;
+}
+
+/** A piece's own counts for an Act (the cards' "last Act" lines and the AI's top-damage piece). */
+export interface PieceTally {
+  hits: number;
+  pieceHits: number;
+  casts: number;
+  damage: number;
+  damageTaken: number;
+}
+
+export interface BuildState {
+  /** True from the break's offers until the next Act starts. */
+  open: boolean;
+  /** Offers of the current break (or the Setup offers once the match started). */
+  offers: BuildOffer[];
+  /** White pieces the player acted on at this break: on Resume they keep their gold. */
+  touched: number[];
+  /** Pieces whose Rank 8 Brilliant offer has been drawn. */
+  brilliantUsed: number[];
+  /** Key `${heroId}:${techniqueId}`. */
+  act: Record<string, TechTally>;
+  lastAct: Record<string, TechTally>;
+  match: Record<string, TechTally>;
+  /** Key: hero id. */
+  pieces: Record<string, PieceTally>;
+  lastPieces: Record<string, PieceTally>;
 }
 
 /** The in-match part of a Tournament run (absent in an Exhibition match). */
@@ -825,6 +899,27 @@ export interface EventPayloads {
   relicTriggered: { team: PlayTeam; relic: string; lane: LaneId };
   laneSet: { id: number; lane: LaneId };
   pathSet: { id: number; path: Path };
+  /** A piece's offer was drawn (`reroll` counts the rerolls before it). */
+  buildOffer: {
+    id: number;
+    team: PlayTeam;
+    at: number;
+    grade: Grade;
+    cards: string[];
+    reroll: number;
+  };
+  technique: {
+    id: number;
+    team: PlayTeam;
+    technique: string;
+    grade: Grade;
+    slot: TechniqueSlot;
+    replaced: string | null;
+    auto: boolean;
+    at: number;
+  };
+  techniqueUpgrade: { id: number; technique: string; grade: Grade; cost: number };
+  offerPassed: { id: number; gold: number };
   recall: {
     id: number;
     dest: string;
@@ -948,7 +1043,17 @@ export type Command =
   /** Re-aims a held relic (at a break only). */
   | ({ type: 'aimRelic'; relicId: string } & Partial<RelicAim>)
   /** "Let the AI choose": picks and aims a relic for White. */
-  | { type: 'autoRelic' };
+  | { type: 'autoRelic' }
+  /** Builds (Act break only): White's piece takes card `cardIndex` of its offer. */
+  | { type: 'takeTechnique'; heroId: number; cardIndex: number }
+  /** Builds (Act break only): declines the offer for `builds.passGold` gold. */
+  | { type: 'passOffer'; heroId: number }
+  /** Builds (Act break only): a new offer for gold (each further reroll costs more). */
+  | { type: 'rerollOffer'; heroId: number }
+  /** Builds (Act break only): a held Technique one grade up, for gold. */
+  | { type: 'upgradeTechnique'; heroId: number; techniqueId: string }
+  /** Builds (Act break only): the AI's pick ("AI suggests") for one White piece, or all (null). */
+  | { type: 'autoBuild'; heroId: number | null };
 
 export interface ArmoryState {
   /** True from the bell's break until the next Act starts (the break shop sells every tier). */
@@ -1057,6 +1162,13 @@ export interface MatchConfig {
    * match with no Checkmate when Act 3 ends is adjudicated. Default `classical`: the full match.
    */
   pace?: 'classical' | 'blitz';
+  /**
+   * Piece builds with Techniques (SPEC-PIECE-BUILDS-2026-10-18): offers at Setup and every Act
+   * break. Default off until items retire, so matches without it play exactly as before.
+   */
+  techniques?: boolean;
+  /** `false`: no item is bought (shops, the break shop, the AI) and Ranks grow by `builds.rankGrowth`. */
+  items?: boolean;
 }
 
 export interface Replay {
@@ -1260,4 +1372,126 @@ export interface SnapEvent {
   team?: PlayTeam | null;
   /** Oni slam warning area, present while the attack winds up. */
   telegraph?: { x: number; y: number; radius: number; ticksLeft: number };
+}
+
+/** What taking a card would do to a piece: stats and the changed skill, before and after. */
+export interface TechniquePreview {
+  before: Stats;
+  after: Stats;
+  /** The skill the card tweaks, before and after (null when it tweaks none). */
+  ability: { before: AbilityNumbers; after: AbilityNumbers } | null;
+  /** The held Technique it replaces (a Combination replaces its first parent), or null. */
+  replaces: string | null;
+  /** The "last Act" line: the piece's own count from the Act before the break, and the estimate. */
+  estimate: { count: EstimateCount; last: number; value: number; label: string } | null;
+}
+
+/** One card as the Builds tab and Setup's First moves show it (text with this grade's numbers). */
+export interface BuildCardView {
+  id: string;
+  name: string;
+  school: School;
+  grade: Grade;
+  slot: TechniqueSlot;
+  /** "Attack", "Trait", or the skill's own name ("L-Leap"). */
+  slotName: string;
+  /** Name of the held Technique it would replace, or null. */
+  replaces: string | null;
+  playsLike: string;
+  desc: string;
+  /** A Dubious card's price, or null. */
+  price: string | null;
+  combination: boolean;
+  /** Combinations this card is a parent of, and whether the other parent is held. */
+  leadsTo: {
+    id: string;
+    name: string;
+    partner: string;
+    partnerName: string;
+    partnerHeld: boolean;
+  }[];
+  /** The card the AI would take ("AI suggests"). */
+  suggested: boolean;
+  /** The AI's score for it (higher is better). */
+  score: number;
+  /** Real before -> after numbers for this piece; null at Setup (no piece on the board yet). */
+  preview: TechniquePreview | null;
+}
+
+export interface BuildSlotView {
+  slot: TechniqueSlot;
+  name: string;
+  /** The Signature slot before the Rank 4 archetype. */
+  locked: boolean;
+  held: {
+    id: string;
+    name: string;
+    school: School;
+    grade: Grade;
+    desc: string;
+    price: string | null;
+    combination: boolean;
+    /** Gold for the next grade; null at Brilliant. */
+    upgradeCost: number | null;
+    nextGrade: Grade | null;
+    /** What it did in the last Act and in the match so far. */
+    did: { lastAct: TechTally; match: TechTally };
+    /** Combinations it leads to whose other parent is missing ("1 away"). */
+    oneAway: string[];
+  } | null;
+}
+
+/** Everything the Builds tab draws for one piece. */
+export interface BuildView {
+  heroId: number;
+  piece: PieceId;
+  team: PlayTeam;
+  gold: number;
+  rank: number;
+  /** True at an Act break while offers can be answered. */
+  open: boolean;
+  /** The player acted on this piece at this break (it keeps its gold on Resume). */
+  touched: boolean;
+  slots: BuildSlotView[];
+  offer: {
+    at: number;
+    grade: Grade;
+    rerolls: number;
+    rerollCost: number;
+    passGold: number;
+    decided: 'taken' | 'passed' | null;
+    /** Index of the card the AI suggests (null once decided). */
+    suggested: number | null;
+    cards: BuildCardView[];
+  } | null;
+  /** The piece's own counts from the last Act. */
+  lastAct: PieceTally;
+}
+
+/** Why a pick matters ("Pick for me" highlights). */
+export type AdviceReason = 'combination' | 'sharp' | 'brilliant' | 'carry' | 'spread';
+
+/** "Pick for me": the AI's pick for each open offer, and the 1-2 pieces whose pick matters most. */
+export interface BuildAdvice {
+  pieces: {
+    heroId: number;
+    pick: number | null;
+    scores: number[];
+    stakes: number;
+    reasons: AdviceReason[];
+  }[];
+  /** Hero ids (Setup: slot indices) to highlight, most important first. */
+  highlight: number[];
+}
+
+/** Setup's First moves for White, before the match starts. */
+export interface FirstMoveView {
+  pieces: {
+    piece: PieceId;
+    grade: Grade;
+    suggested: number | null;
+    highlight: boolean;
+    reasons: AdviceReason[];
+    cards: BuildCardView[];
+  }[];
 }
