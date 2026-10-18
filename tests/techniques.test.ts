@@ -415,20 +415,29 @@ describe('a match with Techniques', () => {
 });
 
 describe('a match without items', () => {
-  it('buys nothing and grows Ranks by builds.rankGrowth', () => {
-    const m = liveMatch(19, { items: false });
+  it('buys nothing and grows health and the main damage stat by builds.rankGrowth', () => {
+    const m = liveMatch(19, { items: false, relics: { A: 'none', B: 'none' } });
     m.step(20 * 200);
     expect(m.events.some((e) => e.type === 'purchase')).toBe(false);
-    const q = piece(m, 'A', 'queen');
-    const base = content.pieceById.get('queen')!.stats;
-    q.hero!.rank = 5;
-    q.mods = [];
-    const s = computeStats(m.ctx, q).stats;
     const g = t.builds.rankGrowth;
-    const style = q.hero!.style;
-    if (style === null) {
-      expect(s.maxHp).toBeCloseTo(base.maxHp * (1 + g.health * 4), 0);
+    const other = t.ranks.growth;
+    for (const id of ['queen', 'bishop'] as PieceId[]) {
+      const u = piece(m, 'A', id);
+      const bare = {
+        ...u,
+        mods: [],
+        hero: { ...u.hero!, rank: 5, style: null, perks: [], items: [] },
+      };
+      const s = computeStats(m.ctx, bare).stats;
+      const base = u.base;
+      const soulMain = base.soulPower > base.bladeDmg;
+      expect(s.maxHp).toBeCloseTo(base.maxHp * (1 + g.health * 4), 6);
+      const main = soulMain ? 'soulPower' : 'bladeDmg';
+      const off = soulMain ? 'bladeDmg' : 'soulPower';
+      expect(s[main]).toBeCloseTo(base[main] * (1 + g.damage * 4), 6);
+      expect(s[off]).toBeCloseTo(base[off] * (1 + other * 4), 6);
     }
+    const q = piece(m, 'A', 'queen');
     expect(m.issue({ type: 'buy', heroId: q.id, item: content.items[0].id }).ok).toBe(false);
   });
 });

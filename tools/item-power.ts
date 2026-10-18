@@ -23,6 +23,8 @@ interface Read {
   items: number;
   hp: number;
   main: number;
+  /** The other of Blade and Soul (null when the piece has none of it). */
+  off: number | null;
   dps: number;
   ehp: number;
 }
@@ -50,6 +52,7 @@ function read(m: Match, at: string): void {
         items: h.items.length,
         hp: a.maxHp / b.maxHp,
         main: soul ? a.soulPower / b.soulPower : a.bladeDmg / b.bladeDmg,
+        off: soul ? a.bladeDmg / b.bladeDmg : b.soulPower > 0 ? a.soulPower / b.soulPower : null,
         dps: dpsOf(a) / dpsOf(b),
         ehp: ehpOf(a) / ehpOf(b),
       });
@@ -215,3 +218,13 @@ for (const [name, f] of [
   ['power (sqrt dps x ehp)', (r: Read) => Math.sqrt(r.dps * r.ehp)],
 ] as [string, (r: Read) => number][])
   console.log(`  ${name.padEnd(24)} ${(fit(live, f) * 100).toFixed(1)}%`);
+
+console.log(
+  '\nthe other damage stat (Soul for a Blade piece, Blade for a Soul piece), Act starts, median:',
+);
+for (const p of ['king', 'queen', 'rook', 'bishop', 'knight']) {
+  const offs = live.filter((r) => r.piece === p && r.off !== null).map((r) => r.off!);
+  console.log(
+    `  ${p.padEnd(7)} ${offs.length ? pct(q(offs, 0.5)) : 'none'} (p90 ${offs.length ? pct(q(offs, 0.9)) : '-'})`,
+  );
+}

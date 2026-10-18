@@ -821,8 +821,9 @@ const BuildsTuningSchema = z.object({
   }),
   /**
    * The Rank growth that replaces item stats once items retire (spec 4.8, measured in
-   * BALANCE-TECHNIQUES-2026-10-18): per Rank above 1, + this fraction of health and of Blade damage
-   * and Soul power, in place of `ranks.growth`, in a match with `items: false`.
+   * BALANCE-TECHNIQUES-2026-10-18): per Rank above 1, + this fraction of health and of the piece's
+   * main damage stat (Blade or Soul, whichever its base is higher in), in place of `ranks.growth`,
+   * in a match with `items: false`. The other damage stat keeps `ranks.growth`.
    */
   rankGrowth: z.object({ health: z.number(), damage: z.number() }),
 });

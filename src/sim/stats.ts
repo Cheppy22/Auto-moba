@@ -112,14 +112,22 @@ function tagFactor(ctx: Ctx, tags: string[]): number {
 export function computeStats(ctx: Ctx, u: Unit): { stats: Stats; trigs: TrigInst[] } {
   const out: Stats = { ...u.base };
   if (u.hero && u.hero.rank > 1) {
-    // without items, Ranks carry the stats items gave (`builds.rankGrowth`, Phase 0 of the builds spec)
     const steps = u.hero.rank - 1;
-    const rg = ctx.s.noItems ? ctx.t.builds.rankGrowth : null;
-    const hp = 1 + (rg ? rg.health : ctx.t.ranks.growth) * steps;
-    const dmg = 1 + (rg ? rg.damage : ctx.t.ranks.growth) * steps;
-    out.maxHp *= hp;
-    out.bladeDmg *= dmg;
-    out.soulPower *= dmg;
+    const g = ctx.t.ranks.growth;
+    if (ctx.s.noItems) {
+      // without items, Ranks carry what items gave (`builds.rankGrowth`, phase 0 of the builds
+      // spec): health, and the damage stat the piece is built on (items left the other one alone)
+      const rg = ctx.t.builds.rankGrowth;
+      const soulMain = out.soulPower > out.bladeDmg;
+      out.maxHp *= 1 + rg.health * steps;
+      out.bladeDmg *= 1 + (soulMain ? g : rg.damage) * steps;
+      out.soulPower *= 1 + (soulMain ? rg.damage : g) * steps;
+    } else {
+      const growth = 1 + g * steps;
+      out.maxHp *= growth;
+      out.bladeDmg *= growth;
+      out.soulPower *= growth;
+    }
   }
   const add: Partial<Record<StatKey, number>> = {};
   const mul: Partial<Record<StatKey, number>> = {};

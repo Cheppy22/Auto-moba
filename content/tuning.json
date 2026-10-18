@@ -50,7 +50,7 @@
       "maxRerolls": 1
     },
     "advice": { "gradeStakes": [0, 0.5, 1], "combination": 1, "carry": 0.5, "secondShare": 0.75 },
-    "rankGrowth": { "health": 0.155, "damage": 0.25 }
+    "rankGrowth": { "health": 0.155, "damage": 0.45 }
   },
   "pawns": {
     "cost": 15,

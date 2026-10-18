@@ -210,7 +210,7 @@ All game content is JSON in `content/`, with one Zod schema per file type.
 | `badges.json`     | Report badges: metric, rank rule (max or min), factual label                                                                                              |
 | `map.json`        | Lane polylines, tower and base positions, biome slots and entry points                                                                                    |
 | `tuning.json`     | Every number not tied to one hero or item: phase length, gold values, respawn curve, curse threshold, auction rate, obelisk schedule                      |
-| `techniques.json` | Piece-build Techniques: school, slot, pool (common, piece, archetype, Combination), skill tweaks, mods, triggers, Dubious price, card text               |
+| `techniques.json` | Piece-build Techniques: school, slot, pool (common, piece, archetype, Combination), skill tweaks, mods, triggers, Dubious price, card text                |
 
 - The loader takes plain objects. The browser bundles JSON by static import; Node tools read it from disk. The sim never touches the file system or the bundler.
 - Ids are stable strings (`item.hungry_mask`). Cross-references are checked by a content test.
