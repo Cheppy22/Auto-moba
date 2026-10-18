@@ -65,16 +65,18 @@ Phase 0 of [SPEC-PIECE-BUILDS-2026-10-18.md](SPEC-PIECE-BUILDS-2026-10-18.md) (4
 
 ## Phases 2–3: the full card set (2026-10-18)
 
-Branch `wip/techniques-content`. All 84 Techniques, both sides AI, `--techniques --no-items --map long` (items off, Rank growth health +15.5% and main damage stat +40% per Rank). 200 matches is direction only (±7 points).
+Branch `wip/techniques-content`. All 84 Techniques, both sides AI, `--techniques --no-items --map long` (items off, Rank growth health +15.5% and main damage stat +40% per Rank), seed 29000, 2 workers. 200 matches is direction only (±7 points).
 
-| Run                                      | Matches | White | Median min | p90 min | Kills | At Rank 8 |
-| ---------------------------------------- | ------- | ----- | ---------- | ------- | ----- | --------- |
-| Today: items on, no Techniques           | 200     | 51.0% | 13.1       | 18.5    | 22.4  | 17.6%     |
-| Phase 0: items off, no Techniques        | 200     | 50.5% | 14.6       | 23.0    | 25.0  | 26.8%     |
-| **p1: Techniques, items off (as built)** | 200     | 50.5% | 12.4       | 19.7    | 22.9  | 17.5%     |
+| Run                                           | Matches | White     | Median min | p90 min  | Kills | At Rank 8 |
+| --------------------------------------------- | ------- | --------- | ---------- | -------- | ----- | --------- |
+| Today: items on, no Techniques                | 200     | 51.0%     | 13.1       | 18.5     | 22.4  | 17.6%     |
+| Phase 0: items off, no Techniques             | 200     | 50.5%     | 14.6       | 23.0     | 25.0  | 26.8%     |
+| p1: Techniques, items off (as built)          | 200     | 50.5%     | 12.4       | 19.7     | 22.9  | 17.5%     |
+| **Confirm: Techniques, items off (as built)** | 800     | **50.1%** | **12.6**   | **18.9** | 23.3  | 17.1%     |
 
-- **p1** (`npm run balance -- --matches 200 --seed 29000 --quiet --workers 2 --map long --techniques --no-items`): first Bastion 2.2 min; Rank 4 first reached at 5.0 min, Rank 8 at 14.0. Per match 33.1 cards taken, 38.1 upgrades, **0 rerolls and 0 passes**. White pieces holding a Combination at match end: 31.9% (target 30–60%).
-- **Techniques close the phase 0 gap:** the median is back under today's (12.4 against 13.1) and the p90 is 1.2 min longer, not 4.5. No number was changed for this.
-- **Picks by school:** Initiative 28.2%, Position 25.6%, Fortress 16.0%, March 13.1%, Clock 10.2%, Sacrifice 6.9%.
-- **Picked far more than the 10–60% target:** Shared Guard 93%, Family Fork 86%, Rallying Cry 85%, Echoing Decree 82% (piece cards that lead to a Combination; Royal Court, their King Combination, is held by about half of all Kings at match end). **Far less:** Tempo Thief 2.3%, Time Pressure 2.5%, Tithe 3.9%, The Vault 6.1%, Slip 8.4%, Sovereign's Wrath 8.5%, and the moved Dubious cards 5–15%.
-- **Held win rates outside 44–58%** with at least 50 holders: Escort 63% (76), Push On 58% (84), Deep Breath 38% (74), Shove 41% (174), Rook Lift 43% (145), Family Fork 44% (194); the archetype cards have 4–37 holders each, too few to read.
+- **BLUF: in range on the first probe, so nothing was tuned.** White 50.1% over 800 (inside 48–52%, so no second seed), median 12.6 min, p90 18.9. Techniques close the phase 0 gap: the median is under today's (12.6 against 13.1) and the p90 0.4 min longer, not 4.5.
+- **Confirm run** (`npm run balance -- --matches 800 --seed 29000 --quiet --workers 2 --map long --techniques --no-items`): first Bastion 2.2 min; Rank 4 first reached at 5.1 min, Rank 8 at 13.8; longest match 38.5 min. Per match 33.4 cards taken, 38.3 upgrades, **0.1 rerolls and 0 passes**: the AI rerolls only when its best card scores under 1.2, and a card that fills an empty slot already scores 2, so gold goes to upgrades. White pieces holding a Combination at match end: 31.5% (target 30–60%).
+- **Picks by school:** Initiative 28.3%, Position 26.1%, Fortress 15.4%, March 12.6%, Clock 10.5%, Sacrifice 7.0% (Sacrifice has no piece or archetype cards).
+- **Picked far more than the 10–60% target:** Shared Guard 92%, Family Fork 87%, Rallying Cry 85%, Echoing Decree 81%. All four lead to a Combination (the AI adds +0.6 for a parent, +1 once the partner is held, and the partner is drawn 4× as often); Royal Court (Rallying Cry + Shared Guard, both King cards) is held by about half of all Kings at match end, so King builds look alike. **Far less:** Time Pressure 2.9%, Tithe 3.1%, Tempo Thief 3.9%, Eat Me 5.7%, The Vault 6.7%, Slip 7.6%, Usurper's Luck 9.9%. The Tempo cards fit no piece's lean (Tempo counts as utility), and Time Pressure shares the Attack slot with Wind-up (50%).
+- **Held win rates outside 44–58%** (at least 100 holders): Shadow Harvest 74% (106), Huntress Split Shot 70% (120), Pact of Ash 60% (101), Errant Siegebreaker 58% (122) high; Slip 39% (113), Sanctified 40% (107), Deep Breath 43% (265), Swindle 44% (153) low. Held win rate also reflects who is winning (a piece that lives longer keeps its cards), so read these as leads for phase 6.
+- p1 (200) agreed: White 50.5%, median 12.4, Combination 31.9%, the same four cards over 80%.
