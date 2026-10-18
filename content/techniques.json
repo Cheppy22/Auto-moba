@@ -415,7 +415,7 @@
       "school": "position",
       "slot": "attack",
       "pool": "common",
-      "knockbackMul": 2,
+      "knockbackMul": 3,
       "playsLike": "Peels attackers off allies, breaks enemy lines.",
       "desc": "{r|Shove}: its heavy hits knock pieces back {knockbackMul|num} times as far."
     },
