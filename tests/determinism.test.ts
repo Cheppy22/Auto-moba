@@ -55,17 +55,9 @@ describe('determinism', () => {
       const solo = seedStreams(77);
       expect(r[name]).toBe(solo[name]);
     }
-    // Each stream is derived from its own name, so the earlier streams keep their seeds.
-    const legacy = [
-      'mapgen',
-      'ai',
-      'combat',
-      'loot',
-      'keeper',
-      'draft',
-      'events',
-      'gambit',
-    ] as const;
+    // Each stream is derived from its own name, so the earlier streams keep their seeds (and
+    // dropping one, as the Keeper's was with items, moves none of the others).
+    const legacy = ['mapgen', 'ai', 'combat', 'loot', 'draft', 'events', 'gambit'] as const;
     for (const name of legacy) expect(STREAMS).toContain(name);
     expect(STREAMS[STREAMS.length - 1]).toBe('relic');
   });
