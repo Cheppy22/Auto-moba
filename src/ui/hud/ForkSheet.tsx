@@ -1,50 +1,11 @@
 import { useEffect, useState } from 'preact/hooks';
-import type { ForkPreview, PieceId, SnapFork, Stats } from '../../sim';
+import type { ForkPreview, PieceId, SnapFork } from '../../sim';
 import { Term } from '../glossary';
 import { PieceGlyph, StyleBadge, pieceLabel, styleColor, styleLabel } from '../pieces';
 import { num } from '../relicPlan';
 import { useSession } from '../session';
+import { statDeltas } from '../statDeltas';
 import { ForkTutor } from './Tutor';
-
-/** The stats a fork can change, in the order the preview lists them, with their names. */
-const STAT_ROWS: { key: keyof Stats; label: string; fmt?: (v: number) => string }[] = [
-  { key: 'maxHp', label: 'Health' },
-  { key: 'bladeDmg', label: 'Blade' },
-  { key: 'soulPower', label: 'Soul' },
-  { key: 'range', label: 'Reach' },
-  { key: 'armor', label: 'Armor' },
-  { key: 'resist', label: 'Resist' },
-  { key: 'atkSpeed', label: 'Attack speed', fmt: (v) => v.toFixed(2) },
-  { key: 'moveSpeed', label: 'Speed' },
-  { key: 'cdr', label: 'Cooldowns', fmt: (v) => `−${Math.round(v * 100)}%` },
-  { key: 'hpRegen', label: 'Regen', fmt: (v) => v.toFixed(1) },
-];
-
-export interface StatDelta {
-  label: string;
-  before: string;
-  after: string;
-  up: boolean;
-}
-
-/** The stats that change, biggest change first (by share of the old value). */
-export function statDeltas(p: ForkPreview): StatDelta[] {
-  const out: (StatDelta & { size: number })[] = [];
-  for (const r of STAT_ROWS) {
-    const b = p.before[r.key];
-    const a = p.after[r.key];
-    const fmt = r.fmt ?? num;
-    if (fmt(b) === fmt(a)) continue;
-    out.push({
-      label: r.label,
-      before: fmt(b),
-      after: fmt(a),
-      up: a > b,
-      size: Math.abs(a - b) / Math.max(Math.abs(b), r.key === 'cdr' ? 0.1 : 1),
-    });
-  }
-  return out.sort((x, y) => y.size - x.size).map(({ size: _size, ...d }) => d);
-}
 
 /** The line about the signature skill an archetype adds. */
 function skillLine(p: ForkPreview): { name: string; text: string } | null {
@@ -241,6 +202,12 @@ export function ForkSheet(props: { forks: SnapFork[] }) {
             portrait={portraits.get(look)}
             look={look}
           />
+          {f.kind === 'archetype' && (
+            <p class="fs-slotline" data-testid="fork-signature-slot">
+              Every archetype also opens the <b>Signature</b> slot for{' '}
+              <Term id="technique">Techniques</Term>.
+            </p>
+          )}
         </div>
         <div class="fs-actions">
           <button

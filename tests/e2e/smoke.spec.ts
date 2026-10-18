@@ -120,9 +120,12 @@ test('title, setup, gambits, pawn, fork, adjourn, checkmate and report', async (
   await expect(page.getByTestId('unit-card-piece')).toContainText('Queen');
   await expect(page.getByTestId('unit-card-piece')).toContainText('Black');
   await expect(page.getByTestId('unit-card-techniques')).toBeVisible();
-  await expect(page.getByTestId('unit-card-techniques').getByTestId('tech-chip')).not.toHaveCount(
-    0,
-  );
+  // six slots; the Setup pick fills one (Black's Signature stays locked until Rank 4)
+  const slots = page.getByTestId('unit-card-techniques');
+  await expect(slots.locator('[data-state]')).toHaveCount(6);
+  await expect(slots.locator('[data-state="held"]')).not.toHaveCount(0);
+  await slots.locator('[data-state="held"]').first().click();
+  await expect(page.getByTestId('unit-card-slot-detail')).toBeVisible();
   await page.getByTestId('unit-card-close').click();
   await expect(page.getByTestId('unit-card')).toHaveCount(0);
   // holding a portrait opens the card at once, for either team
