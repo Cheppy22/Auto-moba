@@ -396,7 +396,7 @@ html[data-layout='desktop'] .hud.v2 {
   grid-template-columns: auto auto 1fr auto;
   grid-template-areas:
     'name name name cost'
-    'school sig . .';
+    'school sig . open';
   align-items: center;
   gap: 2px 4px;
 }
@@ -411,6 +411,10 @@ html[data-layout='desktop'] .hud.v2 {
 }
 .dr-hand .gsig {
   grid-area: sig;
+}
+.dr-hand .gopen {
+  grid-area: open;
+  justify-self: end;
 }
 .dr-hand .gcost {
   grid-area: cost;

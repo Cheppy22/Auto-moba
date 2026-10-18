@@ -1,5 +1,6 @@
 import type { ComponentChildren } from 'preact';
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
+import { AllCards } from './AllCards';
 import { BY_ID, GLOSSARY, GLOSSARY_GROUPS, findTerms } from './glossaryData';
 import { useEscape } from './session';
 
@@ -230,8 +231,8 @@ export function GlossaryPopover() {
   );
 }
 
-/** Every word, grouped, with its full definition: the Rules page (Title) and the Rules tab (Adjourn). */
-export function RulesList() {
+/** The Rules words, grouped, each with its full definition. */
+function WordsList() {
   return (
     <div class="rules-list" data-testid="rules-list">
       {GLOSSARY_GROUPS.map((group) => (
@@ -250,6 +251,35 @@ export function RulesList() {
           </dl>
         </section>
       ))}
+    </div>
+  );
+}
+
+/** Words or All cards: the Rules page (Title) and the Rules tab (Adjourn) hold both. */
+export function RulesList() {
+  const [view, setView] = useState<'words' | 'cards'>('words');
+  return (
+    <div class="rules-all">
+      <div class="rules-switch" role="tablist" aria-label="Rules">
+        {(
+          [
+            ['words', 'Words'],
+            ['cards', 'All cards'],
+          ] as const
+        ).map(([id, label]) => (
+          <button
+            key={id}
+            role="tab"
+            class={`btn ${view === id ? 'on' : ''}`}
+            aria-selected={view === id}
+            data-testid={`rules-view-${id}`}
+            onClick={() => setView(id)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      {view === 'words' ? <WordsList /> : <AllCards />}
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { TPS } from './combat';
 import { dealDamage, healUnit, stunUnit } from './combat';
 import { gambitEffect } from './content/loader';
-import type { GambitDef, LaneId, School } from './content/schema';
+import { SCHOOLS, type GambitDef, type LaneId, type School } from './content/schema';
 import { dist } from './core/math';
 import { weightedPick } from './core/rng';
 import { hpPct, isTargetable, type Ctx } from './ctx';
@@ -21,7 +21,15 @@ import {
 import { addMod } from './stats';
 import { LANES, lanePoint, seatLanes } from './world/map';
 import { confine, shapeDist, walkable, type WalkShape } from './world/terrain';
-import type { CommandResult, GambitOrder, Modifier, PlayTeam, Unit, ZoneState } from './types';
+import type {
+  CommandResult,
+  GambitOrder,
+  HandSlot,
+  Modifier,
+  PlayTeam,
+  Unit,
+  ZoneState,
+} from './types';
 import { other } from './types';
 import { PLAY_TEAMS } from './names';
 import { booksOf } from './runRules';
@@ -91,6 +99,7 @@ function drawCard(ctx: Ctx, team: PlayTeam, only?: readonly School[]): string | 
 function deal(ctx: Ctx, team: PlayTeam, slot: number, only?: readonly School[]): void {
   const h = ctx.s.hands[team][slot];
   if (h.discarded !== undefined) delete h.discarded;
+  if (h.opening) delete h.opening;
   h.cardId = drawCard(ctx, team, only);
   h.expireTick = ctx.s.tick + Math.round(ctx.t.gambits.expireSec * TPS);
   h.refillTick = h.cardId === null ? ctx.s.tick + TPS : null;
@@ -115,15 +124,45 @@ export function syncHands(ctx: Ctx, team: PlayTeam): void {
   }
 }
 
+/**
+ * The first hand. An Opening's card goes in slot 0 and stays until it is played or Act 1 ends; the
+ * Italian Game has no such card and instead deals three different schools.
+ */
 export function initHands(ctx: Ctx): void {
   for (const team of PLAY_TEAMS) {
-    ctx.s.hands[team] = [];
+    const hand: HandSlot[] = [];
+    ctx.s.hands[team] = hand;
+    const opening = ctx.c.openingById.get(ctx.s.opening[team]);
+    const card = opening?.openingCard ? ctx.c.gambitById.get(opening.openingCard) : undefined;
+    const bound = boundCards(ctx, team);
     for (let i = 0; i < ctx.t.gambits.handSize; i++) {
-      ctx.s.hands[team].push({ cardId: null, expireTick: 0, refillTick: null });
-      deal(ctx, team, i);
+      hand.push({ cardId: null, expireTick: 0, refillTick: null });
+      if (i === 0 && card && !bound.includes(card.id)) {
+        const h = hand[0];
+        h.cardId = card.id;
+        h.opening = true;
+        h.expireTick = Number.MAX_SAFE_INTEGER;
+        continue;
+      }
+      if (opening && !card) {
+        // no opening card: three different schools, so the first hand is never one-sided
+        const held = new Set(
+          hand.flatMap((h) => (h.cardId ? [ctx.c.gambitById.get(h.cardId)!.school] : [])),
+        );
+        deal(
+          ctx,
+          team,
+          i,
+          SCHOOLS.filter((sc) => !held.has(sc)),
+        );
+      } else deal(ctx, team, i);
     }
   }
 }
+
+/** The tick a held card was dealt (the opening card, held since the start, counts from 0). */
+const dealtTick = (ctx: Ctx, h: HandSlot): number =>
+  h.opening ? 0 : h.expireTick - Math.round(ctx.t.gambits.expireSec * TPS);
 
 /** Why a held card cannot be played right now ('' when it can). */
 export function cardBlock(ctx: Ctx, team: PlayTeam, slot: number): string {
@@ -691,6 +730,7 @@ export function playGambit(
   const r = cast(ctx, team, def, target, cardCost(ctx, team, def));
   if (!r.ok) return r;
   h.cardId = null;
+  delete h.opening;
   h.refillTick = ctx.s.tick + Math.round(refillSec(ctx, team) * TPS);
   return { ok: true };
 }
@@ -765,6 +805,7 @@ function applyClock(ctx: Ctx, team: PlayTeam, def: GambitDef): ClockNote {
       const card = h.cardId!;
       const ticks = Math.round(p(def, 'refillSec', 15) * TPS);
       h.cardId = null;
+      delete h.opening;
       h.refillTick = s.tick + ticks;
       h.discarded = ticks;
       noteClock(ctx, team, def.id, 'cards', 1);
@@ -785,7 +826,7 @@ function applyClock(ctx: Ctx, team: PlayTeam, def: GambitDef): ClockNote {
       const own = s.hands[team].findIndex((h) => h.cardId === def.id);
       let n = 0;
       s.hands[team].forEach((h, i) => {
-        if (i === own || h.cardId === null) return;
+        if (i === own || h.cardId === null || h.opening) return;
         deal(ctx, team, i, schools);
         n++;
       });
@@ -814,7 +855,7 @@ export function tickGambits(ctx: Ctx): void {
       const h = hand[i];
       if (h.cardId === null) {
         if (h.refillTick !== null && s.tick >= h.refillTick) deal(ctx, team, i);
-      } else if (s.tick >= h.expireTick) deal(ctx, team, i);
+      } else if (h.opening ? s.phase.n >= 2 : s.tick >= h.expireTick) deal(ctx, team, i);
     }
   }
   if (s.timedMods.length) {
@@ -1360,9 +1401,7 @@ function clockPlan(ctx: Ctx, team: PlayTeam, def: GambitDef, theirs: Unit[]): Pl
       const own = hand.findIndex((h) => h.cardId === def.id);
       const others = hand.filter((h, i) => i !== own && h.cardId !== null);
       if (others.length === 0) return null;
-      const dealt = (h: (typeof hand)[number]): number =>
-        h.expireTick - Math.round(ctx.t.gambits.expireSec * TPS);
-      if (others.some((h) => s.tick - dealt(h) < 15 * TPS)) return null;
+      if (others.some((h) => s.tick - dealtTick(ctx, h) < 15 * TPS)) return null;
       if (otherCardsBest(ctx, team, def) >= 1) return null;
       return { score: 1, target: {} };
     }

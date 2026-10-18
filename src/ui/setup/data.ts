@@ -285,6 +285,12 @@ export interface OpeningInfo {
   share: { with: number; without: number } | null;
 }
 
+/** The Opening's card line: "Opens with Fork", or the Italian Game's three schools. */
+export function opensWith(c: Content, o: Opening): string {
+  const card = o.openingCard ? c.gambitById.get(o.openingCard) : undefined;
+  return card ? `Opens with ${card.name}` : 'Opens with three schools';
+}
+
 /** The draw pool: every card with weight, assuming all five pieces are alive. */
 export function deckOf(c: Content): GambitDef[] {
   return c.gambits.filter((g) => g.weight > 0);
@@ -336,7 +342,7 @@ export function openingInfo(c: Content, o: Opening): OpeningInfo {
   if (fav.length === 0)
     return {
       explain:
-        'No school is favoured: every card in the deck is equally likely, so your hand shows a bit of everything.',
+        'No school is favoured: every card in the deck is equally likely, and your first hand holds three different schools.',
       plays: 'A flexible hand. Good when you do not know what Black will do.',
       cards: [],
       strongVs: [],
@@ -378,17 +384,20 @@ export function hashString(s: string): number {
 }
 
 /**
- * Sample hands for an Opening: `count` hands of three different cards, picked by the same weights
- * as a real draw (card weight, doubled for the Opening's schools). Display only.
+ * Sample first hands for an Opening: `count` hands of `size` different cards. The Opening's card
+ * comes first; the rest are picked by the same weights as a real draw (card weight, doubled for
+ * the Opening's schools). The Italian Game has no card, so its hands hold different schools.
+ * Display only.
  */
 export function exampleHands(c: Content, o: Opening, count = 3, size = 3): GambitDef[][] {
   const deck = deckOf(c);
   const rnd = seededRandom(hashString(`hands:${o.id}`));
   const w = (g: GambitDef): number => g.weight * (o.schools.includes(g.school) ? 2 : 1);
+  const first = o.openingCard ? c.gambitById.get(o.openingCard) : undefined;
   const hands: GambitDef[][] = [];
   for (let i = 0; i < count; i++) {
-    const pool = deck.slice();
-    const hand: GambitDef[] = [];
+    const hand: GambitDef[] = first ? [first] : [];
+    let pool = deck.filter((g) => g !== first);
     while (hand.length < size && pool.length > 0) {
       let r = rnd() * pool.reduce((t, g) => t + w(g), 0);
       let at = pool.length - 1;
@@ -399,7 +408,10 @@ export function exampleHands(c: Content, o: Opening, count = 3, size = 3): Gambi
           break;
         }
       }
-      hand.push(pool.splice(at, 1)[0]);
+      const pick = pool[at];
+      hand.push(pick);
+      // no card to open with: three different schools; otherwise just a different card
+      pool = pool.filter((g) => g !== pick && (first || g.school !== pick.school));
     }
     hands.push(hand);
   }

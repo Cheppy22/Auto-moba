@@ -257,6 +257,13 @@ export function validateRefs(c: Content): string[] {
   errs.push(...validateCourts(c));
   errs.push(...validateTechniques(c));
   if (!c.openingById.has('italian')) errs.push('openings: needs the balanced "italian" opening');
+  for (const o of c.openings) {
+    if (o.openingCard === null) continue;
+    const card = c.gambitById.get(o.openingCard);
+    if (!card) errs.push(`opening ${o.id}: unknown opening card ${o.openingCard}`);
+    else if (!o.schools.includes(card.school))
+      errs.push(`opening ${o.id}: ${card.id} is not from its schools`);
+  }
   if (!c.gambits.some((g) => g.piece === null && g.weight > 0))
     errs.push('gambits: needs at least one universal card');
   for (const b of c.biomes) {

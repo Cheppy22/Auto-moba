@@ -2,25 +2,57 @@
   {
     "id": "italian",
     "name": "Italian Game",
-    "desc": "Balanced. The hand draws every school evenly.",
-    "schools": []
+    "desc": "Balanced. The first hand holds three different schools, then every school is drawn evenly.",
+    "schools": [],
+    "openingCard": null
   },
   {
     "id": "sicilian",
     "name": "Sicilian Defence",
     "desc": "Sharp and active: Initiative and March cards come up twice as often.",
-    "schools": ["initiative", "march"]
+    "schools": ["initiative", "march"],
+    "openingCard": "fork"
   },
   {
     "id": "french",
     "name": "French Defence",
     "desc": "Solid and patient: Fortress and Position cards come up twice as often.",
-    "schools": ["fortress", "position"]
+    "schools": ["fortress", "position"],
+    "openingCard": "hold_the_file"
   },
   {
     "id": "kings_gambit",
     "name": "King's Gambit",
     "desc": "Bold and costly: Sacrifice and March cards come up twice as often.",
-    "schools": ["sacrifice", "march"]
+    "schools": ["sacrifice", "march"],
+    "openingCard": "pawn_sacrifice"
+  },
+  {
+    "id": "english",
+    "name": "English Opening",
+    "desc": "Quiet and clever: Clock and Position cards come up twice as often.",
+    "schools": ["clock", "position"],
+    "openingCard": "increment"
+  },
+  {
+    "id": "scandinavian",
+    "name": "Scandinavian Defence",
+    "desc": "The Queen comes out early: Initiative and Clock cards come up twice as often.",
+    "schools": ["initiative", "clock"],
+    "openingCard": "check"
+  },
+  {
+    "id": "kings_indian",
+    "name": "King's Indian Defence",
+    "desc": "Let them build, then break through: Sacrifice and Initiative cards come up twice as often.",
+    "schools": ["sacrifice", "initiative"],
+    "openingCard": "exchange"
+  },
+  {
+    "id": "caro_kann",
+    "name": "Caro-Kann Defence",
+    "desc": "Solid with no bad matchup: Fortress and Clock cards come up twice as often.",
+    "schools": ["fortress", "clock"],
+    "openingCard": "fortify"
   }
 ]

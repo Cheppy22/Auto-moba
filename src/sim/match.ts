@@ -471,10 +471,15 @@ export class Match {
         piece: def ? def.piece : null,
         usable: live && !still && block === '',
         reason: !live ? 'match not live' : still ? 'play is stopped for the bell' : block,
-        ticksLeft: def ? Math.max(0, slot.expireTick - s.tick) : 0,
+        ticksLeft: def
+          ? slot.opening
+            ? Math.max(0, actTicks(this.ctx) - (s.tick - s.phase.startTick))
+            : Math.max(0, slot.expireTick - s.tick)
+          : 0,
         refillTicks: slot.refillTick !== null ? Math.max(0, slot.refillTick - s.tick) : null,
         refillTotal: slot.discarded ?? Math.round(refillSec(this.ctx, 'A') * TPS),
         discarded: slot.discarded !== undefined,
+        opening: !!slot.opening,
       };
     });
     const pawnsOf = (team: PlayTeam): Snapshot['pawns']['A'] => ({

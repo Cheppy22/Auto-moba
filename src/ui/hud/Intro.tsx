@@ -8,6 +8,7 @@ import { CourtSeal, roundLine } from '../run/parts';
 import { CourtPortrait } from '../run/seals';
 import { SchoolChip } from '../schools';
 import { useSession } from '../session';
+import { opensWith } from '../setup/data';
 
 /** A tap or key this soon after the card goes up is the setup Begin finishing, not a start. */
 const TAP_GRACE_MS = 400;
@@ -42,6 +43,11 @@ function Opening(props: { team: PlayTeam }) {
           <span class="school-chip balanced">Balanced</span>
         )}
       </span>
+      {o && (
+        <span class="vs-opens" data-testid={`intro-opens-${team}`}>
+          {opensWith(s.content, o)}
+        </span>
+      )}
       {relics.length > 0 && (
         <span class="vs-relics" data-testid="intro-relics-B" aria-label="Starting relics">
           {relics.map((h) => {

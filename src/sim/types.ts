@@ -619,12 +619,14 @@ export interface TeamSetup {
   pieces: SetupEntry[];
 }
 
-interface HandSlot {
+export interface HandSlot {
   cardId: string | null;
   /** Tick the held card expires (is replaced) when unplayed. */
   expireTick: number;
   /** Tick an empty slot is refilled; null while a card is held. */
   refillTick: number | null;
+  /** The held card is the Opening's card: it stays until played or Act 1 ends. */
+  opening?: true;
   /** Zugzwang emptied this slot: its refill takes this many ticks (cleared when it is dealt). */
   discarded?: number;
 }
@@ -1394,6 +1396,8 @@ export interface SnapGambit {
   refillTotal: number;
   /** Zugzwang discarded the card that was in this slot. */
   discarded: boolean;
+  /** The card is the Opening's: kept until played or Act 1 ends (`ticksLeft` is the Act's time). */
+  opening: boolean;
 }
 
 export interface SnapFork {

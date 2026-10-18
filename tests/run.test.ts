@@ -101,7 +101,7 @@ describe('Tournament run: the generated stand-ins (fallback)', () => {
       const o = revealOpponent(standIn, run, i);
       const schools = content.openingById.get(o.setup.opening)!.schools;
       expect(openingEdge(schools, ['sacrifice', 'march'])).toBe(best);
-      expect(o.setup.opening).toBe('french');
+      expect(['french', 'english']).toContain(o.setup.opening);
       expect(o.relics).toHaveLength(T.rounds[i].relics);
     }
     // Club and County keep their seeded Opening

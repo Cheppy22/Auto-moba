@@ -808,6 +808,39 @@
 .timer.refill i {
   background: var(--baize);
 }
+/* the Opening's card: a brass "Opening" corner, and an "Act 1" pin where the expiry bar would be */
+.gcard.opening {
+  padding-bottom: 15px;
+  border-color: var(--brass);
+}
+.gopen {
+  flex: none;
+  padding: 0 5px;
+  font-family: var(--font-body);
+  font-size: 9.5px;
+  font-weight: 700;
+  line-height: 14px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #1a1206;
+  background: linear-gradient(180deg, var(--brass-hi), var(--brass));
+  border-radius: 3px;
+}
+.gpin {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 12px;
+  font-size: 9.5px;
+  font-weight: 700;
+  line-height: 12px;
+  letter-spacing: 0.1em;
+  text-align: center;
+  text-transform: uppercase;
+  color: #1a1206;
+  background: var(--brass);
+}
 
 .cmd {
   display: flex;
