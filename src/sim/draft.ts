@@ -1,6 +1,6 @@
 import { laneResult } from './ai/replan';
 import { allCallouts, type Callout } from './callouts';
-import { relicEffect, type Content } from './content/loader';
+import { gambitEffect, relicEffect, type Content } from './content/loader';
 import { RELIC_FAMILIES, SEALED_TRIGGERS } from './content/schema';
 import type { RelicDef, RelicFamily, SealedTrigger } from './content/schema';
 import { pick, rand, shuffle } from './core/rng';
@@ -201,11 +201,18 @@ export function aimFor(
   }
 }
 
-/** Whether a card may be sealed under an Opening: its schools, or any school for the Italian Game. */
+/** Cards Sealed Move never holds: they change the side's own hand or income, so nothing to aim. */
+const UNSEALABLE: readonly string[] = ['increment', 'opening_book'];
+
+/**
+ * Whether a card may be sealed under an Opening: its schools, or any school for the Italian Game;
+ * never Increment or Opening Book.
+ */
 export function sealableUnder(c: Content, opening: string, card: string): boolean {
   const g = c.gambitById.get(card);
   const schools = c.openingById.get(opening)?.schools ?? [];
-  return !!g && g.weight > 0 && (schools.length === 0 || schools.includes(g.school));
+  if (!g || g.weight <= 0 || UNSEALABLE.includes(gambitEffect(g))) return false;
+  return schools.length === 0 || schools.includes(g.school);
 }
 
 const sealable = (ctx: Ctx, team: PlayTeam, card: string): boolean =>

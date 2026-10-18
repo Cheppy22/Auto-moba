@@ -217,6 +217,7 @@ describe('Desperado', () => {
     expect(run.attr).toMatchObject({ on: 'dealt', mul: 1.6 });
     kill(m, rook, piece(m, 'B', 'queen').id);
     expect(run.fell).toBe(true);
+    expect(run.refund).toBe(10);
   });
 });
 

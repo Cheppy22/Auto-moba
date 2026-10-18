@@ -145,7 +145,11 @@ export function fallToast(
 const num = (v: number): string => Math.round(v).toLocaleString('en-US');
 
 /** What a card measurably did, or null when the sim cannot attribute anything to it. */
-function headline(id: string, m: CardMetrics, single: { fell: boolean } | null): string | null {
+function headline(
+  id: string,
+  m: CardMetrics,
+  single: { fell: boolean; card?: string } | null,
+): string | null {
   switch (id) {
     case 'advance':
       return m.structure >= 1 ? `${num(m.structure)} Bastion damage` : null;
@@ -187,11 +191,21 @@ function headline(id: string, m: CardMetrics, single: { fell: boolean } | null):
     }
     case 'desperado': {
       const hit = m.bonus >= 10 ? `+${num(m.bonus)} damage` : null;
-      if (single?.fell) return hit ? `${hit}; fell, Tempo came back` : 'fell, Tempo came back';
-      return hit;
+      const back = m.refund >= 1 ? `fell, +${num(m.refund)} Tempo` : null;
+      return hit && back ? `${hit}; ${back}` : (hit ?? back);
     }
     case 'fortify':
       return m.prevented >= 10 ? `shield soaked ${num(m.prevented)} damage` : null;
+    // Clock school
+    case 'zugzwang':
+      if (single?.card) return `discarded ${single.card}`;
+      return m.cards > 0 ? `discarded ${m.cards} ${m.cards === 1 ? 'card' : 'cards'}` : null;
+    case 'time_trouble':
+      return m.drained >= 1 ? `drained ${num(m.drained)} Tempo` : null;
+    case 'opening_book':
+      return m.cards > 0 ? `redealt ${m.cards} ${m.cards === 1 ? 'card' : 'cards'}` : null;
+    case 'increment':
+      return m.refund >= 1 ? `gave back ${num(m.refund)} Tempo` : null;
     default:
       return null;
   }
@@ -214,7 +228,7 @@ export function cardResult(
   id: string,
   m: CardMetrics,
   seconds: number,
-  single: { fell: boolean } | null = null,
+  single: { fell: boolean; card?: string } | null = null,
 ): string {
   const parts: string[] = [];
   const head = headline(id, m, single);
@@ -229,9 +243,18 @@ export function cardResult(
 
 type GambitEnd = Extract<GameEvent, { type: 'gambitEnd' }>['payload'];
 
-/** The line shown when a gambit's effect ends: "Barricade — 9 enemy units reached the wall". */
-export function cardLine(name: string, g: GambitEnd, tps: number): string {
-  return `${name} — ${cardResult(g.cardId, g, (g.endTick - g.startTick) / tps, { fell: g.fell })}`;
+/**
+ * The line shown when a gambit's effect ends: "Barricade — 9 enemy units reached the wall".
+ * `nameOf` names a card the play moved (Zugzwang's discard).
+ */
+export function cardLine(
+  name: string,
+  g: GambitEnd,
+  tps: number,
+  nameOf: (cardId: string) => string = (id) => id,
+): string {
+  const single = { fell: g.fell, ...(g.card ? { card: nameOf(g.card) } : {}) };
+  return `${name} — ${cardResult(g.cardId, g, (g.endTick - g.startTick) / tps, single)}`;
 }
 
 export const cardRow = (c: ActCardStat): string => cardResult(c.cardId, c, c.seconds / c.plays);
@@ -250,15 +273,23 @@ export function laneNear(
 
 /**
  * The line for a gambit Black played: "Black played Barricade on Left lane", "Black played Check
- * on your Knight", or just the name for a card that needs no target.
+ * on your Knight", or just the name for a card that needs no target. A Clock card says what you
+ * lose: "Black played Zugzwang: your Fork is discarded" (`discarded` is that card's name).
  */
 export function blackPlayLine(
   name: string,
   target: 'lane' | 'point' | 'enemy' | 'ally' | 'none',
   p: GambitPlay,
-  where: { lane: LaneId | null; piece: PieceId | null; structure: string | null },
+  where: {
+    lane: LaneId | null;
+    piece: PieceId | null;
+    structure: string | null;
+    discarded?: string;
+  },
 ): string {
   const head = `${courtName('B')} played ${name}`;
+  if (where.discarded) return `${head}: your ${where.discarded} is discarded`;
+  if (p.drained !== undefined) return `${head}: you lose ${p.drained} Tempo`;
   const lane = p.lane ?? where.lane;
   if ((target === 'lane' || target === 'point') && lane) return `${head} on ${laneName(lane)} lane`;
   if (target === 'enemy' && where.piece) return `${head} on your ${PIECE_NAME[where.piece]}`;

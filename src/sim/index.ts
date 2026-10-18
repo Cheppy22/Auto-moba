@@ -42,6 +42,7 @@ export { LANE_NAME, PIECE_NAME, PLAY_TEAMS, TEAM_NAME, teamWord } from './names'
 export { hashContent } from './core/rng';
 export { COUNTERED_BY, openingEdge } from './schools';
 export { defaultAim } from './runRules';
+export { sealableUnder } from './draft';
 export * from './run';
 export { LANES, distToPolyline, nearestBy } from './world/map';
 export { buildTerrain, clearLine, confine, shapeDist, walkable } from './world/terrain';

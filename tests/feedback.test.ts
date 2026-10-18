@@ -183,6 +183,8 @@ describe('fight verdicts', () => {
       deaths: 0,
       met: 0,
       drained: 0,
+      refund: 0,
+      cards: 0,
     };
     expect(cardResult('hold_the_file', { ...none, prevented: 340.4 }, 20)).toBe(
       'turned away about 340 damage',

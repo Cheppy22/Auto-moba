@@ -22,6 +22,7 @@ export function Command(props: { snap: Snapshot; lead?: ComponentChildren }) {
     fullSince.current = snap.tick;
   const bell = snap.act.bell;
   const full = tempo >= max;
+  const { slowTicks, incrementTicks, refund } = snap.clock;
   const nudge =
     full &&
     !aiming &&
@@ -37,7 +38,7 @@ export function Command(props: { snap: Snapshot; lead?: ComponentChildren }) {
       <div class="cmd">
         {props.lead}
         <div
-          class={`tempo glass ${full ? 'full' : ''} ${nudge ? 'nudge' : ''}`}
+          class={`tempo glass ${full ? 'full' : ''} ${nudge ? 'nudge' : ''} ${slowTicks > 0 ? 'slowed' : ''}`}
           data-testid="tempo"
           data-full={full}
           role="meter"
@@ -49,6 +50,20 @@ export function Command(props: { snap: Snapshot; lead?: ComponentChildren }) {
         >
           <span class="tempo-top">
             <span class="tempo-label">Tempo</span>
+            {(slowTicks > 0 || incrementTicks > 0) && (
+              <span class="tempo-clock" data-testid="tempo-clock">
+                {slowTicks > 0 && (
+                  <span class="tc-slow" title="Time Trouble: you earn Tempo slower for now">
+                    Slowed {Math.ceil(slowTicks / 20)}s
+                  </span>
+                )}
+                {incrementTicks > 0 && (
+                  <span class="tc-inc" title="Increment: each card you play gives Tempo back">
+                    +{refund} a card · {Math.ceil(incrementTicks / 20)}s
+                  </span>
+                )}
+              </span>
+            )}
             <b class="tempo-value" data-testid="tempo-value">
               {tempo}
             </b>

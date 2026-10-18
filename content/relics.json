@@ -144,7 +144,7 @@
       "headline": "One card plays itself when your trigger trips, once an Act, 10 Tempo cheaper.",
       "rewards": "A pre-planned answer instead of a reflex.",
       "counter": "The card's own school counter. A trigger the enemy can bait.",
-      "tags": ["gambit-heavy", "opening"],
+      "tags": ["gambit-heavy", "opening", "clock"],
       "triggerCards": {
         "bastion": ["hold_the_file", "regroup", "barricade", "outpost", "sanctuary", "castle"],
         "kill": ["advance", "pawn_storm", "siege", "check", "fork", "exchange"],
@@ -295,7 +295,7 @@
       "headline": "Bank up to 130 Tempo for one big turn.",
       "rewards": "Bank for a planned burst (Check and Fork cost 75).",
       "counter": "March: steady cheap pressure while you save.",
-      "tags": ["gambit-heavy", "initiative", "sacrifice"],
+      "tags": ["gambit-heavy", "initiative", "sacrifice", "clock"],
       "params": {
         "cap": 130,
         "share": 0.1,
@@ -364,7 +364,7 @@
       "headline": "A hand of 2 cards that refills in 4 seconds, and 20% more Tempo.",
       "rewards": "Fewer live decisions, more pawns or Sealed Move.",
       "counter": "Initiative: you hold fewer answers to a pick.",
-      "tags": ["pawn-heavy", "opening"],
+      "tags": ["pawn-heavy", "opening", "clock"],
       "params": {
         "hand": 2,
         "refillSec": 4,

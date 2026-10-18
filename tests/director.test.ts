@@ -59,6 +59,7 @@ const snap = (tick: number, units: SnapUnit[] = [], o: Partial<Snapshot> = {}): 
   tempo: { A: 0, B: 0 },
   tempoMax: 100,
   handRefillSec: 6,
+  clock: { slowTicks: 0, incrementTicks: 0, refund: 0 },
   hand: [],
   pawns: { A: { alive: 0, cap: 8, cost: 15 }, B: { alive: 0, cap: 8, cost: 15 } },
   forks: [],

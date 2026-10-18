@@ -135,7 +135,6 @@ export function Hand(props: { snap: Snapshot }) {
   const { snap } = props;
   const g = s.content.tuning.gambits;
   const expireTicks = g.expireSec * 20;
-  const refillTicks = snap.handRefillSec * 20;
   const aimSlot = s.ui.aim?.kind === 'gambit' ? s.ui.aim.slot : -1;
   // while the bell has stopped play every card is inert: dim them, but say it once (the bell line), not on each card
   const stopped = snap.act.bell === 'halt' || snap.act.bell === 'break';
@@ -149,14 +148,21 @@ export function Hand(props: { snap: Snapshot }) {
     >
       {snap.hand.map((c) =>
         c.cardId === '' ? (
-          <div class="gcard empty" key={c.slot} data-testid={`gambit-${c.slot}`} data-empty="true">
+          <div
+            class={`gcard empty ${c.discarded ? 'discarded' : ''}`}
+            key={c.slot}
+            data-testid={`gambit-${c.slot}`}
+            data-empty="true"
+            data-discarded={c.discarded}
+          >
+            {c.discarded && <span class="gstate lost">Discarded by Zugzwang</span>}
             <span class="gstate dim">
               {c.refillTicks === null ? 'Shuffling' : `Next in ${Math.ceil(c.refillTicks / 20)}s`}
             </span>
             <span class="timer refill">
               <i
                 style={{
-                  width: `${Math.round((1 - (c.refillTicks ?? refillTicks) / refillTicks) * 100)}%`,
+                  width: `${Math.max(0, Math.round((1 - (c.refillTicks ?? c.refillTotal) / Math.max(1, c.refillTotal)) * 100))}%`,
                 }}
               />
             </span>

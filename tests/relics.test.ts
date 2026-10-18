@@ -84,7 +84,8 @@ describe('relic draft', () => {
     expect(m.issue({ type: 'resumeAct' }).ok).toBe(false);
     expect(m.issue({ type: 'pickRelic', relicId: 'nonsense' }).ok).toBe(false);
     if (offer) {
-      const bad = content.relicById.get(offer.id)!.bind === 'lane' ? { piece: 1 } : {};
+      // a lane relic with a stray piece, a piece relic aimed at no piece of yours
+      const bad = content.relicById.get(offer.id)!.bind === 'lane' ? { piece: 1 } : { piece: -1 };
       const wrong = m.issue({
         type: 'pickRelic',
         relicId: offer.id,

@@ -93,11 +93,16 @@ export interface Note {
   ms: number;
 }
 
+/** What a Black play's banner says. */
+type BlackPlayLine = { school: School; text: string; loss: boolean };
+
 /** A gambit Black played, shown as a banner at the top for a few seconds. */
 export interface BlackPlay {
   id: number;
   school: School;
   text: string;
+  /** The play costs you something (Zugzwang's discard, Time Trouble's drain): seal red. */
+  loss: boolean;
   until: number;
   ms: number;
 }
@@ -232,7 +237,7 @@ export class Session {
   private lastLeft: number | null = null;
   private chipId = 0;
   private noteId = 0;
-  private blackQueue: { school: School; text: string }[] = [];
+  private blackQueue: BlackPlayLine[] = [];
   private blackId = 0;
   /** True once the intro portraits are drawn (while the player was on the setup screens). */
   private portraitsWarm = false;
@@ -1175,7 +1180,7 @@ export class Session {
     if (ev.length === 0 || ev[ev.length - 1].seq < this.seenSeq) this.seenSeq = -1;
     const fresh: Chip[] = [];
     const notes: Note[] = [];
-    const plays: { school: School; text: string }[] = [];
+    const plays: BlackPlayLine[] = [];
     const quiet = m.state.bell.stage === 'halt' || m.state.bell.stage === 'break';
     const note = (n: Omit<Note, 'id' | 'until' | 'ms'>, ms: number): void => {
       if (!quiet) notes.unshift({ ...n, id: ++this.noteId, until: performance.now() + ms, ms });
@@ -1231,7 +1236,12 @@ export class Session {
         note(
           {
             kind: 'card',
-            text: cardLine(name, e.payload, this.content.tuning.tickRate),
+            text: cardLine(
+              name,
+              e.payload,
+              this.content.tuning.tickRate,
+              (id) => this.content.gambitById.get(id)?.name ?? id,
+            ),
             tone: 'plain',
             at: null,
           },
@@ -1432,7 +1442,7 @@ export class Session {
   private blackPlay(
     m: Match,
     p: Extract<GameEvent, { type: 'gambit' }>['payload'],
-  ): { school: School; text: string } | null {
+  ): BlackPlayLine | null {
     const def = this.content.gambitById.get(p.cardId);
     if (!def) return null;
     const target = p.targetId === undefined ? undefined : m.unitById(p.targetId);
@@ -1442,22 +1452,21 @@ export class Session {
         : laneNear(m.content.map.lanes, p.x, p.y, this.content.tuning.feedback.fight.laneRadius);
     const structure =
       target?.kind === 'guardian' ? 'Throne' : target?.kind === 'tower' ? 'Bastion' : null;
+    const discarded = p.discarded ? this.content.gambitById.get(p.discarded)?.name : undefined;
     const text = blackPlayLine(def.name, def.target, p, {
       lane,
       piece: target?.hero?.defId ?? null,
       structure,
+      ...(discarded ? { discarded } : {}),
     });
-    return { school: def.school, text };
+    return { school: def.school, text, loss: !!discarded || p.drained !== undefined };
   }
 
   /**
    * Queues new Black plays and returns the banner to show: undefined when nothing changes, null
    * to clear it. One banner shows at a time; the next waits its turn.
    */
-  private nextBlackPlay(
-    plays: { school: School; text: string }[],
-    now: number,
-  ): BlackPlay | null | undefined {
+  private nextBlackPlay(plays: BlackPlayLine[], now: number): BlackPlay | null | undefined {
     if (plays.length > 0) this.blackQueue = [...this.blackQueue, ...plays].slice(-MAX_BLACK_QUEUE);
     const cur = this.ui.blackPlay;
     if (cur && cur.until > now) return undefined;

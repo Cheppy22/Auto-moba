@@ -111,6 +111,8 @@ function initialState(content: Content, config: MatchConfig): MatchState {
     opening: { A: (config.setup?.A ?? defaultA).opening, B: (config.setup?.B ?? pickB).opening },
     teamDamage: { A: null, B: null },
     breakthrough: { A: {}, B: {} },
+    tempoSlow: { A: null, B: null },
+    increment: { A: null, B: null },
     forceStyles: { A: config.forceStyles?.A ?? {}, B: config.forceStyles?.B ?? {} },
     autoGambits: { A: config.autoGambits?.A ?? false, B: config.autoGambits?.B ?? true },
     autoForks: {
@@ -462,6 +464,8 @@ export class Match {
         reason: !live ? 'match not live' : still ? 'play is stopped for the bell' : block,
         ticksLeft: def ? Math.max(0, slot.expireTick - s.tick) : 0,
         refillTicks: slot.refillTick !== null ? Math.max(0, slot.refillTick - s.tick) : null,
+        refillTotal: slot.discarded ?? Math.round(refillSec(this.ctx, 'A') * TPS),
+        discarded: slot.discarded !== undefined,
       };
     });
     const pawnsOf = (team: PlayTeam): Snapshot['pawns']['A'] => ({
@@ -575,6 +579,11 @@ export class Match {
       },
       tempoMax: tempoCap(this.ctx, 'A'),
       handRefillSec: refillSec(this.ctx, 'A'),
+      clock: {
+        slowTicks: Math.max(0, (s.tempoSlow.A?.untilTick ?? 0) - s.tick),
+        incrementTicks: Math.max(0, (s.increment.A?.untilTick ?? 0) - s.tick),
+        refund: s.increment.A?.value ?? 0,
+      },
     };
   }
 

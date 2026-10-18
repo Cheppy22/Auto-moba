@@ -263,6 +263,11 @@ export const GAMBIT_EFFECTS = [
   'pin',
   'desperado',
   'fortify',
+  // Clock school (spec 2026-10-18, phase A)
+  'zugzwang',
+  'time_trouble',
+  'opening_book',
+  'increment',
 ] as const;
 
 const GambitSchema = z.object({

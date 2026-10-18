@@ -25,6 +25,8 @@ const METRICS = [
   'deaths',
   'met',
   'drained',
+  'refund',
+  'cards',
 ] as const;
 
 export function freshTally(startSeq: number): ActTally {
@@ -177,6 +179,8 @@ export function buildActReport(ctx: Ctx): ActReport {
             deaths: 0,
             met: 0,
             drained: 0,
+            refund: 0,
+            cards: 0,
           } satisfies ActCardStat;
           cards.push(c);
         }
