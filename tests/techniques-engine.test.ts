@@ -112,6 +112,86 @@ describe('cast triggers, echo and the landing area', () => {
   });
 });
 
+describe('targets around the victim, allies, regen and a Dubious price', () => {
+  /** A Bishop beams a Queen 100 away; a Knight stands `gap` behind her. Returns each one's loss. */
+  function beam(ids: string[], gap: number, marked: boolean): [number, number] {
+    const m = arena();
+    const bi = P(m, 'A', 'bishop');
+    const q = P(m, 'B', 'queen');
+    const kn = P(m, 'B', 'knight');
+    clearBoard(m, [bi, q, kn]);
+    place(m, [
+      [bi, 0, 0],
+      [q, 100, 0],
+      [kn, 100 + gap, 0],
+    ]);
+    hold(m, bi, ...ids);
+    ready(bi);
+    if (marked) q.mark = { team: 'A', value: 1, untilTick: m.state.tick + 100 };
+    q.shields = [];
+    kn.shields = [];
+    const before = [q.hp, kn.hp];
+    expect(tryCast(m.ctx, bi, 0)).toBe(true);
+    return [before[0] - q.hp, before[1] - kn.hp];
+  }
+
+  it('Long Diagonal: the beam also hits everything within 40 of its target', () => {
+    expect(beam([], 30, false)[1]).toBe(0);
+    const [q, kn] = beam(['long_diagonal'], 30, false);
+    expect(kn).toBeGreaterThan(0);
+    expect(kn / q).toBeGreaterThan(0.5);
+    expect(beam(['long_diagonal'], 80, false)[1]).toBe(0);
+  });
+
+  it('Discovered Attack: a beam on a marked piece also strikes the enemy piece nearest it', () => {
+    expect(beam(['discovered_attack'], 150, false)[1]).toBe(0);
+    expect(beam(['discovered_attack'], 150, true)[1]).toBeGreaterThan(0);
+  });
+
+  it('Living Wall: Stone Skin also shields ally pieces within 150 at half strength', () => {
+    const m = arena();
+    const r = P(m, 'A', 'rook');
+    const near = P(m, 'A', 'queen');
+    const far = P(m, 'A', 'bishop');
+    const foe = P(m, 'B', 'knight');
+    clearBoard(m, [r, near, far, foe]);
+    place(m, [
+      [r, 0, 0],
+      [near, -60, 0],
+      [far, -300, 0],
+      [foe, 60, 0],
+    ]);
+    hold(m, r, 'living_wall');
+    ready(r);
+    for (const u of [r, near, far]) u.shields = [];
+    expect(tryCast(m.ctx, r, 1)).toBe(true);
+    const own = r.shields.reduce((a, s) => a + s.amount, 0);
+    expect(own).toBeGreaterThan(0);
+    expect(near.shields.reduce((a, s) => a + s.amount, 0)).toBeCloseTo(own * 0.5, 0);
+    expect(far.shields).toHaveLength(0);
+  });
+
+  it('regen gives a share of max health a second for its time; payHp never kills', () => {
+    const m = arena();
+    const k = P(m, 'A', 'knight');
+    const sanctified = m.ctx.c.techniqueById.get('sanctified')!;
+    const regen = sanctified.triggers[0].effects[1];
+    expect(regen.type).toBe('regen');
+    const base = k.stats.hpRegen;
+    applyEffect(m.ctx, regen, { caster: k, target: k, powerMul: 1, origin: 'test' });
+    recompute(m.ctx, k);
+    expect(k.stats.hpRegen - base).toBeCloseTo(0.02 * k.stats.maxHp, 3);
+    const price = m.ctx.c.techniqueById.get('blood_price')!.dubious!.triggers![0].effects[0];
+    expect(price.type).toBe('payHp');
+    k.hp = k.stats.maxHp * 0.5;
+    applyEffect(m.ctx, price, { caster: k, target: k, powerMul: 1, origin: 'test' });
+    expect(k.hp).toBeCloseTo(k.stats.maxHp * 0.49, 3);
+    k.hp = 2;
+    applyEffect(m.ctx, price, { caster: k, target: k, powerMul: 1, origin: 'test' });
+    expect(k.hp).toBe(1);
+  });
+});
+
 describe('recast', () => {
   it('Echoing Decree strikes the same spot again a second later at half power', () => {
     const m = arena();
