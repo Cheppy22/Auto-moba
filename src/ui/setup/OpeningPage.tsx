@@ -56,15 +56,17 @@ function OpeningCard(props: {
   const { content: c, opening: o } = props;
   const [more, setMore] = useState(false);
   const row = useRef<HTMLDivElement>(null);
-  // the picked row (with its verdict strip) scrolls into view inside its page; only the page's own
-  // scroll moves, never the sliding pager around it
+  // the picked row (with its verdict strip, or its opened More) scrolls into view inside its page,
+  // never past its own top; only the page's own scroll moves, never the sliding pager around it
   useEffect(() => {
     const el = row.current;
     const pane = el?.closest('.sp-pane');
     if (!props.on || !el || !pane) return;
-    const over = el.getBoundingClientRect().bottom - pane.getBoundingClientRect().bottom;
-    if (over > 0) pane.scrollTop += over + 8;
-  }, [props.on]);
+    const r = el.getBoundingClientRect();
+    const p = pane.getBoundingClientRect();
+    const over = r.bottom - p.bottom;
+    if (over > 0) pane.scrollTop += Math.min(over + 8, Math.max(0, r.top - p.top));
+  }, [props.on, more]);
   const info = openingInfo(c, o);
   const hands = more ? exampleHands(c, o) : [];
   const card = o.openingCard ? c.gambitById.get(o.openingCard) : undefined;
