@@ -167,8 +167,16 @@ test('an enemy gambit is aimed with a tap on a Black piece', async ({ page }) =>
   await page.setViewportSize({ width: 1280, height: 800 });
   await startLive(page, '42');
   await viewReady(page);
-  const s = await stepUntil(page, { kind: 'card', target: 'enemy', cardId: 'check' });
-  const slot = s.hand.find((c) => c.cardId === 'check')!.slot;
+  // any usable card that aims at a piece will do (Siege aims at a Bastion, so it is left out); the
+  // deal is seeded luck, so the test takes what the hand holds instead of waiting for one card
+  const s = await stepUntil(page, {
+    kind: 'card',
+    target: 'enemy',
+    anyOf: ['check', 'fork', 'pin'],
+  });
+  const slot = s.hand.find(
+    (c) => c.target === 'enemy' && c.usable && ['check', 'fork', 'pin'].includes(c.cardId),
+  )!.slot;
   // follow a Black piece that is still standing, so it sits in the middle of the screen and clear of
   // the aim banner (a court-bar token opens a card instead of following, so the camera is set directly)
   const piece = await page.evaluate(() => {

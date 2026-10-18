@@ -256,8 +256,17 @@ export function bareGround(page: Page, clear = 220): Promise<{ x: number; y: num
 export type Until =
   | { kind: 'fork' }
   | { kind: 'end' }
-  /** A usable card with that target in the hand (Tempo is topped up while stepping). */
-  | { kind: 'card'; target: 'lane' | 'point' | 'enemy' | 'none'; cardId?: string };
+  /**
+   * A usable card with that target in the hand (Tempo is topped up while stepping). `cardId` names
+   * one card, `anyOf` several; with neither, any card with the target will do, so a test needs a
+   * kind of card and never a lucky draw.
+   */
+  | {
+      kind: 'card';
+      target: 'lane' | 'point' | 'enemy' | 'none';
+      cardId?: string;
+      anyOf?: readonly string[];
+    };
 
 /**
  * Steps the sim inside the page (one round trip) in `chunk`-tick pieces until the condition holds:
@@ -282,7 +291,8 @@ export async function stepUntil(
                 (c) =>
                   c.target === until.target &&
                   c.usable &&
-                  (until.cardId === undefined || c.cardId === until.cardId),
+                  (until.cardId === undefined || c.cardId === until.cardId) &&
+                  (until.anyOf === undefined || until.anyOf.includes(c.cardId)),
               );
       const topUp = (): void => {
         if (until.kind === 'card') s.match.state.tempo.A = 100;

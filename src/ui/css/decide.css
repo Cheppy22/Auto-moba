@@ -277,37 +277,47 @@ html[data-layout='landscape'] .forksheet {
     100% - var(--hud-top, calc(112px + env(safe-area-inset-top))) - 12px -
       env(safe-area-inset-bottom)
   );
-  gap: 5px;
+  gap: 4px;
 }
 html[data-layout='landscape'] .fs-opt {
-  min-height: 44px;
-  padding: 2px 4px 4px;
+  min-height: 42px;
+  padding: 2px 4px 3px;
 }
 html[data-layout='landscape'] .fs-opt b {
   font-size: var(--fs-sm);
 }
 html[data-layout='landscape'] .fs-preview {
-  grid-template-columns: 64px minmax(0, 1fr);
+  grid-template-columns: 52px minmax(0, 1fr);
   grid-template-areas:
     'model read'
     'model deltas'
     'skill skill';
   gap: 3px 8px;
 }
+/* a phone held sideways is 390 px tall: an option with four changed stats (two rows) must still fit whole */
 html[data-layout='landscape'] .fs-delta {
   padding: 1px 6px 2px;
 }
+html[data-layout='landscape'] .fs-delta dt {
+  font-size: 11px;
+  line-height: 1.15;
+}
+html[data-layout='landscape'] .fs-delta dd {
+  font-size: 13px;
+  line-height: 1.15;
+}
 html[data-layout='landscape'] .fs-model {
-  width: 64px;
-  height: 64px;
+  width: 52px;
+  height: 52px;
 }
 html[data-layout='landscape'] .fs-model img {
-  width: 76px;
-  height: 76px;
+  width: 64px;
+  height: 64px;
   margin-top: -10px;
 }
 html[data-layout='landscape'] .fs-plays {
   font-size: var(--fs-sm);
+  line-height: 1.25;
 }
 html[data-layout='landscape'] .fs-rule {
   display: none;
