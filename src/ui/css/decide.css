@@ -272,7 +272,11 @@ html[data-layout='portrait'] .forksheet[data-kind='archetype'] .fs-rule {
 /* landscape phones: docked right, below the top-right controls, sized to its content */
 html[data-layout='landscape'] .forksheet {
   top: auto;
-  max-height: calc(100% - 112px - env(safe-area-inset-top));
+  /* from just under the top bar (6 px gap) to the bottom edge (6 px + the home-bar inset) */
+  max-height: calc(
+    100% - var(--hud-top, calc(112px + env(safe-area-inset-top))) - 12px -
+      env(safe-area-inset-bottom)
+  );
   gap: 5px;
 }
 html[data-layout='landscape'] .fs-opt {

@@ -1151,7 +1151,7 @@
   flex-direction: column;
   gap: 8px;
   max-height: calc(100% - 64px);
-  overflow-y: auto;
+  overflow: hidden;
   padding: 10px 10px 10px;
   pointer-events: auto;
   background: linear-gradient(180deg, rgba(40, 32, 22, 0.98), rgba(26, 19, 14, 0.98));
@@ -1160,6 +1160,23 @@
   border-radius: var(--r-1);
   box-shadow: var(--glow-brass), var(--sh-2);
   animation: sheet-in 0.28s var(--ease) both;
+}
+/* the head and the buttons stay put; only the middle scrolls when a short screen cannot fit it */
+.fs-head,
+.fs-actions {
+  flex: none;
+}
+.fs-body {
+  display: flex;
+  flex-direction: column;
+  gap: inherit;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.fs-body > * {
+  flex: none;
 }
 .fs-head {
   display: flex;
