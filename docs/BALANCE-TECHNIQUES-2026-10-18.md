@@ -62,3 +62,19 @@ Phase 0 of [SPEC-PIECE-BUILDS-2026-10-18.md](SPEC-PIECE-BUILDS-2026-10-18.md) (4
 
 - Phase 4 turns this curve on for every match (or folds it into `ranks.growth` per stat) when items retire.
 - Phase 6 re-measures with Techniques on (`--techniques --no-items`), with the budget in CLAUDE.md. Techniques add power of their own, so expect the damage growth to come down. Watch Queens and Knights (less toughness than with items), Rooks (more damage) and the length of endgames after a Throne falls.
+
+## Phases 2–3: the full card set (2026-10-18)
+
+Branch `wip/techniques-content`. All 84 Techniques, both sides AI, `--techniques --no-items --map long` (items off, Rank growth health +15.5% and main damage stat +40% per Rank). 200 matches is direction only (±7 points).
+
+| Run                                      | Matches | White | Median min | p90 min | Kills | At Rank 8 |
+| ---------------------------------------- | ------- | ----- | ---------- | ------- | ----- | --------- |
+| Today: items on, no Techniques           | 200     | 51.0% | 13.1       | 18.5    | 22.4  | 17.6%     |
+| Phase 0: items off, no Techniques        | 200     | 50.5% | 14.6       | 23.0    | 25.0  | 26.8%     |
+| **p1: Techniques, items off (as built)** | 200     | 50.5% | 12.4       | 19.7    | 22.9  | 17.5%     |
+
+- **p1** (`npm run balance -- --matches 200 --seed 29000 --quiet --workers 2 --map long --techniques --no-items`): first Bastion 2.2 min; Rank 4 first reached at 5.0 min, Rank 8 at 14.0. Per match 33.1 cards taken, 38.1 upgrades, **0 rerolls and 0 passes**. White pieces holding a Combination at match end: 31.9% (target 30–60%).
+- **Techniques close the phase 0 gap:** the median is back under today's (12.4 against 13.1) and the p90 is 1.2 min longer, not 4.5. No number was changed for this.
+- **Picks by school:** Initiative 28.2%, Position 25.6%, Fortress 16.0%, March 13.1%, Clock 10.2%, Sacrifice 6.9%.
+- **Picked far more than the 10–60% target:** Shared Guard 93%, Family Fork 86%, Rallying Cry 85%, Echoing Decree 82% (piece cards that lead to a Combination; Royal Court, their King Combination, is held by about half of all Kings at match end). **Far less:** Tempo Thief 2.3%, Time Pressure 2.5%, Tithe 3.9%, The Vault 6.1%, Slip 8.4%, Sovereign's Wrath 8.5%, and the moved Dubious cards 5–15%.
+- **Held win rates outside 44–58%** with at least 50 holders: Escort 63% (76), Push On 58% (84), Deep Breath 38% (74), Shove 41% (174), Rook Lift 43% (145), Family Fork 44% (194); the archetype cards have 4–37 holders each, too few to read.
