@@ -2,7 +2,25 @@ export interface SigilSpec {
   hue: number;
   rings: number;
   spokes: number;
-  glyph: 'gear' | 'crane' | 'rail' | 'compass';
+  glyph:
+    | 'gear'
+    | 'crane'
+    | 'rail'
+    | 'compass'
+    | 'gate'
+    | 'petal'
+    | 'paw'
+    | 'brush'
+    | 'lantern'
+    | 'blade'
+    | 'skull'
+    | 'anchor'
+    | 'orbit'
+    | 'shield'
+    | 'watch'
+    | 'teacup'
+    | 'heart'
+    | 'mushroom';
 }
 
 function ring(g: CanvasRenderingContext2D, x: number, y: number, r: number): void {
@@ -65,6 +83,193 @@ function drawGlyph(
       g.closePath();
       break;
     }
+    case 'gate': {
+      g.moveTo(x - r, y - r * 0.5);
+      g.lineTo(x + r, y - r * 0.5);
+      g.moveTo(x - r * 0.7, y - r * 0.15);
+      g.lineTo(x + r * 0.7, y - r * 0.15);
+      g.moveTo(x - r * 0.55, y - r * 0.5);
+      g.lineTo(x - r * 0.55, y + r);
+      g.moveTo(x + r * 0.55, y - r * 0.5);
+      g.lineTo(x + r * 0.55, y + r);
+      break;
+    }
+    case 'petal': {
+      for (let i = 0; i < 5; i++) {
+        const a = (i / 5) * Math.PI * 2 - Math.PI / 2;
+        const tx = x + Math.cos(a) * r;
+        const ty = y + Math.sin(a) * r;
+        g.moveTo(x, y);
+        g.quadraticCurveTo(
+          x + Math.cos(a + 0.6) * r * 0.8,
+          y + Math.sin(a + 0.6) * r * 0.8,
+          tx,
+          ty,
+        );
+        g.quadraticCurveTo(x + Math.cos(a - 0.6) * r * 0.8, y + Math.sin(a - 0.6) * r * 0.8, x, y);
+      }
+      break;
+    }
+    case 'paw': {
+      g.arc(x, y + r * 0.35, r * 0.45, 0, Math.PI * 2);
+      for (let i = 0; i < 3; i++) {
+        const px = x + (i - 1) * r * 0.6;
+        const py = y - r * (i === 1 ? 0.55 : 0.35);
+        g.moveTo(px + r * 0.17, py);
+        g.arc(px, py, r * 0.17, 0, Math.PI * 2);
+      }
+      break;
+    }
+    case 'brush': {
+      g.moveTo(x, y + r);
+      g.lineTo(x, y - r * 0.2);
+      for (let i = -3; i <= 3; i++) {
+        g.moveTo(x, y - r * 0.2);
+        g.lineTo(x + i * r * 0.28, y - r);
+      }
+      break;
+    }
+    case 'lantern': {
+      g.moveTo(x - r * 0.35, y - r);
+      g.lineTo(x + r * 0.35, y - r);
+      g.moveTo(x, y - r);
+      g.lineTo(x, y - r * 0.8);
+      g.ellipse(x, y + r * 0.05, r * 0.6, r * 0.75, 0, 0, Math.PI * 2);
+      g.moveTo(x - r * 0.35, y + r);
+      g.lineTo(x + r * 0.35, y + r);
+      break;
+    }
+    case 'blade': {
+      g.moveTo(x + r * 0.9, y - r * 0.9);
+      g.lineTo(x - r * 0.5, y + r * 0.5);
+      g.moveTo(x - r * 0.75, y + r * 0.2);
+      g.lineTo(x - r * 0.2, y + r * 0.75);
+      g.moveTo(x - r * 0.5, y + r * 0.5);
+      g.lineTo(x - r * 0.9, y + r * 0.9);
+      break;
+    }
+    case 'skull': {
+      g.arc(x, y - r * 0.15, r * 0.7, 0, Math.PI * 2);
+      g.moveTo(x - r * 0.35, y + r * 0.55);
+      g.lineTo(x - r * 0.35, y + r);
+      g.lineTo(x + r * 0.35, y + r);
+      g.lineTo(x + r * 0.35, y + r * 0.55);
+      g.moveTo(x - r * 0.15, y - r * 0.15);
+      g.arc(x - r * 0.3, y - r * 0.15, r * 0.15, 0, Math.PI * 2);
+      g.moveTo(x + r * 0.45, y - r * 0.15);
+      g.arc(x + r * 0.3, y - r * 0.15, r * 0.15, 0, Math.PI * 2);
+      break;
+    }
+    case 'anchor': {
+      g.moveTo(x, y - r);
+      g.lineTo(x, y + r);
+      g.moveTo(x - r * 0.45, y - r * 0.55);
+      g.lineTo(x + r * 0.45, y - r * 0.55);
+      g.moveTo(x - r * 0.9, y + r * 0.2);
+      g.quadraticCurveTo(x - r * 0.8, y + r, x, y + r);
+      g.quadraticCurveTo(x + r * 0.8, y + r, x + r * 0.9, y + r * 0.2);
+      break;
+    }
+    case 'orbit': {
+      g.moveTo(x + r * 0.3, y);
+      g.arc(x, y, r * 0.3, 0, Math.PI * 2);
+      g.moveTo(x + r, y);
+      g.ellipse(x, y, r, r * 0.4, -0.5, 0, Math.PI * 2);
+      g.moveTo(x + r * 0.7, y - r * 0.55);
+      g.arc(x + r * 0.55, y - r * 0.55, r * 0.15, 0, Math.PI * 2);
+      break;
+    }
+    case 'shield': {
+      g.moveTo(x - r * 0.8, y - r * 0.8);
+      g.lineTo(x + r * 0.8, y - r * 0.8);
+      g.lineTo(x + r * 0.8, y);
+      g.quadraticCurveTo(x + r * 0.7, y + r * 0.7, x, y + r);
+      g.quadraticCurveTo(x - r * 0.7, y + r * 0.7, x - r * 0.8, y);
+      g.closePath();
+      g.moveTo(x, y - r * 0.8);
+      g.lineTo(x, y + r);
+      break;
+    }
+    case 'watch': {
+      // Pocket watch: case, crown and bow, a twelve-tick face and two hands.
+      const cy = y + r * 0.2;
+      g.moveTo(x + r * 0.72, cy);
+      g.arc(x, cy, r * 0.72, 0, Math.PI * 2);
+      g.moveTo(x - r * 0.16, y - r * 0.52);
+      g.lineTo(x - r * 0.16, y - r * 0.68);
+      g.lineTo(x + r * 0.16, y - r * 0.68);
+      g.lineTo(x + r * 0.16, y - r * 0.52);
+      g.moveTo(x + r * 0.26, y - r * 0.88);
+      g.arc(x, y - r * 0.88, r * 0.26, 0, Math.PI * 2);
+      for (let i = 0; i < 12; i += 3) {
+        const a = (i / 12) * Math.PI * 2;
+        g.moveTo(x + Math.cos(a) * r * 0.5, cy + Math.sin(a) * r * 0.5);
+        g.lineTo(x + Math.cos(a) * r * 0.62, cy + Math.sin(a) * r * 0.62);
+      }
+      g.moveTo(x, cy - r * 0.42);
+      g.lineTo(x, cy);
+      g.lineTo(x + r * 0.3, cy + r * 0.18);
+      break;
+    }
+    case 'teacup': {
+      // Cup, handle, saucer and a curl of steam.
+      g.moveTo(x - r * 0.62, y - r * 0.1);
+      g.lineTo(x + r * 0.62, y - r * 0.1);
+      g.quadraticCurveTo(x + r * 0.6, y + r * 0.62, x, y + r * 0.62);
+      g.quadraticCurveTo(x - r * 0.6, y + r * 0.62, x - r * 0.62, y - r * 0.1);
+      g.moveTo(x + r * 0.62, y + r * 0.02);
+      g.bezierCurveTo(
+        x + r * 1.1,
+        y - r * 0.05,
+        x + r * 1.1,
+        y + r * 0.48,
+        x + r * 0.5,
+        y + r * 0.44,
+      );
+      g.moveTo(x - r * 0.9, y + r * 0.85);
+      g.lineTo(x + r * 0.9, y + r * 0.85);
+      g.moveTo(x - r * 0.2, y - r * 0.32);
+      g.bezierCurveTo(
+        x - r * 0.45,
+        y - r * 0.55,
+        x + r * 0.05,
+        y - r * 0.7,
+        x - r * 0.15,
+        y - r * 0.95,
+      );
+      g.moveTo(x + r * 0.28, y - r * 0.32);
+      g.bezierCurveTo(
+        x + r * 0.05,
+        y - r * 0.55,
+        x + r * 0.5,
+        y - r * 0.7,
+        x + r * 0.32,
+        y - r * 0.95,
+      );
+      break;
+    }
+    case 'heart': {
+      g.moveTo(x, y + r * 0.9);
+      g.bezierCurveTo(x - r * 1.35, y - r * 0.05, x - r * 0.75, y - r * 0.95, x, y - r * 0.38);
+      g.bezierCurveTo(x + r * 0.75, y - r * 0.95, x + r * 1.35, y - r * 0.05, x, y + r * 0.9);
+      g.closePath();
+      break;
+    }
+    case 'mushroom': {
+      // Toadstool: domed cap with spots, a gill line and a swelling stem.
+      g.moveTo(x - r, y);
+      g.bezierCurveTo(x - r, y - r * 1.15, x + r, y - r * 1.15, x + r, y);
+      g.closePath();
+      g.moveTo(x - r * 0.38, y);
+      g.bezierCurveTo(x - r * 0.28, y + r * 0.5, x - r * 0.5, y + r * 0.8, x - r * 0.55, y + r);
+      g.lineTo(x + r * 0.55, y + r);
+      g.bezierCurveTo(x + r * 0.5, y + r * 0.8, x + r * 0.28, y + r * 0.5, x + r * 0.38, y);
+      g.moveTo(x - r * 0.3 + r * 0.14, y - r * 0.5);
+      g.arc(x - r * 0.3, y - r * 0.5, r * 0.14, 0, Math.PI * 2);
+      g.moveTo(x + r * 0.34 + r * 0.1, y - r * 0.34);
+      g.arc(x + r * 0.34, y - r * 0.34, r * 0.1, 0, Math.PI * 2);
+      break;
+    }
   }
   g.stroke();
 }
@@ -80,14 +285,14 @@ export function drawSigil(
 ): void {
   g.save();
   g.globalAlpha = alive ? 1 : 0.35;
-  g.fillStyle = 'rgba(8,10,16,0.88)';
+  g.fillStyle = 'rgba(10,12,12,0.9)';
   g.beginPath();
   g.arc(x, y, r, 0, Math.PI * 2);
   g.fill();
   g.lineWidth = Math.max(1, r * 0.12);
   g.strokeStyle = tint;
   ring(g, x, y, r);
-  g.strokeStyle = `hsl(${spec.hue} 70% 62%)`;
+  g.strokeStyle = `hsl(${spec.hue} 48% 62%)`;
   for (let i = 1; i < spec.rings; i++) ring(g, x, y, r * (1 - i * 0.2));
   g.lineWidth = Math.max(0.6, r * 0.07);
   g.beginPath();

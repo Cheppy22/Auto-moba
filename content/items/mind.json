@@ -1,0 +1,402 @@
+{
+  "items": [
+    {
+      "id": "rusted_cleaver",
+      "name": "Rusted Cleaver",
+      "category": "mind",
+      "tier": 1,
+      "cost": 250,
+      "mods": [
+        {
+          "stat": "bladeDmg",
+          "kind": "add",
+          "value": 10
+        }
+      ],
+      "triggers": [
+        {
+          "on": "hit",
+          "target": "victim",
+          "vs": "other",
+          "effects": [
+            {
+              "type": "damage",
+              "dmgType": "blade",
+              "bladeScale": 0.2
+            }
+          ]
+        }
+      ],
+      "desc": "{m|+10 Blade}. {r|Chop}: hits on minions and camps deal {m|+20% Blade}."
+    },
+    {
+      "id": "piston_gauntlet",
+      "name": "Piston Gauntlet",
+      "category": "mind",
+      "tier": 1,
+      "cost": 300,
+      "mods": [
+        {
+          "stat": "atkSpeed",
+          "kind": "add",
+          "value": 0.15
+        }
+      ],
+      "triggers": [
+        {
+          "on": "hit",
+          "target": "victim",
+          "everyNth": 4,
+          "effects": [
+            {
+              "type": "damage",
+              "dmgType": "blade",
+              "bladeScale": 1.0
+            }
+          ]
+        }
+      ],
+      "desc": "{m|+0.15 attack speed}. {r|Wind-up}: every 4th hit strikes twice."
+    },
+    {
+      "id": "leech_fang",
+      "name": "Leech Fang",
+      "category": "mind",
+      "tier": 1,
+      "cost": 300,
+      "mods": [
+        {
+          "stat": "bladeDmg",
+          "kind": "add",
+          "value": 6
+        }
+      ],
+      "triggers": [
+        {
+          "on": "hit",
+          "target": "self",
+          "effects": [
+            {
+              "type": "heal",
+              "fractionOfDamage": 0.1
+            }
+          ]
+        }
+      ],
+      "desc": "{m|+6 Blade}. {r|Feed}: {b|heal} for 10% of {m|Blade damage} dealt."
+    },
+    {
+      "id": "whetstone_drill",
+      "name": "Whetstone Drill",
+      "category": "mind",
+      "tier": 1,
+      "cost": 300,
+      "mods": [
+        {
+          "stat": "bladeDmg",
+          "kind": "add",
+          "value": 8
+        }
+      ],
+      "triggers": [
+        {
+          "on": "hit",
+          "target": "victim",
+          "vs": "hero",
+          "effects": [
+            {
+              "type": "damage",
+              "dmgType": "true",
+              "base": 8
+            }
+          ]
+        }
+      ],
+      "desc": "{m|+8 Blade}. {r|Honed}: hits on heroes deal {t|8 true damage}."
+    },
+    {
+      "id": "kata_scroll",
+      "name": "Kata Scroll",
+      "category": "mind",
+      "tier": 1,
+      "cost": 250,
+      "mods": [
+        {
+          "stat": "atkSpeed",
+          "kind": "add",
+          "value": 0.1
+        },
+        {
+          "stat": "moveSpeed",
+          "kind": "add",
+          "value": 8
+        }
+      ],
+      "triggers": [
+        {
+          "on": "kill",
+          "target": "self",
+          "effects": [
+            {
+              "type": "statMod",
+              "stat": "moveSpeed",
+              "kind": "add",
+              "value": 25,
+              "durationSec": 3
+            }
+          ]
+        }
+      ],
+      "desc": "{m|+0.1 attack speed}, {m|+8 move speed}. {r|Footwork}: after a kill, {m|+25 move speed} for 3s."
+    },
+    {
+      "id": "cogged_edge",
+      "name": "Cogged Edge",
+      "category": "mind",
+      "tier": 2,
+      "cost": 900,
+      "from": ["rusted_cleaver", "piston_gauntlet"],
+      "mods": [
+        {
+          "stat": "bladeDmg",
+          "kind": "add",
+          "value": 24
+        },
+        {
+          "stat": "atkSpeed",
+          "kind": "add",
+          "value": 0.2
+        }
+      ],
+      "triggers": [
+        {
+          "on": "hit",
+          "target": "self",
+          "vs": "hero",
+          "effects": [
+            {
+              "type": "statMod",
+              "stat": "atkSpeed",
+              "kind": "mul",
+              "value": 1.04,
+              "durationSec": 3,
+              "maxStacks": 5
+            }
+          ]
+        }
+      ],
+      "desc": "{m|+24 Blade}, {m|+0.2 attack speed}. {r|Ratchet}: each hit on a hero grants {m|+4% attack speed} for 3s, up to 5 times."
+    },
+    {
+      "id": "duelists_form",
+      "name": "Duelist's Form",
+      "category": "mind",
+      "tier": 2,
+      "cost": 880,
+      "from": ["whetstone_drill", "kata_scroll"],
+      "mods": [
+        {
+          "stat": "bladeDmg",
+          "kind": "add",
+          "value": 20
+        },
+        {
+          "stat": "moveSpeed",
+          "kind": "add",
+          "value": 10
+        }
+      ],
+      "triggers": [
+        {
+          "on": "damaged",
+          "target": "self",
+          "vs": "hero",
+          "cooldownSec": 6,
+          "effects": [
+            {
+              "type": "statMod",
+              "stat": "bladeDmg",
+              "kind": "add",
+              "value": 40,
+              "durationSec": 2
+            }
+          ]
+        }
+      ],
+      "desc": "{m|+20 Blade}, {m|+10 move speed}. {r|Riposte}: when a hero hits you, {m|+40 Blade} for 2s. {r|6s cooldown}."
+    },
+    {
+      "id": "bloodletter_hook",
+      "name": "Bloodletter Hook",
+      "category": "mind",
+      "tier": 2,
+      "cost": 880,
+      "from": ["leech_fang", "rusted_cleaver"],
+      "mods": [
+        {
+          "stat": "bladeDmg",
+          "kind": "add",
+          "value": 18
+        }
+      ],
+      "triggers": [
+        {
+          "on": "hit",
+          "target": "victim",
+          "vs": "hero",
+          "effects": [
+            {
+              "type": "dot",
+              "dmgType": "blade",
+              "base": 12,
+              "durationSec": 3
+            }
+          ]
+        },
+        {
+          "on": "hit",
+          "target": "self",
+          "vs": "hero",
+          "effects": [
+            {
+              "type": "heal",
+              "fractionOfDamage": 0.08
+            }
+          ]
+        }
+      ],
+      "desc": "{m|+18 Blade}. {r|Open Veins}: hits on heroes {m|bleed 12 Blade/s} for 3s and {b|heal} you for 8% of the hit."
+    },
+    {
+      "id": "windstep_geta",
+      "name": "Windstep Geta",
+      "category": "mind",
+      "tier": 2,
+      "cost": 860,
+      "from": ["piston_gauntlet", "kata_scroll"],
+      "mods": [
+        {
+          "stat": "atkSpeed",
+          "kind": "add",
+          "value": 0.2
+        },
+        {
+          "stat": "moveSpeed",
+          "kind": "add",
+          "value": 14
+        }
+      ],
+      "triggers": [
+        {
+          "on": "damaged",
+          "target": "attacker",
+          "hpBelow": 0.5,
+          "cooldownSec": 12,
+          "effects": [
+            {
+              "type": "dash",
+              "distance": 80,
+              "toward": "away"
+            }
+          ]
+        }
+      ],
+      "desc": "{m|+0.2 attack speed}, {m|+14 move speed}. {r|Slip}: dropping below {b|50% health} dashes you away from your attacker. {r|12s cooldown}."
+    },
+    {
+      "id": "soot_reaver",
+      "name": "Soot Reaver",
+      "category": "mind",
+      "tier": 3,
+      "cost": 1900,
+      "from": ["cogged_edge"],
+      "mods": [
+        {
+          "stat": "bladeDmg",
+          "kind": "add",
+          "value": 45
+        },
+        {
+          "stat": "atkSpeed",
+          "kind": "add",
+          "value": 0.3
+        }
+      ],
+      "triggers": [
+        {
+          "on": "hit",
+          "target": "enemyArea",
+          "radius": 120,
+          "everyNth": 3,
+          "effects": [
+            {
+              "type": "damage",
+              "dmgType": "blade",
+              "bladeScale": 0.6
+            }
+          ]
+        }
+      ],
+      "desc": "{m|+45 Blade}, {m|+0.3 attack speed}. {r|Cinder Wake}: every 3rd hit {m|cleaves} all enemies nearby for {m|60% Blade}."
+    },
+    {
+      "id": "vorpal_blade",
+      "name": "Vorpal Blade",
+      "category": "mind",
+      "tier": 3,
+      "cost": 1850,
+      "from": ["duelists_form"],
+      "mods": [
+        {
+          "stat": "bladeDmg",
+          "kind": "add",
+          "value": 50
+        }
+      ],
+      "triggers": [
+        {
+          "on": "hit",
+          "target": "victim",
+          "custom": "execute",
+          "param": 0.15
+        }
+      ],
+      "desc": "{m|+50 Blade}. {r|Snicker-Snack}: hits on heroes below {b|15% health} {t|execute} them."
+    },
+    {
+      "id": "hundred_hand_ledger",
+      "name": "Hundred-Hand Ledger",
+      "category": "mind",
+      "tier": 3,
+      "cost": 2100,
+      "from": ["bloodletter_hook", "windstep_geta"],
+      "mods": [
+        {
+          "stat": "bladeDmg",
+          "kind": "add",
+          "value": 30
+        },
+        {
+          "stat": "atkSpeed",
+          "kind": "add",
+          "value": 0.35
+        }
+      ],
+      "triggers": [
+        {
+          "on": "kill",
+          "target": "self",
+          "custom": "cooldownTick",
+          "param": 8,
+          "effects": [
+            {
+              "type": "heal",
+              "maxHpPct": 0.15
+            }
+          ]
+        }
+      ],
+      "desc": "{m|+30 Blade}, {m|+0.35 attack speed}. {r|Settled Accounts}: kills cut {s|all cooldowns by 8s} and {b|heal 15% max health}."
+    }
+  ]
+}

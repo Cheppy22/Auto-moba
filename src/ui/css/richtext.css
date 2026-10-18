@@ -1,0 +1,25 @@
+.kw-m {
+  color: var(--mind);
+}
+.kw-b {
+  color: var(--body);
+}
+.kw-s {
+  color: var(--soul);
+}
+.kw-t {
+  color: var(--kw-true);
+  font-weight: 700;
+}
+.kw-g {
+  color: var(--kw-gold);
+}
+.kw-p {
+  color: var(--kw-price);
+}
+.kw-r {
+  color: var(--kw-rule);
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+}

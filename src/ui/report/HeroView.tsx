@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { mostTakenType, type Fight, type HeroModel, type Report } from '../../analysis';
 import { drawReplay, replayHit, teamColor, type ReplayData } from '../../render';
 import { SigilIcon } from '../SigilIcon';
-import { mmss, n0, pct } from '../format';
+import { mmss, n0, pct, roleLabel } from '../format';
 import { useSession } from '../session';
 import { BarRow, Sparkline, heroName, itemName } from './common';
 
@@ -124,7 +124,7 @@ function ReplayPanel(props: {
             style={{
               left: at(f.startTick),
               width: `max(8px, ${((f.endTick - f.startTick) / span) * 100}%)`,
-              background: fightId === f.id ? '#ffffff' : 'rgba(255,170,90,0.7)',
+              background: fightId === f.id ? '#ffffff' : 'rgba(224,169,62,0.7)',
               top: '4px',
               bottom: '18px',
             }}
@@ -142,7 +142,7 @@ function ReplayPanel(props: {
             style={{
               left: at(p.tick),
               width: '6px',
-              background: '#e7c35a',
+              background: 'var(--gold)',
               top: '20px',
               bottom: '3px',
             }}
@@ -157,7 +157,7 @@ function ReplayPanel(props: {
             style={{
               left: at(d.tick),
               width: '6px',
-              background: '#ff6b81',
+              background: 'var(--bad)',
               top: '20px',
               bottom: '3px',
             }}
@@ -173,10 +173,10 @@ function ReplayPanel(props: {
           <span class="gold">■</span> purchases
         </span>
         <span>
-          <span style={{ color: '#ff6b81' }}>✕</span> falls
+          <span style={{ color: 'var(--bad)' }}>✕</span> falls
         </span>
         <span>
-          <span style={{ color: '#a8d8ff' }}>◯</span> recalls
+          <span style={{ color: 'var(--accent)' }}>◯</span> recalls
         </span>
       </div>
       {selected ? (
@@ -262,11 +262,12 @@ export function HeroView(props: {
             {def.name}
           </h2>
           <div class="dim small">
-            {h.role} · K/D/A {h.kills}/{h.deaths}/{h.assists} · {n0(h.distance)} units traveled
+            {roleLabel(h.role)} · K/D/A {h.kills}/{h.deaths}/{h.assists} · {n0(h.distance)} units
+            traveled
           </div>
         </div>
         <button class="btn" onClick={() => s.setUi({ reportHero: null })} data-testid="back-team">
-          Back to teams
+          Close hero
         </button>
       </div>
       <div class="row wrap" style={{ gap: '6px' }}>
@@ -294,9 +295,9 @@ export function HeroView(props: {
           </div>
           <div class="card col">
             <b class="small">Damage taken, by type</b>
-            <BarRow label="Blade" value={h.taken.blade} max={takenMax} color="#e9a35c" />
-            <BarRow label="Soul" value={h.taken.soul} max={takenMax} color="#7fb7ff" />
-            <BarRow label="True" value={h.taken.true} max={takenMax} color="#e0e0e0" />
+            <BarRow label="Blade" value={h.taken.blade} max={takenMax} color="#c98a4a" />
+            <BarRow label="Soul" value={h.taken.soul} max={takenMax} color="#7fa8c0" />
+            <BarRow label="True" value={h.taken.true} max={takenMax} color="#d8d0bc" />
             <b class="small" style={{ marginTop: '6px' }}>
               Damage taken, by source
             </b>

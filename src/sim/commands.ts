@@ -1,12 +1,14 @@
 import { awardHoly, placeBid } from './auction';
+import { pickDeferred } from './draft';
 import type { Ctx } from './ctx';
 import { pendingOffer, resolveCurse } from './curses';
 import { continueFromReport, startLive } from './phase';
 import { startRecall } from './recall';
+import { DISPOSITION_POSTURE } from './units';
 import { buyItem, sellItem } from './shop';
 import type { Command, CommandResult, PlayTeam, Unit } from './types';
 
-const ROLES = new Set(['top', 'mid', 'bot', 'jungle']);
+const ROLES = new Set(['top', 'mid', 'bot']);
 
 function playerHero(ctx: Ctx): Unit | null {
   return ctx.s.playerHeroId === null ? null : (ctx.unit(ctx.s.playerHeroId) ?? null);
@@ -28,6 +30,13 @@ function run(ctx: Ctx, cmd: Command, startMatch: StartMatchFn): CommandResult {
     case 'pickHero': {
       if (kind !== 'draft' || !s.draft) return { ok: false, reason: 'not drafting' };
       if (!ctx.c.heroById.has(cmd.heroId)) return { ok: false, reason: 'unknown hero' };
+      if (
+        s.draft.unique &&
+        !s.draft.deferred &&
+        (s.draft.aiHeroes.A.includes(cmd.heroId) || s.draft.aiHeroes.B.includes(cmd.heroId))
+      )
+        return { ok: false, reason: 'that hero is already on a team this match' };
+      if (s.draft.deferred) pickDeferred(ctx, cmd.heroId);
       s.draft.playerHero = cmd.heroId;
       return { ok: true };
     }
@@ -48,8 +57,10 @@ function run(ctx: Ctx, cmd: Command, startMatch: StartMatchFn): CommandResult {
       const p = playerHero(ctx);
       if (!p || !p.hero) return { ok: false, reason: 'no player hero' };
       if (kind !== 'live' && kind !== 'prep') return { ok: false, reason: 'not now' };
-      p.hero.posture = cmd.posture;
-      ctx.emit('posture', { id: p.id, posture: cmd.posture });
+      const next =
+        cmd.posture === 'default' ? DISPOSITION_POSTURE[p.hero.disposition] : cmd.posture;
+      p.hero.posture = next;
+      ctx.emit('posture', { id: p.id, posture: next });
       return { ok: true };
     }
     case 'recall': {
@@ -58,7 +69,43 @@ function run(ctx: Ctx, cmd: Command, startMatch: StartMatchFn): CommandResult {
       if (kind !== 'live') return { ok: false, reason: 'recall works during a phase' };
       if (!p.alive) return { ok: false, reason: 'you are dead' };
       if (p.hero.recall) return { ok: false, reason: 'already recalling' };
+      if (cmd.dest !== 'base') return { ok: false, reason: 'recall only goes home' };
       return startRecall(ctx, p, cmd.dest) ? { ok: true } : { ok: false, reason: 'cannot recall' };
+    }
+    case 'suggestShop': {
+      const p = playerHero(ctx);
+      if (!p || !p.hero) return { ok: false, reason: 'no player hero' };
+      if (kind !== 'live') return { ok: false, reason: 'suggestions work during a phase' };
+      if (!ctx.world.map.shops.some((s) => s.id === cmd.shopId))
+        return { ok: false, reason: 'unknown shop' };
+      const q = p.hero.suggest;
+      const i = q.indexOf(cmd.shopId);
+      if (i >= 0) q.splice(i, 1);
+      else if (q.length >= 3) return { ok: false, reason: 'your shop list is full' };
+      else q.push(cmd.shopId);
+      return { ok: true };
+    }
+    case 'setAutoBuy': {
+      const p = playerHero(ctx);
+      if (!p || !p.hero) return { ok: false, reason: 'no player hero' };
+      p.hero.autoBuy = cmd.on;
+      return { ok: true };
+    }
+    case 'suggestEvent': {
+      const p = playerHero(ctx);
+      if (!p || !p.hero) return { ok: false, reason: 'no player hero' };
+      if (kind !== 'live') return { ok: false, reason: 'suggestions work during a phase' };
+      if (!s.events.some((e) => e.id === cmd.eventId))
+        return { ok: false, reason: 'event is over' };
+      p.hero.suggestEvent = cmd.eventId;
+      return { ok: true };
+    }
+    case 'clearSuggest': {
+      const p = playerHero(ctx);
+      if (!p || !p.hero) return { ok: false, reason: 'no player hero' };
+      p.hero.suggest = [];
+      p.hero.suggestEvent = null;
+      return { ok: true };
     }
     case 'buy': {
       const p = playerHero(ctx);

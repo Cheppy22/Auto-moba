@@ -1,8 +1,14 @@
 import type { Ctx } from './ctx';
-import type { DamageType, LaneId, Role, Stats } from './content/schema';
+import type { DamageType, Disposition, LaneId, Posture, Role, Stats } from './content/schema';
 import { laneWaypoints } from './world/map';
 import { recompute } from './stats';
 import type { HeroState, PlayTeam, Unit, UnitKind, TeamId } from './types';
+
+export const DISPOSITION_POSTURE: Record<Disposition, Posture> = {
+  farmer: 'farm',
+  attacker: 'push',
+  defender: 'defend',
+};
 
 export function newUnit(
   ctx: Ctx,
@@ -41,6 +47,7 @@ export function newUnit(
     pendingKill: null,
     bounty: 0,
     lastDamagedTick: -9999,
+    detour: null,
   };
   ctx.s.units.push(u);
   ctx.idx.set(u.id, u);
@@ -64,14 +71,16 @@ export function makeHero(
   const oy = -dir * (14 + (slot % 2) * 9);
   const u = newUnit(ctx, 'hero', team, defId, base.x + ox, base.y + oy, { ...def.stats });
   u.atkRange = def.stats.range;
-  u.lane = role === 'jungle' ? null : role;
+  u.lane = role;
   const hero: HeroState = {
     defId,
     isPlayer,
     slot,
     role,
     lane: u.lane,
-    posture: def.defaultPosture,
+    posture: DISPOSITION_POSTURE[def.disposition],
+    disposition: def.disposition,
+    jungler: false,
     items: [],
     flaws: {},
     gold: ctx.t.startingGold,
@@ -96,6 +105,12 @@ export function makeHero(
     engageTick: 0,
     holdTicks: 0,
     lastRecallTick: -9999,
+    suggest: [],
+    lossStreak: 0,
+    lastDeathTick: -9999,
+    autoBuy: true,
+    suggestEvent: null,
+    lastStandUsed: false,
   };
   u.hero = hero;
   ctx.s.teams[team].heroIds.push(u.id);
@@ -151,7 +166,7 @@ export function makeTower(ctx: Ctx, team: PlayTeam, lane: LaneId, index: 0 | 1):
   const t = ctx.t.tower;
   const pos = ctx.world.towerPos[team][lane][index];
   const stats: Stats = {
-    maxHp: t.hp,
+    maxHp: index === 1 ? Math.round(t.hp * t.innerHpMul) : t.hp,
     hpRegen: 0,
     armor: t.armor,
     resist: t.resist,

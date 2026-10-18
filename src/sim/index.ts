@@ -16,3 +16,5 @@ export type {
 } from './content/schema';
 export { CUSTOM_BEHAVIORS } from './combat';
 export { hashContent } from './core/rng';
+export { buildTerrain, clearLine, confine, shapeDist, walkable } from './world/terrain';
+export type { OpenSlots, Terrain, WalkKind, WalkShape } from './world/terrain';

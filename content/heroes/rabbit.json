@@ -1,0 +1,140 @@
+{
+  "id": "rabbit",
+  "name": "The White Rabbit",
+  "title": "Herald Who Is Always Late",
+  "era": "Looking-Glass",
+  "attackKind": "melee",
+  "playstyle": "A fast melee skirmisher that dashes into heroes and heals on kills. Hunt weakened enemies and roam the jungle between fights.",
+  "stats": {
+    "maxHp": 982.25,
+    "hpRegen": 2,
+    "armor": 26,
+    "resist": 16,
+    "bladeDmg": 83.83,
+    "atkSpeed": 1.1,
+    "soulPower": 0.0,
+    "moveSpeed": 52,
+    "cdr": 0,
+    "range": 22
+  },
+  "abilities": [
+    {
+      "id": "rail_dash",
+      "name": "I'm Late!",
+      "cooldownSec": 8,
+      "range": 95,
+      "target": "enemy",
+      "effects": [
+        {
+          "type": "dash",
+          "distance": 70,
+          "toward": "target"
+        },
+        {
+          "type": "damage",
+          "dmgType": "blade",
+          "base": 35,
+          "bladeScale": 0.6
+        }
+      ],
+      "desc": "Dashes 70 to an enemy, late as ever, and cuts for 35 + 60% Blade damage."
+    },
+    {
+      "id": "third_rail",
+      "name": "Pocket-Watch Strike",
+      "cooldownSec": 12,
+      "range": 40,
+      "target": "enemy",
+      "effects": [
+        {
+          "type": "damage",
+          "dmgType": "blade",
+          "base": 70,
+          "bladeScale": 0.9
+        }
+      ],
+      "desc": "Strikes one enemy with the watch for 70 + 90% Blade damage."
+    },
+    {
+      "id": "last_whistle",
+      "name": "No Time to Say Hello",
+      "cooldownSec": 15,
+      "radius": 100,
+      "target": "self",
+      "effects": [
+        {
+          "type": "statMod",
+          "stat": "atkSpeed",
+          "kind": "mul",
+          "value": 1.5,
+          "durationSec": 3
+        },
+        {
+          "type": "statMod",
+          "stat": "moveSpeed",
+          "kind": "mul",
+          "value": 1.2,
+          "durationSec": 3
+        }
+      ],
+      "condition": {
+        "minEnemyHeroes": 1
+      },
+      "desc": "Gains 50% attack speed and 20% move speed for 3s when an enemy hero is near."
+    },
+    {
+      "id": "express_service",
+      "name": "The Appointed Hour",
+      "cooldownSec": 45,
+      "range": 110,
+      "target": "enemy",
+      "effects": [
+        {
+          "type": "dash",
+          "distance": 60,
+          "toward": "target"
+        },
+        {
+          "type": "damage",
+          "dmgType": "blade",
+          "base": 160,
+          "bladeScale": 1.5
+        }
+      ],
+      "condition": {
+        "heroTargetOnly": true
+      },
+      "desc": "Dashes onto an enemy hero, right on time, and hits for 160 + 150% Blade damage."
+    }
+  ],
+  "passives": [
+    {
+      "on": "kill",
+      "target": "self",
+      "effects": [
+        {
+          "type": "heal",
+          "maxHpPct": 0.15
+        }
+      ],
+      "desc": "Every kill restores 15% of its max health."
+    }
+  ],
+  "personality": "opportunist",
+  "buildList": [
+    "rusted_cleaver",
+    "leech_fang",
+    "piston_gauntlet",
+    "cogged_edge",
+    "wanderer_boots",
+    "riveted_plate"
+  ],
+  "sigil": {
+    "hue": 65,
+    "rings": 2,
+    "spokes": 4,
+    "glyph": "watch"
+  },
+  "blurb": "A herald in a waistcoat, late for the same appointment for a hundred and fifty years.",
+  "disposition": "attacker"
+}
