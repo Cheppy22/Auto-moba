@@ -35,7 +35,7 @@ describe('content', () => {
     ]);
   });
 
-  it('has the sixteen gambit cards, one signature card per piece, each in a school', () => {
+  it('has the gambit cards, one signature card per piece, each in a school', () => {
     expect(content.gambits.map((g) => g.effect ?? g.id).sort()).toEqual([
       'advance',
       'barricade',
@@ -44,7 +44,9 @@ describe('content', () => {
       'exchange',
       'fork',
       'hold_the_file',
+      'increment',
       'open_file',
+      'opening_book',
       'outpost',
       'pawn_sacrifice',
       'pawn_storm',
@@ -53,6 +55,8 @@ describe('content', () => {
       'regroup',
       'sanctuary',
       'siege',
+      'time_trouble',
+      'zugzwang',
     ]);
     const school = (id: string): string => content.gambitById.get(id)!.school;
     expect(['advance', 'pawn_storm', 'siege'].map(school)).toEqual(['march', 'march', 'march']);
@@ -60,6 +64,9 @@ describe('content', () => {
     expect(['hold_the_file', 'castle', 'sanctuary'].map(school)).toEqual(Array(3).fill('fortress'));
     expect(school('queens_gambit')).toBe('sacrifice');
     expect(school('regroup')).toBe('position');
+    expect(['zugzwang', 'time_trouble', 'opening_book', 'increment'].map(school)).toEqual(
+      Array(4).fill('clock'),
+    );
     expect(content.openings.map((o) => o.id)).toEqual([
       'italian',
       'sicilian',

@@ -374,6 +374,10 @@ export interface CardMetrics {
   met: number;
   /** Enemy Tempo drained. */
   drained: number;
+  /** Clock: Tempo given back to the side that played the card (Increment). */
+  refund: number;
+  /** Clock: hand cards the card moved (Zugzwang discarded, Opening Book redealt). */
+  cards: number;
 }
 
 export interface CardRun extends CardMetrics {
@@ -396,6 +400,8 @@ export interface CardRun extends CardMetrics {
   armor: boolean;
   fell: boolean;
   seen: number[];
+  /** Zugzwang: the enemy card it discarded. */
+  card?: string;
 }
 
 export interface FeedbackState {
@@ -583,6 +589,8 @@ interface HandSlot {
   expireTick: number;
   /** Tick an empty slot is refilled; null while a card is held. */
   refillTick: number | null;
+  /** Zugzwang emptied this slot: its refill takes this many ticks (cleared when it is dealt). */
+  discarded?: number;
 }
 
 interface PendingFork {
@@ -643,6 +651,10 @@ export interface MatchState {
   opening: Record<PlayTeam, string>;
   /** Exchange: a team-wide damage multiplier until the tick (null when none). */
   teamDamage: Record<PlayTeam, { value: number; untilTick: number } | null>;
+  /** Time Trouble: a side's Tempo income multiplier until the tick (null when none). */
+  tempoSlow: Record<PlayTeam, { value: number; untilTick: number } | null>;
+  /** Increment: Tempo each card a side plays gives back, until the tick (null when none). */
+  increment: Record<PlayTeam, { value: number; untilTick: number } | null>;
   /** `MatchConfig.forceStyles`. */
   forceStyles: Record<PlayTeam, Partial<Record<PieceId, string>>>;
   autoGambits: Record<PlayTeam, boolean>;
@@ -793,6 +805,10 @@ export interface EventPayloads {
     x?: number;
     y?: number;
     targetId?: number;
+    /** Zugzwang: the enemy card it discarded. */
+    discarded?: string;
+    /** Time Trouble: the Tempo the enemy lost at once. */
+    drained?: number;
   };
   fightEnd: FightRecord;
   gambitEnd: CardMetrics & {
@@ -806,6 +822,8 @@ export interface EventPayloads {
     endTick: number;
     /** Check and Poisoned Pawn: the marked unit fell. */
     fell: boolean;
+    /** Zugzwang: the enemy card it discarded. */
+    card?: string;
   };
   check: { team: PlayTeam };
   throneDown: { team: PlayTeam };
@@ -1146,6 +1164,8 @@ export interface Snapshot {
   tempoMax: number;
   /** Seconds a played card takes to come back (Quiet Move shortens it). */
   handRefillSec: number;
+  /** White's Clock effects: ticks left of Time Trouble's slowed income and of Increment, and its give-back. */
+  clock: { slowTicks: number; incrementTicks: number; refund: number };
   /** White's hand. */
   hand: SnapGambit[];
   pawns: Record<PlayTeam, { alive: number; cap: number; cost: number }>;
@@ -1225,6 +1245,10 @@ export interface SnapGambit {
   reason: string;
   ticksLeft: number;
   refillTicks: number | null;
+  /** The length of the slot's current refill (ticks): longer after Zugzwang. */
+  refillTotal: number;
+  /** Zugzwang discarded the card that was in this slot. */
+  discarded: boolean;
 }
 
 export interface SnapFork {

@@ -12,7 +12,7 @@ import type {
   SealedTrigger,
   Snapshot,
 } from '../../sim';
-import { SEALED_TRIGGERS } from '../../sim';
+import { SEALED_TRIGGERS, sealableUnder } from '../../sim';
 import { Term, Terms } from '../glossary';
 import { whitePieces } from '../Orders';
 import { LANES, LANE_LABEL, LANE_TAG, PieceGlyph, pieceLabel } from '../pieces';
@@ -130,10 +130,7 @@ export function SealedControls(props: {
   testid: string;
 }) {
   const s = useSession();
-  const schools = s.content.openingById.get(props.opening)?.schools ?? [];
-  const cards = s.content.gambits.filter(
-    (g) => g.weight > 0 && (schools.length === 0 || schools.includes(g.school)),
-  );
+  const cards = s.content.gambits.filter((g) => sealableUnder(s.content, props.opening, g.id));
   const groups = [...new Set(cards.map((g) => g.school))];
   const discount = s.content.relicById.get('sealed_move')?.params.discount ?? 10;
   return (

@@ -285,6 +285,11 @@
     black-play-in 0.45s var(--ease) both,
     fade-out 0.45s ease-in calc(var(--ms, 3000ms) - 450ms) forwards;
 }
+/* a play that costs you something (Zugzwang's discard, Time Trouble's drain): seal red */
+.black-play.loss {
+  border-color: var(--clock-hi);
+  background: linear-gradient(180deg, rgba(90, 29, 23, 0.95), rgba(31, 20, 18, 0.95));
+}
 .black-play-mark {
   flex: none;
   display: grid;

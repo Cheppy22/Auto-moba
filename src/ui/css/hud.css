@@ -1270,3 +1270,34 @@ html[data-layout='landscape'] .aim-desc {
 html[data-layout='landscape'] .aim.lane .aim-hint {
   display: none;
 }
+
+/* Clock cards on the Tempo meter: Time Trouble slows White's income (seal red), Increment gives back */
+.tempo-clock {
+  display: flex;
+  gap: 4px;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 10px;
+  line-height: 1;
+  white-space: nowrap;
+}
+.tempo-clock > span {
+  padding: 2px 5px;
+  border-radius: 999px;
+}
+.tc-slow {
+  color: var(--ivory);
+  background: var(--clock-deep);
+  border: 1px solid var(--clock-hi);
+}
+.tc-inc {
+  color: #1a1206;
+  background: var(--bone);
+}
+.tempo.slowed .tempo-bar i {
+  background: linear-gradient(90deg, var(--clock-deep), var(--clock-hi));
+}
+.gstate.lost {
+  color: var(--clock-hi);
+  font-weight: 600;
+}

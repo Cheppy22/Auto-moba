@@ -6,7 +6,12 @@ export function BlackPlayBanner() {
   const p = useSession().ui.blackPlay;
   if (!p) return null;
   return (
-    <div class="black-play" key={p.id} data-testid="banner-black" style={{ '--ms': `${p.ms}ms` }}>
+    <div
+      class={`black-play ${p.loss ? 'loss' : ''}`}
+      key={p.id}
+      data-testid="banner-black"
+      style={{ '--ms': `${p.ms}ms` }}
+    >
       <span class="black-play-mark">
         <SchoolGlyph school={p.school} size={16} />
       </span>

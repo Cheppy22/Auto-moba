@@ -1,12 +1,12 @@
 import { TPS } from './combat';
 import { dealDamage, healUnit, stunUnit } from './combat';
 import { gambitEffect } from './content/loader';
-import type { GambitDef, LaneId } from './content/schema';
+import type { GambitDef, LaneId, School } from './content/schema';
 import { dist } from './core/math';
 import { weightedPick } from './core/rng';
 import { hpPct, isTargetable, type Ctx } from './ctx';
 import { enemyTowerTarget } from './ai/lanes';
-import { bindZone, noteDrain, noteHeal, startRun } from './impact';
+import { bindZone, noteClock, noteDrain, noteHeal, startRun } from './impact';
 import { pawnsAlive } from './pawns';
 import { teamPiece } from './pieces';
 import {
@@ -41,6 +41,7 @@ const p = (def: GambitDef, key: string, fallback: number): number => def.params[
 
 export function addTempo(ctx: Ctx, team: PlayTeam, amount: number): void {
   if (amount <= 0) return;
+  amount = slowedIncome(ctx, team, amount);
   ctx.s.actTally.tempo[team] += amount;
   ctx.s.tempo[team] = Math.min(tempoCap(ctx, team), ctx.s.tempo[team] + amount);
 }
@@ -66,11 +67,13 @@ export function drawWeight(ctx: Ctx, team: PlayTeam): (g: GambitDef) => number {
   return (g) => g.weight * (favoured.includes(g.school) ? 2 : 1) * (books.includes(g.id) ? 2 : 1);
 }
 
-function drawCard(ctx: Ctx, team: PlayTeam): string | null {
+/** Draws a card for a side; `only` limits the draw to those schools (Opening Book). */
+function drawCard(ctx: Ctx, team: PlayTeam, only?: readonly School[]): string | null {
   const held = new Set(ctx.s.hands[team].map((h) => h.cardId).filter((x) => x !== null));
   const bound = boundCards(ctx, team);
   const deck = ctx.c.gambits.filter((g) => {
     if (g.weight <= 0 || bound.includes(g.id)) return false;
+    if (only && only.length > 0 && !only.includes(g.school)) return false;
     if (g.piece === null) return true;
     return !!teamPiece(ctx, team, g.piece)?.alive;
   });
@@ -81,9 +84,10 @@ function drawCard(ctx: Ctx, team: PlayTeam): string | null {
   return weightedPick(ctx.s.rng, 'gambit', pool, weight).id;
 }
 
-function deal(ctx: Ctx, team: PlayTeam, slot: number): void {
+function deal(ctx: Ctx, team: PlayTeam, slot: number, only?: readonly School[]): void {
   const h = ctx.s.hands[team][slot];
-  h.cardId = drawCard(ctx, team);
+  if (h.discarded !== undefined) delete h.discarded;
+  h.cardId = drawCard(ctx, team, only);
   h.expireTick = ctx.s.tick + Math.round(ctx.t.gambits.expireSec * TPS);
   h.refillTick = h.cardId === null ? ctx.s.tick + TPS : null;
 }
@@ -130,6 +134,8 @@ export function cardBlock(ctx: Ctx, team: PlayTeam, slot: number): string {
   const eff = gambitEffect(def);
   if (eff === 'castle' && !teamPiece(ctx, team, 'rook')?.alive) return 'Rook is down';
   if (eff === 'pawn_sacrifice' && pawnsAlive(ctx, team) === 0) return 'no pawn to sacrifice';
+  if (eff === 'zugzwang' && dearestSlot(ctx, other(team), def) < 0)
+    return `no enemy card of ${p(def, 'minCost', 17)}+ Tempo in hand`;
   return '';
 }
 
@@ -331,7 +337,7 @@ function validTarget(
   }
 }
 
-function applyCard(ctx: Ctx, team: PlayTeam, def: GambitDef, t: GambitTarget): void {
+function applyCard(ctx: Ctx, team: PlayTeam, def: GambitDef, t: GambitTarget): ClockNote {
   const s = ctx.s;
   const dur = def.durationSec;
   const until = s.tick + Math.round(dur * TPS);
@@ -548,7 +554,13 @@ function applyCard(ctx: Ctx, team: PlayTeam, def: GambitDef, t: GambitTarget): v
       stunUnit(ctx, foe, p(def, 'stunSec', 1));
       break;
     }
+    case 'zugzwang':
+    case 'time_trouble':
+    case 'opening_book':
+    case 'increment':
+      return applyClock(ctx, team, def);
   }
+  return {};
 }
 
 /** Pays for a card, runs it and logs it (shared by the hand and by Sealed Move). */
@@ -563,11 +575,12 @@ function cast(
   if (typeof t === 'string') return { ok: false, reason: t };
   ctx.s.tempo[team] -= cost;
   ctx.s.tempoSpent[team].cards += cost;
+  incrementRefund(ctx, team, cost);
   const run = startRun(ctx, team, def, t);
   const zones = ctx.s.zones.length;
-  applyCard(ctx, team, def, t);
+  const note = applyCard(ctx, team, def, t);
   if (ctx.s.zones.length > zones) bindZone(run, ctx.s.zones[ctx.s.zones.length - 1]);
-  ctx.emit('gambit', { team, cardId: def.id, ...t });
+  ctx.emit('gambit', { team, cardId: def.id, ...t, ...note });
   return { ok: true };
 }
 
@@ -603,6 +616,99 @@ export function playSealed(ctx: Ctx, team: PlayTeam, def: GambitDef, cost: numbe
   const target = plan(ctx, team, def)?.target;
   if (!target) return false;
   return cast(ctx, team, def, target, cost).ok;
+}
+
+// ---------------------------------------------------------------- Clock school
+// Zugzwang, Time Trouble, Opening Book, Increment: cards that work on Tempo and the hands, not
+// the board (spec SPEC-GAMBITS-OPENINGS-2026-10-18, phase A).
+
+/** What a Clock card did, for the `gambit` event (Black's banner names it). */
+type ClockNote = { discarded?: string; drained?: number };
+
+const isActive = (w: { untilTick: number } | null, tick: number): boolean =>
+  w !== null && tick < w.untilTick;
+
+/** Time Trouble: income earned while slowed; the part held back is credited to the card. */
+function slowedIncome(ctx: Ctx, team: PlayTeam, amount: number): number {
+  const slow = ctx.s.tempoSlow[team];
+  if (!slow || !isActive(slow, ctx.s.tick)) return amount;
+  const kept = amount * slow.value;
+  noteClock(ctx, other(team), 'time_trouble', 'drained', amount - kept);
+  return kept;
+}
+
+/** Increment: a card played while it runs gives Tempo back, never taking a card below the minimum. */
+function incrementRefund(ctx: Ctx, team: PlayTeam, cost: number): void {
+  const inc = ctx.s.increment[team];
+  if (!inc || !isActive(inc, ctx.s.tick)) return;
+  const back = Math.min(inc.value, Math.max(0, cost - ctx.t.gambits.minCost));
+  if (back <= 0) return;
+  const held = ctx.s.tempo[team];
+  addTempo(ctx, team, back);
+  noteClock(ctx, team, 'increment', 'refund', ctx.s.tempo[team] - held);
+}
+
+/** Zugzwang's mark: the slot of a side's dearest card at its own price (at least `minCost`), or -1. */
+export function dearestSlot(ctx: Ctx, team: PlayTeam, def: GambitDef): number {
+  let best = -1;
+  let bestCost = p(def, 'minCost', 17) - 1;
+  ctx.s.hands[team].forEach((h, i) => {
+    const card = h.cardId !== null ? ctx.c.gambitById.get(h.cardId) : undefined;
+    if (!card) return;
+    const cost = cardCost(ctx, team, card);
+    if (cost > bestCost) {
+      bestCost = cost;
+      best = i;
+    }
+  });
+  return best;
+}
+
+function applyClock(ctx: Ctx, team: PlayTeam, def: GambitDef): ClockNote {
+  const s = ctx.s;
+  const foe = other(team);
+  const until = s.tick + Math.round(def.durationSec * TPS);
+  switch (gambitEffect(def)) {
+    case 'zugzwang': {
+      const slot = dearestSlot(ctx, foe, def);
+      if (slot < 0) return {};
+      const h = s.hands[foe][slot];
+      const card = h.cardId!;
+      const ticks = Math.round(p(def, 'refillSec', 15) * TPS);
+      h.cardId = null;
+      h.refillTick = s.tick + ticks;
+      h.discarded = ticks;
+      noteClock(ctx, team, def.id, 'cards', 1);
+      const run = s.feedback.runs[s.feedback.runs.length - 1];
+      if (run?.cardId === def.id && run.team === team) run.card = card;
+      return { discarded: card };
+    }
+    case 'time_trouble': {
+      const drained = Math.min(s.tempo[foe], p(def, 'drain', 20));
+      s.tempo[foe] -= drained;
+      s.tempoSlow[foe] = { value: p(def, 'incomeMul', 0.7), untilTick: until };
+      noteClock(ctx, team, def.id, 'drained', drained);
+      return { drained: Math.round(drained) };
+    }
+    case 'opening_book': {
+      const schools = ctx.c.openingById.get(s.opening[team])?.schools ?? [];
+      // the book's own slot (the first holding it) stays; it refills as a played card does
+      const own = s.hands[team].findIndex((h) => h.cardId === def.id);
+      let n = 0;
+      s.hands[team].forEach((h, i) => {
+        if (i === own || h.cardId === null) return;
+        deal(ctx, team, i, schools);
+        n++;
+      });
+      noteClock(ctx, team, def.id, 'cards', n);
+      return {};
+    }
+    case 'increment':
+      s.increment[team] = { value: p(def, 'refund', 5), untilTick: until };
+      return {};
+    default:
+      return {};
+  }
 }
 
 // ---------------------------------------------------------------- tick
@@ -773,7 +879,8 @@ function frontStructure(ctx: Ctx, team: PlayTeam, lane: LaneId): Unit | null {
   return g && g.alive && isTargetable(ctx, g) ? g : null;
 }
 
-function plan(ctx: Ctx, team: PlayTeam, def: GambitDef): Plan | null {
+/** `nested`: asked by another card's plan (Increment, Opening Book), so those two stay quiet. */
+function plan(ctx: Ctx, team: PlayTeam, def: GambitDef, nested = false): Plan | null {
   const foe = other(team);
   const mine = alivePieces(ctx, team);
   const theirs = alivePieces(ctx, foe);
@@ -1035,6 +1142,71 @@ function plan(ctx: Ctx, team: PlayTeam, def: GambitDef): Plan | null {
       }
       return best;
     }
+    case 'zugzwang':
+    case 'time_trouble':
+      return clockPlan(ctx, team, def, theirs);
+    case 'opening_book':
+    case 'increment':
+      return nested ? null : clockPlan(ctx, team, def, theirs);
+  }
+}
+
+/** The best plan score among a side's other held cards (not `def`'s slot), or 0. */
+function otherCardsBest(ctx: Ctx, team: PlayTeam, def: GambitDef): number {
+  const hand = ctx.s.hands[team];
+  const own = hand.findIndex((h) => h.cardId === def.id);
+  let best = 0;
+  hand.forEach((h, i) => {
+    if (i === own || h.cardId === null) return;
+    const card = ctx.c.gambitById.get(h.cardId)!;
+    if (card.piece && !teamPiece(ctx, team, card.piece)?.alive) return;
+    best = Math.max(best, plan(ctx, team, card, true)?.score ?? 0);
+  });
+  return best;
+}
+
+/** The AI's Clock plans (spec 2026-10-18 section 5): each fires on a Tempo or hand reading. */
+function clockPlan(ctx: Ctx, team: PlayTeam, def: GambitDef, theirs: Unit[]): Plan | null {
+  const s = ctx.s;
+  const foe = other(team);
+  switch (gambitEffect(def)) {
+    case 'time_trouble': {
+      // the enemy is about to buy: 45+ Tempo; more urgent while its pieces fight
+      const held = s.tempo[foe];
+      if (held < 45 || isActive(s.tempoSlow[foe], s.tick)) return null;
+      const fight = theirs.some((e) => inFight(ctx, e)) ? 0.3 : 0;
+      return { score: 1 + (held - 45) / 55 + fight, target: {} };
+    }
+    case 'zugzwang': {
+      // the enemy holds a dear card and has nearly the Tempo to play it
+      const slot = dearestSlot(ctx, foe, def);
+      if (slot < 0) return null;
+      const card = ctx.c.gambitById.get(s.hands[foe][slot].cardId!)!;
+      const cost = cardCost(ctx, foe, card);
+      if (s.tempo[foe] < cost - 10) return null;
+      return { score: 1 + cost / 30, target: {} };
+    }
+    case 'increment': {
+      // with Tempo for a burst and another card ready: ahead of it, so that card is refunded
+      if (s.tempo[team] < 60 || isActive(s.increment[team], s.tick)) return null;
+      const next = otherCardsBest(ctx, team, def);
+      return next >= 1 ? { score: next + 0.1, target: {} } : null;
+    }
+    case 'opening_book': {
+      // neither other card has fitted for 15 s (held that long, none fits now): dig
+      if (s.tempo[team] < 50) return null;
+      const hand = s.hands[team];
+      const own = hand.findIndex((h) => h.cardId === def.id);
+      const others = hand.filter((h, i) => i !== own && h.cardId !== null);
+      if (others.length === 0) return null;
+      const dealt = (h: (typeof hand)[number]): number =>
+        h.expireTick - Math.round(ctx.t.gambits.expireSec * TPS);
+      if (others.some((h) => s.tick - dealt(h) < 15 * TPS)) return null;
+      if (otherCardsBest(ctx, team, def) >= 1) return null;
+      return { score: 1, target: {} };
+    }
+    default:
+      return null;
   }
 }
 

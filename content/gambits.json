@@ -235,6 +235,62 @@
         "armor": 30,
         "resist": 30
       }
+    },
+    {
+      "id": "zugzwang",
+      "name": "Zugzwang",
+      "desc": "The enemy discards its dearest card in hand (17 Tempo or more). That slot refills after 15 s instead of 6.",
+      "school": "clock",
+      "cost": 13,
+      "target": "none",
+      "piece": null,
+      "weight": 1.5,
+      "durationSec": 0,
+      "params": {
+        "minCost": 17,
+        "refillSec": 15
+      }
+    },
+    {
+      "id": "time_trouble",
+      "name": "Time Trouble",
+      "desc": "The enemy loses 20 Tempo now and earns Tempo 30% slower for 20 s.",
+      "school": "clock",
+      "cost": 17,
+      "target": "none",
+      "piece": null,
+      "weight": 1.5,
+      "durationSec": 20,
+      "params": {
+        "drain": 20,
+        "incomeMul": 0.7
+      }
+    },
+    {
+      "id": "opening_book",
+      "name": "Opening Book",
+      "desc": "Your other cards are redealt from your Opening's two schools (from any school with the Italian Game).",
+      "school": "clock",
+      "cost": 10,
+      "target": "none",
+      "piece": null,
+      "weight": 1.5,
+      "durationSec": 0,
+      "params": {}
+    },
+    {
+      "id": "increment",
+      "name": "Increment",
+      "desc": "For 30 s, every card you play gives back 5 Tempo (a card never costs you less than 3).",
+      "school": "clock",
+      "cost": 7,
+      "target": "none",
+      "piece": null,
+      "weight": 1.5,
+      "durationSec": 30,
+      "params": {
+        "refund": 5
+      }
     }
   ]
 }

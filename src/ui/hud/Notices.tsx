@@ -22,7 +22,13 @@ function BellLine(props: { act: Snapshot['act'] }) {
 
 /** One notice waiting for, or holding, the band. Copies, so a notice that expires still shows. */
 type Item =
-  | { key: string; at: number; rank: number; ms: number; black: { school: School; text: string } }
+  | {
+      key: string;
+      at: number;
+      rank: number;
+      ms: number;
+      black: { school: School; text: string; loss: boolean };
+    }
   | {
       key: string;
       at: number;
@@ -71,7 +77,7 @@ export function NoticeBand(props: { act: Snapshot['act'] }) {
       at: now,
       rank: 0,
       ms: bp.ms,
-      black: { school: bp.school, text: bp.text },
+      black: { school: bp.school, text: bp.text, loss: bp.loss },
     });
   for (const c of s.ui.chips)
     add({
@@ -106,7 +112,7 @@ export function NoticeBand(props: { act: Snapshot['act'] }) {
       <BellLine act={props.act} />
       {!bellOn && shown && 'black' in shown && (
         <div
-          class="black-play"
+          class={`black-play ${shown.black.loss ? 'loss' : ''}`}
           key={shown.key}
           data-testid="banner-black"
           style={{ '--ms': `${shown.ms}ms` }}

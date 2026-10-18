@@ -22,6 +22,8 @@ const zero = (): CardMetrics => ({
   deaths: 0,
   met: 0,
   drained: 0,
+  refund: 0,
+  cards: 0,
 });
 
 const param = (def: GambitDef, key: string, fallback: number): number =>
@@ -251,6 +253,26 @@ export function noteDeath(ctx: Ctx, victim: Unit, killer: Unit | null): void {
   }
 }
 
+/**
+ * Clock cards: adds to the open run of `team`'s `cardId` (the latest one): Tempo drained or held
+ * back (Time Trouble), Tempo given back (Increment), cards moved (Zugzwang, Opening Book).
+ */
+export function noteClock(
+  ctx: Ctx,
+  team: PlayTeam,
+  cardId: string,
+  key: 'drained' | 'refund' | 'cards',
+  amount: number,
+): void {
+  const runs = ctx.s.feedback.runs;
+  for (let i = runs.length - 1; i >= 0; i--) {
+    const r = runs[i];
+    if (r.team !== team || r.cardId !== cardId) continue;
+    r[key] += amount;
+    return;
+  }
+}
+
 /** Poisoned Pawn took Tempo from the team that killed its pawn. */
 export function noteDrain(ctx: Ctx, pawnId: number, amount: number): void {
   const r = ctx.s.feedback.runs.find((x) => x.cardId === 'poisoned_pawn' && x.targetId === pawnId);
@@ -279,6 +301,9 @@ function finish(ctx: Ctx, r: CardRun): void {
     deaths: r.deaths,
     met: r.met,
     drained: round(r.drained),
+    refund: round(r.refund),
+    cards: r.cards,
+    ...(r.card ? { card: r.card } : {}),
   });
 }
 
