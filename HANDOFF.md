@@ -48,3 +48,8 @@ The approved order of work is in `docs/FABLE-REVIEW-1-2026-10-11.md` section 5 (
 - Pages: push to `test-product-2` relays to `test-product`, which builds both sites.
 - Owner rules: BLUF, short answers, one `npm run check` per push, never open a PR unless asked, update docs per CLAUDE.md.
 - Paused work on `test-product` (3D polish stash, Team A bias) is untouched. Old `wip/*` backup branches can be deleted.
+
+## Techniques core (branch `wip/techniques-core`, 2026-10-18)
+
+- **Done:** phases 0–1 of `docs/SPEC-PIECE-BUILDS-2026-10-18.md` (sim only, off by default: `MatchConfig.techniques`, `--techniques`). 28 starter Techniques in `content/techniques.json`; offers, grades, gold rules, AI pick, "Pick for me" advice, commands, Builds view, preview, attribution. Phase 0 report `docs/BALANCE-TECHNIQUES-2026-10-18.md`: item-free Rank growth health +15.5%, main damage stat +45% (`builds.rankGrowth`, only with `items: false` / `--no-items`). Baseline identical. Deviations: spec "Build notes".
+- **Next:** phase 2 engine additions, phase 3 content (re-pair Windmill and Swindle: their parents share a slot), phase 4 retire items (item-free matches still run ~1.5 min longer at the median; not a stats problem), phase 5 screens.
