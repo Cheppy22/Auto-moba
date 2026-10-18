@@ -1,10 +1,10 @@
 name: pages
 # One site, three builds: test-product at the root, test-product-2 under /v2/,
-# the overnight proposal branch under /proposal/ (for owner review).
+# the standing preview branch proposal/next under /proposal/ (for owner review).
 # Keep this file identical on both branches.
 on:
   push:
-    branches: [test-product, test-product-2, proposal/aaa-overnight]
+    branches: [test-product, test-product-2, proposal/next]
   workflow_dispatch:
 permissions:
   contents: read
@@ -14,7 +14,7 @@ permissions:
 jobs:
   relay:
     # Pages deploys from test-product only, so a push to another branch asks it to rebuild all.
-    if: github.ref == 'refs/heads/test-product-2' || github.ref == 'refs/heads/proposal/aaa-overnight'
+    if: github.ref == 'refs/heads/test-product-2' || github.ref == 'refs/heads/proposal/next'
     runs-on: ubuntu-latest
     steps:
       - run: gh workflow run pages.yml --ref test-product --repo "$GITHUB_REPOSITORY"
@@ -40,7 +40,7 @@ jobs:
         continue-on-error: true
       - uses: actions/checkout@v4
         with:
-          ref: proposal/aaa-overnight
+          ref: proposal/next
           path: proposal
         continue-on-error: true
       - uses: actions/setup-node@v4
