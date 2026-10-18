@@ -49,7 +49,8 @@ describe('setup and Acts', () => {
   });
 
   it('opens two slots per Act, 3 Acts in total, as pairs sharing a biome', () => {
-    const m = liveMatch(4);
+    // a seed that reaches Act 3 (re-picked when Techniques and the opening cards came in)
+    const m = liveMatch(5);
     expect(openIds(m).sort()).toEqual(['brc', 'tlc']);
     toAct(m, 2);
     expect(openIds(m).sort()).toEqual(['brc', 'tla', 'tlb', 'tlc']);
