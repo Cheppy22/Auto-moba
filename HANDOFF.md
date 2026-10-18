@@ -53,7 +53,9 @@ The approved order of work is in `docs/FABLE-REVIEW-1-2026-10-11.md` section 5 (
 - Owner rules: BLUF, short answers, one `npm run check` per push, never open a PR unless asked, update docs per CLAUDE.md.
 - Paused work on `test-product` (3D polish stash, Team A bias) is untouched. Old `wip/*` backup branches can be deleted.
 
-## Techniques core (branch `wip/techniques-core`, 2026-10-18)
+## Techniques (branches `wip/techniques-core` then `wip/techniques-content`, 2026-10-18)
 
-- **Done:** phases 0–1 of `docs/SPEC-PIECE-BUILDS-2026-10-18.md` (sim only, off by default: `MatchConfig.techniques`, `--techniques`). 28 starter Techniques in `content/techniques.json`; offers, grades, gold rules, AI pick, "Pick for me" advice, commands, Builds view, preview, attribution. Phase 0 report `docs/BALANCE-TECHNIQUES-2026-10-18.md`: item-free Rank growth health +15.5%, main damage stat +45% (`builds.rankGrowth`, only with `items: false` / `--no-items`). Baseline identical. Deviations: spec "Build notes".
-- **Next:** phase 2 engine additions, phase 3 content (re-pair Windmill and Swindle: their parents share a slot), phase 4 retire items (item-free matches still run ~1.5 min longer at the median; not a stats problem), phase 5 screens.
+- **Done:** phases 0–3 of `docs/SPEC-PIECE-BUILDS-2026-10-18.md` (sim only, off by default: `MatchConfig.techniques`, `--techniques`; items stay live). Engine additions (cast/death/takedown/pawnlingKill triggers, landing and ally targets, recast, ready, echo, mark, Tempo, push, cleanse, regen, payHp) and all 84 cards in `content/techniques.json` (18 common, 6 Dubious, 20 piece, 30 archetype, 10 Combinations); court first moves; glossary words. Growth with items off: health +15.5%, main damage +40% per Rank. Baseline identical. Deviations: spec "Build notes" (both sections).
+- **Measured** (`--techniques --no-items --map long`, seed 29000): 800 White 50.1%, median 12.6 min, p90 18.9; player probe 53.5%. Report: `docs/BALANCE-TECHNIQUES-2026-10-18.md` "Phases 2–3".
+- **Open for phase 6:** four Combination parents taken 80–92% (Shared Guard, Family Fork, Rallying Cry, Echoing Decree; half of Kings end on Royal Court); Tempo cards and Time Pressure under 4%; the AI almost never rerolls or passes (its rule needs a best score under 1.2; an empty-slot card scores 2).
+- **Next:** phase 4 retire items (and fold `builds.rankGrowth` in), phase 5 screens, phase 6 balance (seed 31000, Blitz, ladder, AI-vs-random, greedy presets). Gotcha: `npm run balance` without `--map long` plays the square map.
