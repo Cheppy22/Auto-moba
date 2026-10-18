@@ -4,6 +4,7 @@ Newest first. One entry per change: what changed, why, and any measured effect. 
 
 ## 2026-10-18
 
+- **Spec: more gambits and Openings** ([SPEC-GAMBITS-OPENINGS-2026-10-18.md](SPEC-GAMBITS-OPENINGS-2026-10-18.md); docs only, no code or balance change). Why: Cheppy asked for more gambit types and Openings, going back to the original proposal. Finding: the 2026-10-10 plan had six schools with about four cards each and five Openings; only wave 1 shipped (16 cards), and the Clock school has no cards although setup already shows Clock verdicts. Proposal: build the four Clock cards (the old "Blitz" card renamed Increment) and the four wave-3 cards (24 cards, 4 per school); add English, Scandinavian, King's Indian and Caro-Kann (8 Openings), each opening with a named card; four named courts move to the new Openings. About 7.5 agent-days; waiting for approval.
 - **Overnight AAA proposal shipped** (`proposal/aaa-overnight` fast-forwarded into `test-product-2`; [PROPOSAL-AAA-2026-10-17.md](PROPOSAL-AAA-2026-10-17.md)). Why: Cheppy played it on `/proposal/` and approved ("It's amazing. Keep it."). Same tree that passed 414 unit and 98 browser tests.
 
 ## 2026-10-17
