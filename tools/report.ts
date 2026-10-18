@@ -252,7 +252,6 @@ export function report(
   };
 }
 
-/** Gold banked and Masterworks owned at each Act break (both sides, per piece). */
 /** Each Opening's appearances and win rate per side (flag a rate outside 44-56%). */
 function openingLines(results: MatchSummary[]): string[] {
   const out: string[] = ['## Openings (win rate when held, by side)', ''];
@@ -273,6 +272,7 @@ function openingLines(results: MatchSummary[]): string[] {
   return out;
 }
 
+/** Gold banked and Masterworks owned at each Act break (both sides, per piece). */
 function breakLines(results: MatchSummary[]): string[] {
   const n = results.length;
   const out: string[] = ['## Gold and Masterworks at the Act breaks (per piece, both sides)', ''];
