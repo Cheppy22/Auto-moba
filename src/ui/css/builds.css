@@ -392,6 +392,10 @@
 .ucard .tslots {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
+/* held upright the piece card has to leave the middle of the screen to the map: three a row (two rows, not three) */
+html[data-layout='portrait'] .ucard .tslots {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
 .ucard .tslot-detail {
   padding: 6px 8px 7px;
 }

@@ -219,18 +219,23 @@ test('a run on a phone: draw, kit, win, Spoils, reload, Continue, lose, summary,
   // page 1 (First moves): the heirloom shows as already taken on its piece, and that piece's three
   // cards are dealt for other slots
   const [heirPiece] = Object.keys(mid.heirlooms);
-  await page.getByTestId(`fm-chip-${heirPiece}`).click();
+  // an element click, not a pointer click: the pointer click scrolls the clipped pager sideways
+  await page.getByTestId(`fm-chip-${heirPiece}`).evaluate((el: HTMLElement) => el.click());
   await expect(page.getByTestId(`fm-heirloom-${heirPiece}`)).toContainText('already taken');
   await expect(
     page.getByTestId(`fm-heirloom-${heirPiece}`).getByTestId('tech-chip'),
   ).toHaveAttribute('data-technique', mid.heirlooms[heirPiece]);
   await expect(page.getByTestId(`first-move-${heirPiece}`).locator('.tcard')).toHaveCount(3);
+  await shot(page, 'setup-heirloom-phone');
+
   // the Run kit shows the heirloom as the Technique's card face under its piece
   await page.getByTestId('run-strip').click();
   await expect(page.getByTestId(`kit-heirloom-${heirPiece}`).locator('.tcard')).toHaveAttribute(
     'data-technique',
     mid.heirlooms[heirPiece],
   );
+  await page.getByTestId('kit-heirlooms').scrollIntoViewIfNeeded();
+  await shot(page, 'kit-heirloom-phone');
   await page.getByTestId('run-kit-close').click();
 
   // ---- reload: Continue picks the run up at round 2's court

@@ -95,6 +95,7 @@ test.describe('First moves: Pick for me and your own picks', () => {
 
     // Pick for me off: the other pieces are left open (nothing chosen); the Queen keeps your pick
     await pick.click();
+    if (shots) await page.screenshot({ path: `${shots}/builds-setup-override-390.png` });
     await expect(pick).toHaveAttribute('aria-checked', 'false');
     await expect(page.getByTestId('fm-chip-queen')).toHaveAttribute('data-source', 'yours');
     await expect(page.getByTestId('fm-chip-king')).toHaveAttribute('data-source', 'open');
