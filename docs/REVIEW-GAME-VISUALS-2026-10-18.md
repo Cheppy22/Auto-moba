@@ -9,7 +9,7 @@ This is the visuals and UX half of the full game review; features and gameplay a
 1. **About 7 out of 10 overall (Fable pass 2 was about 6).** Menus and sheets are at or near AA. Setup, versus card, card sheet, fork sheet, Builds tab, relic cards and report share one walnut-and-brass language, and the Checkmate beat is a real moment.
 2. **The map is still the weakest area (6.5).** The materials now match (felt lanes, stone roads, stone kerbs, brass medallions). But the loudest shapes on the board are empty places: five black locked-clearing discs and a Pit that reads as a hole. Bastions look like cottages and pieces are 15–25 px, so who is fighting whom is still hard to read at a glance.
 3. **"The whole screen is the map, with a free camera" has landed.** Phone portrait shows the full board between two thin HUD bands; desktop uses a side-on view across the width. Fable's "vertical strip on desktop" is gone.
-4. **Bugs are small and cheap:** text cut off ("Choose Battering R…", "SWEEPING …"), sheets and toasts sitting on other HUD parts, lane labels hidden under pieces, see-through fixed headers, a stale "purchases" label, and a Blitz line that says "No Checkmate" when Blitz matches do end in Checkmate.
+4. **Bugs are small and cheap (7 found):** text cut off ("Choose Battering R…", "SWEEPING …"), sheets and toasts sitting on other HUD parts, lane labels hidden under pieces, see-through fixed headers, a stale "purchases" label, and a Blitz line that says "No Checkmate" when Blitz matches do end in Checkmate.
 5. **Biggest design lever: give each colour one meaning.** School colours, damage-type colours, brass, "selected" green and "bad" red all reuse the same hues. A single Technique card can show five colours that each mean something different.
 
 ## Scores
@@ -40,9 +40,9 @@ Screenshots and videos are in `docs/img/review-2026-10-18/visuals/` (file names 
 ### Bugs (broken layout, overlaps, cut-off text, wrong words)
 
 **B1. Labels cut off with "…" in the fork sheet, Builds tab and piece card. S.**
-`fork-phone-truncated.jpg`, `builds-landscape.jpg`, `builds-landscape-header-overlap.jpg`.
+`fork-phone-truncated.jpg`, `builds-phone.jpg`, `builds-phone-scrolled.jpg`, `builds-landscape.jpg`, `builds-landscape-header-overlap.jpg`.
 
-- **What's wrong:** At 390 px the fork tab reads "Batteri…" and the main button reads "Choose Battering R…". In landscape Builds the buttons read "Take Through Li…" and "Take Lantern of …". Slot tiles read "SWEEPING …", "DIAGONAL BEA…" and "ROYAL LUN…".
+- **What's wrong:** At 390 px the fork tab reads "Batteri…" and the main button reads "Choose Battering R…". On the phone Builds tab the third button reads "Let the AI cho…". In landscape Builds the buttons read "Take Through Li…" and "Take Lantern of …". Slot tiles read "SWEEPIN…", "DIAGONAL BEA…" and "ROYAL LUN…".
 - **Why it matters:** These are the names the player is choosing between, so the decision screens are exactly where clipping hurts most.
 - **Fix:** Let tab labels and slot names wrap to two lines. Make button text "Take" or "Choose" with the name on a second line, or just "Take this card".
 
@@ -86,6 +86,13 @@ Screenshots and videos are in `docs/img/review-2026-10-18/visuals/` (file names 
 
 - **What's wrong:** The tab row ends in "Objecti" at 390 px.
 - **Fix:** Add a fade on the right edge, as the hand row has, or use shorter tab names on phones.
+
+**B7. "Lanes at the bell" bars cut off on the phone break Report. S.**
+`break-report-phone.jpg`, `break-lane-labels-zoom.jpg`.
+
+- **What's wrong:** The LEFT / MID / RIGHT labels lose their first letter at the left edge, the three rows touch with no gap, and the bars run past the right edge of the sheet.
+- **Why it matters:** It is the first chart on the first tab of every break.
+- **Fix:** Give the label column a fixed width inside the sheet's padding, add a 4 px row gap, and size the bars to the remaining width.
 
 ### Polish and design
 
@@ -192,6 +199,7 @@ Screenshots and videos are in `docs/img/review-2026-10-18/visuals/` (file names 
   - Auto pawns switch: 36 px tall.
   - Report page dots: 26 px.
   - Piece card close: 40 px.
+  - Orders pawn-plan minus and plus buttons: 40 px.
   - Landscape Black portraits: 38 px wide.
   - Lane bars: 39 px wide.
   - Fork relic icons: 36×32 px.
@@ -215,8 +223,9 @@ Screenshots and videos are in `docs/img/review-2026-10-18/visuals/` (file names 
 - **One frame language for decisions:** the card sheet, fork sheet, relic cards, Technique cards, piece card and report all use the walnut panel, brass rule, IM Fell small-caps headings and Spectral body (`card-sheet-phone.jpg`, `fork-desktop.jpg`, `relics-landscape.jpg`).
 - **Checkmate beat:** letterbox, push-in on the losing King, the topple, gold light and the "CHECKMATE / White wins" lower third, then the result. Short, skippable, and it honours reduced motion (`checkmate-sequence-phone.jpg`, `checkmate-phone.mp4`).
 - **Versus card and Draw ladder:** 3D portraits in team finishes, heraldic seals, mottos (`versus-phone.jpg`, `draw-phone-pace-overlap.jpg`).
-- **Informed choices:** before → after ledgers with this piece's real numbers on fork tabs and Technique cards, "Last Act" estimates, "Completes a pair", and the chess grade marks (!, ?!) (`fork-phone-truncated.jpg`, `builds-landscape.jpg`).
-- **Pick for me:** the starred "worth a look" pieces and the "Picked for you" ribbon make a heavy screen safe to skip.
+- **Informed choices:** before → after ledgers with this piece's real numbers on fork tabs and Technique cards, "Last Act" estimates, "Completes a pair", and the chess grade marks (!, ?!) (`fork-phone-truncated.jpg`, `builds-phone.jpg`).
+- **Pick for me:** the starred "worth a look" pieces and the "Picked for you" ribbon make a heavy screen safe to skip. On the phone the Builds tab reads top to bottom in one clear order: pieces, slots, offer cards, Reroll / Pass / AI, Resume (`builds-phone.jpg`).
+- **Orders tab:** a clean lane board, Black's court list and pawn plan in one column (`break-orders-phone.jpg`).
 - **Full-screen board with a free camera,** the side-on desktop view, and theme b's warm palette, which matches the walnut-and-brass HUD best (`live-desktop.jpg`, `live-themeb-ink-phone.jpg`).
 - **Reduced motion is handled everywhere it matters:** the eye badge, teleport, knock-back, life pass and Checkmate length.
 - **Contrast of body text** is high throughout (13:1 ivory and 8.7:1 bone on walnut).
