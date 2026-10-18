@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'preact/hooks';
-import { naturalPath, type Path, type PieceId, type SetupEntry } from '../sim';
+import type { PieceId, SetupEntry } from '../sim';
 import { PacePicker } from './PacePicker';
 import { PIECE_ORDER } from './pieces';
 import { useSession } from './session';
@@ -8,27 +8,23 @@ import { RunStrip } from './run/RunStrip';
 import { BoardPage } from './setup/BoardPage';
 import { OpeningPage } from './setup/OpeningPage';
 import { Pager } from './setup/Pager';
-import { PathsPage } from './setup/PathsPage';
+import { FirstMovesPage } from './setup/FirstMovesPage';
 
-const STEPS = ['Paths', 'Board', 'Opening'];
+const STEPS = ['First moves', 'Board', 'Opening'];
 
 /**
- * The setup screen: three pages (build paths, board arrangement, Opening) you swipe or step
+ * The setup screen: three pages (first moves, board arrangement, Opening) you swipe or step
  * through. Sends the same `setupTeam` payload as the old single page.
  */
 export function Setup() {
   const s = useSession();
   const m = s.match!;
   // in a run, from the second match on, the court starts as the last match's; otherwise the lanes
-  // come from the AI's setup but each piece starts on its natural build path (the Queen, "The
-  // Carry", on Offense), not on the AI's random pick
+  // come from the AI's setup
   const carried = s.run !== null && s.run.results.length > 0;
   const [entries, setEntries] = useState<SetupEntry[]>(() => {
     const d = carried ? s.setupDefaults()! : m.defaultSetup();
-    return PIECE_ORDER.map((p) => {
-      const e = d.pieces.find((x) => x.piece === p)!;
-      return carried ? { ...e } : { ...e, path: naturalPath(s.content.pieceById.get(p)!) };
-    });
+    return PIECE_ORDER.map((p) => ({ ...d.pieces.find((x) => x.piece === p)! }));
   });
   const [selected, setSelected] = useState<PieceId | null>(null);
   const openings = s.content.openings;
@@ -61,11 +57,9 @@ export function Setup() {
     s.issue({
       type: 'setupTeam',
       opening,
-      pieces: entries.map(({ piece, path, lane }) => ({ piece, path, lane })),
+      pieces: entries.map(({ piece, lane }) => ({ piece, lane })),
     });
   };
-  const setPath = (piece: PieceId, path: Path): void =>
-    setEntries(entries.map((e) => (e.piece === piece ? { ...e, path } : e)));
 
   return (
     <div class="overlay setup" data-testid="setup">
@@ -94,7 +88,7 @@ export function Setup() {
         </header>
         <Pager page={page} onPage={go}>
           {[
-            <PathsPage key="paths" content={s.content} entries={entries} onPath={setPath} />,
+            <FirstMovesPage key="moves" opening={opening} />,
             <BoardPage
               key="board"
               content={s.content}

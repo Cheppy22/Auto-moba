@@ -126,7 +126,7 @@ describe('Named courts (3B): the draw', () => {
         mvp: null,
         relics: [],
         styles: {},
-        items: {},
+        techniques: {},
       },
     );
     expect(next.opponents[1].courtId).toBe(run.opponents[1].courtId);
@@ -160,7 +160,6 @@ describe('Named courts (3B): in a match', () => {
       for (const p of k.pieces) {
         const u = piece(m, 'B', p.piece);
         expect(u.hero!.lane, `${k.id} ${p.piece}`).toBe(p.lane);
-        expect(u.hero!.path, `${k.id} ${p.piece}`).toBe(p.path);
       }
     }
   });

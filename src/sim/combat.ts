@@ -209,8 +209,7 @@ export function dealDamage(
   trackDamage(ctx, src, tgt, applied + absorbed);
   if (ctx.s.feedback.runs.length > 0)
     noteDamage(ctx, src, tgt, raw, dtype, applied + absorbed, absorbed);
-  if (lethal)
-    tgt.pendingKill = { killerId: src ? src.id : 0, origin };
+  if (lethal) tgt.pendingKill = { killerId: src ? src.id : 0, origin };
   if (tgt.hero && !lethal)
     fireTriggers(ctx, tgt, 'damaged', {
       attacker: src ?? undefined,

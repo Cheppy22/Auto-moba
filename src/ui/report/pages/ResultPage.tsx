@@ -4,10 +4,9 @@ import { courtName } from '../../../analysis/text';
 import { clock, full } from '../../charts';
 import { TEAM_COLOR } from '../../charts';
 import { Term } from '../../glossary';
-import { ItemIcon } from '../../ItemIcon';
-import { itemCategory } from '../../itemInfo';
 import { PieceGlyph } from '../../pieces';
 import { useSession } from '../../session';
+import { TechniqueChip } from '../../TechniqueChip';
 import { Num } from '../common';
 import type { ReportData } from '../data';
 import { Portrait, reducedMotion } from '../parts';
@@ -282,17 +281,11 @@ function ScoreRow(props: {
       <span class="rp-c rp-c-gold" role="cell" data-label="Gold">
         <Num value={r.goldEarned} skip={props.skip} />
       </span>
-      <span class="rp-c-items" role="cell" aria-label="Final items">
-        {r.finalItems.map((id, i) => (
-          <span
-            key={`${id}:${i}`}
-            class={`rp-item cat-${itemCategory(s.content, id)}`}
-            title={r.finalItemNames[i] ?? id}
-          >
-            <ItemIcon id={id} size={18} />
-          </span>
+      <span class="rp-c-items" role="cell" aria-label="Final Techniques">
+        {r.finalTechniques.map((id) => (
+          <TechniqueChip key={id} c={s.content} id={id} glyph={12} />
         ))}
-        {r.finalItems.length === 0 && <span class="dim tiny">No items</span>}
+        {r.finalTechniques.length === 0 && <span class="dim tiny">No Techniques</span>}
       </span>
     </div>
   );

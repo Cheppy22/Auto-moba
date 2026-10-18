@@ -13,24 +13,21 @@ import {
 import { courtName, courtPossessive } from '../../analysis/text';
 import { n0 } from '../format';
 import { Term, Terms } from '../glossary';
-import { Orders, whitePieces } from '../Orders';
+import { Orders } from '../Orders';
 import { PIECE_ORDER } from '../pieces';
 import { useSession } from '../session';
-import { ArmoryTab } from './ArmoryTab';
+import { BuildsTab } from './BuildsTab';
 import { LaneBars } from './LaneBars';
 import { RelicsTab } from './RelicsTab';
 import { BreakTour } from './Tutor';
 import { RelicSeal, aimText, relicText, shownRelics } from '../relics';
 
-type Tab = 'report' | 'orders' | 'armory' | 'relics';
-
-/** The Armory tab shows a dot while a piece holds this much gold. */
-const UNSPENT_GOLD = 300;
+type Tab = 'report' | 'orders' | 'builds' | 'relics';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'report', label: 'Report' },
   { id: 'orders', label: 'Orders' },
-  { id: 'armory', label: 'Armory' },
+  { id: 'builds', label: 'Builds' },
   { id: 'relics', label: 'Relics' },
 ];
 
@@ -269,8 +266,6 @@ export function BreakSheet(props: { snap: Snapshot }) {
   const tab = s.ui.breakTab;
   const pending = !props.snap.relics.settled;
   const formation = props.snap.relics.formation;
-  // a brass dot while any piece holds 300 gold or more
-  const unspent = s.match!.armoryOpen && whitePieces(s).some((u) => u.hero!.gold >= UNSPENT_GOLD);
   return (
     <>
       <div class="break-scrim" aria-hidden="true" />
@@ -302,9 +297,6 @@ export function BreakSheet(props: { snap: Snapshot }) {
               >
                 {t.label}
                 {t.id === 'relics' && pending && <i class="bs-dot" data-testid="relics-pending" />}
-                {t.id === 'armory' && unspent && (
-                  <i class="bs-dot brass" data-testid="armory-unspent" title="Gold to spend" />
-                )}
               </button>
             ))}
           </div>
@@ -313,7 +305,7 @@ export function BreakSheet(props: { snap: Snapshot }) {
         <div class="bs-body scroll">
           {tab === 'report' && <Report report={act.report} snap={props.snap} />}
           {tab === 'orders' && <Orders formation={props.snap.relics.formation} snap={props.snap} />}
-          {tab === 'armory' && <ArmoryTab />}
+          {tab === 'builds' && <BuildsTab />}
           {tab === 'relics' && <RelicsTab snap={props.snap} />}
         </div>
         <footer class="bs-foot">

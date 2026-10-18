@@ -9,7 +9,16 @@ import {
   type MatchOutcome,
   type RunState,
 } from '../src/sim';
-import { loadBest, loadRun, RUN_KEY, saveBest, saveRun, type SaveStore } from '../src/ui/run/save';
+import {
+  dropStaleRun,
+  loadBest,
+  loadRun,
+  OLD_RUN_NOTE,
+  RUN_KEY,
+  saveBest,
+  saveRun,
+  type SaveStore,
+} from '../src/ui/run/save';
 import { content } from './helpers';
 
 const plain = content.relics.filter((r) => r.bind === 'none' && !r.rally).map((r) => r.id);
@@ -32,7 +41,7 @@ function step(run: RunState, won: boolean, o: Partial<MatchOutcome> = {}): RunSt
     mvp: null,
     relics: [],
     styles: {},
-    items: {},
+    techniques: {},
     ...o,
   };
   return recordResult(content, b.run, out);
@@ -66,12 +75,24 @@ describe('Tournament run: save on the device', () => {
     expect(loadBest(at)).toEqual({ v: 1, round: 1, champion: false });
   });
 
+  it('drops a version-1 run (heirloom items) at start-up with a note for the Title', () => {
+    const at = memory();
+    expect(dropStaleRun(content, at)).toBeNull();
+    const old = { ...newRun(content, 1), v: 1, heirlooms: { rook: 'iron_lung' } };
+    at.setItem(RUN_KEY, JSON.stringify(old));
+    expect(dropStaleRun(content, at)).toBe(OLD_RUN_NOTE);
+    expect(at.map.has(RUN_KEY)).toBe(false);
+    saveRun(newRun(content, 2), at);
+    expect(dropStaleRun(content, at)).toBeNull();
+    expect(loadRun(content, at)?.v).toBe(2);
+  });
+
   it('drops a bad or old save with a warning, never a crash', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const at = memory();
     at.setItem(RUN_KEY, '{not json');
     expect(loadRun(content, at)).toBeNull();
-    at.setItem(RUN_KEY, JSON.stringify({ ...newRun(content, 1), v: 2 }));
+    at.setItem(RUN_KEY, JSON.stringify({ ...newRun(content, 1), v: 3 }));
     expect(loadRun(content, at)).toBeNull();
     expect(at.map.has(RUN_KEY)).toBe(false);
     at.setItem(RUN_KEY, JSON.stringify({ ...newRun(content, 1), books: ['gone'] }));

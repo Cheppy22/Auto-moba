@@ -41,7 +41,6 @@ describe('determinism', () => {
       .map((id) => m.unitById(id)!)
       .find((u) => u.hero!.defId === 'rook')!;
     m.issue({ type: 'setLane', heroId: rook.id, lane: 'mid' });
-    m.issue({ type: 'setPath', heroId: rook.id, path: 'offense' });
     m.step(1800);
     const fork = m.snapshot().forks[0];
     if (fork) m.issue({ type: 'chooseFork', heroId: fork.heroId, optionId: fork.options[1].id });

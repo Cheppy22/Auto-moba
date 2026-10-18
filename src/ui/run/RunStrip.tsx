@@ -1,6 +1,6 @@
 import { PIECE_ORDER, PieceGlyph, pieceLabel, styleLabel } from '../pieces';
 import { RelicSeal } from '../relics';
-import { ItemIcon } from '../ItemIcon';
+import { SchoolGlyph } from '../schools';
 import { useSession } from '../session';
 import { roundName } from '../../sim';
 
@@ -39,15 +39,18 @@ export function RunStrip(props: { onOpen: () => void }) {
           ) : null;
         })}
         <span class="rst-extra">
-          {heirlooms.map((p) => (
-            <span
-              class="rst-mark item"
-              key={p}
-              title={`${pieceLabel(c, p)} heirloom: ${c.itemById.get(run.heirlooms[p]!)?.name}`}
-            >
-              <ItemIcon id={run.heirlooms[p]!} size={16} />
-            </span>
-          ))}
+          {heirlooms.map((p) => {
+            const tech = c.techniqueById.get(run.heirlooms[p]!);
+            return tech ? (
+              <span
+                class="rst-mark item"
+                key={p}
+                title={`${pieceLabel(c, p)} heirloom: ${tech.name}`}
+              >
+                <SchoolGlyph school={tech.school} size={16} />
+              </span>
+            ) : null;
+          })}
           {styled.map((p) => (
             <span
               class="rst-mark piece"

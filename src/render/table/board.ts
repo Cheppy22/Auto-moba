@@ -562,17 +562,6 @@ export class Board {
       g.stroke();
     }
 
-    // shops and keeper spots: small brass medallions
-    for (const s of terrain.shapes) {
-      if (s.kind !== 'shop' && s.kind !== 'spot') continue;
-      const R = s.kind === 'shop' ? s.r * 0.6 : s.r * 0.45;
-      g.strokeStyle = 'rgba(125,98,50,0.7)';
-      g.lineWidth = 5;
-      g.beginPath();
-      g.arc(s.ax, s.ay, R, 0, Math.PI * 2);
-      g.stroke();
-    }
-
     // lane names painted in brass on the felt, clear of White's dais and Throne
     g.font = `${Math.round(map.walk.lane * 0.46)}px 'IM Fell English SC', Georgia, serif`;
     const names: [keyof typeof map.lanes, string][] = [

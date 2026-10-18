@@ -696,7 +696,7 @@ export function paintLongStyled(
     }
   }
 
-  // shop Squares: flagstone plazas over the Mid lane, the shop medallion in the middle
+  // Squares: flagstone plazas over the Mid lane (no medallion: nothing is sold there)
   for (const a of map.areas.filter((x) => x.kind === 'square')) {
     const [ax, ay] = a.pts[0];
     const [bx, by] = a.pts[a.pts.length - 1];
@@ -704,7 +704,6 @@ export function paintLongStyled(
     sqShape.box = true;
     pave(g, [sqShape], 0, { ...stone, seed: 800 });
   }
-  for (const s of of('shop')) ringBand(g, s.ax, s.ay, s.r * 0.72, 8);
 
   // the Pit's medallion: one wide ring over the causeways
   for (const s of of('pit')) ringBand(g, s.ax, s.ay, s.r * 0.93, 11);

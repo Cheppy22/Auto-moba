@@ -293,35 +293,6 @@ export function obeliskCrystal(): BufferGeometry {
   return merge([{ g: octa(16), c: '#ffffff', p: [0, 56, 0], s: [0.8, 2.2, 0.8], glow: true }]);
 }
 
-/** The Arbiter (the Keeper): a tall robed referee carrying a chess clock. */
-export function keeper(): BufferGeometry {
-  return merge([
-    {
-      g: lathe(
-        [
-          [0, 0],
-          [22, 0],
-          [20, 4],
-          [14, 40],
-          [11, 70],
-          [0, 70],
-        ],
-        7,
-      ),
-      c: '#3b3346',
-    },
-    { g: prism(14, 14, 3, 7), c: TABLE.brass, p: [0, 40, 0] },
-    { g: prism(10, 16, 10, 7), c: '#4c4258', p: [0, 64, 0] },
-    { g: gem(10), c: '#d8cbb2', p: [0, 84, 0] },
-    { g: cone(12, 18, 6), c: '#2b2533', p: [0, 88, -1] },
-    { g: box(30, 16, 10), c: TABLE.frame, p: [0, 50, 20] },
-    { g: box(9, 9, 1), c: '#efe6d2', p: [-7, 51, 25.2] },
-    { g: box(9, 9, 1), c: '#efe6d2', p: [7, 51, 25.2] },
-    { g: box(4, 4, 4), c: '#b8392c', p: [-7, 60, 20] },
-    { g: box(4, 4, 4), c: TABLE.brass, p: [7, 60, 20] },
-  ]);
-}
-
 /** A miniature's round base: rim (team metal) and top (style colour), both unit-sized. */
 export function baseRim(): BufferGeometry {
   return merge([{ g: prism(1, 1.08, 0.45, 12), c: '#ffffff' }]);

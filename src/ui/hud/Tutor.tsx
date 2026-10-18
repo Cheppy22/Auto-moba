@@ -253,18 +253,18 @@ export function ForkTutor() {
   );
 }
 
-const TOUR: { tab: 'report' | 'orders' | 'armory' | 'relics'; text: string }[] = [
+const TOUR: { tab: 'report' | 'orders' | 'builds' | 'relics'; text: string }[] = [
   {
     tab: 'report',
     text: 'Report: who held each lane, the big fights and how your pieces fell. Read it to see what to fix.',
   },
   {
     tab: 'orders',
-    text: 'Orders: set each piece’s lane and build path, and how many pawns to field per lane, for the next Act.',
+    text: 'Orders: set each piece’s lane, and how many pawns to field per lane, for the next Act.',
   },
   {
-    tab: 'armory',
-    text: 'Armory: spend a piece’s gold on items, or leave it to its plan.',
+    tab: 'builds',
+    text: 'Builds: each piece is offered three Techniques; it takes one, and its gold buys rerolls and upgrades.',
   },
   {
     tab: 'relics',

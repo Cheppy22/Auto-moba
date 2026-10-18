@@ -28,10 +28,11 @@ describe('match summary: shape and names', () => {
       expect(r.styleName).toBe(content.styleByKey.get(`${r.piece}/${r.style}`)!.name);
       expect(r.rank).toBeGreaterThanOrEqual(1);
       expect(r.rank).toBeLessThanOrEqual(8);
-      expect(r.finalItems.length).toBeLessThanOrEqual(content.tuning.shop.slots);
-      expect(r.finalItemNames).toHaveLength(r.finalItems.length);
-      for (const id of r.finalItems)
-        expect(content.itemById.has(id) || content.cursedById.has(id)).toBe(true);
+      // one Technique per slot, six slots
+      expect(r.finalTechniques.length).toBeGreaterThan(0);
+      expect(r.finalTechniques.length).toBeLessThanOrEqual(6);
+      expect(r.finalTechniqueNames).toHaveLength(r.finalTechniques.length);
+      for (const id of r.finalTechniques) expect(content.techniqueById.has(id)).toBe(true);
       expect(['top', 'mid', 'bot']).toContain(r.lane);
       expect(['top', 'mid', 'bot']).toContain(r.startLane);
     }
@@ -152,10 +153,10 @@ describe('match summary: numbers trace back to the log', () => {
     );
   });
 
-  it('final items replay purchases, components and sells', () => {
+  it('final Techniques replay the picks and what they replaced, matching the pieces', () => {
     for (const r of s.rows) {
-      const bought = m.events.filter((e) => e.type === 'purchase' && e.payload.id === r.id).length;
-      expect(r.finalItems.length).toBeLessThanOrEqual(bought);
+      const held = m.unitById(r.id)!.hero!.techniques.map((x) => x.id);
+      expect(r.finalTechniques.slice().sort()).toEqual(held.slice().sort());
     }
   });
 });
@@ -330,13 +331,13 @@ describe('match summary: edge cases and the hero view', () => {
     expect(bare.teams.A.kills).toBe(s.teams.A.kills);
   });
 
-  it('buildReport still serves the hero view (ranks, forks, purchases, damage types)', () => {
+  it('buildReport still serves the hero view (ranks, forks, Techniques, damage types)', () => {
     const r = buildReport(input, { kind: 'match' });
     expect(r.heroes).toHaveLength(10);
     for (const h of r.heroes) {
       expect(h.ranks.length).toBeGreaterThan(0);
       expect(h.ranks.length).toBeLessThanOrEqual(7);
-      expect(h.purchases.length).toBeGreaterThan(0);
+      expect(h.techniques.length).toBeGreaterThan(0);
       const row = s.rows.find((x) => x.id === h.id)!;
       expect(row.rank).toBe(h.ranks.length ? Math.max(...h.ranks.map((x) => x.rank)) : 1);
       expect(row.damageTaken).toBe(h.damageTaken);

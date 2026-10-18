@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'preact/hooks';
 import type { CarriedRelic, Content, RelicDef } from '../../sim';
 import { Term } from '../glossary';
 import { CardChips, LaneChips, PieceChips, QuotaControls, SealedControls } from '../hud/RelicsTab';
-import { ItemIcon } from '../ItemIcon';
+import { TechniqueChip } from '../TechniqueChip';
 import {
   LANES,
   LANE_LABEL,
@@ -116,8 +116,8 @@ export function RunKit(props: { onClose: () => void }) {
   useEffect(() => done.current?.focus({ preventScroll: true }), []);
   const max = c.tournament?.relicMax ?? 5;
   const heirlooms = PIECE_ORDER.flatMap((p) => {
-    const item = run.heirlooms[p] ? c.itemById.get(run.heirlooms[p]!) : undefined;
-    return item ? [{ piece: p, item }] : [];
+    const id = run.heirlooms[p];
+    return id && c.techniqueById.has(id) ? [{ piece: p, id }] : [];
   });
   const books = run.books.flatMap((id) => c.gambitById.get(id) ?? []);
   return (
@@ -223,12 +223,10 @@ export function RunKit(props: { onClose: () => void }) {
               <p class="rk-note">None yet. A piece with one starts every match holding it.</p>
             ) : (
               <ul class="relic-names">
-                {heirlooms.map(({ piece, item }) => (
+                {heirlooms.map(({ piece, id }) => (
                   <li key={piece}>
-                    <ItemIcon id={item.id} size={20} />
-                    <span>
-                      {item.name} <span class="dim">on the {pieceLabel(c, piece)}</span>
-                    </span>
+                    <TechniqueChip c={c} id={id} />
+                    <span class="dim">on the {pieceLabel(c, piece)}</span>
                   </li>
                 ))}
               </ul>

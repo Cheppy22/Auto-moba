@@ -136,7 +136,11 @@ function placeRelics(ctx: Ctx, team: PlayTeam, carried: CarriedRelic[]): void {
 }
 
 /** Heirloom Techniques: held at Plain grade from the start (a Setup card of the piece's own). */
-function giveHeirlooms(ctx: Ctx, team: PlayTeam, heirlooms: Partial<Record<PieceId, string>>): void {
+function giveHeirlooms(
+  ctx: Ctx,
+  team: PlayTeam,
+  heirlooms: Partial<Record<PieceId, string>>,
+): void {
   for (const piece of PIECE_IDS) {
     const id = heirlooms[piece];
     const u = unitOf(ctx, team, piece);

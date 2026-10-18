@@ -63,7 +63,8 @@ export interface ReplayData {
   team: 'A' | 'B';
   path: ReplayPoint[];
   fights: { id: number; x: number; y: number; startTick: number; endTick: number }[];
-  purchases: { tick: number; label: string }[];
+  /** Techniques taken or upgraded (at Setup and the Act breaks). */
+  picks: { tick: number; label: string }[];
   deaths: { tick: number; x: number; y: number }[];
   recalls: { tick: number; dest: string }[];
   slots: { id: string; biomeId: string | null }[];
@@ -293,7 +294,7 @@ export function drawReplay(
     g.lineTo(dx - s, dy + s);
     g.stroke();
   }
-  for (const b of data.purchases) {
+  for (const b of data.picks) {
     const pt = pointAt(data.path, b.tick);
     if (!pt) continue;
     g.fillStyle = PALETTE.gold;

@@ -29,7 +29,7 @@ describe('analysis', () => {
     const kills = slices.reduce((a, r) => a + r.heroes.reduce((x, h) => x + h.kills, 0), 0);
     expect(kills).toBeLessThanOrEqual(whole.heroes.reduce((a, h) => a + h.kills, 0));
     const buys = (r: ReturnType<typeof buildReport>): number =>
-      r.heroes.reduce((a, h) => a + h.purchases.length, 0);
+      r.heroes.reduce((a, h) => a + h.techniques.length, 0);
     expect(slices.reduce((a, r) => a + buys(r), 0)).toBe(buys(whole));
     const picks = (r: ReturnType<typeof buildReport>): number =>
       r.heroes.reduce((a, h) => a + h.ranks.length, 0);
@@ -72,7 +72,7 @@ describe('analysis', () => {
       const pawns = m.events.filter((e) => e.type === 'pawnFielded' && e.payload.team === t);
       expect(whole.teams[t].pawnsFielded).toBe(pawns.length);
     }
-    expect(whole.roster.every((r) => r.style.length > 0 && r.path.length > 0)).toBe(true);
+    expect(whole.roster.every((r) => r.style.length > 0)).toBe(true);
   });
 
   it('reports the damage type a hero took most of', () => {

@@ -474,7 +474,7 @@ function reroll(ctx: Ctx, u: Unit, offer: BuildOffer): void {
 
 function upgrade(ctx: Ctx, u: Unit, id: string): number {
   const h = u.hero!;
-  const held = (h.techniques).find((x) => x.id === id)!;
+  const held = h.techniques.find((x) => x.id === id)!;
   const cost = upgradeCost(ctx.t, held.grade)!;
   h.gold -= cost;
   held.grade = GRADES[gradeIndex(held.grade) + 1];

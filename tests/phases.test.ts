@@ -72,14 +72,12 @@ describe('setup and Acts', () => {
     expect(seen.size).toBeGreaterThan(2);
   });
 
-  it('re-rolls the jungle and moves the Keeper every Act', () => {
+  it('re-rolls the jungle every Act', () => {
     const m = liveMatch(8);
     const rolls = (): number => m.events.filter((e) => e.type === 'campsRolled').length;
-    const moves = (): number => m.events.filter((e) => e.type === 'keeperMoved').length;
-    const [a, k] = [rolls(), moves()];
+    const a = rolls();
     toAct(m, 2);
     expect(rolls()).toBeGreaterThan(a);
-    expect(moves()).toBeGreaterThan(k);
   });
 
   it('respawn time grows inside an Act and its base rises each Act', () => {
@@ -99,7 +97,7 @@ describe('setup and Acts', () => {
     toBell(m, 'halt');
     const hero = piece(m, 'A', 'bishop');
     hero.hp = 0;
-    hero.pendingKill = { killerId: 0 };
+    hero.pendingKill = { killerId: 0, origin: 'test' };
     m.step(1);
     expect(hero.alive).toBe(false);
     const due = hero.hero!.respawnAt!;
@@ -122,10 +120,9 @@ describe('setup and Acts', () => {
     expect(seenAt[3]).toEqual([]);
     expect(seenAt[4]).toEqual(['thinning_veil']);
     expect(seenAt[5]).toEqual(['thinning_veil', 'spirit_tide']);
-    expect(seenAt[6]).toEqual(['thinning_veil', 'spirit_tide', 'keeper_debts']);
-    expect(seenAt[7]).toEqual(['thinning_veil', 'spirit_tide', 'keeper_debts', 'endgame']);
+    expect(seenAt[6]).toEqual(['thinning_veil', 'spirit_tide']);
+    expect(seenAt[7]).toEqual(['thinning_veil', 'spirit_tide', 'endgame']);
     expect(m.state.tagMult.heal).toBe(0.5);
-    expect(m.state.tagMult.curse).toBe(2);
     expect(m.state.tagMult.throneDamage).toBe(1.5);
     expect(m.state.tagMult.respawn).toBe(1.5);
     const g = m.ctx.guardians.A!;

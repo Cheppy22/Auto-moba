@@ -5,8 +5,8 @@ import { n0 } from '../format';
 export const heroName = (c: Content, def: string): string =>
   c.pieceById.get(def as PieceId)?.name ?? def;
 
-export const itemName = (c: Content, id: string): string =>
-  c.itemById.get(id)?.name ?? c.cursedById.get(id)?.name ?? id;
+export const techniqueName = (c: Content, id: string): string =>
+  c.techniqueById.get(id)?.name ?? id;
 
 export function Num(props: { value: number; skip: boolean }) {
   const [shown, setShown] = useState(props.skip ? props.value : 0);

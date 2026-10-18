@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import { Grid } from '../src/sim/core/grid';
 import { rand, seedStreams, shuffle } from '../src/sim/core/rng';
 import { mitigate, abilityMods } from '../src/sim/combat';
-import { quote, buyItem, sellItem, netWorth } from '../src/sim/shop';
 import { buildWorld, findPath, lanePoint, laneT } from '../src/sim/world/map';
 import { content, liveMatch, piece } from './helpers';
 
@@ -52,7 +51,7 @@ describe('world', () => {
   });
 });
 
-describe('damage and shop', () => {
+describe('damage and rank bonuses', () => {
   const m = liveMatch(9, { autoGambits: { A: false, B: false } });
   const hero = piece(m, 'A', 'queen');
 
@@ -67,29 +66,7 @@ describe('damage and shop', () => {
     else expect(blade).toBeGreaterThanOrEqual(soul);
   });
 
-  it('combining discounts owned components and refunds on sell', () => {
-    hero.hero!.gold = 5000;
-    hero.hero!.items = [];
-    expect(buyItem(m.ctx, hero, 'rusted_cleaver').ok).toBe(true);
-    expect(buyItem(m.ctx, hero, 'piston_gauntlet').ok).toBe(true);
-    const q = quote(m.ctx, hero, 'cogged_edge');
-    expect('price' in q && q.price).toBe(900 - 250 - 300);
-    const before = hero.hero!.gold;
-    expect(buyItem(m.ctx, hero, 'cogged_edge').ok).toBe(true);
-    expect(hero.hero!.items).toEqual(['cogged_edge']);
-    expect(hero.hero!.gold).toBe(before - 350);
-    expect(netWorth(m.ctx, hero)).toBe(hero.hero!.gold + 900);
-    expect(sellItem(m.ctx, hero, 'cogged_edge').ok).toBe(true);
-    expect(hero.hero!.gold).toBe(before - 350 + 450);
-  });
-
-  it('tier 3 items are not in the base catalog; only the keeper stock sells them there', () => {
-    const q = quote(m.ctx, hero, 'soot_reaver');
-    const stocked = m.state.keeper.stock.includes('soot_reaver');
-    expect('price' in q).toBe(stocked);
-  });
-
-  it('rank bonuses and fork picks scale ability numbers', () => {
+  it('rank bonuses scale ability numbers', () => {
     const st = content.pieceById.get('queen')!.styles[0];
     hero.hero!.style = st.id;
     const bonus = [st.ranks['5'], st.ranks['6'], st.ranks['7']].find(
@@ -103,10 +80,6 @@ describe('damage and shop', () => {
       hero.hero!.perks = [{ rank, optionId: null }];
       expect(abilityMods(m.ctx, hero, idx).powerMul).toBeCloseTo(before * bonus.powerMul);
     }
-    const opt = st.forks['8'][0];
-    hero.hero!.perks = [{ rank: 8, optionId: opt.id }];
-    if (opt.ability !== undefined)
-      expect(abilityMods(m.ctx, hero, opt.ability).powerMul).toBeCloseTo(opt.powerMul);
     hero.hero!.perks = [];
     hero.hero!.style = null;
   });

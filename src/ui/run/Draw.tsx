@@ -89,7 +89,7 @@ export function Draw() {
         </ol>
         <p class="rs-fine draw-fine">
           Each <Term id="round">round</Term> is a full match. Your court, archetypes and relics
-          carry on; items, gold and Ranks start fresh.
+          carry on; Techniques, gold and Ranks start fresh.
         </p>
         <footer class="rs-foot">
           <PacePicker

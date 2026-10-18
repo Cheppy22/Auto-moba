@@ -1,7 +1,7 @@
 import { useState } from 'preact/hooks';
 import type { Content, SetupEntry } from '../../sim';
 import { Term, Terms } from '../glossary';
-import { LANE_TAG, PATH_LABEL, PieceGlyph } from '../pieces';
+import { LANE_TAG, PieceGlyph } from '../pieces';
 import { SCHOOL_COLOR, SCHOOL_NAME, SchoolChip, SchoolGlyph } from '../schools';
 import { exampleHands, openingInfo } from './data';
 
@@ -157,7 +157,6 @@ export function OpeningPage(props: {
           <span class="recap-piece" key={e.piece}>
             <PieceGlyph piece={e.piece} team="A" size={22} />
             <b>{LANE_TAG[e.lane]}</b>
-            <i>{PATH_LABEL[e.path]}</i>
           </span>
         ))}
       </div>

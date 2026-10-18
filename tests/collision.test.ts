@@ -7,7 +7,7 @@ import { content, liveMatch, logHash } from './helpers';
 
 const tol = content.tuning.collision.tolerance;
 const isFixed = (u: Unit): boolean =>
-  u.kind === 'tower' || u.kind === 'guardian' || u.kind === 'obelisk' || u.kind === 'keeper';
+  u.kind === 'tower' || u.kind === 'guardian' || u.kind === 'obelisk';
 
 /** The collision step as the tick runs it: the grid holds where everyone stood a moment ago. */
 function settle(m: Match, move?: () => void): void {

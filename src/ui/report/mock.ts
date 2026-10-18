@@ -28,10 +28,10 @@ export function mockSummary(roster: RosterEntry[], c: Content): MatchSummary {
     const f = (win ? 1.12 : 0.92) * (0.85 + rnd() * 0.3);
     const kills = Math.round(mult * f * (3 + rnd() * 5));
     const deaths = Math.round((win ? 3 : 5) * (0.5 + rnd()));
-    const items = c.items
-      .filter((it) => !it.id.includes('_'))
-      .slice(i, i + 4 + (i % 3))
-      .map((x) => x.id);
+    const techniques = c.techniques
+      .filter((d) => d.pool === 'common')
+      .slice(i, i + 2 + (i % 3))
+      .map((d) => d.id);
     const pieceName = c.pieceById.get(r.def as 'king')?.name ?? r.def;
     const styleName = c.styleByKey.get(`${r.def}/${r.style}`)?.name ?? r.style;
     return {
@@ -42,7 +42,6 @@ export function mockSummary(roster: RosterEntry[], c: Content): MatchSummary {
       name: `${r.team === 'A' ? 'White' : 'Black'} ${pieceName}`,
       style: r.style,
       styleName,
-      path: r.path,
       startLane: r.role,
       lane: r.role,
       rank: Math.min(8, Math.round(4 + f * 3)),
@@ -60,8 +59,8 @@ export function mockSummary(roster: RosterEntry[], c: Content): MatchSummary {
       pawnKills: Math.round(rnd() * 6),
       pawnlingKills: Math.round(30 + rnd() * 60),
       goldEarned: Math.round(mult * f * (6200 + rnd() * 2400)),
-      finalItems: items,
-      finalItemNames: items.map((id) => c.itemById.get(id)?.name ?? id),
+      finalTechniques: techniques,
+      finalTechniqueNames: techniques.map((id) => c.techniqueById.get(id)?.name ?? id),
       longestLifeTicks: Math.round((120 + rnd() * 300) * tr),
       score: 0,
     };

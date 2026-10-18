@@ -4,7 +4,7 @@ import { courtName } from '../../analysis/text';
 import { drawReplay, replayHit, type ReplayData } from '../../render';
 import { useSession } from '../session';
 import { mmss, n0 } from '../format';
-import { heroName, itemName } from './common';
+import { heroName, techniqueName } from './common';
 import type { ReportData } from './data';
 import { reducedMotion } from './parts';
 
@@ -35,9 +35,9 @@ export function ReplayPanel(props: { data: ReportData; id: number; active: boole
               startTick: f.startTick,
               endTick: f.endTick,
             })),
-            purchases: h.purchases.map((p) => ({
-              tick: p.tick,
-              label: itemName(s.content, p.item),
+            picks: h.techniques.map((t) => ({
+              tick: t.tick,
+              label: techniqueName(s.content, t.technique),
             })),
             deaths: h.deathRecords.map((d) => ({ tick: d.tick, x: d.x, y: d.y })),
             recalls: h.recalls
@@ -166,11 +166,11 @@ export function ReplayPanel(props: { data: ReportData; id: number; active: boole
               }}
             />
           ))}
-          {h.purchases.map((p, i) => (
+          {h.techniques.map((p, i) => (
             <div
               key={`p${i}`}
               class="mark"
-              title={`${mmss(p.tick)} bought ${itemName(s.content, p.item)}`}
+              title={`${mmss(p.tick)} ${p.upgraded ? 'upgraded' : 'took'} ${techniqueName(s.content, p.technique)}`}
               style={{
                 left: at(p.tick),
                 width: '6px',

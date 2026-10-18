@@ -1,10 +1,7 @@
 import type { Unit } from '../../sim';
 import { Term, Terms } from '../glossary';
-import { ItemIcon } from '../ItemIcon';
-import { itemCategory } from '../itemInfo';
 import {
   LANE_LABEL,
-  PATH_LABEL,
   PieceGlyph,
   StyleBadge,
   pieceLabel,
@@ -13,14 +10,15 @@ import {
   styleLabel,
 } from '../pieces';
 import { forkOptionName, useEscape, useSession } from '../session';
-import { shownItems } from './blackItems';
+import { TechniqueChip } from '../TechniqueChip';
+import { shownTechniques } from './blackTechniques';
 import { courtName } from '../../analysis/text';
 
 const RANKS = [1, 2, 3, 4, 5, 6, 7, 8];
 
 /**
- * A compact card for any piece, either team: piece and style, what the style does, path, rank
- * with its next step, and the items it carries. Opens from a roster portrait or a tap on the board.
+ * A compact card for any piece, either team: piece and style, what the style does, lane, rank
+ * with its next step, and the Techniques it holds. Opens from a roster portrait or a tap on the board.
  */
 export function PieceCard() {
   const s = useSession();
@@ -32,16 +30,14 @@ export function PieceCard() {
   const h = u.hero;
   const team = u.team === 'B' ? 'B' : 'A';
   const style = h.style ? s.content.styleByKey.get(`${h.defId}/${h.style}`) : undefined;
-  const itemName = (item: string): string =>
-    (s.content.itemById.get(item) ?? s.content.cursedById.get(item))?.name ?? item;
   const taken = h.perks
     .filter((p) => p.optionId)
     .map((p) => ({
       rank: p.rank,
-      name: forkOptionName(s.content, h.defId, h.style, p.rank, p.optionId ?? ''),
+      name: forkOptionName(s.content, h.defId, p.optionId ?? ''),
     }))
     .filter((p) => p.name);
-  const items = shownItems(m, u);
+  const techniques = shownTechniques(m, u);
   const snap = m.snapshot();
   const waiting = snap.forks.some((f) => f.heroId === u.id);
   const highGround = snap.units.some((x) => x.id === u.id && x.highGround === true);
@@ -52,7 +48,7 @@ export function PieceCard() {
       : next === 4 || next === 8
         ? next === 4
           ? 'Rank 4: choose an archetype'
-          : `Rank ${next}: a fork (two paths)`
+          : 'Rank 8: its next Technique offer is Brilliant'
         : `Rank ${next}: ${
             next <= 3
               ? (s.content.pieceById.get(h.defId)?.generic[String(next) as '2' | '3']?.name ?? '')
@@ -106,7 +102,6 @@ export function PieceCard() {
         )}
       </p>
       <div class="ucard-meta">
-        <span class="chip">{PATH_LABEL[h.path]}</span>
         <span class="chip">{LANE_LABEL[h.lane ?? 'mid']}</span>
         <span class="dim tiny">
           {h.kills} kills · {h.deaths} deaths
@@ -139,19 +134,13 @@ export function PieceCard() {
       )}
       {taken.map((t) => (
         <p class="ucard-fork tiny" key={t.rank}>
-          <span class="dim">
-            Rank {t.rank} {t.rank === 4 ? 'archetype' : 'fork'}:
-          </span>{' '}
-          {t.name}
+          <span class="dim">Rank {t.rank} archetype:</span> {t.name}
         </p>
       ))}
-      <div class="ucard-items" data-testid="unit-card-items">
-        {items.length === 0 && <span class="dim tiny">No items yet.</span>}
-        {items.map((item, i) => (
-          <span key={`${item}:${i}`} class={`ucard-item cat-${itemCategory(s.content, item)}`}>
-            <ItemIcon id={item} size={16} />
-            <span>{itemName(item)}</span>
-          </span>
+      <div class="ucard-items" data-testid="unit-card-techniques">
+        {techniques.length === 0 && <span class="dim tiny">No Techniques yet.</span>}
+        {techniques.map((x) => (
+          <TechniqueChip key={x.id} c={s.content} id={x.id} grade={x.grade} />
         ))}
       </div>
     </div>

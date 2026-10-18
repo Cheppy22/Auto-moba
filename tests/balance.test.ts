@@ -48,7 +48,6 @@ describe('balance tooling', () => {
       noGambitsA: true,
     });
     const white = r.heroes.filter((h) => h.team === 'A');
-    expect(white.every((h) => h.path === 'defense')).toBe(true);
     for (const p of content.pieces) {
       const h = white.find((x) => x.def === p.id)!;
       // A forced archetype shows once the piece reaches Rank 4.

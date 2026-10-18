@@ -26,7 +26,7 @@ import {
 import { drawWeight } from '../src/sim/gambits';
 import { adjudicate } from '../src/sim/runRules';
 import { aiTempoTurn } from '../src/sim/pawnPlan';
-import { giveGold } from '../src/sim/shop';
+import { giveGold } from '../src/sim/gold';
 import { content, liveMatch, logHash, piece, toBell } from './helpers';
 
 const T = content.tournament!;
@@ -37,9 +37,17 @@ const outcome = (won: boolean, o: Partial<MatchOutcome> = {}): MatchOutcome => (
   mvp: null,
   relics: [],
   styles: {},
-  items: {},
+  techniques: {},
   ...o,
 });
+/** Techniques each White piece held at the end of a match (common and piece cards). */
+const HELD = {
+  king: ['rallying_cry', 'toll'],
+  queen: ['wind_up', 'long_range', 'the_vault', 'slip'],
+  rook: ['deep_breath'],
+  bishop: ['ambush', 'twin_blessing', 'pin'],
+  knight: ['family_fork', 'wind_up', 'toll', 'slip', 'deep_breath'],
+};
 const carried = (id: string, aim: Partial<CarriedRelic> = {}): CarriedRelic => ({
   id,
   lane: null,
@@ -117,7 +125,7 @@ describe('Tournament run: steps', () => {
     const run = newRun(content, 11);
     expect(run.status).toBe('between');
     expect(nextMatchConfig(content, run).seed).toBe(nextMatchConfig(content, run).seed);
-    const won = step(run, true, { items: { king: 2, queen: 4, rook: 1, bishop: 3, knight: 5 } });
+    const won = step(run, true, { techniques: HELD });
     expect(won.round).toBe(1);
     expect(won.status).toBe('between');
     expect(won.offers!.map((o) => o.kind)).toEqual(['relic', 'heirloom', 'book']);
@@ -195,21 +203,22 @@ describe('Tournament run: steps', () => {
 });
 
 describe('Tournament run: rewards', () => {
-  const won = (seed: number): RunState => step(newRun(content, seed), true, { items: { rook: 0 } });
+  const won = (seed: number): RunState =>
+    step(newRun(content, seed), true, { techniques: { rook: ['deep_breath'] } });
 
   it('offers one of each kind, the same cards after a reload', () => {
     const run = won(31);
-    expect(rewardOffers(content, run, { rook: 0 })).toEqual(run.offers);
+    expect(rewardOffers(content, run, { rook: ['deep_breath'] })).toEqual(run.offers);
     const [relic, heirloom, book] = run.offers!;
     expect(relic.kind).toBe('relic');
     if (heirloom.kind !== 'heirloom' || book.kind !== 'book') throw new Error('kinds');
-    // the piece with the fewest items at the end of the match gets the heirloom card
-    const counts = { king: 3, queen: 4, rook: 1, bishop: 2, knight: 6 };
-    const h = rewardOffers(content, run, counts).find((o) => o.kind === 'heirloom');
+    expect(heirloom).toEqual({ kind: 'heirloom', piece: 'rook', technique: 'deep_breath' });
+    // the piece with the fewest Techniques at the end of the match gets the heirloom card, one of
+    // its own (never an archetype card or a Combination)
+    const h = rewardOffers(content, run, HELD).find((o) => o.kind === 'heirloom');
     expect(h && h.kind === 'heirloom' && h.piece).toBe('rook');
-    const item = content.itemById.get(heirloom.item)!;
-    expect(item.tier).toBeLessThanOrEqual(2);
-    expect(item.cost).toBeLessThanOrEqual(T.heirloomMaxPrice);
+    const odd = rewardOffers(content, run, { rook: ['bastion_immovable', 'castle_wall'] });
+    expect(odd.some((o) => o.kind === 'heirloom')).toBe(false);
     const schools = content.openingById.get(run.court.opening)!.schools;
     if (schools.length) expect(schools).toContain(content.gambitById.get(book.card)!.school);
   });
@@ -222,7 +231,7 @@ describe('Tournament run: rewards', () => {
       expect(r.ok).toBe(true);
       if (!r.ok) continue;
       if (offer.kind === 'relic') expect(r.run.relics.map((x) => x.id)).toContain(offer.relic);
-      if (offer.kind === 'heirloom') expect(r.run.heirlooms[offer.piece]).toBe(offer.item);
+      if (offer.kind === 'heirloom') expect(r.run.heirlooms[offer.piece]).toBe(offer.technique);
       if (offer.kind === 'book') expect(r.run.books).toEqual([offer.card]);
     }
     expect(applyReward(content, run, { kind: 'book', card: 'nope' }).ok).toBe(false);
@@ -234,20 +243,10 @@ describe('Tournament run: rewards', () => {
       relics: plain.slice(0, T.relicMax).map((id) => carried(id)),
     };
     const book = full.offers!.find((o) => o.kind === 'book')!;
-    const heirloom = (cost: number) => {
-      const item = content.items.find((i) => i.tier <= 2 && i.cost === cost)!;
-      return { kind: 'heirloom' as const, piece: 'rook' as const, item: item.id };
-    };
-    const cheap = heirloom(
-      Math.min(...content.items.filter((i) => i.tier === 1).map((i) => i.cost)),
-    );
-    const dear = heirloom(
-      Math.max(...content.items.filter((i) => i.tier === 2).map((i) => i.cost)),
-    );
-    expect(content.itemById.get(cheap.item)!.cost).toBeLessThan(T.aiBookGold);
-    expect(content.itemById.get(dear.item)!.cost).toBeGreaterThan(T.aiBookGold);
-    expect(aiReward(content, { ...full, offers: [full.offers![0], cheap, book] })).toEqual(book);
-    expect(aiReward(content, { ...full, offers: [full.offers![0], dear, book] })).toEqual(dear);
+    const heirloom = full.offers!.find((o) => o.kind === 'heirloom')!;
+    expect(T.aiHeirloomGold).toBeGreaterThan(T.aiBookGold);
+    expect(aiReward(content, full)).toEqual(heirloom);
+    expect(aiReward(content, { ...full, offers: [full.offers![0], book] })).toEqual(book);
   });
 
   it('swaps a relic when five are held', () => {
@@ -281,7 +280,7 @@ describe('Tournament run: in the match', () => {
   });
 
   it('places carried relics by piece type, heirlooms, book moves and Tempo', () => {
-    const heir = content.items.find((i) => i.tier === 2)!;
+    const heir = content.techniqueById.get('deep_breath')!;
     const book = content.gambits.find((g) => g.weight > 0)!;
     const m = liveMatch(12, {
       relicMax: 5,
@@ -302,9 +301,14 @@ describe('Tournament run: in the match', () => {
     expect(held.find((h) => h.id === laneRelic.id)!.lane).toBe('bot');
     expect(m.state.relics.held.B.map((h) => h.id)).toEqual([plain[0]]);
     const rook = piece(m, 'A', 'rook');
-    expect(rook.hero!.items).toEqual([heir.id]);
+    // the heirloom is held at Plain grade, and the first move is drawn for another slot
+    const rookHeld = rook.hero!.techniques;
+    expect(rookHeld).toHaveLength(2);
+    expect(rookHeld).toContainEqual({ id: heir.id, grade: 'plain' });
+    const second = content.techniqueById.get(rookHeld.find((x) => x.id !== heir.id)!.id)!;
+    expect(second.slot).not.toBe(heir.slot);
     expect(rook.hp).toBe(rook.stats.maxHp);
-    expect(piece(m, 'A', 'queen').hero!.items).toEqual([]);
+    expect(piece(m, 'A', 'queen').hero!.techniques).toHaveLength(1);
     expect(m.state.tempo.B - m.state.tempo.A).toBe(15);
     const withBook = drawWeight(m.ctx, 'A')(book);
     m.state.run!.books.A = [];
@@ -371,7 +375,7 @@ describe('Tournament run: in the match', () => {
     expect(liveMatch(17).state.run).toBeUndefined();
   });
 
-  it('lockStyles resolves Rank 4 at once and still pauses Rank 8', () => {
+  it('lockStyles resolves Rank 4 at once (Rank 8 opens no fork)', () => {
     const duelist = 'duelist';
     const m = liveMatch(15, {
       autoGambits: { A: false, B: true },
@@ -383,7 +387,7 @@ describe('Tournament run: in the match', () => {
     expect(q.hero!.style).toBe(duelist);
     const fork = m.events.find((e) => e.type === 'fork' && e.payload.id === q.id);
     expect(fork?.type === 'fork' && fork.payload.locked).toBe(true);
-    expect(m.state.forks.filter((f) => f.heroId === q.id).map((f) => f.rank)).toEqual([8]);
+    expect(m.state.forks.filter((f) => f.heroId === q.id)).toEqual([]);
     // an unlocked piece still waits at Rank 4
     const r = piece(m, 'A', 'rook');
     giveGold(m.ctx, r, 1e6, 'test');

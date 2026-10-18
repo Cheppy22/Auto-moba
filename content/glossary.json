@@ -56,8 +56,8 @@
     "id": "adjourn",
     "term": "Adjourn",
     "aliases": ["Adjourn", "Adjourned"],
-    "short": "Pauses the match so you can move pieces between lanes, change build paths and read the Armory.",
-    "see": ["armory", "build-path"],
+    "short": "Pauses the match so you can move pieces between lanes and read each piece's Techniques.",
+    "see": ["technique"],
     "group": "Match"
   },
   {
@@ -117,7 +117,7 @@
     "id": "rank",
     "term": "Rank",
     "aliases": ["Rank", "Ranks", "rank", "ranks"],
-    "short": "A piece's level from 1 to 8, earned from the gold it collects; ranks grow its stats, and Ranks 4 and 8 bring a fork.",
+    "short": "A piece's level from 1 to 8, earned from the gold it collects; ranks grow its stats, Rank 4 brings the archetype fork and Rank 8 a Brilliant Technique offer.",
     "see": ["fork", "archetype"],
     "group": "Pieces"
   },
@@ -126,7 +126,7 @@
     "term": "Archetype",
     "aliases": ["archetype", "archetypes", "Archetype"],
     "short": "The style a piece chooses at Rank 4 from three options; it adds a fourth skill and tilts the piece's stats.",
-    "more": "Until Rank 4 a piece uses its base kit. At Rank 8 it gets a smaller choice between two upgrades.",
+    "more": "Until Rank 4 a piece uses its base kit. The archetype also opens the piece's Signature slot for Techniques.",
     "see": ["rank", "fork"],
     "group": "Pieces"
   },
@@ -134,18 +134,9 @@
     "id": "fork",
     "term": "Fork",
     "aliases": ["fork", "forks"],
-    "short": "A choice a piece earns at Rank 4 (pick an archetype) and Rank 8 (pick one of two upgrades); play pauses until you choose.",
+    "short": "The choice a piece earns at Rank 4: pick one of three archetypes; play pauses until you choose.",
     "more": "Let the AI choose picks for you. The Knight's Fork gambit is a different thing: a leap that stuns one enemy piece.",
     "see": ["rank", "archetype"],
-    "group": "Pieces"
-  },
-  {
-    "id": "build-path",
-    "term": "Build path",
-    "aliases": ["build path", "build paths", "Build path", "Build paths"],
-    "short": "Which items a piece buys first: Offense, Defense or Utility; pieces shop on their own.",
-    "more": "Each piece starts on its natural path. The AI may add an armor or resist item against the enemy's damage.",
-    "see": ["armory"],
     "group": "Pieces"
   },
   {
@@ -211,61 +202,11 @@
     "group": "Armory"
   },
   {
-    "id": "armory",
-    "term": "Armory",
-    "aliases": ["Armory"],
-    "short": "The Act break shop: each piece can buy and sell items with its own gold; Adjourn shows the same view, read only.",
-    "see": ["plan", "build-path", "adjourn"],
-    "group": "Armory",
-    "more": "Untouched pieces shop on their own when you resume, and Black shops at every break too, though its new items stay hidden until the next Act starts."
-  },
-  {
-    "id": "plan",
-    "term": "Plan",
-    "aliases": ["Plan", "Plans"],
-    "short": "The six items a piece buys, in order, when it shops on its own; it starts as the build path's list.",
-    "more": "Change it at any Act break in the Armory. Changing the build path resets it to that path's list; a plan you changed stays yours at Rank 4.",
-    "see": ["build-path", "ai-suggests"],
-    "group": "Armory"
-  },
-  {
-    "id": "slot",
-    "term": "Slot",
-    "aliases": ["Slot", "Slots"],
-    "short": "A place in a piece's bag: it carries at most six items, and a full bag cannot buy until it sells one.",
-    "see": ["plan", "parts"],
-    "group": "Armory"
-  },
-  {
-    "id": "parts",
-    "term": "Built from",
-    "aliases": ["Built from"],
-    "short": "The smaller items a bigger one is made of; parts a piece already owns are used up and come off the price.",
-    "see": ["slot", "masterwork"],
-    "group": "Armory"
-  },
-  {
-    "id": "ai-suggests",
-    "term": "AI suggests",
-    "aliases": ["AI suggests"],
-    "short": "A brass pip on the item the AI would buy next for this piece; Let the AI shop buys by the same rule.",
-    "see": ["plan", "armory"],
-    "group": "Armory"
-  },
-  {
-    "id": "masterwork",
-    "term": "Masterwork",
-    "aliases": ["Masterwork", "Masterworks"],
-    "short": "A top-tier item with a powerful effect; the Armory sells them at each Act break, and the jungle shops sell them during an Act.",
-    "see": ["armory", "parts"],
-    "group": "Armory"
-  },
-  {
     "id": "tournament",
     "term": "Tournament",
     "aliases": ["Tournament", "tournament", "Tournaments", "tournaments"],
     "short": "A run of four matches against named courts: win each to go on, and one loss ends the run.",
-    "more": "Your court, archetypes and relics carry from match to match; items, gold, Ranks and Tempo reset. When the run ends nothing is kept except one best-finish line, which gives no power.",
+    "more": "Your court, archetypes and relics carry from match to match; Techniques, gold, Ranks and Tempo reset. When the run ends nothing is kept except one best-finish line, which gives no power.",
     "see": ["round", "spoils", "exhibition"],
     "group": "Run"
   },
@@ -291,7 +232,7 @@
     "term": "Spoils",
     "aliases": ["Spoils", "spoils"],
     "short": "The prize for winning a round: pick one of three cards, a relic, an heirloom or a book move.",
-    "more": "The cards are the same if you reload. Let the AI choose takes a relic while you have room; after that, a dear heirloom (a tier-2 item) over a book move, and a book move over a cheap one.",
+    "more": "The cards are the same if you reload. Let the AI choose takes a relic while you have room; after that, the heirloom over the book move.",
     "see": ["relic", "heirloom", "book-move"],
     "group": "Run"
   },
@@ -299,9 +240,9 @@
     "id": "heirloom",
     "term": "Heirloom",
     "aliases": ["Heirloom", "Heirlooms", "heirloom", "heirlooms"],
-    "short": "An item that one piece starts every later match of the run holding, already paid for.",
-    "more": "Each piece can have one. It is a cheap item from that piece's build, and it takes a slot like any other item.",
-    "see": ["spoils", "slot"],
+    "short": "A Technique that one piece keeps from this match and starts every later match of the run holding, at Plain grade.",
+    "more": "Each piece can have one. It is one of the Techniques the piece held when the match ended, and its first move is then drawn for another slot.",
+    "see": ["spoils", "technique"],
     "group": "Run"
   },
   {

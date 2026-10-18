@@ -20,7 +20,7 @@ import type { HeldTechnique } from '../src/sim/types';
 import { liveMatch, piece } from './helpers';
 
 function arena(seed = 11): Match {
-  return liveMatch(seed, { techniques: true, autoGambits: { A: false, B: false } });
+  return liveMatch(seed, { autoGambits: { A: false, B: false } });
 }
 
 /** Gives a piece exactly these Techniques (Plain unless named). */
@@ -519,14 +519,13 @@ describe('movement, retreat and Rank 8', () => {
     expect(retreatLine(m.ctx, k)).toBeCloseTo(line * 0.5);
   });
 
-  it('with Techniques, Rank 8 opens no fork (the next offer is Brilliant instead)', () => {
+  it('Rank 8 opens no fork (the next offer is Brilliant instead)', () => {
     const m = arena();
     const k = P(m, 'B', 'knight');
     k.hero!.goldEarned = 1e7;
     checkRank(m.ctx, k);
     expect(k.hero!.rank).toBeGreaterThanOrEqual(8);
     expect(k.hero!.perks.some((p) => p.rank === 8)).toBe(false);
-    expect(m.state.forks.some((f) => f.heroId === k.id && f.rank === 8)).toBe(false);
     expect(k.hero!.style).not.toBeNull(); // Rank 4 still chooses the archetype
   });
 });

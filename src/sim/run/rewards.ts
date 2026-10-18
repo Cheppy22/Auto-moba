@@ -92,8 +92,7 @@ export function aiReward(c: Content, run: RunState): Reward | null {
   const t = tournamentOf(c);
   const relic = offers.find((o) => o.kind === 'relic');
   if (relic && run.relics.length < t.relicMax) return relic;
-  const worth = (o: Reward): number =>
-    o.kind === 'heirloom' ? t.aiHeirloomGold : t.aiBookGold;
+  const worth = (o: Reward): number => (o.kind === 'heirloom' ? t.aiHeirloomGold : t.aiBookGold);
   let best: Reward | null = null;
   for (const o of offers) if (o.kind !== 'relic' && (!best || worth(o) > worth(best))) best = o;
   return best;

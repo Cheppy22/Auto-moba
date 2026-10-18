@@ -10,7 +10,7 @@ export type TypeMix = Record<DamageType, number>;
 
 export interface ReportData {
   sum: MatchSummary;
-  /** The whole-match report: per-piece detail (gold by source, purchases, forks, deaths, paths). */
+  /** The whole-match report: per-piece detail (gold by source, Techniques, forks, deaths, paths). */
   report: Report;
   /** Seconds. */
   endSec: number;

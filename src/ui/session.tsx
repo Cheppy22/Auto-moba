@@ -38,6 +38,7 @@ import { buildSummary } from '../analysis/summary';
 import {
   loadBest,
   loadMatch,
+  dropStaleRun,
   loadRun,
   saveBest,
   saveMatch,
@@ -139,9 +140,7 @@ export interface UiState {
   /** The gambit sheet (long-press on a card): the hand slot shown enlarged. The game is paused while it is open. */
   info: { slot: number; cardId: string } | null;
   /** The tab open on the Act break sheet. */
-  breakTab: 'report' | 'orders' | 'armory' | 'relics';
-  /** The piece shown in the Armory tab (a hero id); null until the tab picks the one with most gold. */
-  armoryPick: number | null;
+  breakTab: 'report' | 'orders' | 'builds' | 'relics';
   /** When (ms) a countdown alert last flashed the Act clock; 0 before the first. */
   clockFlash: number;
   /** The match intro while it plays; the sim is held until it ends. */
@@ -172,7 +171,6 @@ const freshUi = (): UiState => ({
   card: null,
   info: null,
   breakTab: 'report',
-  armoryPick: null,
   clockFlash: 0,
   intro: null,
   blackPlay: null,
@@ -292,7 +290,10 @@ export class Session {
     typeof window === 'undefined' ||
     new URLSearchParams(window.location.search).get('map') !== 'square';
 
-  constructor(readonly content: Content) {}
+  constructor(readonly content: Content) {
+    // a saved run from an older build is dropped once, at start-up, and the Title says so
+    this.resumeNote = dropStaleRun(content);
+  }
 
   /** The content the board is drawn from: the match's own (its map), or the one the next match plays. */
   get board(): Content {
@@ -1120,8 +1121,7 @@ export class Session {
 
   /** Leaves the Act break sheet: the next Act begins. */
   resumeAct(): void {
-    if (this.issue({ type: 'resumeAct' }).ok)
-      this.setUi({ breakTab: 'report', armoryPick: null, aim: null });
+    if (this.issue({ type: 'resumeAct' }).ok) this.setUi({ breakTab: 'report', aim: null });
   }
 
   setBreakTab(tab: UiState['breakTab']): void {
@@ -1297,26 +1297,20 @@ export class Session {
         if (!u || u.team !== 'A' || !u.hero) continue;
         const piece = pieceLabel(this.content, u.hero.defId);
         if (e.type === 'rankUp') {
-          if (e.payload.rank === 4 || e.payload.rank === 8) continue;
+          if (e.payload.rank === 4) continue;
           fresh.unshift(
             this.chip(
               {
                 kind: 'rank',
                 title: `${piece} · Rank ${e.payload.rank}`,
-                detail: e.payload.bonus,
+                detail: e.payload.rank === 8 ? 'Next Technique offer: Brilliant' : e.payload.bonus,
                 team: 'A',
               },
               RANK_CHIP_MS,
             ),
           );
         } else {
-          const name = forkOptionName(
-            this.content,
-            u.hero.defId,
-            u.hero.style,
-            e.payload.rank,
-            e.payload.optionId,
-          );
+          const name = forkOptionName(this.content, u.hero.defId, e.payload.optionId);
           fresh.unshift(
             this.chip(
               {
@@ -1476,17 +1470,9 @@ export class Session {
   }
 }
 
-/** The name of a fork option taken: a style at Rank 4, a skill path of the chosen style at Rank 8. */
-export function forkOptionName(
-  c: Content,
-  piece: string,
-  style: string | null,
-  rank: number,
-  optionId: string,
-): string {
-  if (rank === 4) return c.styleByKey.get(`${piece}/${optionId}`)?.name ?? '';
-  const st = style ? c.styleByKey.get(`${piece}/${style}`) : undefined;
-  return st?.forks['8'].find((f) => f.id === optionId)?.name ?? '';
+/** The name of the archetype a piece took at its Rank 4 fork. */
+export function forkOptionName(c: Content, piece: string, optionId: string): string {
+  return c.styleByKey.get(`${piece}/${optionId}`)?.name ?? '';
 }
 
 export function useEscape(active: boolean, close: () => void): void {

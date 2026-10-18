@@ -1,4 +1,4 @@
-import type { Content, LaneId, LaneNow, Path, PieceId } from '../sim';
+import type { Content, LaneId, LaneNow, PieceId } from '../sim';
 import { styleEmblem, styleEmblemDescriptor } from '../render/emblems';
 import { PALETTE } from '../render/theme';
 
@@ -36,18 +36,6 @@ export function LaneMark(props: { at: LaneNow }) {
 }
 export const LANE_SLOTS: Record<LaneId, number> = { top: 2, mid: 1, bot: 2 };
 export const LANES: LaneId[] = ['top', 'mid', 'bot'];
-
-export const PATH_LABEL: Record<Path, string> = {
-  offense: 'Offense',
-  defense: 'Defense',
-  utility: 'Utility',
-};
-export const PATH_HINT: Record<Path, string> = {
-  offense: 'Buys damage and speed first',
-  defense: 'Buys health and armor first',
-  utility: 'Buys support and control first',
-};
-export const PATHS: Path[] = ['offense', 'defense', 'utility'];
 
 export const pieceLabel = (c: Content, piece: string): string =>
   c.pieceById.get(piece as PieceId)?.name ?? cap(piece);

@@ -21,18 +21,16 @@ describe('content', () => {
       expect(p.styles).toHaveLength(3);
       for (const st of p.styles) {
         expect(content.kitByKey.get(`${p.id}/${st.id}`)).toHaveLength(4);
-        expect(st.forks['8']).toHaveLength(2);
+        // each archetype's two Rank 8 options live on as its archetype Techniques
+        const own = content.techniques.filter(
+          (d) => d.pool === 'archetype' && d.piece === p.id && d.archetype === st.id,
+        );
+        expect(own, `${p.id}/${st.id}`).toHaveLength(2);
       }
     }
-    expect(content.items.length).toBeGreaterThanOrEqual(15);
-    expect(content.cursed).toHaveLength(6);
+    expect(content.techniques).toHaveLength(84);
     expect(content.biomes).toHaveLength(5);
-    expect(content.pressure.map((p) => p.id)).toEqual([
-      'thinning_veil',
-      'spirit_tide',
-      'keeper_debts',
-      'endgame',
-    ]);
+    expect(content.pressure.map((p) => p.id)).toEqual(['thinning_veil', 'spirit_tide', 'endgame']);
   });
 
   it('has the twenty-four gambit cards, one signature card per piece, each in a school', () => {
@@ -102,14 +100,12 @@ describe('content', () => {
   it('every custom trigger names a registered behavior', () => {
     const names = new Set(Object.keys(CUSTOM_BEHAVIORS));
     const all = [
-      ...content.items.flatMap((i) => i.triggers),
-      ...content.cursed.flatMap((c) => [...c.triggers, ...c.flaws.flatMap((f) => f.triggers)]),
+      ...content.techniques.flatMap((d) => [...d.triggers, ...(d.dubious?.triggers ?? [])]),
       ...content.pieces.flatMap((p) => [
         ...p.passives,
         ...p.styles.flatMap((st) => [
           ...st.passives,
           ...Object.values(st.ranks).flatMap((r) => r.triggers),
-          ...st.forks['8'].flatMap((f) => f.triggers),
         ]),
         ...Object.values(p.generic).flatMap((r) => r.triggers),
       ]),
@@ -120,48 +116,5 @@ describe('content', () => {
   it('report badge labels state a metric, not a judgment', () => {
     const banned = /\b(should|better|worse|bad|good|weak|strong|fix|improve|mistake)\b/i;
     for (const b of content.badges) expect(banned.test(b.label)).toBe(false);
-  });
-
-  it('item recipes form a strict tier ladder', () => {
-    for (const it of content.items) {
-      for (const f of it.from) expect(content.itemById.get(f)!.tier).toBeLessThan(it.tier);
-    }
-  });
-
-  it('has at least twelve base items per category with unique ids', () => {
-    expect(new Set(content.items.map((i) => i.id)).size).toBe(content.items.length);
-    for (const cat of ['mind', 'body', 'soul'] as const) {
-      const mine = content.items.filter((i) => i.category === cat);
-      expect(mine.length).toBeGreaterThanOrEqual(12);
-      for (const tier of [1, 2, 3]) expect(mine.some((i) => i.tier === tier)).toBe(true);
-    }
-  });
-
-  it('recipes stay inside one category, and every part feeds a higher tier', () => {
-    for (const it of content.items) {
-      for (const f of it.from) expect(content.itemById.get(f)!.category).toBe(it.category);
-      if (it.tier > 1) {
-        expect(it.from.length).toBeGreaterThan(0);
-        for (const f of it.from) expect(content.itemById.get(f)!.tier).toBe(it.tier - 1);
-      }
-      if (it.tier < 3)
-        expect(
-          content.items.some((o) => o.from.includes(it.id)),
-          it.id,
-        ).toBe(true);
-      expect(it.desc.length).toBeGreaterThan(7);
-    }
-  });
-
-  it('prices follow the tier bands', () => {
-    const band: Record<number, [number, number]> = {
-      1: [250, 350],
-      2: [800, 1000],
-      3: [1700, 2100],
-    };
-    for (const it of content.items) {
-      expect(it.cost, it.id).toBeGreaterThanOrEqual(band[it.tier]![0]);
-      expect(it.cost, it.id).toBeLessThanOrEqual(band[it.tier]![1]);
-    }
   });
 });

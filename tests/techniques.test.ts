@@ -38,7 +38,6 @@ const subject = (over: Partial<BuildSubject> = {}): BuildSubject => ({
 /** A browser-style match with Techniques at its first Act break (relics by the AI so Resume is open). */
 function atBreak(seed: number, config: Partial<MatchConfig> = {}): Match {
   const m = liveMatch(seed, {
-    techniques: true,
     pauseForBreak: true,
     relics: { A: 'ai' },
     ...config,
@@ -110,30 +109,11 @@ describe('the full set (spec 4.3)', () => {
       ).toHaveLength(3);
   });
 
-  it('moves every Rank 8 option in as an archetype Technique with the same effect', () => {
-    for (const p of content.pieces)
-      for (const st of p.styles)
-        for (const f of st.forks['8']) {
-          const d = tech(f.id);
-          expect(d.archetype).toBe(st.id);
-          expect(d.mods).toEqual(f.mods);
-          expect(d.triggers.map((x) => ({ ...x, desc: undefined }))).toEqual(
-            f.triggers.map((x) => ({ ...x, desc: undefined })),
-          );
-          expect([d.cooldownMul, d.powerMul, d.radiusMul]).toEqual([
-            f.cooldownMul,
-            f.powerMul,
-            f.radiusMul,
-          ]);
-        }
-  });
-
   it('gives every named court five legal first moves, and Black takes them at the start', () => {
     for (const k of content.courts) expect(k.firstMoves, k.id).toBeDefined();
     const court = content.courts[0];
     const m = Match.create(content, {
       seed: 5,
-      techniques: true,
       autoGambits: { A: true, B: true },
       setup: {
         B: {
@@ -145,7 +125,7 @@ describe('the full set (spec 4.3)', () => {
     m.issue({ type: 'setupTeam', ...m.defaultSetup() });
     m.step(1);
     for (const e of court.pieces)
-      expect(piece(m, 'B', e.piece).hero!.techniques!.map((h) => h.id)).toEqual([
+      expect(piece(m, 'B', e.piece).hero!.techniques.map((h) => h.id)).toEqual([
         court.firstMoves![e.piece],
       ]);
   });
@@ -327,21 +307,10 @@ describe('the AI pick', () => {
   });
 });
 
-describe('a match without Techniques', () => {
-  it('has no build state and plays as before', () => {
-    const m = liveMatch(3);
-    expect(m.state.builds).toBeUndefined();
-    expect(piece(m, 'A', 'queen').hero!.techniques).toBeUndefined();
-    expect(m.firstMoves()).toBeNull();
-    expect(m.issue({ type: 'autoBuild', heroId: null }).ok).toBe(false);
-  });
-});
-
 describe('a match with Techniques', () => {
   it('deals First moves at Setup, as the setup view showed, and honours the player’s pick', () => {
     const m = Match.create(content, {
       seed: 41,
-      techniques: true,
       autoGambits: { A: true, B: true },
     });
     const view = m.firstMoves()!;
@@ -358,7 +327,7 @@ describe('a match with Techniques', () => {
     for (const p of view.pieces) {
       const u = piece(m, 'A', p.piece as PieceId);
       const want = p.piece === 'knight' ? other : p.suggested!;
-      expect(u.hero!.techniques!.map((x) => x.id)).toEqual([p.cards[want].id]);
+      expect(u.hero!.techniques.map((x) => x.id)).toEqual([p.cards[want].id]);
     }
     for (const id of m.state.teams.B.heroIds)
       expect(m.unitById(id)!.hero!.techniques).toHaveLength(1);
@@ -370,10 +339,10 @@ describe('a match with Techniques', () => {
     const q = piece(m, 'A', 'queen');
     const r = piece(m, 'A', 'rook');
     const b = piece(m, 'A', 'bishop');
-    expect(m.state.builds!.offers).toHaveLength(10);
+    expect(m.state.builds.offers).toHaveLength(10);
     // Black already picked; its pieces are not White's
     const bk = piece(m, 'B', 'knight');
-    expect(m.state.builds!.offers.find((o) => o.heroId === bk.id)!.decided).toBe('taken');
+    expect(m.state.builds.offers.find((o) => o.heroId === bk.id)!.decided).toBe('taken');
     expect(m.issue({ type: 'takeTechnique', heroId: bk.id, cardIndex: 0 }).ok).toBe(false);
     // reroll: 200, then 300
     k.hero!.gold = 1000;
@@ -389,21 +358,21 @@ describe('a match with Techniques', () => {
     // take
     const view = m.buildView(k.id)!;
     expect(m.issue({ type: 'takeTechnique', heroId: k.id, cardIndex: 1 }).ok).toBe(true);
-    expect(k.hero!.techniques!.map((x) => x.id)).toContain(view.offer!.cards[1].id);
+    expect(k.hero!.techniques.map((x) => x.id)).toContain(view.offer!.cards[1].id);
     expect(m.issue({ type: 'takeTechnique', heroId: k.id, cardIndex: 0 }).ok).toBe(false);
     // pass gives gold
     const g = q.hero!.gold;
     expect(m.issue({ type: 'passOffer', heroId: q.id }).ok).toBe(true);
     expect(q.hero!.gold).toBe(g + t.builds.passGold);
     // upgrade Plain -> Sharp -> Brilliant, then no more
-    const held = r.hero!.techniques![0];
+    const held = r.hero!.techniques[0];
     held.grade = 'plain';
     r.hero!.gold = 2000;
     expect(m.issue({ type: 'upgradeTechnique', heroId: r.id, techniqueId: held.id }).ok).toBe(true);
     expect(r.hero!.gold).toBe(1400);
     expect(m.issue({ type: 'upgradeTechnique', heroId: r.id, techniqueId: held.id }).ok).toBe(true);
     expect(r.hero!.gold).toBe(200);
-    expect(r.hero!.techniques![0].grade).toBe('brilliant');
+    expect(r.hero!.techniques[0].grade).toBe('brilliant');
     expect(m.issue({ type: 'upgradeTechnique', heroId: r.id, techniqueId: held.id }).reason).toBe(
       'already Brilliant',
     );
@@ -411,8 +380,8 @@ describe('a match with Techniques', () => {
     const sugg = m.buildView(b.id)!.offer!;
     const want = sugg.cards[sugg.suggested!].id;
     expect(m.issue({ type: 'resumeAct' }).ok).toBe(true);
-    expect(b.hero!.techniques!.map((x) => x.id)).toContain(want);
-    expect(m.state.builds!.open).toBe(false);
+    expect(b.hero!.techniques.map((x) => x.id)).toContain(want);
+    expect(m.state.builds.open).toBe(false);
     expect(m.issue({ type: 'autoBuild', heroId: null }).ok).toBe(false);
   });
 
@@ -429,19 +398,19 @@ describe('a match with Techniques', () => {
       expect(v.offer!.suggested).toBe(p.pick);
       const want = v.offer!.cards[p.pick!].id;
       expect(m.issue({ type: 'autoBuild', heroId: p.heroId }).ok).toBe(true);
-      expect(m.unitById(p.heroId)!.hero!.techniques!.map((x) => x.id)).toContain(want);
+      expect(m.unitById(p.heroId)!.hero!.techniques.map((x) => x.id)).toContain(want);
     }
   });
 
   it('gives a piece that reached Rank 8 a Brilliant offer, once', () => {
-    const m = liveMatch(14, { techniques: true, pauseForBreak: true, relics: { A: 'ai' } });
+    const m = liveMatch(14, { pauseForBreak: true, relics: { A: 'ai' } });
     toBell(m, 'halt');
     const q = piece(m, 'A', 'queen');
     q.hero!.rank = 8;
     toBell(m, 'break');
-    const o = m.state.builds!.offers.find((x) => x.heroId === q.id)!;
+    const o = m.state.builds.offers.find((x) => x.heroId === q.id)!;
     expect(o.grade).toBe('brilliant');
-    expect(m.state.builds!.brilliantUsed).toContain(q.id);
+    expect(m.state.builds.brilliantUsed).toContain(q.id);
   });
 
   it('previews exactly the stats the piece has after taking the card', () => {
@@ -470,9 +439,9 @@ describe('a match with Techniques', () => {
   });
 
   it('counts what each Technique did: its trigger damage adds up to its damage events', () => {
-    const m = liveMatch(17, { techniques: true });
+    const m = liveMatch(17, {});
     m.runToEnd(6);
-    const b = m.state.builds!;
+    const b = m.state.builds;
     let checked = 0;
     for (const [key, row] of Object.entries(b.match)) {
       const [hero, id] = key.split(':');
@@ -493,28 +462,25 @@ describe('a match with Techniques', () => {
   });
 
   it('is deterministic headless, AI on both sides', () => {
-    const a = liveMatch(18, { techniques: true });
+    const a = liveMatch(18, {});
     a.runToEnd(4);
-    const b = liveMatch(18, { techniques: true });
+    const b = liveMatch(18, {});
     b.runToEnd(4);
     expect(logHash(a)).toBe(logHash(b));
     expect(a.events.filter((e) => e.type === 'technique').length).toBeGreaterThanOrEqual(10);
   });
 });
 
-describe('a match without items', () => {
-  it('buys nothing and grows health and the main damage stat by builds.rankGrowth', () => {
-    const m = liveMatch(19, { items: false, relics: { A: 'none', B: 'none' } });
-    m.step(20 * 200);
-    expect(m.events.some((e) => e.type === 'purchase')).toBe(false);
-    const g = t.builds.rankGrowth;
-    const other = t.ranks.growth;
+describe('Rank growth and the obelisk reroll', () => {
+  it('grows health and the main damage stat fast, the other damage stat slowly (ranks.growth)', () => {
+    const m = liveMatch(19, { relics: { A: 'none', B: 'none' } });
+    const g = t.ranks.growth;
     for (const id of ['queen', 'bishop'] as PieceId[]) {
       const u = piece(m, 'A', id);
       const bare = {
         ...u,
         mods: [],
-        hero: { ...u.hero!, rank: 5, style: null, perks: [], items: [] },
+        hero: { ...u.hero!, rank: 5, style: null, perks: [], techniques: [] },
       };
       const s = computeStats(m.ctx, bare).stats;
       const base = u.base;
@@ -522,10 +488,30 @@ describe('a match without items', () => {
       expect(s.maxHp).toBeCloseTo(base.maxHp * (1 + g.health * 4), 6);
       const main = soulMain ? 'soulPower' : 'bladeDmg';
       const off = soulMain ? 'bladeDmg' : 'soulPower';
-      expect(s[main]).toBeCloseTo(base[main] * (1 + g.damage * 4), 6);
-      expect(s[off]).toBeCloseTo(base[off] * (1 + other * 4), 6);
+      expect(s[main]).toBeCloseTo(base[main] * (1 + g.main * 4), 6);
+      expect(s[off]).toBeCloseTo(base[off] * (1 + g.other * 4), 6);
     }
-    const q = piece(m, 'A', 'queen');
-    expect(m.issue({ type: 'buy', heroId: q.id, item: content.items[0].id }).ok).toBe(false);
+  });
+
+  it('an obelisk reroll makes the next reroll of each of that side’s offers free', () => {
+    const m = liveMatch(20, { pauseForBreak: true, relics: { A: 'ai' } });
+    toBell(m, 'halt');
+    m.state.builds.freeRerolls.A = 1;
+    toBell(m, 'break');
+    expect(m.state.builds.freeRerolls.A).toBe(0);
+    const k = piece(m, 'A', 'knight');
+    const v = m.buildView(k.id)!;
+    expect(v.offer!.freeRerolls).toBe(1);
+    expect(v.offer!.rerollCost).toBe(0);
+    k.hero!.gold = 0;
+    expect(m.issue({ type: 'rerollOffer', heroId: k.id }).ok).toBe(true);
+    expect(k.hero!.gold).toBe(0);
+    const after = m.buildView(k.id)!.offer!;
+    expect(after.freeRerolls).toBe(0);
+    expect(after.rerollCost).toBe(t.builds.reroll.base);
+    expect(m.issue({ type: 'rerollOffer', heroId: k.id }).ok).toBe(false);
+    // Black's offers carry no free reroll
+    const bk = piece(m, 'B', 'knight');
+    expect(m.state.builds.offers.find((o) => o.heroId === bk.id)!.free).toBe(0);
   });
 });

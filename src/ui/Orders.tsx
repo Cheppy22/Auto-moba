@@ -3,9 +3,6 @@ import type { LaneId, PieceId, Snapshot, Unit } from '../sim';
 import { AutoPawn } from './AutoPawn';
 import { LaneBoard, type BoardPiece } from './LaneBoard';
 import {
-  PATHS,
-  PATH_HINT,
-  PATH_LABEL,
   PIECE_ORDER,
   PieceGlyph,
   LANES,
@@ -95,63 +92,7 @@ function BlackCourt() {
                 · {h.style ? styleLabel(s.content, h.defId, h.style) : 'Generic'}
               </span>
             </span>
-            <span class="dim">
-              {LANE_LABEL[h.lane ?? 'mid']} · {PATH_LABEL[h.path]}
-            </span>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-/** White's build paths (shared by the Adjourn panel and the Act break sheet). */
-export function Paths() {
-  const s = useSession();
-  return (
-    <div class="col" data-testid="tab-paths">
-      <p class="dim small">
-        <Terms text="A build path decides which items a piece buys first. Changing it takes effect at its next purchase." />
-      </p>
-      {whitePieces(s).map((u) => {
-        const h = u.hero!;
-        return (
-          <div class="card path-row" key={u.id} data-testid={`path-row-${h.defId}`}>
-            <div class="row">
-              <PieceGlyph piece={h.defId} team="A" size={30} />
-              <div class="grow">
-                <b>{pieceLabel(s.content, h.defId)}</b>
-                <div class="dim tiny">
-                  {h.style ? styleLabel(s.content, h.defId, h.style) : 'Generic'} · Rank {h.rank} ·{' '}
-                  {LANE_LABEL[h.lane ?? 'mid']}
-                </div>
-              </div>
-            </div>
-            <div
-              class="seg paths"
-              role="radiogroup"
-              aria-label={`${pieceLabel(s.content, h.defId)} path`}
-            >
-              {PATHS.map((p) => (
-                <button
-                  key={p}
-                  class={`btn small ${h.path === p ? 'on' : ''}`}
-                  role="radio"
-                  aria-checked={h.path === p}
-                  title={PATH_HINT[p]}
-                  data-testid={`setpath-${h.defId}-${p}`}
-                  onClick={() => s.issue({ type: 'setPath', heroId: u.id, path: p })}
-                >
-                  {PATH_LABEL[p]}
-                </button>
-              ))}
-            </div>
-            {s.match!.armoryView(u.id)?.customPlan && (
-              <p class="plan-warn tiny" data-testid={`plan-warn-${h.defId}`}>
-                You changed this piece’s <Term id="plan">plan</Term>: another path resets it to that
-                path’s list.
-              </p>
-            )}
+            <span class="dim">{LANE_LABEL[h.lane ?? 'mid']}</span>
           </div>
         );
       })}
@@ -234,13 +175,12 @@ export function PawnPlan(props: { snap: Snapshot }) {
   );
 }
 
-/** Lanes, pawn counts and paths together: the Orders tab of the Act break sheet. */
+/** Lanes and pawn counts together: the Orders tab of the Act break sheet. */
 export function Orders(props: { formation?: string | null; snap: Snapshot }) {
   return (
     <div class="col orders" data-testid="tab-orders">
       <Lanes formation={props.formation} />
       <PawnPlan snap={props.snap} />
-      <Paths />
     </div>
   );
 }

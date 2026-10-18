@@ -1,0 +1,70 @@
+/* ---------- Techniques: the held-card chip (school glyph, name, grade mark) ---------- */
+.tech-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  padding: 0.15em 0.5em 0.15em 0.35em;
+  border: 1px solid color-mix(in srgb, var(--school) 55%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--school) 12%, transparent);
+  font-size: 0.85em;
+  line-height: 1.3;
+}
+.tech-grade {
+  color: var(--brass);
+}
+.coin {
+  display: inline-block;
+  width: 0.8em;
+  height: 0.8em;
+  margin-right: 0.35em;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff1b8, var(--brass) 60%, #7a5a1c);
+  box-shadow: 0 0 0 1px #4a3a14;
+  vertical-align: -0.05em;
+}
+
+/* ---------- the read-only Builds tab, Adjourn's Builds and Setup's First moves ---------- */
+.builds-piece,
+.fm-piece {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.builds-piece > .row,
+.fm-piece > .row {
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: space-between;
+}
+.builds-held {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+.builds-offer {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.3rem;
+}
+.builds-offer li {
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--line, rgba(255, 255, 255, 0.12));
+  border-radius: 6px;
+}
+.builds-offer li.on {
+  border-color: var(--brass);
+}
+.builds-offer li p {
+  margin: 0.2rem 0 0;
+}
+.builds-ai {
+  color: var(--brass);
+}
+.fm-page {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}

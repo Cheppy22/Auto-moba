@@ -1,8 +1,8 @@
 import type { ComponentChildren } from 'preact';
 import { useState } from 'preact/hooks';
-import { courtOf, roundName, type Reward } from '../../sim';
+import { courtOf, roundName, techniqueText, type Reward } from '../../sim';
 import { Term, Terms } from '../glossary';
-import { ItemIcon } from '../ItemIcon';
+import { TechniqueChip } from '../TechniqueChip';
 import { PieceGlyph, pieceLabel } from '../pieces';
 import { RichText } from '../richtext';
 import { FamilyChip, RelicSeal, relicText } from '../relics';
@@ -164,14 +164,14 @@ export function Spoils() {
               );
             }
             if (o.kind === 'heirloom') {
-              const item = c.itemById.get(o.item)!;
+              const tech = c.techniqueById.get(o.technique)!;
               return (
                 <Card
                   key="heirloom"
                   kind="heirloom"
                   label="Heirloom"
                   mark={<PieceGlyph piece={o.piece} team="A" size={34} />}
-                  title={item.name}
+                  title={tech.name}
                   action={
                     <button
                       class="btn primary spoil-take"
@@ -183,16 +183,14 @@ export function Spoils() {
                   }
                 >
                   <span class="spoil-tags">
-                    <span class="spoil-item">
-                      <ItemIcon id={item.id} size={22} />
-                      {item.cost} gold
-                    </span>
+                    <TechniqueChip c={c} id={tech.id} />
                   </span>
                   <p>
-                    Your {pieceLabel(c, o.piece)} starts every later match with {item.name}.
+                    Your {pieceLabel(c, o.piece)} keeps {tech.name} and starts every later match
+                    holding it (Plain grade).
                   </p>
                   <p class="spoil-fine">
-                    <RichText text={item.desc} />
+                    <RichText text={techniqueText(tech, 1).desc} />
                   </p>
                 </Card>
               );

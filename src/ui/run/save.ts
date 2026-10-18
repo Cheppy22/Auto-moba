@@ -43,10 +43,13 @@ function write(key: string, value: unknown, at: SaveStore | null): void {
   }
 }
 
-/** Whether a parsed save still fits this build: version 1 and the content it names exists. */
+/**
+ * Whether a parsed save still fits this build: version 2 (heirlooms are Techniques) and the content
+ * it names exists.
+ */
 function validRun(c: Content, x: unknown): x is RunState {
   const r = x as RunState | null;
-  if (!r || typeof r !== 'object' || r.v !== 1) return false;
+  if (!r || typeof r !== 'object' || r.v !== 2) return false;
   if (!Number.isFinite(r.seed) || !Number.isInteger(r.round) || r.round < 0 || r.round > 3)
     return false;
   if (!['between', 'playing', 'champion', 'out'].includes(r.status)) return false;
@@ -56,7 +59,7 @@ function validRun(c: Content, x: unknown): x is RunState {
   if (r.opponents.some((o) => !o?.setup || !c.openingById.has(o.setup.opening))) return false;
   if (!Array.isArray(r.relics) || r.relics.some((x) => !c.relicById.has(x?.id))) return false;
   if (!Array.isArray(r.books) || r.books.some((id) => !c.gambitById.has(id))) return false;
-  if (!r.heirlooms || Object.values(r.heirlooms).some((id) => !c.itemById.has(id ?? '')))
+  if (!r.heirlooms || Object.values(r.heirlooms).some((id) => !c.techniqueById.has(id ?? '')))
     return false;
   return Array.isArray(r.results) && typeof r.archetypes === 'object';
 }
@@ -69,6 +72,24 @@ export function loadRun(c: Content, at: SaveStore | null = store()): RunState | 
   console.warn('The saved Tournament run does not fit this version of the game; it was dropped.');
   write(RUN_KEY, null, at);
   return null;
+}
+
+/** What the Title says when a saved run was dropped at start-up. */
+export const OLD_RUN_NOTE =
+  'Your saved Tournament run was from before Techniques replaced items, so it could not continue. Start a new run.';
+const BAD_RUN_NOTE =
+  'Your saved Tournament run does not fit this version of the game, so it was dropped.';
+
+/**
+ * Drops a saved run this build cannot continue and says why, or returns null when the save is
+ * fine or missing. A version-1 run (heirloom items, build paths) is never migrated: its heirlooms,
+ * court and open Spoils all named items, so it is discarded whole rather than half-converted.
+ */
+export function dropStaleRun(c: Content, at: SaveStore | null = store()): string | null {
+  const raw = read(RUN_KEY, at);
+  if (raw === null || validRun(c, raw)) return null;
+  write(RUN_KEY, null, at);
+  return (raw as { v?: unknown }).v === 1 ? OLD_RUN_NOTE : BAD_RUN_NOTE;
 }
 
 /** Saves the run; an ended run (champion or out) deletes the save instead. */

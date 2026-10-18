@@ -40,7 +40,7 @@ function play(
 
 function kill(m: Match, u: Unit, killer = 0): void {
   u.hp = 0;
-  u.pendingKill = { killerId: killer };
+  u.pendingKill = { killerId: killer, origin: 'test' };
   m.step(1);
 }
 

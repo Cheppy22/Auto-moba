@@ -93,12 +93,9 @@ describe('relic headlines', () => {
     expect(relicHeadline(content, def('crown_jewel'), {}, 'queen')).toMatch(/^Your Queen becomes/);
   });
 
-  it('every style and Rank 8 option says how it plays', () => {
+  it('every style says how it plays', () => {
     for (const p of content.pieces)
-      for (const s of p.styles) {
-        expect(s.playsLike, s.id).not.toBe('');
-        for (const f of s.forks['8']) expect(f.playsLike, f.id).not.toBe('');
-      }
+      for (const s of p.styles) expect(s.playsLike, s.id).not.toBe('');
   });
 });
 

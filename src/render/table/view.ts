@@ -39,7 +39,6 @@ import {
   baseTop,
   bastion,
   creature,
-  keeper,
   obeliskCrystal,
   obeliskPlinth,
   pawn,
@@ -421,7 +420,6 @@ export class TableView {
     crowd('beast2', creature(2), 10, true);
     crowd('spirit', spirit(), 20, true);
     crowd('obelisk', obeliskPlinth(), 14);
-    crowd('keeper', keeper(), 2);
     this.crystal = crowd('crystal', obeliskCrystal(), 14, true);
     this.rim = crowd('rim', baseRim(), 140, true);
     this.top = crowd('top', baseTop(), 140, true);
@@ -1606,10 +1604,6 @@ export class TableView {
         this.blobs.addXYZ(v.x, gy + 0.8, v.z, 0, 36, 1, 36);
         break;
       }
-      case 'keeper':
-        this.crowds.keeper.add(v.x, Math.sin(this.time * 1.3) * 2 + gy, v.z, this.time * 0.4, 1.3);
-        this.blobs.addXYZ(v.x, gy + 0.8, v.z, 0, 36, 1, 36);
-        break;
       default:
         break;
     }

@@ -1,6 +1,6 @@
 import { courtOf, roundName, type PieceId } from '../../sim';
 import { Term } from '../glossary';
-import { ItemIcon } from '../ItemIcon';
+import { TechniqueChip } from '../TechniqueChip';
 import { PIECE_ORDER, PieceGlyph, pieceLabel, styleLabel } from '../pieces';
 import { SchoolChip } from '../schools';
 import { useSession } from '../session';
@@ -18,8 +18,7 @@ export function RunSummary() {
   const title = champion ? 'Champion' : outLabel(c, run.round);
   const heirlooms = PIECE_ORDER.flatMap((p) => {
     const id = run.heirlooms[p];
-    const item = id ? c.itemById.get(id) : undefined;
-    return item ? [{ piece: p, item }] : [];
+    return id && c.techniqueById.has(id) ? [{ piece: p, id }] : [];
   });
   const books = run.books.flatMap((id) => c.gambitById.get(id) ?? []);
   const leave = (then: () => void): void => {
@@ -117,12 +116,10 @@ export function RunSummary() {
               {run.relics.length > 0 && <RelicNames c={c} relics={run.relics} />}
               {heirlooms.length > 0 && (
                 <ul class="relic-names">
-                  {heirlooms.map(({ piece, item }) => (
+                  {heirlooms.map(({ piece, id }) => (
                     <li key={piece}>
-                      <ItemIcon id={item.id} size={20} />
-                      <span>
-                        {item.name} <span class="dim">for the {pieceLabel(c, piece)}</span>
-                      </span>
+                      <TechniqueChip c={c} id={id} />
+                      <span class="dim">for the {pieceLabel(c, piece)}</span>
                     </li>
                   ))}
                 </ul>

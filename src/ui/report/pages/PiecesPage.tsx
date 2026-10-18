@@ -11,11 +11,10 @@ import {
   clock,
   full,
 } from '../../charts';
-import { ItemIcon } from '../../ItemIcon';
-import { itemCategory } from '../../itemInfo';
-import { LANE_LABEL, PATH_LABEL, StyleBadge, styleDesc } from '../../pieces';
+import { LANE_LABEL, StyleBadge, styleDesc } from '../../pieces';
 import { useSession } from '../../session';
-import { itemName } from '../common';
+import { GRADE_MARK, TechniqueChip } from '../../TechniqueChip';
+import { techniqueName } from '../common';
 import type { ReportData } from '../data';
 import { Portrait } from '../parts';
 import { GOLD_GROUPS, goldGroup } from './EconomyPage';
@@ -29,13 +28,19 @@ const KILLER: Record<string, string> = {
   none: 'the board',
 };
 
-function forkName(c: Content, h: HeroModel, rank: number, optionId: string): string {
-  for (const st of c.pieceById.get(h.def as PieceId)?.styles ?? []) {
-    if (rank === 4 && st.id === optionId) return st.name;
-    const o = rank === 8 ? st.forks['8'].find((f) => f.id === optionId) : undefined;
-    if (o) return o.name;
-  }
-  return optionId;
+function forkName(c: Content, h: HeroModel, optionId: string): string {
+  return (
+    c.pieceById.get(h.def as PieceId)?.styles.find((st) => st.id === optionId)?.name ?? optionId
+  );
+}
+
+/** "Took Family Fork !" / "Upgraded Family Fork to !!" for a piece's story. */
+function techniqueText(c: Content, t: HeroModel['techniques'][number]): string {
+  const name = techniqueName(c, t.technique);
+  if (t.upgraded) return `Upgraded ${name} to ${GRADE_MARK[t.grade]}`;
+  const mark = GRADE_MARK[t.grade] ? ` ${GRADE_MARK[t.grade]}` : '';
+  const replaced = t.replaced ? ` (replacing ${techniqueName(c, t.replaced)})` : '';
+  return `Took ${name}${mark}${replaced}`;
 }
 
 /** The chip row that picks one of the ten pieces (shared by the Pieces and Replay pages). */
@@ -91,13 +96,13 @@ export function PieceDetail(props: { data: ReportData; id: number; onReplay: () 
       : (KILLER[d.killerKind] ?? `a ${d.killerKind}`);
   const rows = [
     {
-      id: 'items',
-      label: 'Items',
-      items: h.purchases.map((p) => ({
-        t0: at(p.tick),
+      id: 'techniques',
+      label: 'Builds',
+      items: h.techniques.map((t) => ({
+        t0: at(t.tick),
         color: CAT.yellow,
         shape: 'square' as const,
-        label: `Bought ${itemName(s.content, p.item)} (${full(p.price)}g)`,
+        label: techniqueText(s.content, t),
       })),
     },
     {
@@ -117,7 +122,7 @@ export function PieceDetail(props: { data: ReportData; id: number; onReplay: () 
         t0: at(f.tick),
         color: CAT.violet,
         shape: 'diamond' as const,
-        label: `Fork, Rank ${f.rank}: ${forkName(s.content, h, f.rank, f.optionId)}`,
+        label: `Archetype, Rank ${f.rank}: ${forkName(s.content, h, f.optionId)}`,
       })),
     },
     {
@@ -133,15 +138,10 @@ export function PieceDetail(props: { data: ReportData; id: number; onReplay: () 
   ];
   type Entry = { tick: number; kind: string; text: string };
   const story: Entry[] = [
-    ...h.purchases.map((p) => ({
-      tick: p.tick,
+    ...h.techniques.map((t) => ({
+      tick: t.tick,
       kind: 'buy',
-      text: `Bought ${itemName(s.content, p.item)} for ${full(p.price)}g${p.consumed.length ? ` (combined ${p.consumed.map((c) => itemName(s.content, c)).join(' + ')})` : ''}`,
-    })),
-    ...h.sells.map((p) => ({
-      tick: p.tick,
-      kind: 'buy',
-      text: `Sold ${itemName(s.content, p.item)} for ${full(p.refund)}g`,
+      text: techniqueText(s.content, t),
     })),
     ...h.ranks.map((u) => ({
       tick: u.tick,
@@ -151,7 +151,7 @@ export function PieceDetail(props: { data: ReportData; id: number; onReplay: () 
     ...h.forks.map((f) => ({
       tick: f.tick,
       kind: 'fork',
-      text: `Fork at Rank ${f.rank}: ${forkName(s.content, h, f.rank, f.optionId)}${f.auto ? ' (picked by the AI)' : ''}`,
+      text: `Archetype at Rank ${f.rank}: ${forkName(s.content, h, f.optionId)}${f.auto ? ' (picked by the AI)' : ''}`,
     })),
     ...h.deathRecords.map((d) => ({
       tick: d.tick,
@@ -167,7 +167,6 @@ export function PieceDetail(props: { data: ReportData; id: number; onReplay: () 
           <h3 class={`team${r.team}`}>{r.name}</h3>
           <div class="rp-piece-style">
             <StyleBadge style={r.style} team={r.team} size={18} /> {r.styleName}
-            <span class="dim"> · {PATH_LABEL[r.path as keyof typeof PATH_LABEL] ?? r.path}</span>
           </div>
           <div class="dim tiny">
             {styleDesc(s.content, r.piece, r.style)}{' '}
@@ -189,30 +188,24 @@ export function PieceDetail(props: { data: ReportData; id: number; onReplay: () 
         <Fact label="Bastion dmg" value={full(r.objectiveDamage)} />
         <Fact label="Pawn kills" value={String(r.pawnKills)} />
       </div>
-      <div class="rp-items-line" aria-label="Final items">
-        {r.finalItems.map((id, i) => (
-          <span
-            key={`${id}${i}`}
-            class={`rp-item big cat-${itemCategory(s.content, id)}`}
-            title={r.finalItemNames[i] ?? id}
-          >
-            <ItemIcon id={id} size={22} />
-          </span>
+      <div class="rp-items-line" aria-label="Final Techniques">
+        {r.finalTechniques.map((id) => (
+          <TechniqueChip key={id} c={s.content} id={id} />
         ))}
-        {r.finalItems.length === 0 && <span class="dim tiny">No final items</span>}
+        {r.finalTechniques.length === 0 && <span class="dim tiny">No Techniques</span>}
       </div>
       <ChartBox
         testid="chart-life"
-        title="Purchases, ranks, forks and falls"
+        title="Techniques, ranks, archetype and falls"
         legend={[
-          { label: 'Item bought', color: CAT.yellow, shape: 'square' },
+          { label: 'Technique', color: CAT.yellow, shape: 'square' },
           { label: 'Rank up', color: CAT.blue, shape: 'diamond' },
-          { label: 'Fork', color: CAT.violet, shape: 'diamond' },
+          { label: 'Archetype', color: CAT.violet, shape: 'diamond' },
           { label: 'Fall', color: CAT.red, shape: 'tri' },
         ]}
       >
         <Gantt
-          label={`${r.name}: purchases, ranks, forks and falls over time`}
+          label={`${r.name}: Techniques, ranks, archetype and falls over time`}
           xMax={endSec}
           rows={rows}
           guides={guides}

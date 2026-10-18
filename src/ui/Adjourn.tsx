@@ -1,13 +1,11 @@
 import { useState } from 'preact/hooks';
 import { courtName } from '../analysis/text';
-import { ItemIcon } from './ItemIcon';
-import { Lanes, Paths, whitePieces } from './Orders';
-import { RichText, plainText } from './richtext';
+import { Lanes, whitePieces } from './Orders';
 import { RulesList, Term } from './glossary';
-import { itemCategory } from './itemInfo';
-import { PATH_LABEL, PieceGlyph, pieceLabel } from './pieces';
+import { PieceGlyph, pieceLabel } from './pieces';
 import { n0 } from './format';
 import { SchoolChip } from './schools';
+import { TechniqueChip } from './TechniqueChip';
 import { ReplayTutorial } from './ReplayTutorial';
 import { SoundControls } from './SoundToggle';
 import { ThemePicker } from './ThemePicker';
@@ -16,84 +14,40 @@ import { useEscape, useSession } from './session';
 /** Black's Opening stays hidden for the first minute of play (20 ticks a second). */
 const REVEAL_TICKS = 60 * 20;
 
-type Tab = 'lanes' | 'paths' | 'armory' | 'rules';
+type Tab = 'lanes' | 'builds' | 'rules';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'lanes', label: 'Lanes' },
-  { id: 'paths', label: 'Paths' },
-  { id: 'armory', label: 'Armory' },
+  { id: 'builds', label: 'Builds' },
   { id: 'rules', label: 'Rules' },
 ];
 
-function Armory() {
+/** Read only: the Techniques each White piece holds (they change only at an Act break). */
+function Builds() {
   const s = useSession();
-  const m = s.match!;
-  const [sel, setSel] = useState<{ hero: number; item: string } | null>(null);
-  const def = (id: string) => s.content.itemById.get(id) ?? s.content.cursedById.get(id);
-  const desc = (id: string): string => {
-    const it = def(id);
-    return it && 'desc' in it ? (it as { desc: string }).desc : '';
-  };
   return (
-    <div class="col" data-testid="tab-armory">
+    <div class="col" data-testid="tab-builds">
       <p class="dim small">
-        <Term id="armory">Armory</Term>: what each piece carries, then the items it plans to buy
-        (dashed). Read only: change plans and buy at an Act break.
+        <Term id="technique">Techniques</Term> each piece holds. They change at an Act break.
       </p>
       {whitePieces(s).map((u) => {
         const h = u.hero!;
-        const next = m.nextBuy(u.id);
-        // the plan's unbought items follow as ghosts (the next buy first), up to the free slots
-        const ghosts = (m.armoryView(u.id)?.planLeft ?? [])
-          .filter((id) => id !== next)
-          .slice(0, Math.max(0, 6 - h.items.length - (next ? 1 : 0)));
-        const open = sel && sel.hero === u.id ? sel.item : null;
-        const tile = (id: string, key: string, isNext: boolean, ghost = false) => {
-          const it = def(id);
-          const on = open === id;
-          return (
-            <button
-              key={key}
-              class={`atile cat-${itemCategory(s.content, id)} ${isNext ? 'next' : ''} ${ghost ? 'ghost' : ''} ${on ? 'sel' : ''}`}
-              data-testid={
-                isNext ? `next-${h.defId}` : `${ghost ? 'plan' : 'item'}-${h.defId}-${id}`
-              }
-              aria-pressed={on}
-              title={`${it?.name ?? id}: ${plainText(desc(id))}`}
-              onClick={() => setSel(on ? null : { hero: u.id, item: id })}
-            >
-              <span class="aicon">
-                <ItemIcon id={id} size={22} />
-              </span>
-              <span class="aname">{it?.name ?? id}</span>
-              {isNext && <i class="anext">Next</i>}
-            </button>
-          );
-        };
         return (
-          <section class="card armory-card" key={u.id} data-testid={`armory-${h.defId}`}>
+          <section class="card builds-piece" key={u.id} data-testid={`adjourn-builds-${h.defId}`}>
             <div class="row">
               <PieceGlyph piece={h.defId} team="A" size={28} />
-              <b class="grow">
-                {pieceLabel(s.content, h.defId)}
-                <span class="dim tiny"> · {PATH_LABEL[h.path]}</span>
-              </b>
+              <b class="grow">{pieceLabel(s.content, h.defId)}</b>
               <span class="gold small">
                 <i class="coin" aria-hidden="true" />
                 {n0(h.gold)}
               </span>
             </div>
-            <div class="atiles">
-              {h.items.length === 0 && <span class="dim small">No items yet.</span>}
-              {h.items.map((id, i) => tile(id, `${id}:${i}`, false))}
-              {next && tile(next, 'next', true)}
-              {ghosts.map((id) => tile(id, `plan:${id}`, false, true))}
+            <div class="builds-held">
+              {h.techniques.length === 0 && <span class="dim small">No Techniques yet.</span>}
+              {h.techniques.map((x) => (
+                <TechniqueChip key={x.id} c={s.content} id={x.id} grade={x.grade} />
+              ))}
             </div>
-            {open && (
-              <div class={`adesc small cat-${itemCategory(s.content, open)}`}>
-                <b>{def(open)?.name}</b> <RichText text={desc(open)} />
-              </div>
-            )}
           </section>
         );
       })}
@@ -156,7 +110,7 @@ function Mini() {
   );
 }
 
-/** The paused panel: lanes, build paths and a read-only look at every piece's items. */
+/** The paused panel: lanes, a read-only look at every piece's Techniques, and the rules. */
 export function Adjourn() {
   const s = useSession();
   const [tab, setTab] = useState<Tab>('lanes');
@@ -191,8 +145,7 @@ export function Adjourn() {
         </div>
         <div class="adjourn-body scroll">
           {tab === 'lanes' && <Lanes />}
-          {tab === 'paths' && <Paths />}
-          {tab === 'armory' && <Armory />}
+          {tab === 'builds' && <Builds />}
           {tab === 'rules' && <RulesList />}
         </div>
       </div>
