@@ -1134,7 +1134,12 @@ html[data-layout='desktop'] .hud.v2 {
 }
 .hud.v2[data-shape='stack'] .ucard.side-B {
   top: calc(var(--hud-top, 110px) + 8px + var(--hang));
-  max-height: calc(100% - var(--hud-top, 110px) - var(--hud-bottom, 150px) - 24px - var(--hang));
+  /* and it ends at the middle of the screen at the latest (the map stays visible below it): a card
+   * with six Technique slots, or one pushed down by the trays, scrolls inside instead of growing */
+  max-height: min(
+    calc(100% - var(--hud-top, 110px) - var(--hud-bottom, 150px) - 24px - var(--hang)),
+    calc(50% - var(--hud-top, 110px) - 10px - var(--hang))
+  );
   transition: top 0.25s ease;
 }
 .hud.v2[data-shape='stack'] .notices {
