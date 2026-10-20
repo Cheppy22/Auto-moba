@@ -39,7 +39,12 @@ export interface MapStyle {
   feltLight: string;
   water: string;
   waterLight: string;
-  pit: string;
+  /** The Pit's sunken arena floor (raked sand) and its rake lines. */
+  arena: string;
+  arenaRake: string;
+  /** A closed clearing's stone lid (flagstone brightness) and its joints. */
+  lid: string;
+  lidJoint: string;
   /** Medallion enamel (badge field). */
   enamel: string;
   pine: readonly [string, string, string, string];
@@ -73,7 +78,10 @@ const STYLES: Record<'a' | 'b', MapStyle> = {
     feltLight: '#2e5255',
     water: '#0c2431',
     waterLight: '#2a6276',
-    pit: '#191c20',
+    arena: '#8c7f66',
+    arenaRake: '#766a55',
+    lid: '#77736a',
+    lidJoint: '#55524b',
     enamel: '#14181c',
     pine: ['#20372b', '#284434', '#2a4535', '#31513e'],
     trunk: '#3a2a1c',
@@ -102,7 +110,10 @@ const STYLES: Record<'a' | 'b', MapStyle> = {
     feltLight: '#285238',
     water: '#0d1d30',
     waterLight: '#2d5376',
-    pit: '#1d1813',
+    arena: '#9c8259',
+    arenaRake: '#866f4a',
+    lid: '#94794f',
+    lidJoint: '#6c5839',
     enamel: '#1a1410',
     pine: ['#243c27', '#2d4a2f', '#2e4c30', '#385c39'],
     trunk: '#3f2c1b',
@@ -438,6 +449,41 @@ function badge(
   g.restore();
 }
 
+/**
+ * The Pit's floor: raked sand in rings round the centre, a shadow under the sunken wall and a
+ * warm band of lamplight just inside it, so the centre of the board reads as an arena.
+ */
+function arena(g: CanvasRenderingContext2D, x: number, y: number, r: number, st: MapStyle): void {
+  g.save();
+  g.beginPath();
+  g.arc(x, y, r, 0, Math.PI * 2);
+  g.clip();
+  g.fillStyle = st.arena;
+  g.fillRect(x - r, y - r, r * 2, r * 2);
+  // the rake: fine concentric furrows, a little uneven
+  g.strokeStyle = st.arenaRake;
+  g.lineWidth = 3;
+  for (let rr = 18; rr < r; rr += 15) {
+    g.globalAlpha = 0.45 + hash(rr) * 0.35;
+    g.beginPath();
+    g.arc(x, y, rr, 0, Math.PI * 2);
+    g.stroke();
+  }
+  g.globalAlpha = 1;
+  // a lit floor: brighter in the middle, a warm ring of light inside the wall, the wall's shadow
+  const lg = g.createRadialGradient(x, y, 0, x, y, r);
+  lg.addColorStop(0, 'rgba(255,236,196,0.16)');
+  lg.addColorStop(0.55, 'rgba(255,236,196,0.04)');
+  lg.addColorStop(0.74, 'rgba(255,214,140,0.0)');
+  lg.addColorStop(0.83, 'rgba(255,214,140,0.42)');
+  lg.addColorStop(0.88, 'rgba(255,214,140,0.06)');
+  lg.addColorStop(0.92, 'rgba(6,5,4,0.30)');
+  lg.addColorStop(1, 'rgba(6,5,4,0.5)');
+  g.fillStyle = lg;
+  g.fillRect(x - r, y - r, r * 2, r * 2);
+  g.restore();
+}
+
 /** A medallion's brass ring: a band between two dark hairlines and a thin inner ring. */
 function ringBand(g: CanvasRenderingContext2D, x: number, y: number, R: number, w: number): void {
   g.strokeStyle = 'rgba(6,5,4,0.7)';
@@ -635,23 +681,9 @@ export function paintLongStyled(
     ringBand(g, sl.x, sl.y, R, 9);
   }
 
-  // the Pit: a dark sunken court
-  for (const s of of('pit')) {
-    pave(g, [s], 0, {
-      base: st.pit,
-      joint: mix(st.pit, '#000000', 0.35),
-      sw: 60,
-      sh: 40,
-      seed: 700,
-    });
-    const pg = g.createRadialGradient(s.ax, s.ay, s.r * 0.4, s.ax, s.ay, s.r);
-    pg.addColorStop(0, 'rgba(0,0,0,0)');
-    pg.addColorStop(1, 'rgba(0,0,0,0.35)');
-    g.fillStyle = pg;
-    g.beginPath();
-    g.arc(s.ax, s.ay, s.r, 0, Math.PI * 2);
-    g.fill();
-  }
+  // the Pit: a sunken arena of raked sand under a ring of lamplight (a place, not a hole;
+  // near-black is kept for dead space only)
+  for (const s of of('pit')) arena(g, s.ax, s.ay, s.r, st);
 
   // lanes: felt runners (darker edge, lighter nap down the middle)
   fillShapes(g, lanes, 0, st.feltDark);
@@ -886,8 +918,10 @@ export function paintLake(
 }
 
 /**
- * The closed-clearing cover (a dark iron disc with a keyhole), painted into a square canvas of
- * side `S`: the clearing's medallion shows through dimmed until the clearing opens.
+ * The closed-clearing cover: a dressed stone lid at flagstone brightness (radial joints, a raised
+ * stone rim, the light from White's side) with a brass seal and keyhole in the middle, painted into
+ * a square canvas of side `S`. It covers the clearing's ring; a notch keeps the camp badge in view.
+ * Brass marks the place, stone says "closed": no near-black, which is kept for dead space.
  */
 export function paintCover(
   g: CanvasRenderingContext2D,
@@ -898,24 +932,64 @@ export function paintCover(
   badgeR: number,
 ): void {
   const c = S / 2;
+  const R = c - 2;
   g.clearRect(0, 0, S, S);
-  g.fillStyle = 'rgba(8,9,11,0.72)';
+  // the lid's edge in shadow, then the stone
+  g.fillStyle = 'rgba(6,5,4,0.6)';
   g.beginPath();
-  g.arc(c, c, c - 2, 0, Math.PI * 2);
+  g.arc(c, c, R, 0, Math.PI * 2);
+  g.fill();
+  g.fillStyle = st.lid;
+  g.beginPath();
+  g.arc(c, c, R * 0.93, 0, Math.PI * 2);
+  g.fill();
+  // joints: eight dressed stones round an inner ring
+  g.strokeStyle = st.lidJoint;
+  g.lineWidth = S * 0.012;
+  g.beginPath();
+  g.arc(c, c, R * 0.5, 0, Math.PI * 2);
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * Math.PI * 2 + Math.PI / 8;
+    g.moveTo(c + Math.cos(a) * R * 0.5, c + Math.sin(a) * R * 0.5);
+    g.lineTo(c + Math.cos(a) * R * 0.9, c + Math.sin(a) * R * 0.9);
+  }
+  g.stroke();
+  // the raised rim (a stone lip: a change of height) and soft light from the near side
+  g.strokeStyle = st.coping;
+  g.lineWidth = S * 0.035;
+  g.beginPath();
+  g.arc(c, c, R * 0.9, 0, Math.PI * 2);
+  g.stroke();
+  const lg = g.createLinearGradient(0, 0, 0, S);
+  lg.addColorStop(0, 'rgba(0,0,0,0.16)');
+  lg.addColorStop(0.55, 'rgba(255,255,255,0)');
+  lg.addColorStop(1, 'rgba(255,244,220,0.12)');
+  g.fillStyle = lg;
+  g.beginPath();
+  g.arc(c, c, R * 0.93, 0, Math.PI * 2);
+  g.fill();
+  // the brass seal with its keyhole
+  const sr = R * 0.27;
+  g.fillStyle = 'rgba(6,5,4,0.7)';
+  g.beginPath();
+  g.arc(c, c, sr + S * 0.02, 0, Math.PI * 2);
+  g.fill();
+  g.fillStyle = TABLE.brass;
+  g.beginPath();
+  g.arc(c, c, sr, 0, Math.PI * 2);
   g.fill();
   g.strokeStyle = TABLE.brassDark;
-  g.lineWidth = S * 0.025;
+  g.lineWidth = S * 0.012;
   g.beginPath();
-  g.arc(c, c, c - S * 0.03, 0, Math.PI * 2);
+  g.arc(c, c, sr * 0.78, 0, Math.PI * 2);
   g.stroke();
-  // keyhole
-  g.fillStyle = mix(st.coping, '#000000', 0.15);
+  g.fillStyle = st.enamel;
   g.beginPath();
-  g.arc(c, c - S * 0.05, S * 0.075, 0, Math.PI * 2);
-  g.moveTo(c - S * 0.04, c);
-  g.lineTo(c + S * 0.04, c);
-  g.lineTo(c + S * 0.065, c + S * 0.15);
-  g.lineTo(c - S * 0.065, c + S * 0.15);
+  g.arc(c, c - sr * 0.22, sr * 0.26, 0, Math.PI * 2);
+  g.moveTo(c - sr * 0.12, c - sr * 0.1);
+  g.lineTo(c + sr * 0.12, c - sr * 0.1);
+  g.lineTo(c + sr * 0.22, c + sr * 0.5);
+  g.lineTo(c - sr * 0.22, c + sr * 0.5);
   g.closePath();
   g.fill();
   // a notch where the camp badge sits (the near edge; the board turns the cover with the screen)
