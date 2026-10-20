@@ -156,7 +156,7 @@ html[data-layout='desktop'] .hud.v2 {
 }
 .tray[data-count='4'] .tray-time,
 .tray[data-count='5'] .tray-time {
-  font-size: 9px;
+  font-size: var(--fs-xs);
   letter-spacing: -0.02em;
 }
 .tray-item.leaving {
@@ -164,7 +164,7 @@ html[data-layout='desktop'] .hud.v2 {
 }
 .tray-time {
   font-style: normal;
-  font-size: 10px;
+  font-size: var(--fs-xs);
   font-weight: 700;
   font-variant-numeric: lining-nums tabular-nums;
   letter-spacing: 0;
@@ -261,7 +261,7 @@ html[data-layout='desktop'] .hud.v2 {
 }
 .v2-label {
   font-family: var(--font-display);
-  font-size: 11px;
+  font-size: var(--fs-xs);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--b);
@@ -299,7 +299,7 @@ html[data-layout='desktop'] .hud.v2 {
   height: 16px;
   border-radius: 50%;
   font-family: var(--font-body);
-  font-size: 10.5px;
+  font-size: var(--fs-xs);
   font-weight: 700;
   line-height: 1;
   color: #14110e;
@@ -523,10 +523,10 @@ html[data-layout='desktop'] .hud.v2 {
 .hud.v2 .roster.row .rank-num {
   width: 18px;
   height: 18px;
-  font-size: 11.5px;
+  font-size: var(--fs-xs);
 }
 .hud.v2 .roster.row .lane-tag {
-  font-size: 11px;
+  font-size: var(--fs-xs);
   line-height: 14px;
 }
 .roster.row .rname {
@@ -534,7 +534,7 @@ html[data-layout='desktop'] .hud.v2 {
   margin-top: 3px;
   overflow: hidden;
   font-family: var(--font-display);
-  font-size: 10.5px;
+  font-size: var(--fs-xs);
   line-height: 1.1;
   letter-spacing: 0.04em;
   white-space: nowrap;
@@ -545,7 +545,7 @@ html[data-layout='desktop'] .hud.v2 {
   margin-top: 3px;
 }
 .hud.v2 .roster.row .roster-cell .fall i {
-  font-size: 10px;
+  font-size: var(--fs-xs);
 }
 .hud.v2 .roster.row .relic-row {
   grid-column: 1 / -1;
@@ -572,7 +572,7 @@ html[data-layout='desktop'] .hud.v2 {
   height: calc(32px * var(--u));
 }
 .hud.v2 .pts-label {
-  font-size: calc(9.5px * var(--u));
+  font-size: calc(var(--fs-xs) * var(--u));
   letter-spacing: 0.03em;
   white-space: nowrap;
 }
@@ -593,11 +593,11 @@ html[data-layout='desktop'] .hud.v2 {
   font-size: calc(12px * var(--u));
 }
 .hud.v2 .tray-time {
-  font-size: calc(10px * var(--u));
+  font-size: calc(var(--fs-xs) * var(--u));
 }
 .hud.v2 .btoken-rank,
 .roster.row .rname {
-  font-size: calc(10.5px * var(--u));
+  font-size: calc(var(--fs-xs) * var(--u));
 }
 .hud.v2 .tray-item > svg {
   width: calc(24px * var(--u));
@@ -610,14 +610,14 @@ html[data-layout='desktop'] .hud.v2 {
 .hud.v2 .roster.row .rank-num {
   width: calc(18px * var(--u));
   height: calc(18px * var(--u));
-  font-size: calc(11.5px * var(--u));
+  font-size: calc(var(--fs-xs) * var(--u));
 }
 .hud.v2 .roster.row .lane-tag {
-  font-size: calc(11px * var(--u));
+  font-size: calc(var(--fs-xs) * var(--u));
   line-height: calc(14px * var(--u));
 }
 .hud.v2 .roster.row .roster-cell .fall i {
-  font-size: calc(10px * var(--u));
+  font-size: calc(var(--fs-xs) * var(--u));
 }
 .hud.v2 .roster.row .style-badge {
   width: calc(18px * var(--u));
@@ -633,7 +633,7 @@ html[data-layout='desktop'] .hud.v2 {
   height: calc(26px * var(--u));
 }
 .hud.v2 .pawn-text span {
-  font-size: calc(11.5px * var(--u));
+  font-size: calc(var(--fs-xs) * var(--u));
 }
 .hud.v2 .gname {
   font-size: calc(13px * var(--u));
@@ -644,7 +644,7 @@ html[data-layout='desktop'] .hud.v2 {
   font-size: calc(12px * var(--u));
 }
 .hud.v2 .gstate {
-  font-size: calc(11px * var(--u));
+  font-size: calc(var(--fs-xs) * var(--u));
 }
 .hud.v2 .relic-icon {
   width: calc(36px * var(--u));
@@ -879,7 +879,7 @@ html[data-layout='desktop'] .hud.v2 {
   height: calc(14px * var(--u));
   padding: 0 2px;
   font-style: normal;
-  font-size: calc(10px * var(--u));
+  font-size: calc(var(--fs-xs) * var(--u));
   font-weight: 700;
   line-height: 1;
   color: var(--b-trim);
@@ -1163,4 +1163,19 @@ html[data-layout='desktop'] .hud.v2 {
   .hud.v2[data-shape='stack'] .adjourn {
     padding: 4px 7px;
   }
+}
+
+/*
+ * While the hand is open (portrait, the stack shape), your row folds into a thin strip of portraits
+ * and rings: names, fall lines and relic seals step aside so the hand and the board keep the room
+ * (review D6). The camera's inset stays the collapsed one (CourtLayout), so the board never jumps.
+ */
+.hud.v2:not([data-shape='side']) .v2-bottom:has(.v2-drawer[data-open='true']) .roster-cell {
+  min-height: 0;
+  padding: 3px 2px 2px;
+}
+.hud.v2:not([data-shape='side']) .v2-bottom:has(.v2-drawer[data-open='true']) .roster.row .rname,
+.hud.v2:not([data-shape='side']) .v2-bottom:has(.v2-drawer[data-open='true']) .roster.row .fall,
+.hud.v2:not([data-shape='side']) .v2-bottom:has(.v2-drawer[data-open='true']) .relic-row {
+  display: none;
 }
