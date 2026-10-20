@@ -279,8 +279,8 @@
       "desc": "{m|+{mods.0.value|mul}% Blade damage} and {s|+{mods.1.value|mul}% Soul power}."
     },
     {
-      "id": "desperado",
-      "name": "Desperado",
+      "id": "counterplay",
+      "name": "Counterplay",
       "school": "sacrifice",
       "slot": "trait",
       "pool": "common",
@@ -319,7 +319,7 @@
         "text": "{r|The price}: {p|its retreat line drops {dubious.retreatMul|less}%}: it fights on at lower health."
       },
       "playsLike": "Fights to the end instead of breaking off.",
-      "desc": "{r|Desperado}: below {b|{triggers.0.hpBelow|pct}% health}, {m|+{triggers.0.effects.0.value|mul}% attack speed} and {m|+{triggers.0.effects.1.value|mul}% damage}."
+      "desc": "{r|Counterplay}: below {b|{triggers.0.hpBelow|pct}% health}, {m|+{triggers.0.effects.0.value|mul}% attack speed} and {m|+{triggers.0.effects.1.value|mul}% damage}."
     },
     {
       "id": "poisoned_piece",
@@ -379,8 +379,8 @@
       "desc": "{r|Slip}: hit below {b|{triggers.0.hpBelow|pct}% health}, it dashes {triggers.0.effects.0.distance|num} away from its attacker. {r|Every {triggers.0.cooldownSec|num} s}."
     },
     {
-      "id": "pin",
-      "name": "Pin",
+      "id": "clamp",
+      "name": "Clamp",
       "school": "position",
       "slot": "attack",
       "pool": "common",
@@ -407,7 +407,7 @@
         "label": "slows"
       },
       "playsLike": "Holds a target in place for the team.",
-      "desc": "{r|Pin}: every {triggers.0.everyNth|num}th hit on a piece slows it {r|{triggers.0.effects.0.value|less}%} for {triggers.0.effects.0.durationSec|num} s."
+      "desc": "{r|Clamp}: every {triggers.0.everyNth|num}th hit on a piece slows it {r|{triggers.0.effects.0.value|less}%} for {triggers.0.effects.0.durationSec|num} s."
     },
     {
       "id": "shove",
@@ -1378,13 +1378,13 @@
       "desc": "{r|Stone Skin} shields ally pieces within {triggers.0.radius|num} at {b|{triggers.0.effects.0.share|pct}%} and taunts enemy pieces within {triggers.1.radius|num} for {triggers.1.effects.0.durationSec|num} s."
     },
     {
-      "id": "zugzwang",
-      "name": "Zugzwang",
+      "id": "bind",
+      "name": "Bind",
       "school": "clock",
       "slot": "skill2",
       "pool": "combination",
       "piece": "queen",
-      "parents": ["echoing_decree", "pin"],
+      "parents": ["echoing_decree", "clamp"],
       "triggers": [
         {
           "on": "cast",
@@ -1534,7 +1534,7 @@
       "school": "sacrifice",
       "slot": "trait",
       "pool": "combination",
-      "parents": ["desperado", "shove"],
+      "parents": ["counterplay", "shove"],
       "triggers": [
         {
           "on": "damaged",

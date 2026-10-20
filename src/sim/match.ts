@@ -619,16 +619,15 @@ export class Match {
   }
 
   /**
-   * Setup's First moves for White (before the match starts): each piece's offer for this Opening,
-   * the AI's pick and the picks that matter most; the same cards the match deals when it starts.
+   * Setup's First moves for White (before the match starts): each piece's offer (the Opening does
+   * not change it), the AI's pick and the picks that matter most; the same cards the match deals.
    */
-  firstMoves(opening?: string): FirstMoveView {
+  firstMoves(): FirstMoveView {
     const setup = this.ctx.s.setup.A;
     const view = firstMoves(
       this.content,
       this.ctx.t,
       this.ctx.s.seed,
-      opening ?? setup.opening,
       setup.pieces.map((e) => e.piece),
       this.config.start?.A?.heirlooms,
     );

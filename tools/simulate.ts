@@ -26,6 +26,30 @@ export interface HeroResult {
   rank: number;
   /** Techniques held at match end (`id:grade`). */
   techniques: string[];
+  /** What each Technique it held did over the match: damage + healing + shields (tally). */
+  techEffect: Record<string, number>;
+}
+
+/** One build offer and what was taken from it (null: passed or rerolled away). */
+export interface OfferRead {
+  team: PlayTeam;
+  piece: string;
+  at: number;
+  grade: string;
+  cards: string[];
+  taken: string | null;
+}
+
+/** What one side's plays of a card did, summed over the match (the gambit impact read-out). */
+export interface CardImpact {
+  n: number;
+  bonus: number;
+  prevented: number;
+  healed: number;
+  structure: number;
+  kills: number;
+  deaths: number;
+  drained: number;
 }
 
 export interface MatchSummary {
@@ -69,6 +93,10 @@ export interface MatchSummary {
     PlayTeam,
     { offered: string[]; taken: string[]; passes: number; rerolls: number; upgrades: number }
   >;
+  /** Every offer (rerolls included) and the card taken from it. */
+  offers: OfferRead[];
+  /** Per side and card: what its plays did (`gambitEnd` metrics). */
+  cardImpact: Record<PlayTeam, Record<string, CardImpact>>;
 }
 
 /** One piece at one Act break, read when the next Act starts. */
@@ -226,6 +254,12 @@ export function simulateMatch(content: Content, seed: number, opts: SimOptions =
         goldEarned: h.goldEarned,
         rank: h.rank,
         techniques: h.techniques.map((x) => `${x.id}:${x.grade}`),
+        techEffect: Object.fromEntries(
+          h.techniques.map((x) => {
+            const r = s.builds.match[`${id}:${x.id}`];
+            return [x.id, r ? Math.round(r.damage + r.heal + r.shield) : 0];
+          }),
+        ),
       });
     }
   }
@@ -279,11 +313,50 @@ export function simulateMatch(content: Content, seed: number, opts: SimOptions =
     upgrades: 0,
   });
   const builds = { A: blank(), B: blank() };
+  const offers: OfferRead[] = [];
+  const openOffer = new Map<number, OfferRead>();
+  const cardImpact: MatchSummary['cardImpact'] = { A: {}, B: {} };
   for (const e of m.events) {
+    if (e.type === 'gambitEnd') {
+      const p = e.payload;
+      const row = (cardImpact[p.team][p.cardId] ??= {
+        n: 0,
+        bonus: 0,
+        prevented: 0,
+        healed: 0,
+        structure: 0,
+        kills: 0,
+        deaths: 0,
+        drained: 0,
+      });
+      row.n++;
+      row.bonus += p.bonus;
+      row.prevented += p.prevented;
+      row.healed += p.healed;
+      row.structure += p.structure;
+      row.kills += p.kills;
+      row.deaths += p.deaths;
+      row.drained += p.drained;
+    }
     if (e.type === 'buildOffer') {
       builds[e.payload.team].offered.push(...e.payload.cards);
       if (e.payload.reroll > 0) builds[e.payload.team].rerolls++;
-    } else if (e.type === 'technique') builds[e.payload.team].taken.push(e.payload.technique);
+      const piece = m.unitById(e.payload.id)?.hero?.defId ?? '?';
+      const o: OfferRead = {
+        team: e.payload.team,
+        piece,
+        at: e.payload.at,
+        grade: e.payload.grade,
+        cards: e.payload.cards.slice(),
+        taken: null,
+      };
+      offers.push(o);
+      openOffer.set(e.payload.id, o);
+    } else if (e.type === 'technique') {
+      builds[e.payload.team].taken.push(e.payload.technique);
+      const o = openOffer.get(e.payload.id);
+      if (o && o.taken === null && o.cards.includes(e.payload.technique)) o.taken = e.payload.technique;
+    }
     else if (e.type === 'offerPassed') {
       const t = teamOfHero.get(e.payload.id);
       if (t) builds[t].passes++;
@@ -295,6 +368,8 @@ export function simulateMatch(content: Content, seed: number, opts: SimOptions =
   const ms = Number(process.hrtime.bigint() - t0) / 1e6;
   return {
     builds,
+    offers,
+    cardImpact,
     seed,
     winner,
     phases: s.phase.n,

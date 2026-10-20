@@ -70,8 +70,6 @@ export interface BuildSubject {
   style: string | null;
   rank: number;
   held: readonly HeldTechnique[];
-  /** The side's Opening's two schools. */
-  schools: readonly School[];
   /** The side trails (read at the break): Dubious cards are drawn more often. */
   behind: boolean;
 }
@@ -158,8 +156,8 @@ function partnerHeld(c: Content, subj: BuildSubject, id: string): boolean {
 
 function drawWeight(c: Content, t: Tuning, subj: BuildSubject, d: TechniqueDef): number {
   const w = t.builds.weights;
+  // Techniques draw evenly by school: the Opening shapes only the gambit hand (owner, 2026-10-20)
   let m = 1;
-  if (subj.schools.includes(d.school)) m *= w.opening;
   if (heldSchools(c, subj.held).has(d.school)) m *= w.held;
   m = Math.min(m, w.max);
   if (d.dubious && subj.behind) m *= w.dubiousBehind;
@@ -293,7 +291,6 @@ export function scoreCard(
     }
   }
   s += a.fit * fitOf(c, subj, d);
-  if (subj.schools.includes(d.school)) s += a.school;
   if (heldSchools(c, subj.held).has(d.school)) s += a.school;
   const have = new Set(subj.held.map((h) => h.id));
   let lead = 0;
@@ -381,10 +378,6 @@ function advise(c: Content, t: Tuning, inputs: AdviceInput[]): BuildAdvice {
 
 // ---- the match side: subjects, offers, commands ----
 
-function openingSchools(ctx: Ctx, team: PlayTeam): School[] {
-  return ctx.c.openingById.get(ctx.s.opening[team])?.schools ?? [];
-}
-
 export function subjectOf(ctx: Ctx, u: Unit): BuildSubject {
   const h = u.hero!;
   const team = u.team as PlayTeam;
@@ -395,7 +388,6 @@ export function subjectOf(ctx: Ctx, u: Unit): BuildSubject {
     style: h.style,
     rank: h.rank,
     held: h.techniques,
-    schools: openingSchools(ctx, team),
     behind: ctx.s.relics.behind[team],
   };
 }
@@ -924,11 +916,9 @@ export function firstMoves(
   c: Content,
   t: Tuning,
   seed: number,
-  opening: string,
   pieces: readonly PieceId[],
   heirlooms: Partial<Record<PieceId, string>> = {},
 ): FirstMoveView {
-  const schools = c.openingById.get(opening)?.schools ?? [];
   const rows = pieces.map((piece, i) => {
     // a run's heirloom is held first (Plain grade), so the first move is drawn for another slot
     const heirloom = heirlooms[piece];
@@ -939,7 +929,6 @@ export function firstMoves(
       style: null,
       rank: 1,
       held: heirloom && isFirstMove(c, piece, heirloom) ? [{ id: heirloom, grade: 'plain' }] : [],
-      schools,
       behind: false,
     };
     const d = drawOffer(c, t, subj, 0, 0);

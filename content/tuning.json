@@ -33,7 +33,7 @@
     "reroll": { "base": 200, "step": 100 },
     "upgrade": [600, 1200],
     "passGold": 150,
-    "weights": { "opening": 2, "held": 1.5, "max": 3, "dubiousBehind": 2, "partner": 4 },
+    "weights": { "held": 1.5, "max": 3, "dubiousBehind": 2, "partner": 4 },
     "ai": {
       "grade": [1, 1.5, 2],
       "fills": 1,

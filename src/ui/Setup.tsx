@@ -37,7 +37,7 @@ export function Setup() {
   // First moves: the player's own picks, and "Pick for me" (on: the AI's card is already chosen)
   const [picks, setPicks] = useState<Picks>({});
   const [pickForMe, setPickForMe] = useState(loadPickForMe);
-  const moves = useMemo(() => m.firstMoves(opening), [m, opening]);
+  const moves = useMemo(() => m.firstMoves(), [m]);
   const [kit, setKit] = useState(false);
   const [page, setPage] = useState(0);
   const last = STEPS.length - 1;

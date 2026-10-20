@@ -217,7 +217,7 @@ describe('recast', () => {
     expect(q.hero!.recasts).toHaveLength(0);
   });
 
-  it('Zugzwang stuns a piece hit by both strikes', () => {
+  it('Bind stuns a piece hit by both strikes', () => {
     const m = arena();
     const q = P(m, 'A', 'queen');
     const foe = P(m, 'B', 'rook');
@@ -226,7 +226,7 @@ describe('recast', () => {
       [q, 0, 0],
       [foe, 100, 0],
     ]);
-    hold(m, q, 'zugzwang', 'pin');
+    hold(m, q, 'bind', 'clamp');
     ready(q);
     tryCast(m.ctx, q, 1);
     m.ctx.s.tick += 20;
@@ -510,12 +510,12 @@ describe('movement, retreat and Rank 8', () => {
     expect(foe.knock?.x ?? 0).toBeCloseTo(40);
   });
 
-  it('Desperado halves the retreat line', () => {
+  it('Counterplay halves the retreat line', () => {
     const m = arena();
     const k = P(m, 'A', 'knight');
     hold(m, k);
     const line = retreatLine(m.ctx, k);
-    hold(m, k, 'desperado');
+    hold(m, k, 'counterplay');
     expect(retreatLine(m.ctx, k)).toBeCloseTo(line * 0.5);
   });
 

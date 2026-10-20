@@ -865,11 +865,10 @@ const BuildsTuningSchema = z.object({
   upgrade: z.tuple([z.number(), z.number()]),
   passGold: z.number(),
   /**
-   * Draw weights: the Opening's schools, schools the piece holds, the cap, Dubious for the trailing
-   * side, and a card whose Combination partner the piece already holds (outside the cap).
+   * Draw weights: schools the piece holds, the cap, Dubious for the trailing side, and a card whose
+   * Combination partner the piece already holds (outside the cap). The Opening plays no part.
    */
   weights: z.object({
-    opening: z.number(),
     held: z.number(),
     max: z.number(),
     dubiousBehind: z.number(),

@@ -136,7 +136,7 @@ describe('First moves cards carry real numbers', () => {
     const m = setupMatch(41);
     const before = JSON.stringify(m.state);
     m.firstMoves();
-    m.firstMoves('french');
+    m.firstMoves();
     expect(JSON.stringify(m.state)).toBe(before);
   });
 });

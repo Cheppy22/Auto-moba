@@ -572,7 +572,7 @@
         "knight": "paladin"
       },
       "firstMoves": {
-        "king": "desperado",
+        "king": "counterplay",
         "queen": "wind_up",
         "rook": "the_vault",
         "bishop": "poisoned_piece",

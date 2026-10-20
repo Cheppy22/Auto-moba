@@ -45,7 +45,7 @@ const HELD = {
   king: ['rallying_cry', 'toll'],
   queen: ['wind_up', 'long_range', 'the_vault', 'slip'],
   rook: ['deep_breath'],
-  bishop: ['ambush', 'twin_blessing', 'pin'],
+  bishop: ['ambush', 'twin_blessing', 'clamp'],
   knight: ['family_fork', 'wind_up', 'toll', 'slip', 'deep_breath'],
 };
 const carried = (id: string, aim: Partial<CarriedRelic> = {}): CarriedRelic => ({

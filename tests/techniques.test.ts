@@ -30,7 +30,6 @@ const subject = (over: Partial<BuildSubject> = {}): BuildSubject => ({
   style: null,
   rank: 1,
   held: [],
-  schools: [],
   behind: false,
   ...over,
 });
@@ -138,7 +137,7 @@ describe('grades', () => {
     const eff = sharp.triggers[0].effects[0] as { bladeScale: number };
     expect(eff.bladeScale).toBeCloseTo(1.5);
     expect(sharp.triggers[0].everyNth).toBe(4);
-    const pin = gradedTechnique(tech('pin'), t.builds.grades.brilliant);
+    const pin = gradedTechnique(tech('clamp'), t.builds.grades.brilliant);
     const slow = pin.triggers[0].effects[0] as { value: number; durationSec: number };
     expect(slow.value).toBeCloseTo(0.2); // 40% slow -> 80%
     expect(slow.durationSec).toBe(1.5);
@@ -222,19 +221,26 @@ describe('offers', () => {
     expect(seen).toBeGreaterThan(0);
   });
 
-  it("draw the Opening's schools more often", () => {
-    const share = (schools: BuildSubject['schools']): number => {
+  it('draw evenly by school: the Opening plays no part (owner, 2026-10-20)', () => {
+    // the subject carries no Opening at all, and a match's offers match the Setup view whatever
+    // the Opening: the same seed and piece give the same cards
+    const a = drawOffer(content, t, subject({ seed: 3 }), 1, 0).cards.map((c) => c.id);
+    const b = drawOffer(content, t, subject({ seed: 3 }), 1, 0).cards.map((c) => c.id);
+    expect(a).toEqual(b);
+    const share = (school: string): number => {
       let hits = 0;
       let all = 0;
       for (let seed = 0; seed < 2000; seed++) {
-        for (const c of drawOffer(content, t, subject({ seed, schools }), 1, 0).cards) {
+        for (const c of drawOffer(content, t, subject({ seed }), 1, 0).cards) {
           all++;
-          if (tech(c.id).school === 'fortress') hits++;
+          if (tech(c.id).school === school) hits++;
         }
       }
       return hits / all;
     };
-    expect(share(['fortress', 'position'])).toBeGreaterThan(share([]) * 1.3);
+    // no school is boosted when nothing is held: every school's share comes from its card count
+    expect(share('fortress')).toBeGreaterThan(0.05);
+    expect(share('fortress')).toBeLessThan(0.35);
   });
 
   it('deal a ready Combination as the wild card, at its parents’ higher grade', () => {
@@ -282,7 +288,7 @@ describe('the AI pick', () => {
 
   it('fills an empty slot before replacing a held card', () => {
     const subj = subject({ held: [{ id: 'the_vault', grade: 'brilliant' }] });
-    const fill = scoreCard(content, t, subj, { id: 'pin', grade: 'plain' }, 1);
+    const fill = scoreCard(content, t, subj, { id: 'clamp', grade: 'plain' }, 1);
     const swap = scoreCard(content, t, subj, { id: 'toll', grade: 'plain' }, 1);
     expect(fill).toBeGreaterThan(swap);
   });
@@ -386,7 +392,7 @@ describe('a match with Techniques', () => {
   });
 
   it('"Let the AI choose" takes the card "AI suggests" marks; advice highlights 1-2 pieces', () => {
-    const m = atBreak(13);
+    const m = atBreak(14);
     const advice = m.buildAdvice('A');
     expect(advice.pieces).toHaveLength(5);
     expect(advice.highlight.length).toBeGreaterThanOrEqual(1);
