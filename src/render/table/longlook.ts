@@ -788,7 +788,9 @@ export function paintLongStyled(
     badge(g, s.ax, s.ay, 30, 'star', st, upright);
   }
 
-  // lane names in brass on the felt, just out of White's base
+  // lane names in brass on the felt, up each lane past White's inner Bastion: the stretch next to the
+  // Throne is where every piece stands at the start and after each respawn, and the Bastion's body
+  // would cover a name set right behind it
   g.font = `${Math.round(map.walk.lane * 0.42)}px 'IM Fell English SC', Georgia, serif`;
   const names: [keyof typeof map.lanes, string][] = [
     ['top', 'LEFT'],
@@ -800,7 +802,14 @@ export function paintLongStyled(
     const [x0, y0] = p[0];
     const [x1, y1] = p[1];
     const len = Math.hypot(x1 - x0, y1 - y0);
-    const d = map.walk.base + 120;
+    const inner = map.bastions?.A[id].reduce((best, [bx, by]) => {
+      const dist = Math.hypot(bx - x0, by - y0);
+      return dist < best ? dist : best;
+    }, Infinity);
+    const d =
+      inner === undefined || !Number.isFinite(inner)
+        ? map.walk.base + 120
+        : Math.min(inner + 270, len * 0.9);
     const x = x0 + ((x1 - x0) / len) * d;
     const y = y0 + ((y1 - y0) / len) * d;
     g.fillStyle = 'rgba(10,6,4,0.55)';
