@@ -806,10 +806,16 @@ export function paintLongStyled(
       const dist = Math.hypot(bx - x0, by - y0);
       return dist < best ? dist : best;
     }, Infinity);
+    // the stretch the name may use ends at the lane's first corner or where the home terrace's
+    // ramp (stairs) begins, whichever comes first; the name sits in the middle of what is left
+    const dy = (y1 - y0) / len;
+    const rampY = y0 > mid ? mid + t.home : mid - t.home;
+    const toRamp = dy === 0 ? Infinity : (rampY - y0) / dy;
+    const end = toRamp > 0 ? Math.min(len, toRamp) : len;
     const d =
       inner === undefined || !Number.isFinite(inner)
         ? map.walk.base + 120
-        : Math.min(inner + 270, len * 0.9);
+        : Math.min(inner + 270, (inner + end) / 2);
     const x = x0 + ((x1 - x0) / len) * d;
     const y = y0 + ((y1 - y0) / len) * d;
     g.fillStyle = 'rgba(10,6,4,0.55)';

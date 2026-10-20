@@ -222,3 +222,43 @@ for (const v of [
     });
   });
 }
+
+// the first offer card must start above the fold on an upright phone, even with the first-break
+// walk-through box showing, and the long labels on the decision buttons wrap instead of being cut
+for (const vp of [
+  { width: 360, height: 800 },
+  { width: 390, height: 844 },
+]) {
+  test.describe(`upright phone ${vp.width}x${vp.height}`, () => {
+    test.use({ viewport: vp, hasTouch: true, isMobile: true });
+
+    test('the first offer card starts above the fold; no label ends in an ellipsis', async ({
+      page,
+    }) => {
+      test.setTimeout(300_000);
+      const errors = watchErrors(page);
+      await startLive(page, '7', true, false, '&tutorial=on');
+      await toBuilds(page);
+      await page.waitForTimeout(900);
+      await expect(page.getByTestId('tutor-break')).toBeVisible();
+      const piece = (await stripPieces(page))[0];
+      const card = await boxOf(page, `builds-card-${piece}-0`);
+      const resume = await boxOf(page, 'break-resume');
+      // the card's top and its name line show above the Resume bar without scrolling
+      expect(card.y, 'card top').toBeGreaterThan(0);
+      expect(card.y + 70, 'card name line above the Resume bar').toBeLessThan(resume.y);
+      // wrapped, not clipped: nothing on the sheet is cut off by an ellipsis
+      const clipped = await page.evaluate(() =>
+        Array.from(document.querySelectorAll<HTMLElement>('[data-testid="break-sheet"] *'))
+          .filter(
+            (el) =>
+              getComputedStyle(el).textOverflow === 'ellipsis' && el.scrollWidth > el.clientWidth,
+          )
+          .map((el) => el.textContent),
+      );
+      expect(clipped).toEqual([]);
+      expect(await overflow(page)).toBeLessThanOrEqual(0);
+      expect(errors).toEqual([]);
+    });
+  });
+}
