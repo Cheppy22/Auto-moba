@@ -37,9 +37,9 @@ import { LOOK, TEAM } from './palette';
 export const FIG_SCALE = 1.9;
 
 /**
- * Size multiplier on the prototype miniatures for the current screen shape; the view sets it on
- * every refit so the on-screen height is `LOOK.size` of the prototype's whatever the tilt.
- * Pawns, pawnlings, bases and rings follow it.
+ * Size multiplier on the prototype miniatures: the screen shape's correction (so the on-screen
+ * height is `LOOK.size` of the prototype's whatever the tilt) times the far-shot boost
+ * (`farBoost`); the view sets it every frame. Pawns, pawnlings, bases and rings follow it.
  */
 export const SIZE = { k: LOOK.size };
 
@@ -47,6 +47,20 @@ export const SIZE = { k: LOOK.size };
 export function sizeFor(tiltDeg: number, protoTiltDeg: number): number {
   const r = Math.PI / 180;
   return (LOOK.size * Math.cos(protoTiltDeg * r)) / Math.cos(tiltDeg * r);
+}
+
+/**
+ * Readability on far shots (visuals review D1): pieces and pawns grow as the camera pulls back,
+ * from their true size at the follow distance (`near`) up to `FAR_BOOST` at the default framing
+ * (`far`) and beyond, so who is fighting whom reads at the default zoom. Lean-ins are unchanged.
+ */
+export const FAR_BOOST = 1.45;
+
+/** Size multiplier for a camera distance `d` (eased between `near` and `far`, clamped). */
+export function farBoost(d: number, near: number, far: number, max = FAR_BOOST): number {
+  if (!(far > near)) return d > near ? max : 1;
+  const t = Math.min(1, Math.max(0, (d - near) / (far - near)));
+  return 1 + (max - 1) * t * t * (3 - 2 * t);
 }
 
 /** Shared GPU resources for every figure (geometry cache, the ink width uniform). */

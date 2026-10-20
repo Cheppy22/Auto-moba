@@ -1,0 +1,38 @@
+{
+  "portrait-a": {
+    "calls": 76,
+    "triangles": 92292,
+    "pieceH": [23.2, 28.3, 30.9],
+    "zoomCalls": 73,
+    "zoomTris": 91340
+  },
+  "portrait-b": {
+    "calls": 76,
+    "triangles": 94008,
+    "pieceH": [23.2, 28.3, 30.9]
+  },
+  "landscape-a": {
+    "calls": 76,
+    "triangles": 92292,
+    "pieceH": [16.2, 20.2, 22.4],
+    "zoomCalls": 73,
+    "zoomTris": 91340
+  },
+  "landscape-b": {
+    "calls": 76,
+    "triangles": 94008,
+    "pieceH": [16.2, 20.2, 22.4]
+  },
+  "desktop-a": {
+    "calls": 101,
+    "triangles": 112070,
+    "pieceH": [26.1, 32.7, 36.5],
+    "zoomCalls": 97,
+    "zoomTris": 110674
+  },
+  "desktop-b": {
+    "calls": 101,
+    "triangles": 116302,
+    "pieceH": [26.1, 32.7, 36.5]
+  }
+}
