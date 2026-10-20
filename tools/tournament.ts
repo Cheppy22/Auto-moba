@@ -86,8 +86,11 @@ function playMatch(run: RunState): { m: Match; capAct: number | null } {
     const s = m.state;
     if (s.tick % TPS === 5 && s.tick - lastPlay >= every * TPS) {
       const best = aiCardPick(m.ctx, 'A');
+      // Increment is played together with the card it gives Tempo back on (its plan fires only
+      // with that card ready), so it does not use up the stand-in's one card a minute
+      const id = best ? s.hands.A[best.slot].cardId : null;
       if (best && m.issue({ type: 'playGambit', slot: best.slot, ...best.plan.target }).ok)
-        lastPlay = s.tick;
+        if (id !== 'increment') lastPlay = s.tick;
     }
     if (m.step(1) === 0) break;
   }

@@ -3,7 +3,7 @@
     {
       "id": "advance",
       "name": "Advance",
-      "desc": "Pieces, pawns and pawnlings in that lane push; +15% move speed for 20 s.",
+      "desc": "Pieces, pawns and pawnlings in that lane push; +30% move speed for 20 s.",
       "school": "march",
       "cost": 10,
       "target": "lane",
@@ -11,13 +11,13 @@
       "weight": 3,
       "durationSec": 20,
       "params": {
-        "moveSpeedMul": 1.15
+        "moveSpeedMul": 1.3
       }
     },
     {
       "id": "hold_the_file",
       "name": "Hold the File",
-      "desc": "Pieces in that lane defend; +22% armor and resist for 20 s.",
+      "desc": "Pieces in that lane defend; +44% armor and resist for 20 s.",
       "school": "fortress",
       "cost": 13,
       "target": "lane",
@@ -25,8 +25,8 @@
       "weight": 3,
       "durationSec": 20,
       "params": {
-        "armorMul": 1.22,
-        "resistMul": 1.22
+        "armorMul": 1.44,
+        "resistMul": 1.44
       }
     },
     {
@@ -46,7 +46,7 @@
     {
       "id": "pawn_storm",
       "name": "Pawn Storm",
-      "desc": "That lane's pawns and pawnlings deal +75% damage and move 75% faster for 15 s.",
+      "desc": "That lane's pawns and pawnlings deal +150% damage and move 75% faster for 15 s.",
       "school": "march",
       "cost": 20,
       "target": "lane",
@@ -54,14 +54,14 @@
       "weight": 2,
       "durationSec": 15,
       "params": {
-        "damageMul": 1.75,
+        "damageMul": 2.5,
         "moveSpeedMul": 1.75
       }
     },
     {
       "id": "check",
       "name": "Check",
-      "desc": "Marks an enemy piece: it takes 30% more damage for 8 s, visible to all.",
+      "desc": "Marks an enemy piece: it takes 60% more damage for 8 s, visible to all.",
       "school": "initiative",
       "cost": 20,
       "target": "enemy",
@@ -69,7 +69,7 @@
       "weight": 2,
       "durationSec": 8,
       "params": {
-        "damageTakenMul": 1.3
+        "damageTakenMul": 1.6
       }
     },
     {
@@ -87,7 +87,7 @@
     {
       "id": "queens_gambit",
       "name": "Queen's Gambit",
-      "desc": "Queen deals +60% damage for 12 s, then -20% for 6 s.",
+      "desc": "Queen deals +120% damage for 12 s, then -20% for 6 s.",
       "school": "sacrifice",
       "cost": 27,
       "target": "none",
@@ -95,7 +95,7 @@
       "weight": 1.5,
       "durationSec": 12,
       "params": {
-        "damageMul": 1.6,
+        "damageMul": 2.2,
         "afterMul": 0.8,
         "afterSec": 6
       }
@@ -103,7 +103,7 @@
     {
       "id": "siege",
       "name": "Siege",
-      "desc": "Rook and its lane focus a Bastion or Throne; +45% structure damage for 10 s.",
+      "desc": "Rook and its lane focus a Bastion or Throne; +90% structure damage for 10 s.",
       "school": "march",
       "cost": 23,
       "target": "enemy",
@@ -111,13 +111,13 @@
       "weight": 1.5,
       "durationSec": 10,
       "params": {
-        "structureMul": 1.45
+        "structureMul": 1.9
       }
     },
     {
       "id": "sanctuary",
       "name": "Sanctuary",
-      "desc": "A zone that heals allies 6% max health per second for 6 s.",
+      "desc": "A zone that heals allies 10% max health per second for 6 s.",
       "school": "fortress",
       "cost": 23,
       "target": "point",
@@ -125,14 +125,14 @@
       "weight": 1.5,
       "durationSec": 6,
       "params": {
-        "healPctPerSec": 0.06,
+        "healPctPerSec": 0.1,
         "radius": 150
       }
     },
     {
       "id": "fork",
       "name": "Fork",
-      "desc": "Knight leaps to an enemy piece within reach and stuns it for 1.5 s.",
+      "desc": "Knight leaps to an enemy piece within reach and stuns it for 2.5 s.",
       "school": "initiative",
       "cost": 30,
       "target": "enemy",
@@ -141,27 +141,27 @@
       "durationSec": 1,
       "params": {
         "reach": 975,
-        "stunSec": 1.5
+        "stunSec": 2.5
       }
     },
     {
       "id": "pawn_sacrifice",
       "name": "Pawn Sacrifice",
-      "desc": "Destroys one of your elite pawns in that lane. The nearest enemy Bastion there takes one hit of three times that pawn's health, ignoring the structure damage cap.",
+      "desc": "Destroys one of your elite pawns in that lane. The nearest enemy Bastion there takes one hit of two and a half times that pawn's health, ignoring the structure damage cap.",
       "school": "sacrifice",
-      "cost": 7,
+      "cost": 10,
       "target": "lane",
       "piece": null,
       "weight": 1.5,
       "durationSec": 0,
       "params": {
-        "hpMul": 3
+        "hpMul": 2.5
       }
     },
     {
       "id": "exchange",
       "name": "Exchange",
-      "desc": "One of your pieces gives up 25% of its current health; your whole team deals +22% damage for 10 s.",
+      "desc": "One of your pieces gives up 25% of its current health; your whole team deals +44% damage for 10 s.",
       "school": "sacrifice",
       "cost": 13,
       "target": "ally",
@@ -170,13 +170,13 @@
       "durationSec": 10,
       "params": {
         "healthLoss": 0.25,
-        "damageMul": 1.22
+        "damageMul": 1.44
       }
     },
     {
       "id": "poisoned_pawn",
       "name": "Poisoned Pawn",
-      "desc": "Marks your front elite pawn in that lane for 20 s. Whoever kills it is slowed 40% for 6 s and their team loses 15 Tempo.",
+      "desc": "Marks your front elite pawn in that lane for 20 s. Whoever kills it is slowed 40% for 6 s and their team loses 25 Tempo.",
       "school": "sacrifice",
       "cost": 10,
       "target": "lane",
@@ -186,7 +186,7 @@
       "params": {
         "slowMul": 0.6,
         "slowSec": 6,
-        "tempoLoss": 15
+        "tempoLoss": 25
       }
     },
     {
@@ -222,7 +222,7 @@
     {
       "id": "outpost",
       "name": "Outpost",
-      "desc": "Plants a banner for 25 s. Your units near it get +30 armor and +30 resist.",
+      "desc": "Plants a banner for 25 s. Your units near it get +60 armor and +60 resist.",
       "school": "position",
       "cost": 20,
       "target": "point",
@@ -232,8 +232,8 @@
       "params": {
         "radius": 160,
         "reach": 260,
-        "armor": 30,
-        "resist": 30
+        "armor": 60,
+        "resist": 60
       }
     },
     {
@@ -254,7 +254,7 @@
     {
       "id": "time_trouble",
       "name": "Time Trouble",
-      "desc": "The enemy loses 20 Tempo now and earns Tempo 30% slower for 20 s.",
+      "desc": "The enemy loses 30 Tempo now and earns Tempo 30% slower for 20 s.",
       "school": "clock",
       "cost": 17,
       "target": "none",
@@ -262,7 +262,7 @@
       "weight": 1.5,
       "durationSec": 20,
       "params": {
-        "drain": 20,
+        "drain": 30,
         "incomeMul": 0.7
       }
     },
@@ -295,7 +295,7 @@
     {
       "id": "breakthrough",
       "name": "Breakthrough",
-      "desc": "Your next pawnling wave in that lane comes with 3 extra melee pawnlings.",
+      "desc": "Your next pawnling wave in that lane comes with 6 extra melee pawnlings.",
       "school": "march",
       "cost": 13,
       "target": "lane",
@@ -303,13 +303,13 @@
       "weight": 1.5,
       "durationSec": 0,
       "params": {
-        "extraMelee": 3
+        "extraMelee": 6
       }
     },
     {
       "id": "pin",
       "name": "Pin",
-      "desc": "An enemy piece cannot move for 3 s, and the enemy piece nearest behind it is slowed 40% for 3 s. A pinned piece can still attack and cast.",
+      "desc": "An enemy piece cannot move for 4 s, and the enemy piece nearest behind it is slowed 40% for 3 s. A pinned piece can still attack and cast.",
       "school": "initiative",
       "cost": 17,
       "target": "enemy",
@@ -317,7 +317,7 @@
       "weight": 1.5,
       "durationSec": 3,
       "params": {
-        "rootSec": 3,
+        "rootSec": 4,
         "behindR": 300,
         "slowMul": 0.6
       }
@@ -325,7 +325,7 @@
     {
       "id": "desperado",
       "name": "Desperado",
-      "desc": "One of your pieces under 40% health deals 60% more damage for 6 s; if it falls in that time, your team gets 10 Tempo back.",
+      "desc": "One of your pieces under 40% health deals 120% more damage for 6 s; if it falls in that time, your team gets 10 Tempo back.",
       "school": "initiative",
       "cost": 13,
       "target": "ally",
@@ -333,7 +333,7 @@
       "weight": 1.5,
       "durationSec": 6,
       "params": {
-        "damageMul": 1.6,
+        "damageMul": 2.2,
         "hpMax": 0.4,
         "refund": 10
       }
@@ -341,7 +341,7 @@
     {
       "id": "fortify",
       "name": "Fortify",
-      "desc": "Your front Bastion in that lane (the Throne if none stand) gets a shield of 20% of its max health for 20 s.",
+      "desc": "Your front Bastion in that lane (the Throne if none stand) gets a shield of 40% of its max health for 20 s.",
       "school": "fortress",
       "cost": 17,
       "target": "lane",
@@ -349,7 +349,7 @@
       "weight": 1.5,
       "durationSec": 20,
       "params": {
-        "shieldPct": 0.2
+        "shieldPct": 0.4
       }
     }
   ]

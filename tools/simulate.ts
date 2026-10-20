@@ -439,8 +439,11 @@ function paceReader(
       if (!cards || s.tick % TPS !== 5 || s.phase.kind !== 'live') return;
       if (s.tick - lastPlay < every * TPS) return;
       const best = aiCardPick(ctx, 'A');
+      // Increment is played together with the card it gives Tempo back on (its plan fires only
+      // with that card ready), so it does not use up the stand-in's one card a minute
+      const id = best ? s.hands.A[best.slot].cardId : null;
       if (best && m.issue({ type: 'playGambit', slot: best.slot, ...best.plan.target }).ok)
-        lastPlay = s.tick;
+        if (id !== 'increment') lastPlay = s.tick;
     },
     after(): void {
       const act1 = s.phase.kind === 'live' && s.phase.n === 1;

@@ -315,9 +315,14 @@ export function statLean(d: TechniqueDef): 'blade' | 'soul' | null {
   return lean;
 }
 
-/** The damage stat a piece is built on (Rank growth's rule: the higher of its base Blade and Soul). */
-function mainStat(c: Content, piece: PieceId): 'blade' | 'soul' {
-  const st = c.pieceById.get(piece)!.stats;
+/**
+ * The damage stat a piece is built on (Rank growth's rule): its archetype's own, else the higher of
+ * its base Blade and Soul.
+ */
+function mainStat(c: Content, subj: BuildSubject): 'blade' | 'soul' {
+  const own = subj.style ? c.styleByKey.get(`${subj.piece}/${subj.style}`)?.mainStat : undefined;
+  if (own) return own;
+  const st = c.pieceById.get(subj.piece)!.stats;
   return st.soulPower > st.bladeDmg ? 'soul' : 'blade';
 }
 
@@ -380,7 +385,7 @@ export function scoreCard(
   }
   s += a.fit * fitOf(c, subj, d);
   const lean = statLean(d);
-  if (lean && lean !== mainStat(c, subj.piece)) s += a.offStat;
+  if (lean && lean !== mainStat(c, subj)) s += a.offStat;
   if (heldSchools(c, subj.held).has(d.school)) s += a.school;
   const have = new Set(subj.held.map((h) => h.id));
   let lead = 0;
@@ -753,12 +758,14 @@ function aiPieceTurn(ctx: Ctx, u: Unit, allowReroll: boolean, spend: boolean): v
     while (allowReroll) {
       const subj = subjectOf(ctx, u);
       const best = Math.max(...offer.cards.map((x) => quality(ctx.c, ctx.t, subj, x, offer.at)));
-      if (best >= a.rerollBelow) break;
+      // a piece whose gold covers every upgrade it still wants has nothing else to buy, so it
+      // holds out for a better card (a higher bar, more rerolls): late gold does not pile up
+      const cost = rerollCost(ctx.t, offer);
+      const rich = h.gold - cost - upgradesWanted(ctx.t, h.techniques, null) >= 0;
+      if (best >= (rich ? a.rerollBelowRich : a.rerollBelow)) break;
       if (offer.free === 0) {
-        const cost = rerollCost(ctx.t, offer);
         if (h.gold < cost + ctx.t.builds.upgrade[0]) break;
-        const spare = h.gold - cost - upgradesWanted(ctx.t, h.techniques, null);
-        if (offer.paid >= (spare >= 0 ? a.richRerolls : a.maxRerolls)) break;
+        if (offer.paid >= (rich ? a.richRerolls : a.maxRerolls)) break;
       }
       reroll(ctx, u, offer);
     }

@@ -336,6 +336,7 @@
     },
     {
       "id": "zealot",
+      "mainStat": "blade",
       "name": "Zealot",
       "desc": "A battle priest who wades into melee. Every blow she lands heals the pieces around her.",
       "playsLike": "Plays like a battle priest: she fights up close and heals as she hits.",

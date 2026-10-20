@@ -85,7 +85,11 @@ export function computeStats(ctx: Ctx, u: Unit): { stats: Stats; trigs: TrigInst
     // (`ranks.growth`, measured in BALANCE-TECHNIQUES-2026-10-18)
     const steps = u.hero.rank - 1;
     const g = ctx.t.ranks.growth;
-    const soulMain = out.soulPower > out.bladeDmg;
+    // an archetype may name its own main stat (the Zealot fights with Blade on a Soul piece)
+    const style = u.hero.style
+      ? ctx.c.styleByKey.get(`${u.hero.defId}/${u.hero.style}`)
+      : undefined;
+    const soulMain = style?.mainStat ? style.mainStat === 'soul' : out.soulPower > out.bladeDmg;
     out.maxHp *= 1 + g.health * steps;
     out.bladeDmg *= 1 + (soulMain ? g.other : g.main) * steps;
     out.soulPower *= 1 + (soulMain ? g.main : g.other) * steps;

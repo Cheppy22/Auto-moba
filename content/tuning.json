@@ -49,9 +49,10 @@
       "value": 1,
       "offStat": -0.8,
       "rerollBelow": 0.9,
-      "passBelow": 0,
+      "passBelow": 0.25,
       "maxRerolls": 1,
-      "richRerolls": 3
+      "richRerolls": 6,
+      "rerollBelowRich": 1.5
     },
     "advice": {
       "gradeStakes": [0, 0.3, 0.6],

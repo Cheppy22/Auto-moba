@@ -271,6 +271,8 @@ const StyleSchema = z.object({
   playsLike: z.string().default(''),
   /** Overrides the piece's attack kind (e.g. a melee style of a ranged piece). */
   attackKind: z.enum(['melee', 'ranged']).optional(),
+  /** The damage stat Rank growth raises fast from this archetype on, when it is not the piece's (a Blade battle priest on a Soul piece). */
+  mainStat: z.enum(['blade', 'soul']).optional(),
   /** The signature skill: becomes the piece's 4th ability. */
   ability: AbilitySchema,
   /** Stat tilt applied for the whole match. */
@@ -917,8 +919,10 @@ const BuildsTuningSchema = z.object({
     /** Pass when every card scores under this (each would make the build worse). */
     passBelow: z.number(),
     maxRerolls: z.number().int(),
-    /** Paid rerolls a piece may take when its gold covers every upgrade it still wants. */
+    /** Paid rerolls a piece may take when its gold covers every upgrade it still wants... */
     richRerolls: z.number().int(),
+    /** ...and the bar it rerolls under then. */
+    rerollBelowRich: z.number(),
   }),
   /** "Pick for me": how the 1-2 picks that matter most are chosen. */
   advice: z.object({
