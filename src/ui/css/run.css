@@ -1116,5 +1116,7 @@ html[data-layout='portrait'] .draw .rs-foot {
   bottom: 0;
   z-index: 1;
   padding: 10px 0 calc(10px + env(safe-area-inset-bottom));
-  background: linear-gradient(180deg, rgba(20, 17, 14, 0), rgba(20, 17, 14, 0.94) 18px);
+  /* solid, so the ladder scrolling under the Pace label never shows through it */
+  background: rgb(20, 17, 14);
+  box-shadow: 0 -10px 14px -4px rgba(10, 8, 6, 0.9);
 }

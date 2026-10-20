@@ -348,6 +348,10 @@ html[data-layout='desktop'] .hud.v2 {
   position: relative;
   pointer-events: none;
 }
+/* a fork sheet is a modal: the gambit drawer is out of the way, not showing through the scrim beside it */
+.v2-bottom[data-forking='true'] .v2-drawer {
+  visibility: hidden;
+}
 /* everything that opens upward is out of flow, so the bar (what the camera reserves) stays put */
 .dr-float {
   position: absolute;
@@ -653,7 +657,8 @@ html[data-layout='desktop'] .hud.v2 {
 
 /* ---------- notices, piece card ---------- */
 .hud.v2 .notices {
-  top: calc(var(--hud-top, 150px) + 8px);
+  /* --hang: what hangs under the bar (Black's seals, the capture trays), so a notice never sits on it */
+  top: calc(var(--hud-top, 150px) + 8px + var(--hang, 0px));
   width: min(calc(100% - 24px), calc(400px * var(--u)));
 }
 .hud.v2 .ucard {
@@ -781,6 +786,10 @@ html[data-layout='desktop'] .hud.v2 {
   top: calc(var(--hud-top, 54px) + 8px);
   bottom: auto;
   max-height: calc(100% - var(--hud-top, 54px) - 16px);
+}
+.hud.v2[data-shape='side'] .ucard.side-B {
+  top: calc(var(--hud-top, 54px) + 8px + var(--hang, 0px));
+  max-height: calc(100% - var(--hud-top, 54px) - 16px - var(--hang, 0px));
 }
 .hud.v2[data-shape='side'] .ucard.side-A {
   left: calc(var(--hud-left, 80px) + 8px);
@@ -1116,15 +1125,17 @@ html[data-layout='desktop'] .hud.v2 {
 .hud.v2[data-shape='stack'] .v2-top:has(.v2-black .relic-row) .tray {
   top: calc(100% + 46px);
 }
-/* a banner waits below a tray that is showing */
-.hud.v2[data-shape='stack']:has(.tray-item) .notices {
-  top: calc(var(--hud-top, 110px) + 52px);
-}
 /* so does Black's piece card, which opens in the same spot: the trays (44 px, 2 px under the bar)
  * and the seals row (they push the trays down 44 px more) hang out of the bar's flow, so the
  * card starts below whatever hangs there instead of sitting under it with its close button */
 .hud.v2[data-shape='stack'] {
   --hang: 0px;
+}
+.hud.v2[data-shape='stack']:has(.v2-black .relic-row) {
+  --hang: 44px;
+}
+.hud.v2[data-shape='side']:has(.v2-black .relic-row) {
+  --hang: calc(36px * var(--u));
 }
 .hud.v2[data-shape='stack']:has(.tray-item) {
   --hang: 52px;

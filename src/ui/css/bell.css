@@ -145,7 +145,11 @@
   transform: translateY(0);
 }
 .bs-head {
+  position: relative;
+  z-index: 2;
   flex: none;
+  /* solid, so content scrolling in the body never shows through the title */
+  background: rgb(40, 32, 22);
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;

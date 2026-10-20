@@ -130,7 +130,7 @@ export function CourtLayout(props: {
       />
       <PieceCard />
       <Tutor snap={snap} held={held} stopped={props.stopped} drawerOpen={open} />
-      <div class="v2-bottom" ref={bottom}>
+      <div class="v2-bottom" ref={bottom} data-forking={forkIds.length > 0}>
         <Drawer snap={snap} open={open} onOpen={openDrawer} />
         <div class="v2-mine" ref={mine}>
           <Roster team="A" forks={forkIds} snap={snap} row />
