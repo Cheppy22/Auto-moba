@@ -361,8 +361,8 @@ export function BuildsTab() {
       )}
       <p class="bld-foot tiny dim">
         {pickForMe
-          ? 'On Resume, each piece you leave takes its marked card. Pieces you never touch also spend their gold on upgrades.'
-          : 'Pieces you leave are picked for by the AI when you resume, and pieces you never touch spend their gold on upgrades.'}
+          ? 'On Resume, each piece you leave takes its marked card, and every piece spends its gold on upgrades unless you bought an upgrade or a reroll for it.'
+          : 'Pieces you leave are picked for by the AI when you resume, and every piece spends its gold on upgrades unless you bought an upgrade or a reroll for it.'}
       </p>
     </div>
   );

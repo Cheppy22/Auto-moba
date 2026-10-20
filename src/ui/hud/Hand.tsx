@@ -28,6 +28,9 @@ function expiryText(ticksLeft: number): string {
 
 /** The Opening's card keeps until it is played or Act 1 ends. */
 const OPENING_KEPT = 'Your Opening’s card: kept until you play it or Act 1 ends';
+const BOOK_KEPT = 'Your book move: kept until you play it or Act 1 ends';
+/** Why a held card does not expire: the Opening's card or the run's book move. */
+const keptText = (c: { book: boolean }): string => (c.book ? BOOK_KEPT : OPENING_KEPT);
 
 /**
  * The enlarged gambit card: a centred sheet opened by a long press (or right-click) on a card.
@@ -104,7 +107,7 @@ export function GambitSheet(props: { snap: Snapshot }) {
         <ul class="gs-facts">
           <li data-testid="gambit-info-target">{TARGET_TAG[c.target]}</li>
           <li data-testid="gambit-info-expiry">
-            {c.opening ? OPENING_KEPT : expiryText(c.ticksLeft)}
+            {c.opening ? keptText(c) : expiryText(c.ticksLeft)}
           </li>
           <li class="gs-paused">Game paused</li>
         </ul>
@@ -183,7 +186,7 @@ export function Hand(props: { snap: Snapshot }) {
             data-usable={c.usable}
             aria-disabled={!c.usable}
             aria-pressed={aimSlot === c.slot}
-            title={`${c.name} (${c.school ? `${SCHOOL_NAME[c.school]}, ` : ''}${c.cost} Tempo): ${c.desc}${c.opening ? ` ${OPENING_KEPT}.` : ''}${c.usable ? '' : ` Not now: ${c.reason}.`}`}
+            title={`${c.name} (${c.school ? `${SCHOOL_NAME[c.school]}, ` : ''}${c.cost} Tempo): ${c.desc}${c.opening ? ` ${keptText(c)}.` : ''}${c.usable ? '' : ` Not now: ${c.reason}.`}`}
             onClick={() => {
               if (longPressed()) return;
               s.closeInfo();
@@ -200,13 +203,13 @@ export function Hand(props: { snap: Snapshot }) {
               </span>
               {c.opening && (
                 <span class="gopen" data-testid={`hand-opening-${c.slot}`}>
-                  Opening
+                  {c.book ? 'Book' : 'Opening'}
                 </span>
               )}
             </span>
             {!c.usable && !stopped && <span class="gstate why">{c.reason}</span>}
             {c.opening ? (
-              <span class="gpin" data-testid={`hand-pin-${c.slot}`} title={OPENING_KEPT}>
+              <span class="gpin" data-testid={`hand-pin-${c.slot}`} title={keptText(c)}>
                 Act 1
               </span>
             ) : (

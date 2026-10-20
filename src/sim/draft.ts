@@ -326,19 +326,22 @@ function drawOffers(ctx: Ctx, team: PlayTeam, report: ActReport): Drawn {
   const order = shuffle(ctx.s.rng, 'relic', families);
   const behind = ctx.s.relics.behind[team];
   const hint = tailoredHint(ctx, team, report);
+  // The tailored card is any relic of the family that answers the finding, Rally relics among
+  // them; a side that is behind with no finding to answer gets a Rally relic. (It used to be the
+  // family's Rally relics alone whenever the side was behind, so a lost Bastion always dealt
+  // Sortie, the siege family's only one: offered about 3 times as often as any other relic.)
   const rally = pool.filter((r) => r.rally);
   const inFamily = hint ? pool.filter((r) => r.family === hint.family) : [];
-  const rallyHere = rally.filter((r) => r.family === hint?.family);
-  const cands = behind && rally.length > 0 ? (rallyHere.length > 0 ? rallyHere : rally) : inFamily;
+  const cands = inFamily.length > 0 ? inFamily : behind ? rally : [];
   const chosen: { def: RelicDef; tailored: boolean; why: string | null }[] = [];
   if (cands.length > 0) {
     const def = pick(ctx.s.rng, 'relic', cands);
     const trailing = 'You are behind: a Rally relic works while you trail.';
     const why = !hint
       ? trailing
-      : def.family === hint.family
-        ? hint.callout.text
-        : `${hint.callout.text} ${trailing}`;
+      : def.rally && behind
+        ? `${hint.callout.text} ${trailing}`
+        : hint.callout.text;
     chosen.push({ def, tailored: true, why });
   }
   for (const family of order) {

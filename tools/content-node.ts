@@ -74,6 +74,9 @@ export function readRawContent(): RawContentFiles {
     tournament: readJson(join(root, 'tournament.json')),
     courts: existsSync(join(root, 'courts.json')) ? readJson(join(root, 'courts.json')) : undefined,
     techniques: readJson(join(root, 'techniques.json')),
+    techniqueValues: existsSync(join(root, 'technique-values.json'))
+      ? readJson(join(root, 'technique-values.json'))
+      : undefined,
     tuning: readJson(join(root, 'tuning.json')),
   });
 }

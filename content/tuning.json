@@ -4,7 +4,7 @@
   "startingGold": 500,
   "passiveGoldPerSec": 1.5,
   "maxPhases": 10,
-  "blitz": { "maxActs": 3, "endgameAct": 2, "throneHp": 3000 },
+  "blitz": { "maxActs": 3, "endgameAct": 2, "throneHp": 3000, "throneDamage": 1.75 },
   "bell": {
     "alertsSec": [60, 30, 10],
     "pulseLastSec": 5,
@@ -33,7 +33,7 @@
     "reroll": { "base": 200, "step": 100 },
     "upgrade": [600, 1200],
     "passGold": 150,
-    "weights": { "held": 1.5, "max": 3, "dubiousBehind": 2, "partner": 4 },
+    "weights": { "held": 1.5, "max": 3, "dubiousBehind": 2, "partner": 2.5 },
     "ai": {
       "grade": [1, 1.5, 2],
       "fills": 1,
@@ -43,13 +43,27 @@
       "fit": 0.6,
       "school": 0.4,
       "combination": 1.5,
-      "parent": 0.6,
-      "parentReady": 1,
+      "parent": 0.3,
+      "parentReady": 0.8,
       "jitter": 0.3,
-      "rerollBelow": 1.2,
-      "maxRerolls": 1
+      "value": 1,
+      "offStat": -0.8,
+      "rerollBelow": 0.9,
+      "passBelow": 0,
+      "maxRerolls": 1,
+      "richRerolls": 3
     },
-    "advice": { "gradeStakes": [0, 0.5, 1], "combination": 1, "carry": 0.5, "secondShare": 0.75 }
+    "advice": {
+      "gradeStakes": [0, 0.3, 0.6],
+      "combination": 0.5,
+      "carry": 0.5,
+      "value": 1,
+      "strong": 0.4,
+      "close": 0.5,
+      "closeBonus": 1,
+      "clearShare": 0.4,
+      "secondShare": 0.75
+    }
   },
   "pawns": {
     "cost": 15,
@@ -93,7 +107,8 @@
     "handSize": 3,
     "refillSec": 6,
     "expireSec": 40,
-    "minCost": 3
+    "minCost": 3,
+    "aiWaitMargin": 0.3
   },
   "check": {
     "kingRespawnMul": 1.5,

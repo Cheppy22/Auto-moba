@@ -452,6 +452,7 @@ export class Match {
         refillTotal: slot.discarded ?? Math.round(refillSec(this.ctx, 'A') * TPS),
         discarded: slot.discarded !== undefined,
         opening: !!slot.opening,
+        book: !!slot.book,
       };
     });
     const pawnsOf = (team: PlayTeam): Snapshot['pawns']['A'] => ({

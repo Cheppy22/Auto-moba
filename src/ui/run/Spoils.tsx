@@ -56,6 +56,7 @@ export function Spoils() {
   const run = s.run!;
   const c = s.content;
   const [swapping, setSwapping] = useState(false);
+  const [bookPick, setBookPick] = useState(0);
   const opp = run.opponents[run.round];
   const court = courtOf(c, opp);
   const finalRound = run.round === run.opponents.length - 1;
@@ -204,33 +205,51 @@ export function Spoils() {
                 </Card>
               );
             }
-            const card = c.gambitById.get(o.card)!;
+            const options = o.cards.flatMap((id) => c.gambitById.get(id) ?? []);
+            const chosen = options[Math.min(bookPick, options.length - 1)];
             return (
               <Card
                 key="book"
                 kind="book"
                 label="Book move"
-                mark={<span class="spoil-x2">×2</span>}
-                title={card.name}
+                mark={<span class="spoil-x2">1st</span>}
+                title={chosen ? chosen.name : 'Book move'}
                 action={
                   <button
                     class="btn primary spoil-take"
                     data-testid="spoil-take-book"
-                    onClick={() => take(o)}
+                    disabled={!chosen}
+                    onClick={() => chosen && take({ ...o, card: chosen.id })}
                   >
-                    Take this book move
+                    Take {chosen ? chosen.name : 'this book move'}
                   </button>
                 }
               >
-                <span class="spoil-tags">
-                  <SchoolChip school={card.school} glyph={13} />
-                  <span class="spoil-item">{card.cost} Tempo</span>
-                </span>
                 <p>
-                  A <Term id="gambit">gambit</Term> for your hand, not a Technique. It is dealt
-                  twice as often for the rest of the run.
+                  Pick one <Term id="gambit">gambit</Term> card. It starts in your hand in every
+                  later match of this run, next to your Opening’s card, and stays until you play it
+                  or Act 1 ends. A new book move replaces the one you hold.
                 </p>
-                <p class="spoil-fine">{card.desc}</p>
+                <div class="spoil-books" role="radiogroup" aria-label="Book move cards">
+                  {options.map((g, i) => (
+                    <button
+                      key={g.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={g === chosen}
+                      class={`spoil-book ${g === chosen ? 'on' : ''}`}
+                      data-testid={`spoil-book-option-${i}`}
+                      onClick={() => setBookPick(i)}
+                    >
+                      <span class="spoil-tags">
+                        <b>{g.name}</b>
+                        <SchoolChip school={g.school} glyph={13} />
+                        <span class="spoil-item">{g.cost} Tempo</span>
+                      </span>
+                      <span class="spoil-fine">{g.desc}</span>
+                    </button>
+                  ))}
+                </div>
               </Card>
             );
           })}

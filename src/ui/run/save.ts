@@ -64,9 +64,40 @@ function validRun(c: Content, x: unknown): x is RunState {
   return Array.isArray(r.results) && typeof r.archetypes === 'object';
 }
 
+/** Techniques renamed on 2026-10-20 (their names clashed with gambit cards): old id -> new id. */
+const RENAMED_TECHNIQUES: Record<string, string> = {
+  pin: 'clamp',
+  desperado: 'counterplay',
+  zugzwang: 'bind',
+};
+
+/**
+ * Brings a version-2 save written before 2026-10-20 up to date in place: renamed heirloom
+ * Techniques get their new ids, and the book move (it was a card drawn twice as often, now one card
+ * that starts in the hand) keeps the run's last one; an open book-move Spoils card offers that one
+ * card. Anything else is left for `validRun` to judge.
+ */
+function migrateRun(raw: unknown): unknown {
+  const r = raw as Partial<RunState> | null;
+  if (!r || typeof r !== 'object' || r.v !== 2) return raw;
+  if (r.heirlooms && typeof r.heirlooms === 'object')
+    for (const [p, id] of Object.entries(r.heirlooms))
+      if (id && RENAMED_TECHNIQUES[id])
+        (r.heirlooms as Record<string, string>)[p] = RENAMED_TECHNIQUES[id];
+  if (Array.isArray(r.books) && r.books.length > 1) r.books = r.books.slice(-1);
+  if (Array.isArray(r.offers))
+    r.offers = r.offers.map((o) => {
+      const old = o as { kind?: string; card?: unknown; cards?: unknown };
+      return old?.kind === 'book' && !Array.isArray(old.cards) && typeof old.card === 'string'
+        ? { kind: 'book', cards: [old.card] }
+        : o;
+    });
+  return r;
+}
+
 /** The saved run, or null (none, unreadable, an old version, or content this build lacks). */
 export function loadRun(c: Content, at: SaveStore | null = store()): RunState | null {
-  const raw = read(RUN_KEY, at);
+  const raw = migrateRun(read(RUN_KEY, at));
   if (raw === null) return null;
   if (validRun(c, raw)) return raw;
   console.warn('The saved Tournament run does not fit this version of the game; it was dropped.');
@@ -86,7 +117,7 @@ const BAD_RUN_NOTE =
  * court and open Spoils all named items, so it is discarded whole rather than half-converted.
  */
 export function dropStaleRun(c: Content, at: SaveStore | null = store()): string | null {
-  const raw = read(RUN_KEY, at);
+  const raw = migrateRun(read(RUN_KEY, at));
   if (raw === null || validRun(c, raw)) return null;
   write(RUN_KEY, null, at);
   return (raw as { v?: unknown }).v === 1 ? OLD_RUN_NOTE : BAD_RUN_NOTE;

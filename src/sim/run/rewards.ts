@@ -5,6 +5,7 @@ import type { Content } from '../content/loader';
 import { PIECE_IDS, type PieceId } from '../content/schema';
 import { mixSeed, pick, seedStreams, shuffle } from '../core/rng';
 import { defaultAim } from '../runRules';
+import { techniqueValue } from '../builds';
 import { isFirstMove } from '../techniques';
 import { tournamentOf } from './opponents';
 import type { Reward, RunState, RunStep } from './types';
@@ -39,13 +40,25 @@ export function rewardOffers(
     const technique = pick(rng, 'loot', heirloomCards(c, piece, kept(piece)));
     out.push({ kind: 'heirloom', piece, technique });
   }
-  const schools = c.openingById.get(run.court.opening)?.schools ?? [];
-  const free = c.gambits.filter((g) => g.weight > 0 && !run.books.includes(g.id));
-  const inSchool = free.filter((g) => schools.length === 0 || schools.includes(g.school));
-  const books = inSchool.length > 0 ? inSchool : free;
-  if (books.length > 0) out.push({ kind: 'book', card: pick(rng, 'loot', books).id });
+  // book move (owner decision C, 2026-10-20): three different gambit cards to choose from, never
+  // the court's Opening card (it opens the hand already) or the book move held now
+  const opening = c.openingById.get(run.court.opening)?.openingCard ?? null;
+  let free = c.gambits.filter((g) => g.weight > 0 && g.id !== opening && !run.books.includes(g.id));
+  const cards: string[] = [];
+  while (cards.length < BOOK_CHOICES && free.length > 0) {
+    const g = pick(rng, 'loot', free);
+    cards.push(g.id);
+    free = free.filter((x) => x !== g);
+  }
+  if (cards.length > 0) out.push({ kind: 'book', cards });
   return out;
 }
+
+/** Cards a book move Spoils card offers. */
+export const BOOK_CHOICES = 3;
+
+const sameCards = (a: readonly string[], b: readonly string[]): boolean =>
+  a.length === b.length && a.every((x, i) => x === b[i]);
 
 const sameOffer = (a: Reward, b: Reward): boolean =>
   (a.kind === 'relic' && b.kind === 'relic' && a.relic === b.relic) ||
@@ -53,7 +66,7 @@ const sameOffer = (a: Reward, b: Reward): boolean =>
     b.kind === 'heirloom' &&
     a.piece === b.piece &&
     a.technique === b.technique) ||
-  (a.kind === 'book' && b.kind === 'book' && a.card === b.card);
+  (a.kind === 'book' && b.kind === 'book' && sameCards(a.cards, b.cards));
 
 /**
  * Takes one of the open Spoils cards. A relic card with the relic row full must name the held
@@ -77,23 +90,57 @@ export function applyReward(c: Content, run: RunState, reward: Reward): RunStep 
   } else if (reward.kind === 'heirloom') {
     if (next.heirlooms[reward.piece]) return { ok: false, reason: 'that piece has an heirloom' };
     next.heirlooms[reward.piece] = reward.technique;
-  } else next.books.push(reward.card);
+  } else {
+    // the run holds one book move: a new one takes the old one's place
+    if (!reward.card || !reward.cards.includes(reward.card))
+      return { ok: false, reason: 'pick one of the book move’s cards' };
+    next.books = [reward.card];
+  }
   next.offers = null;
   return { ok: true, run: next };
 }
 
 /**
+ * The card the AI takes from a book move: one of its Opening's schools if offered (it is drawn with
+ * them all match), then the cheapest (it can be played soonest from the first second).
+ */
+export function aiBookCard(c: Content, run: RunState, cards: readonly string[]): string | null {
+  const schools = c.openingById.get(run.court.opening)?.schools ?? [];
+  let best: string | null = null;
+  let bestKey = Infinity;
+  for (const id of cards) {
+    const g = c.gambitById.get(id);
+    if (!g) continue;
+    const key = (schools.includes(g.school) ? 0 : 1000) + g.cost;
+    if (key < bestKey) {
+      bestKey = key;
+      best = id;
+    }
+  }
+  return best;
+}
+
+/**
  * "Let the AI choose" (and headless runs): a relic while the row has room; otherwise the heirloom
- * or the book move, whichever is worth more gold (`tournament.aiHeirloomGold` against
- * `tournament.aiBookGold`, so the heirloom wins).
+ * or the book move, whichever is worth more gold: the heirloom `tournament.aiHeirloomGold` plus
+ * `aiValueGold` per unit of its Technique's measured worth (`content/technique-values.json`), the
+ * book move `aiBookGold`. So a strong Technique stays an heirloom and a weak one loses to a card
+ * that opens every hand.
  */
 export function aiReward(c: Content, run: RunState): Reward | null {
   const offers = run.offers ?? [];
   const t = tournamentOf(c);
   const relic = offers.find((o) => o.kind === 'relic');
   if (relic && run.relics.length < t.relicMax) return relic;
-  const worth = (o: Reward): number => (o.kind === 'heirloom' ? t.aiHeirloomGold : t.aiBookGold);
+  const worth = (o: Reward): number =>
+    o.kind === 'heirloom'
+      ? t.aiHeirloomGold + t.aiValueGold * techniqueValue(c, o.technique, 'plain')
+      : t.aiBookGold;
   let best: Reward | null = null;
   for (const o of offers) if (o.kind !== 'relic' && (!best || worth(o) > worth(best))) best = o;
+  if (best?.kind === 'book') {
+    const card = aiBookCard(c, run, best.cards);
+    return card ? { ...best, card } : null;
+  }
   return best;
 }

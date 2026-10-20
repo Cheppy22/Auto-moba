@@ -28,7 +28,7 @@ export interface OpponentDef {
 export type Reward =
   | { kind: 'relic'; relic: string; replaces?: string }
   | { kind: 'heirloom'; piece: PieceId; technique: string }
-  | { kind: 'book'; card: string };
+  | { kind: 'book'; cards: string[]; card?: string };
 
 /** The run's pace, chosen once at the Draw; every match of the run plays it. */
 export type RunPace = 'classical' | 'blitz';

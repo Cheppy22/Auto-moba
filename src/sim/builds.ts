@@ -72,6 +72,10 @@ export interface BuildSubject {
   held: readonly HeldTechnique[];
   /** The side trails (read at the break): Dubious cards are drawn more often. */
   behind: boolean;
+  /** No offer follows this one (the match's last Act is next): a pair it completes is taken at once. */
+  last?: boolean;
+  /** The piece's gold at the break (spare gold lets the AI count a card at the grade it can buy). */
+  gold?: number;
 }
 
 const def = (c: Content, id: string): TechniqueDef | undefined => c.techniqueById.get(id);
@@ -268,7 +272,91 @@ function jitter(subj: BuildSubject, at: number, id: string): number {
   return mixSeed(subj.seed, 'buildAi', subj.team, subj.piece, at, id) / 4294967296;
 }
 
-/** The AI's score for one card (spec 4.6). */
+/** A Technique's measured worth at a grade (`content/technique-values.json`); 0 when unmeasured. */
+export const techniqueValue = (c: Content, id: string, grade: Grade): number =>
+  c.techniqueValue.get(id)?.[gradeIndex(grade)] ?? 0;
+
+const LEAN = new WeakMap<TechniqueDef, 'blade' | 'soul' | null>();
+
+/**
+ * The damage stat a Technique works through: 'blade' or 'soul' when it reads or raises only one of
+ * them on the piece itself (its mods, a strike's scaling, a self buff), else null. Auras for pawns
+ * do not count: they do not depend on the piece's own stats.
+ */
+export function statLean(d: TechniqueDef): 'blade' | 'soul' | null {
+  const hit = LEAN.get(d);
+  if (hit !== undefined) return hit;
+  let blade = 0;
+  let soul = 0;
+  const visit = (x: unknown): void => {
+    if (Array.isArray(x)) {
+      x.forEach(visit);
+      return;
+    }
+    if (!x || typeof x !== 'object') return;
+    const o = x as Record<string, unknown>;
+    if (o.type === 'aura' && o.filter === 'pawn') return;
+    for (const k of Object.keys(o)) {
+      const v = o[k];
+      // a stat raised, or a strike's scaling (its 0-scale defaults read nothing)
+      if (k === 'stat') {
+        if (v === 'bladeDmg') blade++;
+        if (v === 'soulPower') soul++;
+      }
+      if (k === 'bladeScale' && typeof v === 'number' && v > 0) blade++;
+      if (k === 'soulScale' && typeof v === 'number' && v > 0) soul++;
+      visit(v);
+    }
+  };
+  visit(d.mods);
+  visit(d.triggers);
+  const lean = blade > 0 && soul === 0 ? 'blade' : soul > 0 && blade === 0 ? 'soul' : null;
+  LEAN.set(d, lean);
+  return lean;
+}
+
+/** The damage stat a piece is built on (Rank growth's rule: the higher of its base Blade and Soul). */
+function mainStat(c: Content, piece: PieceId): 'blade' | 'soul' {
+  const st = c.pieceById.get(piece)!.stats;
+  return st.soulPower > st.bladeDmg ? 'soul' : 'blade';
+}
+
+/** Gold the piece still wants for raising what it holds to Brilliant (`skip`: a card it gives up). */
+function upgradesWanted(t: Tuning, held: readonly HeldTechnique[], skip: string | null): number {
+  let n = 0;
+  for (const h of held) {
+    if (h.id === skip) continue;
+    for (let g = gradeIndex(h.grade); g < 2; g++) n += t.builds.upgrade[g];
+  }
+  return n;
+}
+
+/**
+ * The grade a card will soon have (as an index): its own, raised as far as the piece's spare gold
+ * (what its held cards' upgrades leave over) pays for. A rich piece late in a match treats a Plain
+ * card as the Brilliant card it will upgrade it into, so it can still improve a full build.
+ */
+function reachGrade(
+  t: Tuning,
+  subj: BuildSubject,
+  card: OfferCard,
+  replaced: string | null,
+): number {
+  let g = gradeIndex(card.grade);
+  let spare = (subj.gold ?? 0) - upgradesWanted(t, subj.held, replaced);
+  while (g < 2 && spare >= t.builds.upgrade[g]) {
+    spare -= t.builds.upgrade[g];
+    g++;
+  }
+  return g;
+}
+
+/**
+ * The AI's score for one card (spec 4.6; the measured worth and main stat since 2026-10-20): the
+ * grade spare gold will raise it to, filling a slot or what replacing the held card costs, its
+ * measured worth (less the replaced card's), fit with the piece's lean, a card built on the other
+ * damage stat, schools it holds, Combinations it completes or leads to, and seeded jitter.
+ */
 export function scoreCard(
   c: Content,
   t: Tuning,
@@ -279,18 +367,20 @@ export function scoreCard(
   const a = t.builds.ai;
   const d = def(c, card.id);
   if (!d) return -Infinity;
-  let s = a.grade[gradeIndex(card.grade)];
+  const old = d.pool === 'combination' ? null : replacedBy(c, subj.held, d.id);
+  const reach = reachGrade(t, subj, card, old?.id ?? null);
+  let s = a.grade[reach] + a.value * techniqueValue(c, d.id, GRADES[reach]);
   // a Combination adds to the build (its first parent's effect is part of it), so it counts as filling
   if (d.pool === 'combination') s += a.fills + a.combination;
+  else if (!old) s += a.fills;
   else {
-    const old = replacedBy(c, subj.held, d.id);
-    if (!old) s += a.fills;
-    else {
-      s += a.replaces + a.replacesGrade * gradeIndex(old.grade);
-      if (def(c, old.id)?.pool === 'combination') s += a.replacesCombination;
-    }
+    s += a.replaces + a.replacesGrade * gradeIndex(old.grade);
+    s -= a.value * techniqueValue(c, old.id, old.grade);
+    if (def(c, old.id)?.pool === 'combination') s += a.replacesCombination;
   }
   s += a.fit * fitOf(c, subj, d);
+  const lean = statLean(d);
+  if (lean && lean !== mainStat(c, subj.piece)) s += a.offStat;
   if (heldSchools(c, subj.held).has(d.school)) s += a.school;
   const have = new Set(subj.held.map((h) => h.id));
   let lead = 0;
@@ -298,7 +388,8 @@ export function scoreCard(
     if (combo.piece && combo.piece !== subj.piece) continue;
     if (have.has(combo.id)) continue;
     const partner = combo.parents!.find((p) => p !== d.id)!;
-    if (have.has(partner)) lead = Math.max(lead, a.parentReady);
+    // at the last offer the pair's Combination comes at once, so it counts as taking it
+    if (have.has(partner)) lead = Math.max(lead, subj.last ? a.combination : a.parentReady);
     else if (canBeOffered(def(c, partner), subj)) lead = Math.max(lead, a.parent);
   }
   s += lead;
@@ -325,13 +416,23 @@ export function aiChoice(
   return best;
 }
 
-/** Every card would replace a held Combination: the AI passes instead. */
-function nothingFits(c: Content, subj: BuildSubject, cards: readonly OfferCard[]): boolean {
-  return cards.every((card) => {
-    if (def(c, card.id)?.pool === 'combination') return false;
-    const old = replacedBy(c, subj.held, card.id);
-    return !!old && def(c, old.id)?.pool === 'combination';
-  });
+/** A card's score without its grade term: what a reroll (which keeps the grade) can change. */
+function quality(c: Content, t: Tuning, subj: BuildSubject, card: OfferCard, at: number): number {
+  const d = def(c, card.id);
+  const old = d && d.pool !== 'combination' ? replacedBy(c, subj.held, d.id) : null;
+  const reach = reachGrade(t, subj, card, old?.id ?? null);
+  return scoreCard(c, t, subj, card, at) - t.builds.ai.grade[reach];
+}
+
+/** Every card would make the build worse (each scores under `builds.ai.passBelow`): the AI passes. */
+function nothingFits(
+  c: Content,
+  t: Tuning,
+  subj: BuildSubject,
+  cards: readonly OfferCard[],
+  at: number,
+): boolean {
+  return cards.every((card) => scoreCard(c, t, subj, card, at) < t.builds.ai.passBelow);
 }
 
 // ---- "Pick for me": the AI's pick for every piece, and the 1-2 picks that matter most ----
@@ -345,23 +446,37 @@ interface AdviceInput {
   carry: boolean;
 }
 
+/**
+ * How much a piece's pick matters (2026-10-20): what is at stake (a Combination, the grade, the
+ * side's top-damage piece, a card measured to win much more) and whether it is a real choice. Two
+ * cards for different slots that score close together are the picks worth a look; an offer where one
+ * card wins by far is one the AI gets right on its own, so its stakes count only in part.
+ */
 function advise(c: Content, t: Tuning, inputs: AdviceInput[]): BuildAdvice {
   const adv = t.builds.advice;
   const pieces = inputs.map((x) => {
     const scores = x.cards.map((card) => scoreCard(c, t, x.subj, card, x.at));
     const pick = aiChoice(c, t, x.subj, x.cards, x.at);
     const combo = x.cards.some((card) => def(c, card.id)?.pool === 'combination');
-    const spread = scores.length ? Math.max(...scores) - Math.min(...scores) : 0;
+    const order = scores.map((sc, i) => ({ sc, i })).sort((a, b) => b.sc - a.sc);
+    const [one, two] = order;
+    const close =
+      !!two &&
+      one.sc - two.sc < adv.close &&
+      def(c, x.cards[one.i].id)?.slot !== def(c, x.cards[two.i].id)?.slot;
+    const best = Math.max(0, ...x.cards.map((card) => techniqueValue(c, card.id, card.grade)));
     const reasons: BuildAdvice['pieces'][number]['reasons'] = [];
     if (combo) reasons.push('combination');
     if (x.grade !== 'plain') reasons.push(x.grade);
     if (x.carry) reasons.push('carry');
-    if (spread >= 1) reasons.push('spread');
-    const stakes =
-      spread +
+    if (best >= adv.strong) reasons.push('strong');
+    if (close) reasons.push('close');
+    const weight =
       adv.gradeStakes[gradeIndex(x.grade)] +
       (combo ? adv.combination : 0) +
-      (x.carry ? adv.carry : 0);
+      (x.carry ? adv.carry : 0) +
+      adv.value * best;
+    const stakes = close ? weight + adv.closeBonus : weight * adv.clearShare;
     return { heroId: x.key, pick, scores, stakes, reasons };
   });
   const order = pieces.slice().sort((a, b) => b.stakes - a.stakes);
@@ -389,7 +504,17 @@ export function subjectOf(ctx: Ctx, u: Unit): BuildSubject {
     rank: h.rank,
     held: h.techniques,
     behind: ctx.s.relics.behind[team],
+    last: ctx.s.builds.open && lastOffer(ctx),
+    gold: h.gold,
   };
+}
+
+/**
+ * No Technique offer follows this break: the Act after it is the match's last (Blitz's second
+ * break, or Classical's ninth). A Combination a pick completes then comes at once.
+ */
+export function lastOffer(ctx: Ctx): boolean {
+  return ctx.s.phase.n + 1 >= ctx.t.maxPhases;
 }
 
 function piecesInSlotOrder(ctx: Ctx, team: PlayTeam): Unit[] {
@@ -444,6 +569,25 @@ function takeCard(ctx: Ctx, u: Unit, offer: BuildOffer, idx: number, auto: boole
     auto,
     at: offer.at,
   });
+  // the last offer of the match: a pair completed now has no next offer to arrive in, so its
+  // Combination is taken at once (at its parents' higher grade, upgrading the first parent)
+  if (offer.at > 0 && lastOffer(ctx)) {
+    for (const combo of readyCombinations(ctx.c, subjectOf(ctx, u))) {
+      const grade = combinationGrade(combo, subjectOf(ctx, u));
+      const first = replacedBy(ctx.c, h.techniques, combo.id);
+      h.techniques = withTechnique(ctx.c, h.techniques, combo.id, grade);
+      ctx.emit('technique', {
+        id: u.id,
+        team: u.team as PlayTeam,
+        technique: combo.id,
+        grade,
+        slot: combo.slot,
+        replaced: first ? first.id : null,
+        auto: true,
+        at: offer.at,
+      });
+    }
+  }
 }
 
 function passCard(ctx: Ctx, u: Unit, offer: BuildOffer): void {
@@ -602,16 +746,25 @@ function aiPieceTurn(ctx: Ctx, u: Unit, allowReroll: boolean, spend: boolean): v
   const a = ctx.t.builds.ai;
   if (offer && offer.decided === null) {
     const h = u.hero!;
-    // a free reroll (an obelisk's) needs no gold; a paid one keeps enough for an upgrade after it
-    while (allowReroll && (offer.free > 0 || offer.paid < a.maxRerolls)) {
+    // Reroll while no card is worth taking for what it adds (its score without the grade, which a
+    // reroll keeps, is under `rerollBelow`). A free reroll (an obelisk's) needs no gold; a paid one
+    // must leave gold for an upgrade after it (`maxRerolls` of them), and a piece whose gold covers
+    // every upgrade its held cards still want may reroll up to `richRerolls` times.
+    while (allowReroll) {
       const subj = subjectOf(ctx, u);
-      const best = Math.max(...offer.cards.map((x) => scoreCard(ctx.c, ctx.t, subj, x, offer.at)));
+      const best = Math.max(...offer.cards.map((x) => quality(ctx.c, ctx.t, subj, x, offer.at)));
       if (best >= a.rerollBelow) break;
-      if (offer.free === 0 && h.gold < rerollCost(ctx.t, offer) + ctx.t.builds.upgrade[0]) break;
+      if (offer.free === 0) {
+        const cost = rerollCost(ctx.t, offer);
+        if (h.gold < cost + ctx.t.builds.upgrade[0]) break;
+        const spare = h.gold - cost - upgradesWanted(ctx.t, h.techniques, null);
+        if (offer.paid >= (spare >= 0 ? a.richRerolls : a.maxRerolls)) break;
+      }
       reroll(ctx, u, offer);
     }
     const subj = subjectOf(ctx, u);
-    if (allowReroll && nothingFits(ctx.c, subj, offer.cards)) passCard(ctx, u, offer);
+    if (allowReroll && nothingFits(ctx.c, ctx.t, subj, offer.cards, offer.at))
+      passCard(ctx, u, offer);
     else {
       const i = aiChoice(ctx.c, ctx.t, subj, offer.cards, offer.at);
       if (i !== null) takeCard(ctx, u, offer, i, true);
@@ -642,7 +795,8 @@ export function aiBuilds(ctx: Ctx, team: PlayTeam): void {
 
 /**
  * Resume from the sheet: White's undecided pieces take the card the AI suggests (no reroll, so it
- * is the card the sheet showed), and the pieces the player never touched spend on upgrades.
+ * is the card the sheet showed), and every piece whose gold the player did not spend (no upgrade or
+ * reroll bought by hand) spends it on upgrades, also when the player took its card.
  */
 export function resumeBuilds(ctx: Ctx): void {
   const b = ctx.s.builds;
@@ -677,7 +831,6 @@ export function takeTechnique(ctx: Ctx, heroId: number, cardIndex: number): Comm
   if (!Number.isInteger(cardIndex) || cardIndex < 0 || cardIndex >= r.offer!.cards.length)
     return { ok: false, reason: 'no such card' };
   takeCard(ctx, r.u, r.offer!, cardIndex, false);
-  touch(ctx, heroId);
   return { ok: true };
 }
 
@@ -685,7 +838,6 @@ export function passOffer(ctx: Ctx, heroId: number): CommandResult {
   const r = whiteOffer(ctx, heroId, true);
   if (typeof r === 'string') return { ok: false, reason: r };
   passCard(ctx, r.u, r.offer!);
-  touch(ctx, heroId);
   return { ok: true };
 }
 
@@ -784,6 +936,7 @@ function cardView(
           partner,
           partnerName: def(c, partner)?.name ?? partner,
           partnerHeld: have.has(partner),
+          now: have.has(partner) && !!subj.last,
         };
       }),
     suggested,

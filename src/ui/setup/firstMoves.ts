@@ -47,7 +47,7 @@ export function lostPicks(view: FirstMoveView, picks: Picks): PieceId[] {
 
 /** Why "Pick for me" points at a piece, in the Builds tab's words ("a Combination is on offer; …"). */
 export function reasonLine(reasons: readonly AdviceReason[]): string {
-  if (reasons.length === 0) return 'The three cards differ the most here.';
+  if (reasons.length === 0) return 'The pick that matters most here.';
   const text = reasons.map((r) => REASON_TEXT[r]).join('; ');
   return `${text.charAt(0).toUpperCase()}${text.slice(1)}.`;
 }

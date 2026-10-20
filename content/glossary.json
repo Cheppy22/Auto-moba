@@ -241,7 +241,7 @@
     "term": "Spoils",
     "aliases": ["Spoils", "spoils"],
     "short": "The prize for winning a round: pick one of three cards, a relic, an heirloom or a book move.",
-    "more": "The cards are the same if you reload. Let the AI choose takes a relic while you have room; after that, the heirloom over the book move.",
+    "more": "The cards are the same if you reload. Let the AI choose takes a relic while you have room; after that, the heirloom when its Technique is a strong one, else the book move.",
     "see": ["relic", "heirloom", "book-move"],
     "group": "Run"
   },
@@ -258,8 +258,8 @@
     "id": "book-move",
     "term": "Book move",
     "aliases": ["Book move", "Book moves", "book move", "book moves"],
-    "short": "A gambit card that is drawn twice as often for the rest of the run.",
-    "more": "It stacks with your Opening's schools, so a book move from a school you already favor comes up very often.",
+    "short": "A gambit card you pick from three; it starts in your hand in every later match of the run.",
+    "more": "It sits next to your Opening's card and stays until you play it or Act 1 ends. A run holds one book move: a new one replaces it.",
     "see": ["gambit", "opening"],
     "group": "Run"
   },

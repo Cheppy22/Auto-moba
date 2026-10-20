@@ -355,9 +355,9 @@ export function simulateMatch(content: Content, seed: number, opts: SimOptions =
     } else if (e.type === 'technique') {
       builds[e.payload.team].taken.push(e.payload.technique);
       const o = openOffer.get(e.payload.id);
-      if (o && o.taken === null && o.cards.includes(e.payload.technique)) o.taken = e.payload.technique;
-    }
-    else if (e.type === 'offerPassed') {
+      if (o && o.taken === null && o.cards.includes(e.payload.technique))
+        o.taken = e.payload.technique;
+    } else if (e.type === 'offerPassed') {
       const t = teamOfHero.get(e.payload.id);
       if (t) builds[t].passes++;
     } else if (e.type === 'techniqueUpgrade') {

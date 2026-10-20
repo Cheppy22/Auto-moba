@@ -106,5 +106,6 @@ export const REASON_TEXT: Record<AdviceReason, string> = {
   brilliant: 'a Brilliant offer: double numbers',
   sharp: 'a Sharp offer: numbers ×1.5',
   carry: 'your top-damage piece last Act',
-  spread: 'the three cards differ a lot',
+  strong: 'one card wins far more often in test matches',
+  close: 'two strong cards for different jobs: your call',
 };

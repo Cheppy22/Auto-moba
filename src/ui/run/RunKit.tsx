@@ -242,16 +242,16 @@ export function RunKit(props: { onClose: () => void }) {
 
           <section class="rk-sec" data-testid="kit-books">
             <h4 class="rk-h">
-              <Term id="book-move">Book moves</Term>
+              <Term id="book-move">Book move</Term>
             </h4>
             {books.length === 0 ? (
-              <p class="rk-note">None yet. A book move is drawn twice as often.</p>
+              <p class="rk-note">None yet. A book move starts in your hand every match.</p>
             ) : (
               <ul class="relic-names">
                 {books.map((g) => (
                   <li key={g.id}>
                     <SchoolChip school={g.school} glyph={13} />
-                    <span>{g.name} ×2</span>
+                    <span>{g.name} · in your first hand</span>
                   </li>
                 ))}
               </ul>

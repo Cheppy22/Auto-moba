@@ -381,6 +381,8 @@ export const TournamentSchema = z.object({
   /** Let the AI choose: what a book move and an heirloom Technique are worth, in gold. */
   aiBookGold: z.number(),
   aiHeirloomGold: z.number(),
+  /** Gold an heirloom is worth per unit of its Technique's measured worth. */
+  aiValueGold: z.number(),
   rounds: z
     .array(
       z.object({
@@ -855,6 +857,25 @@ const TechniqueSchema = z.object({
 
 export const TechniqueFileSchema = z.object({ techniques: z.array(TechniqueSchema).min(1) });
 
+/**
+ * Measured worth of each Technique (`content/technique-values.json`, written by
+ * `tools/technique-values.ts` from balance runs): per grade [Plain, Sharp, Brilliant], the win-rate
+ * edge of the sides that held it over what that grade usually wins, in tens of win-rate points
+ * (+0.5 = 5 points more), shrunk toward 0 when few pieces held it. The AI's card score adds it.
+ */
+export const TechniqueValuesSchema = z.object({
+  source: z.string(),
+  techniques: z.record(
+    z.string(),
+    z.object({
+      held: z.number().int().nonnegative(),
+      winRate: z.number(),
+      value: z.tuple([z.number(), z.number(), z.number()]),
+    }),
+  ),
+});
+export type TechniqueValues = z.infer<typeof TechniqueValuesSchema>;
+
 const BuildsTuningSchema = z.object({
   /** Bonus multiplier per grade (Plain, Sharp, Brilliant). */
   grades: z.object({ plain: z.number(), sharp: z.number(), brilliant: z.number() }),
@@ -887,14 +908,32 @@ const BuildsTuningSchema = z.object({
     parent: z.number(),
     parentReady: z.number(),
     jitter: z.number(),
+    /** Weight of the measured worth (`content/technique-values.json`). */
+    value: z.number(),
+    /** Added for a card built on the damage stat the piece is not built on (negative). */
+    offStat: z.number(),
+    /** Reroll while the offer's best score without its grade is under this. */
     rerollBelow: z.number(),
+    /** Pass when every card scores under this (each would make the build worse). */
+    passBelow: z.number(),
     maxRerolls: z.number().int(),
+    /** Paid rerolls a piece may take when its gold covers every upgrade it still wants. */
+    richRerolls: z.number().int(),
   }),
   /** "Pick for me": how the 1-2 picks that matter most are chosen. */
   advice: z.object({
     gradeStakes: z.tuple([z.number(), z.number(), z.number()]),
     combination: z.number(),
     carry: z.number(),
+    /** Per unit of the best card's measured worth. */
+    value: z.number(),
+    /** A measured worth this high names the card as strong. */
+    strong: z.number(),
+    /** Two cards for different slots this close in score are a real choice... */
+    close: z.number(),
+    /** ...which adds this to the stakes; an offer with a clear winner keeps this share of them. */
+    closeBonus: z.number(),
+    clearShare: z.number(),
     secondShare: z.number(),
   }),
 });
@@ -914,6 +953,8 @@ export const TuningSchema = z.object({
     maxActs: z.number().int(),
     endgameAct: z.number().int(),
     throneHp: z.number(),
+    /** Endgame in Blitz: Thrones take this many times their damage (Classical: the pressure event's 1.5). */
+    throneDamage: z.number(),
   }),
   /** The Act break: countdown alerts, the grey wait for calm, the tolls and the slow halt. */
   bell: z.object({
@@ -1017,6 +1058,8 @@ export const TuningSchema = z.object({
     expireSec: z.number(),
     /** Relic discounts never bring a card below this many Tempo. */
     minCost: z.number(),
+    /** The AI waits for a card it cannot afford yet when it fits this much better than the best it can. */
+    aiWaitMargin: z.number(),
   }),
   check: z.object({ kingRespawnMul: z.number(), damageMul: z.number() }),
   /** Combat feedback (information only): why a piece fell, fight verdicts, lane momentum, gambit impact. */

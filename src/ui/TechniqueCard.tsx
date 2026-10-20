@@ -271,8 +271,10 @@ export function TechniqueCard(props: {
           key={l.id}
           data-testid={props.testid ? `${props.testid}-pair` : undefined}
         >
-          <i>Completes a pair</i> with {l.partnerName}: <b>{l.name}</b> comes in this piece’s next
-          offer.
+          <i>Completes a pair</i> with {l.partnerName}: <b>{l.name}</b>{' '}
+          {l.now
+            ? 'is added at once (no offer follows this one).'
+            : 'comes in this piece’s next offer.'}
         </p>
       ))}
       {later.length > 0 && (

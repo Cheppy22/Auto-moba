@@ -1303,7 +1303,13 @@ export class Session {
               {
                 kind: 'rank',
                 title: `${piece} · Rank ${e.payload.rank}`,
-                detail: e.payload.rank === 8 ? 'Next Technique offer: Brilliant' : e.payload.bonus,
+                // in the match's last Act no offer follows, so Rank 8 promises nothing
+                detail:
+                  e.payload.rank === 8
+                    ? m.state.phase.n >= m.ctx.t.maxPhases
+                      ? 'Top rank reached'
+                      : 'Next Technique offer: Brilliant'
+                    : e.payload.bonus,
                 team: 'A',
               },
               RANK_CHIP_MS,

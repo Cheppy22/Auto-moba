@@ -219,14 +219,20 @@ describe('Tournament run: rewards', () => {
     expect(h && h.kind === 'heirloom' && h.piece).toBe('rook');
     const odd = rewardOffers(content, run, { rook: ['bastion_immovable', 'castle_wall'] });
     expect(odd.some((o) => o.kind === 'heirloom')).toBe(false);
-    const schools = content.openingById.get(run.court.opening)!.schools;
-    if (schools.length) expect(schools).toContain(content.gambitById.get(book.card)!.school);
+    // the book move offers three different cards, never the court's own Opening card
+    expect(book.cards).toHaveLength(3);
+    expect(new Set(book.cards).size).toBe(3);
+    const own = content.openingById.get(run.court.opening)!.openingCard;
+    if (own) expect(book.cards).not.toContain(own);
+    for (const id of book.cards) expect(content.gambitById.has(id)).toBe(true);
   });
 
   it('applies each kind; the AI takes a relic while there is room', () => {
     const run = won(32);
     expect(aiReward(content, run)?.kind).toBe('relic');
-    for (const offer of run.offers!) {
+    for (const o of run.offers!) {
+      // a book move is taken by naming one of its cards
+      const offer = o.kind === 'book' ? { ...o, card: o.cards[0] } : o;
       const r = applyReward(content, run, offer);
       expect(r.ok).toBe(true);
       if (!r.ok) continue;
@@ -234,7 +240,14 @@ describe('Tournament run: rewards', () => {
       if (offer.kind === 'heirloom') expect(r.run.heirlooms[offer.piece]).toBe(offer.technique);
       if (offer.kind === 'book') expect(r.run.books).toEqual([offer.card]);
     }
-    expect(applyReward(content, run, { kind: 'book', card: 'nope' }).ok).toBe(false);
+    const book = run.offers!.find((o) => o.kind === 'book')!;
+    if (book.kind !== 'book') throw new Error('kind');
+    expect(applyReward(content, run, { ...book, card: 'nope' }).ok).toBe(false);
+    expect(applyReward(content, run, { ...book }).ok).toBe(false);
+    // the run holds one book move: taking another replaces it
+    const taken = applyReward(content, run, { ...book, card: book.cards[1] });
+    if (!taken.ok) throw new Error(taken.reason);
+    expect(taken.run.books).toEqual([book.cards[1]]);
   });
 
   it('with the relic row full the AI weighs the heirloom against the book move by gold', () => {
@@ -244,9 +257,19 @@ describe('Tournament run: rewards', () => {
     };
     const book = full.offers!.find((o) => o.kind === 'book')!;
     const heirloom = full.offers!.find((o) => o.kind === 'heirloom')!;
-    expect(T.aiHeirloomGold).toBeGreaterThan(T.aiBookGold);
-    expect(aiReward(content, full)).toEqual(heirloom);
-    expect(aiReward(content, { ...full, offers: [full.offers![0], book] })).toEqual(book);
+    if (book.kind !== 'book' || heirloom.kind !== 'heirloom') throw new Error('kinds');
+    // the heirloom is worth its gold plus its Technique's measured worth; the book move its own
+    const v = content.techniqueValue.get(heirloom.technique)?.[0] ?? 0;
+    const heirWorth = T.aiHeirloomGold + T.aiValueGold * v;
+    const pick = aiReward(content, full)!;
+    expect(pick.kind).toBe(heirWorth >= T.aiBookGold ? 'heirloom' : 'book');
+    // a book move the AI takes names one of its cards, and applying it works
+    const onlyBook = aiReward(content, { ...full, offers: [full.offers![0], book] })!;
+    if (onlyBook.kind !== 'book') throw new Error('book');
+    expect(book.cards).toContain(onlyBook.card);
+    expect(applyReward(content, { ...full, offers: [full.offers![0], book] }, onlyBook).ok).toBe(
+      true,
+    );
   });
 
   it('swaps a relic when five are held', () => {

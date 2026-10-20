@@ -598,6 +598,8 @@ export interface HandSlot {
   refillTick: number | null;
   /** The held card is the Opening's card: it stays until played or Act 1 ends. */
   opening?: true;
+  /** With `opening`: the held card is a run's book move rather than the Opening's card (same hold). */
+  book?: true;
   /** Zugzwang emptied this slot: its refill takes this many ticks (cleared when it is dealt). */
   discarded?: number;
 }
@@ -753,7 +755,7 @@ export interface BuildState {
   open: boolean;
   /** Offers of the current break (or the Setup offers once the match started). */
   offers: BuildOffer[];
-  /** White pieces the player acted on at this break: on Resume they keep their gold. */
+  /** White pieces whose gold the player spent at this break (an upgrade or a reroll): on Resume they keep the rest; every other piece, picked by hand or not, spends its gold on upgrades. */
   touched: number[];
   /** Pieces whose Rank 8 Brilliant offer has been drawn. */
   brilliantUsed: number[];
@@ -1291,6 +1293,8 @@ export interface SnapGambit {
   discarded: boolean;
   /** The card is the Opening's: kept until played or Act 1 ends (`ticksLeft` is the Act's time). */
   opening: boolean;
+  /** With `opening`: the card is the run's book move (same hold), not the Opening's card. */
+  book: boolean;
 }
 
 export interface SnapFork {
@@ -1363,6 +1367,8 @@ export interface BuildCardView {
     partner: string;
     partnerName: string;
     partnerHeld: boolean;
+    /** The last offer of the match: taking this card adds the Combination at once. */
+    now: boolean;
   }[];
   /** The card the AI would take ("AI suggests"). */
   suggested: boolean;
@@ -1425,7 +1431,7 @@ export interface BuildView {
 }
 
 /** Why a pick matters ("Pick for me" highlights). */
-export type AdviceReason = 'combination' | 'sharp' | 'brilliant' | 'carry' | 'spread';
+export type AdviceReason = 'combination' | 'sharp' | 'brilliant' | 'carry' | 'strong' | 'close';
 
 /** "Pick for me": the AI's pick for each open offer, and the 1-2 pieces whose pick matters most. */
 export interface BuildAdvice {

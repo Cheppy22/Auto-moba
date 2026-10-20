@@ -14,6 +14,7 @@ import {
   RelicFileSchema,
   RELIC_EFFECTS,
   TechniqueFileSchema,
+  TechniqueValuesSchema,
   TournamentSchema,
   TuningSchema,
   type BadgeDef,
@@ -55,6 +56,8 @@ export interface RawContentFiles {
   courts?: unknown;
   /** Piece builds (`content/techniques.json`). */
   techniques: unknown;
+  /** Measured Technique worth (`content/technique-values.json`); absent means every value is 0. */
+  techniqueValues?: unknown;
   tuning: unknown;
 }
 
@@ -96,6 +99,8 @@ export interface Content {
   /** Piece builds (SPEC-PIECE-BUILDS-2026-10-18). */
   techniques: TechniqueDef[];
   techniqueById: Map<string, TechniqueDef>;
+  /** Measured worth per Technique and grade (`TechniqueValuesSchema`); a missing id is worth 0. */
+  techniqueValue: Map<string, readonly [number, number, number]>;
 }
 
 /** Deep-merges a JSON patch into a copy of `base` (objects merge, everything else is replaced). */
@@ -135,8 +140,20 @@ function blitzContent(c: Content): Content {
       maxPhases: b.maxActs,
       guardian: { ...c.tuning.guardian, hp: b.throneHp },
     },
+    // Blitz's Endgame comes sooner and hits Thrones harder, so a short match ends in Checkmate
+    // more often than on points
     pressure: c.pressure.map((ev) =>
-      ev.rules.includes('endgame') ? { ...ev, fromPhase: b.endgameAct } : ev,
+      ev.rules.includes('endgame')
+        ? {
+            ...ev,
+            fromPhase: b.endgameAct,
+            tagMult: { ...ev.tagMult, throneDamage: b.throneDamage },
+            desc: ev.desc.replace(
+              /Thrones take \d+% more damage/,
+              `Thrones take ${Math.round((b.throneDamage - 1) * 100)}% more damage`,
+            ),
+          }
+        : ev,
     ),
   };
 }
@@ -263,6 +280,10 @@ export function loadContent(raw: RawContentFiles): Content {
   const relics = RelicFileSchema.parse(raw.relics).relics;
   const courts = raw.courts === undefined ? [] : CourtFileSchema.parse(raw.courts).courts;
   const techniques = TechniqueFileSchema.parse(raw.techniques).techniques;
+  const values =
+    raw.techniqueValues === undefined
+      ? null
+      : TechniqueValuesSchema.parse(raw.techniqueValues).techniques;
   const biomes = raw.biomes.map((b) => BiomeSchema.parse(b));
   const events = raw.events.flatMap((f) => EventFileSchema.parse(f).events);
   const pressure = PressureSchema.parse(raw.pressure).events;
@@ -311,8 +332,15 @@ export function loadContent(raw: RawContentFiles): Content {
     courtById: byId(courts, 'court'),
     techniques,
     techniqueById: byId(techniques, 'technique'),
+    techniqueValue: new Map(
+      Object.entries(values ?? {})
+        .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+        .map(([id, v]) => [id, v.value] as const),
+    ),
   };
   const errs = validateRefs(content);
+  for (const id of content.techniqueValue.keys())
+    if (!content.techniqueById.has(id)) errs.push(`technique values: unknown technique ${id}`);
   if (longBoard) {
     const ids = new Set(longBoard.map.slots.map((s) => s.id));
     for (const n of longBoard.map.obeliskNodes)

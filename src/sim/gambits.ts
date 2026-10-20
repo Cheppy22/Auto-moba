@@ -69,14 +69,10 @@ function alivePieces(ctx: Ctx, team: PlayTeam): Unit[] {
 
 // ---------------------------------------------------------------- hand
 
-/**
- * A card's weight in a side's draw: the Opening's two schools come up twice as often, and so do a
- * run's book moves (stacking to ×4).
- */
+/** A card's weight in a side's draw: the Opening's two schools come up twice as often. */
 export function drawWeight(ctx: Ctx, team: PlayTeam): (g: GambitDef) => number {
   const favoured = ctx.c.openingById.get(ctx.s.opening[team])?.schools ?? [];
-  const books = booksOf(ctx, team);
-  return (g) => g.weight * (favoured.includes(g.school) ? 2 : 1) * (books.includes(g.id) ? 2 : 1);
+  return (g) => g.weight * (favoured.includes(g.school) ? 2 : 1);
 }
 
 /** Draws a card for a side; `only` limits the draw to those schools (Opening Book). */
@@ -100,6 +96,7 @@ function deal(ctx: Ctx, team: PlayTeam, slot: number, only?: readonly School[]):
   const h = ctx.s.hands[team][slot];
   if (h.discarded !== undefined) delete h.discarded;
   if (h.opening) delete h.opening;
+  if (h.book) delete h.book;
   h.cardId = drawCard(ctx, team, only);
   h.expireTick = ctx.s.tick + Math.round(ctx.t.gambits.expireSec * TPS);
   h.refillTick = h.cardId === null ? ctx.s.tick + TPS : null;
@@ -125,8 +122,11 @@ export function syncHands(ctx: Ctx, team: PlayTeam): void {
 }
 
 /**
- * The first hand. An Opening's card goes in slot 0 and stays until it is played or Act 1 ends; the
- * Italian Game has no such card and instead deals three different schools.
+ * The first hand. An Opening's card goes in slot 0 and a run's book move in the next slot (slot 0
+ * for the Italian Game, which has no Opening card); both stay until played or until Act 1 ends.
+ * The Italian Game deals its other cards from schools not yet in the hand, so it still holds three
+ * different schools. A book move that is the Opening's own card, or one a Standing Order keeps
+ * always on, is not dealt twice.
  */
 export function initHands(ctx: Ctx): void {
   for (const team of PLAY_TEAMS) {
@@ -135,12 +135,17 @@ export function initHands(ctx: Ctx): void {
     const opening = ctx.c.openingById.get(ctx.s.opening[team]);
     const card = opening?.openingCard ? ctx.c.gambitById.get(opening.openingCard) : undefined;
     const bound = boundCards(ctx, team);
+    const kept: { id: string; book: boolean }[] = [];
+    if (card && !bound.includes(card.id)) kept.push({ id: card.id, book: false });
+    for (const id of booksOf(ctx, team))
+      if (!bound.includes(id) && !kept.some((x) => x.id === id)) kept.push({ id, book: true });
     for (let i = 0; i < ctx.t.gambits.handSize; i++) {
       hand.push({ cardId: null, expireTick: 0, refillTick: null });
-      if (i === 0 && card && !bound.includes(card.id)) {
-        const h = hand[0];
-        h.cardId = card.id;
+      if (i < kept.length) {
+        const h = hand[i];
+        h.cardId = kept[i].id;
         h.opening = true;
+        if (kept[i].book) h.book = true;
         h.expireTick = Number.MAX_SAFE_INTEGER;
         continue;
       }
@@ -731,6 +736,7 @@ export function playGambit(
   if (!r.ok) return r;
   h.cardId = null;
   delete h.opening;
+  delete h.book;
   h.refillTick = ctx.s.tick + Math.round(refillSec(ctx, team) * TPS);
   return { ok: true };
 }
@@ -806,6 +812,7 @@ function applyClock(ctx: Ctx, team: PlayTeam, def: GambitDef): ClockNote {
       const ticks = Math.round(p(def, 'refillSec', 15) * TPS);
       h.cardId = null;
       delete h.opening;
+      delete h.book;
       h.refillTick = s.tick + ticks;
       h.discarded = ticks;
       noteClock(ctx, team, def.id, 'cards', 1);
@@ -1117,10 +1124,12 @@ function plan(ctx: Ctx, team: PlayTeam, def: GambitDef, nested = false): Plan | 
       const k = teamPiece(ctx, team, 'king');
       const r = teamPiece(ctx, team, 'rook');
       if (!k?.alive || !r?.alive) return null;
-      if (hpPct(k) > 0.35 || hpPct(r) < 0.5) return null;
-      if (countNear(ctx, foe, k.x, k.y, 320, isPiece) === 0) return null;
-      if (countNear(ctx, foe, r.x, r.y, 380, isPiece) > 0) return null;
-      return { score: 2, target: {} };
+      // the King is hurt in a fight and the Rook stands somewhere safer: swap them
+      if (hpPct(k) > 0.45 || hpPct(r) < 0.5 || !inFight(ctx, k)) return null;
+      const atKing = countNear(ctx, foe, k.x, k.y, 320, isPiece);
+      if (atKing === 0) return null;
+      if (countNear(ctx, foe, r.x, r.y, 380, isPiece) >= atKing) return null;
+      return { score: 1.4 + 0.3 * atKing, target: {} };
     }
     case 'queens_gambit': {
       const q = teamPiece(ctx, team, 'queen');
@@ -1367,6 +1376,21 @@ function otherCardsBest(ctx: Ctx, team: PlayTeam, def: GambitDef): number {
   return best;
 }
 
+/** The cheapest other held card whose plan fires (its price), or 0 when none does. */
+function otherCardsCost(ctx: Ctx, team: PlayTeam, def: GambitDef): number {
+  const hand = ctx.s.hands[team];
+  const own = hand.findIndex((h) => h.cardId === def.id);
+  let cost = Infinity;
+  hand.forEach((h, i) => {
+    if (i === own || h.cardId === null) return;
+    const card = ctx.c.gambitById.get(h.cardId)!;
+    if (card.piece && !teamPiece(ctx, team, card.piece)?.alive) return;
+    if ((plan(ctx, team, card, true)?.score ?? 0) < 1) return;
+    cost = Math.min(cost, cardCost(ctx, team, card));
+  });
+  return Number.isFinite(cost) ? cost : 0;
+}
+
 /** The AI's Clock plans (spec 2026-10-18 section 5): each fires on a Tempo or hand reading. */
 function clockPlan(ctx: Ctx, team: PlayTeam, def: GambitDef, theirs: Unit[]): Plan | null {
   const s = ctx.s;
@@ -1389,10 +1413,13 @@ function clockPlan(ctx: Ctx, team: PlayTeam, def: GambitDef, theirs: Unit[]): Pl
       return { score: 1 + cost / 30, target: {} };
     }
     case 'increment': {
-      // with Tempo for a burst and another card ready: ahead of it, so that card is refunded
-      if (s.tempo[team] < 60 || isActive(s.increment[team], s.tick)) return null;
+      // with Tempo for both and another card ready: ahead of it, so that card is refunded (it used
+      // to want 60+ Tempo, which a player's pawn plan, spending everything above 55, never left)
+      if (isActive(s.increment[team], s.tick)) return null;
       const next = otherCardsBest(ctx, team, def);
-      return next >= 1 ? { score: next + 0.1, target: {} } : null;
+      if (next < 1 || s.tempo[team] < cardCost(ctx, team, def) + otherCardsCost(ctx, team, def))
+        return null;
+      return { score: next + 0.1, target: {} };
     }
     case 'opening_book': {
       // neither other card has fitted for 15 s (held that long, none fits now): dig
@@ -1446,6 +1473,15 @@ function aiGambits(ctx: Ctx, team: PlayTeam): void {
   if (aiTempoTurn(ctx, team) === 'pawns') return;
   const best = aiCardPick(ctx, team);
   if (!best) return;
+  // a dearer card that fits clearly better is worth waiting for (cheap cards used to be played
+  // whenever they fitted, so the piece cards at 23-30 Tempo almost never were)
+  const want = aiCardPick(ctx, team, true);
+  if (
+    want &&
+    want.slot !== best.slot &&
+    want.plan.score >= best.plan.score + ctx.t.gambits.aiWaitMargin
+  )
+    return;
   if (ctx.s.tempo[team] - best.cost < ctx.t.pawns.aiCardReserve) return;
   playGambit(ctx, team, best.slot, best.plan.target);
 }
