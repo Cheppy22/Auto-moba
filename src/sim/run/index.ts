@@ -18,6 +18,7 @@ export {
   betterFinish,
   finishLabel,
   finishOf,
+  isNewBest,
   matchSeed,
   newRun,
   nextMatchConfig,

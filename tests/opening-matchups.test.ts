@@ -13,6 +13,14 @@ describe('Opening matchups', () => {
     }
   });
 
+  it("shows each of an Opening's own schools once per matchup (no doubled glyph)", () => {
+    for (const o of content.openings) {
+      const info = openingInfo(content, o);
+      for (const m of [...info.strongVs, ...info.evenVs, ...info.weakVs])
+        expect(new Set(m.mine).size, `${o.id} vs ${m.other}`).toBe(m.mine.length);
+    }
+  });
+
   it('French Defence: March is good, Initiative is weak (net), Sacrifice is even', () => {
     const french = content.openings.find((o) => o.id === 'french')!;
     const { strongVs, weakVs, evenVs } = openingMatchups(french.schools);

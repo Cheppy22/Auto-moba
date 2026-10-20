@@ -175,7 +175,8 @@ export function openingMatchups(fav: School[]): {
       out.weakVs.push({ mine: losses, other, text: why(losses, true) });
     else
       out.evenVs.push({
-        mine: [...wins, ...losses],
+        // a school that both beats and is beaten by `other` is one glyph, not two
+        mine: [...new Set([...wins, ...losses])],
         other,
         text: `For: ${why(wins, false)} Against: ${why(losses, true)}`,
       });

@@ -2,7 +2,11 @@ import type { MatchPace } from '../sim';
 import { Term } from './glossary';
 
 const OPTIONS: { id: MatchPace; name: string; line: string }[] = [
-  { id: 'blitz', name: 'Blitz', line: '3 Acts, about 10 min. No Checkmate: decided on points.' },
+  {
+    id: 'blitz',
+    name: 'Blitz',
+    line: '3 Acts, about 10 min. Checkmate ends it early; if not, decided on points.',
+  },
   { id: 'classical', name: 'Classical', line: 'The full match, about 15 min.' },
 ];
 
