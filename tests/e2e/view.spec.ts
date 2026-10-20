@@ -232,6 +232,60 @@ test('an enemy gambit is aimed with a tap on a Black piece', async ({ page }) =>
   expect(errors).toEqual([]);
 });
 
+const aimViews = [
+  { name: 'desktop', viewport: { width: 1280, height: 800 }, touch: false },
+  { name: 'phone', viewport: { width: 390, height: 844 }, touch: true },
+];
+
+for (const v of aimViews) {
+  test.describe(`aiming from the court bar, ${v.name}`, () => {
+    test.use({ viewport: v.viewport, hasTouch: v.touch, isMobile: v.touch });
+
+    test('a tap on a Black portrait plays the aimed enemy card instead of opening the piece card', async ({
+      page,
+    }) => {
+      test.setTimeout(300_000);
+      const errors = watchErrors(page);
+      await startLive(page, '42');
+      await viewReady(page);
+      const s = await stepUntil(page, {
+        kind: 'card',
+        target: 'enemy',
+        anyOf: ['check', 'fork', 'pin'],
+      });
+      const slot = s.hand.find(
+        (c) => c.target === 'enemy' && c.usable && ['check', 'fork', 'pin'].includes(c.cardId),
+      )!.slot;
+      const defId = await page.evaluate(() => {
+        interface Sess {
+          match: {
+            state: { teams: { B: { heroIds: number[] } } };
+            unitById(id: number): { alive: boolean; hero?: { defId: string } } | undefined;
+          };
+        }
+        const x = (window as unknown as { __session: Sess }).__session;
+        const ids = x.match.state.teams.B.heroIds;
+        return ids.map((id) => x.match.unitById(id)!).find((u) => u.alive)!.hero!.defId;
+      });
+      await openHand(page);
+      await page.getByTestId(`gambit-${slot}`).click();
+      await expect(page.getByTestId('aim-hint')).toContainText('Tap a Black piece');
+      const before = await eventCount(page, 'gambit', 'A');
+      const token = page.getByTestId(`roster-B-${defId}`);
+      await token.scrollIntoViewIfNeeded();
+      await token.click();
+      // the card is played on that piece: no piece card, no aim left
+      await expect.poll(() => eventCount(page, 'gambit', 'A')).toBe(before + 1);
+      await expect(page.getByTestId('aim')).toHaveCount(0);
+      await expect(page.getByTestId('unit-card')).toHaveCount(0);
+      // with nothing aimed, the same tap opens the piece card as before
+      await token.click();
+      await expect(page.getByTestId('unit-card')).toBeVisible();
+      expect(errors).toEqual([]);
+    });
+  });
+}
+
 test('without WebGL the game shows a clear message and the HUD still works', async ({ page }) => {
   await page.addInitScript(() => {
     const real = HTMLCanvasElement.prototype.getContext;

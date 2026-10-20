@@ -7,7 +7,8 @@ import { courtName } from '../../analysis/text';
 
 /**
  * Black's five pieces as small tokens in the top bar: icon, health ring, rank, alive or down.
- * Tap one for its piece card (the same card as a tap on the board).
+ * Tap one for its piece card (the same card as a tap on the board); while an enemy card is aimed,
+ * a tap plays the card on that piece instead.
  */
 export function BlackCourt(props: { snap: Snapshot }) {
   const s = useSession();
@@ -37,7 +38,11 @@ export function BlackCourt(props: { snap: Snapshot }) {
             aria-label={`${courtName('B')} ${name}, rank ${h.rank}, ${LANE_NOW_LABEL[lane]}${u.alive ? '' : ', down'}`}
             aria-expanded={open}
             title={`${courtName('B')} ${name} · Rank ${h.rank}${u.alive ? '' : ' · down'} (tap for details)`}
-            onClick={() => s.openCard(u.id)}
+            onClick={() => {
+              // while Check, Pin or Fork is aimed, a tap on a portrait plays the card on that piece
+              if (s.aimUnit(u.id, 'B')) return;
+              s.openCard(u.id);
+            }}
           >
             <HpRing frac={frac} color={hurt ? 'var(--clock-hi)' : 'var(--b)'} alive={u.alive}>
               <PieceGlyph piece={h.defId} team="B" size={18} />
