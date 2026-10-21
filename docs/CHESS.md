@@ -135,27 +135,27 @@ Techniques replaced the 36 items, the shops, the Armory, build paths, attunement
 - **Black plays gambits with an AI heuristic.** In headless runs both teams use it (`MatchConfig.autoGambits`). In the browser White's gambits come only from the player.
 - Starting card list (numbers in `content/gambits.json`):
 
-| Card           | Cost | Piece  | Target | Effect                                                                   |
-| -------------- | ---- | ------ | ------ | ------------------------------------------------------------------------ |
-| Advance        | 8    | —      | lane   | Pieces and pawns in that lane push; +30% move speed, 20 s                |
-| Hold the File  | 10   | —      | lane   | Pieces in that lane defend; +44% armor and resist, 20 s                  |
-| Regroup        | 14   | —      | point  | Every living piece gathers at the point, 15 s                            |
-| Pawn Storm     | 16   | —      | lane   | That lane's pawns +150% damage, +75% move speed, 15 s                    |
-| Check          | 16   | —      | enemy  | Marks an enemy piece: +60% damage taken, visible to all, 8 s             |
-| Castle         | 10   | King   | none   | King and Rook swap places instantly                                      |
-| Queen's Gambit | 22   | Queen  | none   | Queen +120% damage for 12 s, then −20% for 6 s                           |
-| Siege          | 18   | Rook   | enemy  | Rook and its lane focus a Bastion or Throne; +90% structure damage, 10 s |
-| Sanctuary      | 18   | Bishop | point  | A zone that heals allies 10% max health per second, 6 s                  |
-| Fork           | 24   | Knight | enemy  | Knight leaps to an enemy piece within reach and stuns it 2.5 s           |
+| Card           | Cost | Piece  | Target | Effect                                                                    |
+| -------------- | ---- | ------ | ------ | ------------------------------------------------------------------------- |
+| Advance        | 8    | —      | lane   | Pieces and pawns in that lane push; +45% move speed, 20 s                 |
+| Hold the File  | 10   | —      | lane   | Pieces in that lane defend; +66% armor and resist, 20 s                   |
+| Regroup        | 14   | —      | point  | Every living piece gathers at the point, 15 s                             |
+| Pawn Storm     | 16   | —      | lane   | That lane's pawns +225% damage, +75% move speed, 15 s                     |
+| Check          | 16   | —      | enemy  | Marks an enemy piece: +90% damage taken, visible to all, 8 s              |
+| Castle         | 10   | King   | none   | King and Rook swap places instantly                                       |
+| Queen's Gambit | 22   | Queen  | none   | Queen +180% damage for 12 s, then −20% for 6 s                            |
+| Siege          | 18   | Rook   | enemy  | Rook and its lane focus a Bastion or Throne; +135% structure damage, 10 s |
+| Sanctuary      | 18   | Bishop | point  | A zone that heals allies 15% max health per second, 6 s                   |
+| Fork           | 24   | Knight | enemy  | Knight leaps to an enemy piece within reach and stuns it 3.5 s            |
 
 **Wave 3 (2026-10-18, [spec](SPEC-GAMBITS-OPENINGS-2026-10-18.md) Phase B):** four more universal cards, weight 1.5 each, the first of the original plan's wave 3 (numbers in `content/gambits.json`, effects in `src/sim/gambits.ts`):
 
 | Card         | Cost | Target                      | Effect                                                                                                                                          |
 | ------------ | ---- | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| Breakthrough | 10   | lane                        | Your next pawnling wave in that lane has 6 extra melee pawnlings (they do not count toward the pawn cap). One per lane at a time                |
-| Pin          | 14   | enemy piece                 | It cannot move for 4 s (it can still attack and cast); the enemy piece nearest behind it, toward its own base within 300, is slowed 40% for 3 s |
-| Desperado    | 10   | your piece under 40% health | It deals 120% more damage for 6 s; if it falls in that time, your team gets 10 Tempo back                                                       |
-| Fortify      | 14   | lane                        | Your front Bastion in that lane (the Throne if none stand) gets a shield of 40% of its max health for 20 s; not while it already has a shield   |
+| Breakthrough | 10   | lane                        | Your next pawnling wave in that lane has 9 extra melee pawnlings (they do not count toward the pawn cap). One per lane at a time                |
+| Pin          | 14   | enemy piece                 | It cannot move for 5 s (it can still attack and cast); the enemy piece nearest behind it, toward its own base within 300, is slowed 40% for 3 s |
+| Desperado    | 10   | your piece under 40% health | It deals 180% more damage for 6 s; if it falls in that time, your team gets 10 Tempo back                                                       |
+| Fortify      | 14   | lane                        | Your front Bastion in that lane (the Throne if none stand) gets a shield of 60% of its max health for 20 s; not while it already has a shield   |
 
 Engine notes: Pin needs a real "cannot move" flag (`Unit.rootUntil`; `stepToward`, dashes and recall check it), because slows stop at a floor. Fortify uses the unit shields items already give; shields soak damage before the Bastion's per-second damage cap, and Pawn Sacrifice's hit (about 3,060) breaks one (720 on an outer Bastion). Breakthrough is a per-lane count in `MatchState.breakthrough`, read by the wave spawn (`takeBreakthrough`, next to Wing Gambit's `wingMelee`). A Desperado that falls returns the Tempo through `onDesperadoDeath`. The AI plays them like the older cards (`plan` in `gambits.ts`): Breakthrough in the lane where its pieces push at the weakest Bastion, Pin like Check, Desperado on a hurt piece in a fight with an enemy in reach, Fortify on a front Bastion under 80% health with 2+ enemy pieces or 4+ units near. In the 3D view: Pin draws a brass base ring on the piece and a line of light to the one behind it, Desperado a beating red rim, Fortify a stone flare and a shield segment on the Bastion's bar.
 
@@ -199,14 +199,14 @@ Every gambit belongs to one of six **schools**. Each card shows its school's col
 
 - **Line bonus:** not yet.
 - **Cards by school** (★ = new in wave 1 or wave 3):
-  - March: Advance, Pawn Storm, Siege (Rook), ★Breakthrough (10: your next wave in a lane brings 6 extra melee pawnlings).
-  - Initiative: Check, Fork (Knight), ★Pin (14: an enemy piece cannot move for 4 s; the piece behind it is slowed), ★Desperado (10: a piece under 40% health deals +120% for 6 s; Tempo back if it falls).
-  - Fortress: Hold the File, Castle (King), Sanctuary (Bishop), ★Fortify (14: a shield of 40% of a Bastion's health for 20 s).
-  - Sacrifice: Queen's Gambit (Queen), ★Pawn Sacrifice (10 + one of your pawns: a burst of two and a half times its health on the nearest enemy Bastion in that lane), ★Exchange (10: a piece gives up 25% of its health; your team +44% damage for 10 s), ★Poisoned Pawn (8: mark a pawn for 20 s; whoever kills it is slowed for 6 s and loses 25 Tempo).
-  - Position: Regroup, ★Barricade (14: seal a gate path or bridge for 20 s), ★Open File (10: allies +38% move speed in one lane for 15 s), ★Outpost (16: a banner; allies near it get +60 armor and resist for 25 s).
+  - March: Advance, Pawn Storm, Siege (Rook), ★Breakthrough (10: your next wave in a lane brings 9 extra melee pawnlings).
+  - Initiative: Check, Fork (Knight), ★Pin (14: an enemy piece cannot move for 5 s; the piece behind it is slowed), ★Desperado (10: a piece under 40% health deals +180% for 6 s; Tempo back if it falls).
+  - Fortress: Hold the File, Castle (King), Sanctuary (Bishop), ★Fortify (14: a shield of 60% of a Bastion's health for 20 s).
+  - Sacrifice: Queen's Gambit (Queen), ★Pawn Sacrifice (10 + one of your pawns: a burst of two and a half times its health on the nearest enemy Bastion in that lane), ★Exchange (10: a piece gives up 25% of its health; your team +66% damage for 10 s), ★Poisoned Pawn (8: mark a pawn for 20 s; whoever kills it is slowed for 6 s and loses 35 Tempo).
+  - Position: Regroup, ★Barricade (14: seal a gate path or bridge for 20 s), ★Open File (10: allies +57% move speed in one lane for 15 s), ★Outpost (16: a banner; allies near it get +90 armor and resist for 25 s).
   - Clock (built 2026-10-18, [spec](SPEC-GAMBITS-OPENINGS-2026-10-18.md) phase A; the original fourth card "Blitz" is **Increment**, since Blitz is now the short pace): all four are universal, target nothing and weigh 1.5.
     - **Zugzwang** (10): the enemy discards its dearest card in hand at its own price (14 or more, `minCost`; ties: the left-most); that slot refills after 15 s (`refillSec`) instead of 6. It cannot be played while the enemy holds no such card (the hand says so).
-    - **Time Trouble** (14): the enemy loses 30 Tempo now (never below 0) and earns all Tempo 30% slower for 20 s (`drain`, `incomeMul`; one rule in `addTempo`).
+    - **Time Trouble** (14): the enemy loses 40 Tempo now (never below 0) and earns all Tempo 30% slower for 20 s (`drain`, `incomeMul`; one rule in `addTempo`).
     - **Opening Book** (8): every other card in your hand is redealt from your Opening's two schools (from any school for the Italian Game), each with a fresh 40 s, except the opening card while it is still held, which stays; the book's own slot refills as usual. Empty slots are left to refill.
     - **Increment** (6): for 30 s each card you play gives back 5 Tempo (`refund`), never so much that a card nets below 3 (`gambits.minCost`). The give-back is income (Time Trouble slows it); card spending counts the full price.
     - **Where they show:** Clock cards have no board effect. White's Tempo meter shows "Slowed 12s" (seal red, the bar too) while Time Trouble runs on White and "+5 a card · 25s" while Increment runs; a slot Zugzwang emptied reads "Discarded by Zugzwang" with its 15 s refill bar. The `clock` school cue plays for them.

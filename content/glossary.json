@@ -276,7 +276,7 @@
     "id": "blitz",
     "term": "Blitz",
     "aliases": ["Blitz", "blitz"],
-    "short": "The short pace: at most 3 Acts of 3 minutes, with the Endgame rule from Act 2 and weaker Thrones.",
+    "short": "The short pace: at most 3 Acts of the usual length, with the Endgame rule from Act 2 and weaker Thrones.",
     "more": "Thrones have 2400 health instead of 3800 and take 150% more damage in the Endgame. If Act 3 ends without Checkmate the match is decided on points. Phones start on Blitz.",
     "see": ["classical", "adjudication", "act"],
     "group": "Match"
