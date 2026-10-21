@@ -11,34 +11,34 @@
       "tempoBonus": 0,
       "counterOpening": false,
       "relicMax": 0,
-      "aiPawnShare": 0.97
+      "aiPawnShare": 1.0
     },
     {
       "round": 2,
       "name": "County",
-      "relics": 3,
-      "tempoBonus": 20,
+      "relics": 4,
+      "tempoBonus": 30,
       "counterOpening": false,
-      "relicMax": 4,
-      "aiPawnShare": 0.87
+      "relicMax": 5,
+      "aiPawnShare": 0.8
     },
     {
       "round": 3,
       "name": "Semifinal",
-      "relics": 4,
-      "tempoBonus": 30,
+      "relics": 5,
+      "tempoBonus": 40,
       "counterOpening": true,
-      "relicMax": 5,
-      "aiPawnShare": 0.85
+      "relicMax": 6,
+      "aiPawnShare": 0.78
     },
     {
       "round": 4,
       "name": "Final",
-      "relics": 7,
+      "relics": 8,
       "tempoBonus": 60,
       "counterOpening": true,
-      "relicMax": 7,
-      "aiPawnShare": 0.75
+      "relicMax": 8,
+      "aiPawnShare": 0.7
     }
   ],
   "finalName": "The Black Queen's Court",
