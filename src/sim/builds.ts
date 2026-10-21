@@ -429,7 +429,11 @@ function quality(c: Content, t: Tuning, subj: BuildSubject, card: OfferCard, at:
   return scoreCard(c, t, subj, card, at) - t.builds.ai.grade[reach];
 }
 
-/** Every card would make the build worse (each scores under `builds.ai.passBelow`): the AI passes. */
+/**
+ * Every card would make the build worse (what each adds, its score without the grade, is under
+ * `builds.ai.passBelow`: it would replace a card worth as much or more): the AI passes for gold.
+ * Read after the rerolls, so it passes only on an offer it could not reroll into a better one.
+ */
 function nothingFits(
   c: Content,
   t: Tuning,
@@ -437,7 +441,7 @@ function nothingFits(
   cards: readonly OfferCard[],
   at: number,
 ): boolean {
-  return cards.every((card) => scoreCard(c, t, subj, card, at) < t.builds.ai.passBelow);
+  return cards.every((card) => quality(c, t, subj, card, at) < t.builds.ai.passBelow);
 }
 
 // ---- "Pick for me": the AI's pick for every piece, and the 1-2 picks that matter most ----

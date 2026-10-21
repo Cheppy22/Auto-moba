@@ -916,7 +916,7 @@ const BuildsTuningSchema = z.object({
     offStat: z.number(),
     /** Reroll while the offer's best score without its grade is under this. */
     rerollBelow: z.number(),
-    /** Pass when every card scores under this (each would make the build worse). */
+    /** Pass when every card's score without its grade is under this (each would make the build worse). */
     passBelow: z.number(),
     maxRerolls: z.number().int(),
     /** Paid rerolls a piece may take when its gold covers every upgrade it still wants... */

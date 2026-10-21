@@ -263,7 +263,7 @@
         {
           "stat": "soulPower",
           "kind": "add",
-          "value": 8
+          "value": 4
         },
         {
           "stat": "range",
@@ -273,7 +273,7 @@
         {
           "stat": "maxHp",
           "kind": "mul",
-          "value": 0.95
+          "value": 0.92
         },
         {
           "stat": "cdr",
@@ -377,7 +377,7 @@
         {
           "stat": "maxHp",
           "kind": "add",
-          "value": 300
+          "value": 360
         },
         {
           "stat": "armor",
@@ -392,7 +392,7 @@
         {
           "stat": "bladeDmg",
           "kind": "add",
-          "value": 22
+          "value": 32
         },
         {
           "stat": "soulPower",

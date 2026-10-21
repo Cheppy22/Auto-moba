@@ -1125,7 +1125,7 @@ function plan(ctx: Ctx, team: PlayTeam, def: GambitDef, nested = false): Plan | 
       const r = teamPiece(ctx, team, 'rook');
       if (!k?.alive || !r?.alive) return null;
       // the King is hurt in a fight and the Rook stands somewhere safer: swap them
-      if (hpPct(k) > 0.45 || hpPct(r) < 0.5 || !inFight(ctx, k)) return null;
+      if (hpPct(k) > 0.55 || hpPct(r) < 0.5 || !inFight(ctx, k)) return null;
       const atKing = countNear(ctx, foe, k.x, k.y, 320, isPiece);
       if (atKing === 0) return null;
       if (countNear(ctx, foe, r.x, r.y, 380, isPiece) >= atKing) return null;
@@ -1482,6 +1482,15 @@ function aiGambits(ctx: Ctx, team: PlayTeam): void {
     want.plan.score >= best.plan.score + ctx.t.gambits.aiWaitMargin
   )
     return;
-  if (ctx.s.tempo[team] - best.cost < ctx.t.pawns.aiCardReserve) return;
-  playGambit(ctx, team, best.slot, best.plan.target);
+  const reserve = ctx.t.pawns.aiCardReserve;
+  const s = ctx.s;
+  const incr = s.hands[team][best.slot].cardId === 'increment';
+  // Increment pays only with the card it refunds played at once: the AI plays the pair together
+  // or neither (alone it was 7 Tempo spent, and the next card waited for the pawns' share)
+  const extra = incr ? otherCardsCost(ctx, team, ctx.c.gambitById.get('increment')!) : 0;
+  if (s.tempo[team] - best.cost - extra < reserve) return;
+  if (!playGambit(ctx, team, best.slot, best.plan.target).ok || !incr) return;
+  const next = aiCardPick(ctx, team);
+  if (next && s.tempo[team] - next.cost >= reserve)
+    playGambit(ctx, team, next.slot, next.plan.target);
 }

@@ -477,7 +477,7 @@ describe('filters and conditions', () => {
 });
 
 describe('movement, retreat and Rank 8', () => {
-  it('Shove: heavy hits knock pieces back three times as far (cap included)', () => {
+  it('Shove: heavy hits knock pieces back its multiple as far (cap included)', () => {
     const kb = (withShove: boolean) => {
       const m = arena();
       const r = P(m, 'A', 'rook');
@@ -493,7 +493,8 @@ describe('movement, retreat and Rank 8', () => {
     };
     const base = kb(false);
     expect(base).toBeGreaterThan(0);
-    expect(kb(true)).toBeCloseTo(base * 3, 3);
+    const mul = arena().ctx.c.techniqueById.get('shove')!.knockbackMul!;
+    expect(kb(true)).toBeCloseTo(base * mul, 3);
   });
 
   it('Rook Lift: File Charge dashes farther and pushes its target', () => {

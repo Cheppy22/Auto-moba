@@ -227,11 +227,11 @@
           "everySec": 1,
           "target": "self",
           "custom": "outOfCombat",
-          "param": 4,
+          "param": 3,
           "effects": [
             {
               "type": "heal",
-              "maxHpPct": 0.03
+              "maxHpPct": 0.05
             }
           ]
         }
@@ -415,7 +415,7 @@
       "school": "position",
       "slot": "attack",
       "pool": "common",
-      "knockbackMul": 3,
+      "knockbackMul": 4,
       "playsLike": "Peels attackers off allies, breaks enemy lines.",
       "desc": "{r|Shove}: its heavy hits knock pieces back {knockbackMul|num} times as far."
     },
@@ -1355,7 +1355,7 @@
           "effects": [
             {
               "type": "echo",
-              "share": 1
+              "share": 0.85
             }
           ],
           "radius": 150
@@ -1394,7 +1394,7 @@
             {
               "type": "recast",
               "delaySec": 1,
-              "share": 0.7,
+              "share": 0.85,
               "bothStunSec": 0.8
             }
           ]
@@ -1607,7 +1607,7 @@
           "effects": [
             {
               "type": "push",
-              "distance": 60
+              "distance": 80
             }
           ],
           "vs": "hero"
@@ -1620,7 +1620,7 @@
             {
               "type": "damage",
               "dmgType": "blade",
-              "bladeScale": 2.5
+              "bladeScale": 3.5
             }
           ],
           "vs": "structure"

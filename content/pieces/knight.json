@@ -145,7 +145,7 @@
         {
           "stat": "bladeDmg",
           "kind": "mul",
-          "value": 1.12
+          "value": 1.18
         },
         {
           "stat": "atkSpeed",
@@ -160,7 +160,7 @@
         {
           "stat": "armor",
           "kind": "add",
-          "value": -4
+          "value": 0
         }
       ],
       "passives": [
@@ -261,12 +261,12 @@
         {
           "stat": "bladeDmg",
           "kind": "mul",
-          "value": 1.05
+          "value": 1.0
         },
         {
           "stat": "maxHp",
           "kind": "mul",
-          "value": 1.05
+          "value": 1.0
         }
       ],
       "passives": [

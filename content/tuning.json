@@ -44,15 +44,15 @@
       "school": 0.4,
       "combination": 1.5,
       "parent": 0.15,
-      "parentReady": 0.6,
+      "parentReady": 0.35,
       "jitter": 0.4,
       "value": 1,
       "offStat": -0.8,
       "rerollBelow": 0.9,
-      "passBelow": 0.25,
+      "passBelow": 0,
       "maxRerolls": 1,
-      "richRerolls": 6,
-      "rerollBelowRich": 1.5
+      "richRerolls": 8,
+      "rerollBelowRich": 2
     },
     "advice": {
       "gradeStakes": [0, 0.3, 0.6],
@@ -86,7 +86,7 @@
     "planReserve": 40,
     "planQuota": { "top": 2, "mid": 2, "bot": 2 },
     "aiCardReserve": 40,
-    "aiPawnShare": 0.87
+    "aiPawnShare": 0.89
   },
   "relics": {
     "max": 3,

@@ -249,12 +249,12 @@
         {
           "stat": "maxHp",
           "kind": "add",
-          "value": 360
+          "value": 420
         },
         {
           "stat": "armor",
           "kind": "add",
-          "value": 16
+          "value": 20
         },
         {
           "stat": "resist",
@@ -264,7 +264,7 @@
         {
           "stat": "bladeDmg",
           "kind": "mul",
-          "value": 1.2
+          "value": 1.3
         },
         {
           "stat": "atkSpeed",
@@ -379,7 +379,7 @@
         {
           "stat": "range",
           "kind": "add",
-          "value": 55
+          "value": 45
         },
         {
           "stat": "bladeDmg",
@@ -394,7 +394,7 @@
         {
           "stat": "maxHp",
           "kind": "mul",
-          "value": 0.86
+          "value": 0.82
         },
         {
           "stat": "moveSpeed",
