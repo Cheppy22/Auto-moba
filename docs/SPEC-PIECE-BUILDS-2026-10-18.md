@@ -436,3 +436,24 @@ Built on branch `wip/techniques-ui-b` (from `wip/techniques-retire`; it also mer
 **Also fixed (mobile spec, found on the merged tree):** the portrait piece card with six slots and the trays covered the middle of the screen; the slot tiles are three a row held upright, and Black's card in the stack HUD ends at the middle of the screen and scrolls inside (`hud2.css`).
 
 **Not built:** the Setup "Last Act" line (nothing to count), a Reroll or Upgrade control outside the break (spec 4.1: break only), Black's first moves on the in-match Setup page (they are on the Draw and the Spoils).
+
+## Build notes: balance batch 2, agency and balance (2026-10-20/21)
+
+Built on branch `wip/fix-balance` (from `proposal/next`, merged with the UI bug and visual polish batches before the confirmation runs). From [REVIEW-GAME-FEATURES-2026-10-18.md](REVIEW-GAME-FEATURES-2026-10-18.md) design 2–5, 7, 8 and bugs 2–4. Runs and numbers: [BALANCE-2026-10-20.md](BALANCE-2026-10-20.md). Rules as built: [CHESS.md](CHESS.md) "Piece builds: Techniques".
+
+**Built:**
+
+1. **Techniques ignore the Opening** (owner decision A): draws are even by school (schools a piece holds still 1.5×); the AI's school bonus for the Opening's schools is gone. Openings now span 46.3–53.0% over 1,600 matches (before 42.6–58.3%).
+2. **Clamp, Counterplay, Bind** (owner decision B): the Techniques once named Pin, Desperado and Zugzwang; saved runs and court first moves renamed on load.
+3. **Measured worth in the AI's score:** `content/technique-values.json` holds each Technique's win-rate edge per grade (`tools/technique-values.ts`, measured against its grade's average and shrunk toward 0 for small samples; re-measured on 600 matches on 2026-10-21). `scoreCard` adds it (`builds.ai.value`), subtracts the replaced card's, takes −0.8 for a card built on the damage stat the piece is not built on (`offStat`, its archetype's `mainStat` or its higher base stat; the Zealot fights with Blade), and counts a card at the grade the piece's spare gold will upgrade it to. **Pick for me** stars a piece when two cards for different slots score close together (a real choice) or a card is measured strong; a clear pick only counts in part.
+4. **Rerolls and passes by value:** reroll while the best card adds under 0.9 (without its grade, which a reroll keeps); a piece whose gold covers every upgrade it still wants holds out under 2, up to 8 paid rerolls; pass (+150 gold) after the rerolls when no card adds anything. 19.2 rerolls and 0.31 passes a match (before 0.13 and 0); gold left after break 4: about 640 (before 2,050).
+5. **Resume spends every piece's gold** unless the player bought an upgrade or reroll for it by hand at that break (a player who picked every card got no upgrades).
+6. **Last-offer Combinations:** at the match's last offer (Blitz's second break) a pick that completes a pair takes its Combination at once, and the card says so; the "next offer" promise is gone there.
+7. **Combinations and parents:** parent bonus 0.6 → 0.15, ready-pair bonus 1 → 0.35; weak Combinations up (Bind, Steamroller, Swindle), Castle Wall down; Shove and Deep Breath up.
+8. **Archetypes** (two passes): Duelist and Zealot up, Huntress, Shadow, Errant, Warlord and Sovereign down, Lancer up.
+
+**Where the build differs from the brief, and why:**
+
+1. **Combination parents 10–60%:** the strong parents came down (Shared Guard 88 → 74%, Family Fork 84 → 52%, Rallying Cry 82 → 56%, Echoing Decree 84 → 20%), but with a card's measured worth in the score the weakest parents are now rarely taken (Shove 4%, Toll 4%, Ambush 6%, Battering Hits 8%): the AI correctly avoids cards that measure weak. The fix is to make those cards stronger and re-measure, not to bribe the AI to take them.
+2. **Archetypes ~45–55%:** Duelist 37.0 → 45.1%, Huntress 59.6 → 55.9%, but Zealot 43.4% and Shadow 58.1% are still outside (1,600 matches).
+3. **Combination win when held 45–55%:** most sit at 49–51%; Windmill 44.0%, Bind 41.5% and Sanctified 42.4% are low.

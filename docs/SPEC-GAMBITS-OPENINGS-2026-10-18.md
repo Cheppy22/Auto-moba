@@ -223,3 +223,23 @@ A and B can run in parallel; both touch `src/sim/gambits.ts` and `content/gambit
 - SOURCE_OF_TRUTH's dated docs list (this file is already linked).
 - A balance report for the runs.
 - No reversed decision: Refute stays out, and the counter table is unchanged.
+
+## Build notes: phase D, balance batch 2 (2026-10-20/21)
+
+Built on branch `wip/fix-balance` with the Techniques balance pass ([SPEC-PIECE-BUILDS-2026-10-18.md](SPEC-PIECE-BUILDS-2026-10-18.md) "Build notes: balance batch 2"). Runs: [BALANCE-2026-10-20.md](BALANCE-2026-10-20.md). Rules as built: [CHESS.md](CHESS.md) "Gambits", "Gambit schools", "Blitz and Classical", "Tournament run".
+
+**Built:**
+
+1. **Card numbers:** every card's bonus part doubled from the 2026-10-14 numbers (Check +60%, Queen's Gambit +120%, Fork stuns 2.5 s, Fortify 40%, ...), Pawn Sacrifice trimmed (7 → 10 Tempo, burst 3× → 2.5×), then every other card a fifth cheaper (6–24 Tempo; Zugzwang's line 17 → 14).
+2. **AI card plans:** the piece cards score higher (Castle when the King is under 55% in a fight and the Rook is safer, Queen's Gambit, Siege, Sanctuary, Fork); the AI waits for a dearer card that fits clearly better (`gambits.aiWaitMargin` 0.3); it plays Increment only together with the card it refunds; Zugzwang only denies a card the enemy would play now. AI card share 13% → 7% of its Tempo (`pawns.aiPawnShare` 0.93).
+3. **The Italian Game** holds the first card of its three-school hand as its opening card (drawn, not named).
+4. **Book move** (owner decision C): a Spoils card offers 3 gambit cards (never the court's Opening card); the one picked starts in the first hand of every later match of the run, held like an opening card; one per run (a new one replaces it). Let the AI choose values an heirloom at 900 gold plus 400 per unit of its Technique's measured worth, a book move at 850, and takes the book card of its Opening's schools, else the cheapest.
+5. **Blitz:** Endgame Thrones take +150% (Classical +50%) and start at 2400 health; `blitz.actSec` exists (240).
+6. **Relic draft:** the tailored card is any relic of the answering family (Sortie, Curtain Wall, Royal Keep...), not always the Rally relic.
+7. **County round:** starts with 2 relics and +10 Tempo, cap 3.
+
+**Where the build differs from the brief, and why:**
+
+1. **Card player 55–60%:** not reached. The card-a-minute stand-in won 50–53% in every configuration tried (cards ×1.5 or ×2, ×0.8 or full price, AI card share 13%, 11%, 9% or 7%): the pawn plan's lane quotas leave Tempo unspent, so a card's price does not limit the player, and stronger cards help Black's AI about as much. What did change is the idle player, who now loses clearly (see the runs).
+2. **Blitz points matches ~10 min:** Acts of 200 s and 180 s sent 42–44% of matches to points; with 240 s Acts and stronger Thrones 20.5% end on points, but a points match still lasts the full three Acts (13.1 min).
+3. **Dead piece cards:** the AI now plays each piece card 0.1–0.17 times a match (before 0.02–0.11) and Castle stays at 0.04; the card player plays Fork, Queen's Gambit, Sanctuary and Siege about 0.3–0.6 times. Pawn Sacrifice fell from 1.5 to 1.0 plays a match and is still the most played card.
