@@ -572,7 +572,7 @@ html[data-layout='desktop'] .hud.v2 {
   height: calc(32px * var(--u));
 }
 .hud.v2 .pts-label {
-  font-size: calc(var(--fs-xs) * var(--u));
+  font-size: max(var(--fs-xs), calc(9.5px * var(--u)));
   letter-spacing: 0.03em;
   white-space: nowrap;
 }
@@ -593,11 +593,11 @@ html[data-layout='desktop'] .hud.v2 {
   font-size: calc(12px * var(--u));
 }
 .hud.v2 .tray-time {
-  font-size: calc(var(--fs-xs) * var(--u));
+  font-size: max(var(--fs-xs), calc(10px * var(--u)));
 }
 .hud.v2 .btoken-rank,
 .roster.row .rname {
-  font-size: calc(var(--fs-xs) * var(--u));
+  font-size: max(var(--fs-xs), calc(10.5px * var(--u)));
 }
 .hud.v2 .tray-item > svg {
   width: calc(24px * var(--u));
@@ -610,14 +610,14 @@ html[data-layout='desktop'] .hud.v2 {
 .hud.v2 .roster.row .rank-num {
   width: calc(18px * var(--u));
   height: calc(18px * var(--u));
-  font-size: calc(var(--fs-xs) * var(--u));
+  font-size: max(var(--fs-xs), calc(11.5px * var(--u)));
 }
 .hud.v2 .roster.row .lane-tag {
-  font-size: calc(var(--fs-xs) * var(--u));
+  font-size: max(var(--fs-xs), calc(11px * var(--u)));
   line-height: calc(14px * var(--u));
 }
 .hud.v2 .roster.row .roster-cell .fall i {
-  font-size: calc(var(--fs-xs) * var(--u));
+  font-size: max(var(--fs-xs), calc(10px * var(--u)));
 }
 .hud.v2 .roster.row .style-badge {
   width: calc(18px * var(--u));
@@ -633,7 +633,7 @@ html[data-layout='desktop'] .hud.v2 {
   height: calc(26px * var(--u));
 }
 .hud.v2 .pawn-text span {
-  font-size: calc(var(--fs-xs) * var(--u));
+  font-size: max(var(--fs-xs), calc(11.5px * var(--u)));
 }
 .hud.v2 .gname {
   font-size: calc(13px * var(--u));
@@ -644,7 +644,7 @@ html[data-layout='desktop'] .hud.v2 {
   font-size: calc(12px * var(--u));
 }
 .hud.v2 .gstate {
-  font-size: calc(var(--fs-xs) * var(--u));
+  font-size: max(var(--fs-xs), calc(11px * var(--u)));
 }
 .hud.v2 .relic-icon {
   width: calc(36px * var(--u));
@@ -879,7 +879,7 @@ html[data-layout='desktop'] .hud.v2 {
   height: calc(14px * var(--u));
   padding: 0 2px;
   font-style: normal;
-  font-size: calc(var(--fs-xs) * var(--u));
+  font-size: max(var(--fs-xs), calc(10px * var(--u)));
   font-weight: 700;
   line-height: 1;
   color: var(--b-trim);
@@ -1178,4 +1178,10 @@ html[data-layout='desktop'] .hud.v2 {
 .hud.v2:not([data-shape='side']) .v2-bottom:has(.v2-drawer[data-open='true']) .roster.row .fall,
 .hud.v2:not([data-shape='side']) .v2-bottom:has(.v2-drawer[data-open='true']) .relic-row {
   display: none;
+}
+/* a landscape phone's one-row top bar: at the 12 px floor the score labels drop " pts" there too */
+@media (max-height: 520px) {
+  .hud.v2[data-shape='side'] .pts-tail {
+    display: none;
+  }
 }
