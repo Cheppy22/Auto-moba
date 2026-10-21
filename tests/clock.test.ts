@@ -66,7 +66,8 @@ describe('Clock school cards', () => {
     const m = quiet(302);
     setHand(m, 'B', ['zugzwang', null, null]);
     m.state.tempo.B = 100;
-    setHand(m, 'A', ['advance', 'queens_gambit', 'check']);
+    // White's dearest card is one it would play now (Time Trouble fits: Black holds 45+ Tempo)
+    setHand(m, 'A', ['advance', 'time_trouble', 'open_file']);
     m.state.tempo.A = 50;
     expect(aiCardPick(m.ctx, 'B', true)?.slot).toBe(0);
     expect(playGambit(m.ctx, 'B', 0, {}).ok).toBe(true);
@@ -243,16 +244,21 @@ describe('Clock school AI plans', () => {
     expect(pickFor(m, 'time_trouble')).toBeNull();
   });
 
-  it('Zugzwang fires when the enemy holds a 17+ card and nearly the Tempo for it', () => {
+  it('Zugzwang fires when the enemy holds a dear card it would play now and nearly the Tempo', () => {
     const m = quiet(321);
+    m.state.tempo.B = 60; // White's Time Trouble fits (Black holds 45+)
     setHand(m, 'A', ['advance', 'open_file', null]);
     m.state.tempo.A = 90;
     expect(pickFor(m, 'zugzwang')).toBeNull();
-    setHand(m, 'A', ['advance', 'fork', null]);
-    m.state.tempo.A = 5;
+    setHand(m, 'A', ['advance', 'time_trouble', null]);
+    m.state.tempo.A = 2;
     expect(pickFor(m, 'zugzwang')).toBeNull();
-    m.state.tempo.A = card('fork').cost - 5;
+    m.state.tempo.A = card('time_trouble').cost - 5;
     expect(pickFor(m, 'zugzwang')!.plan.score).toBeGreaterThanOrEqual(1);
+    // a dear card with no use on the board yet (Fork with no enemy in the Knight's reach) is left
+    setHand(m, 'A', ['advance', 'fork', null]);
+    m.state.tempo.A = 90;
+    expect(pickFor(m, 'zugzwang')).toBeNull();
   });
 
   it('Increment fires with the Tempo for itself and another card ready to play, ahead of it', () => {
