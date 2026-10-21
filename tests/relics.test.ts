@@ -580,11 +580,17 @@ describe('wave 2 relic effects', () => {
     expect(outcomes(m)).toEqual(['fired']);
 
     onActStart(m.ctx);
-    m.state.tempo.A = 0;
     m.state.relics.run.enemyDown.A = true;
-    m.step(20 * 4);
+    // held below the card's price (whatever it costs) for the whole wait
+    const broke = (ticks: number): void => {
+      for (let i = 0; i < ticks; i++) {
+        m.state.tempo.A = 0;
+        m.step(1);
+      }
+    };
+    broke(20 * 4);
     expect(outcomes(m)).toEqual(['fired']);
-    m.step(20 * 3);
+    broke(20 * 3);
     expect(outcomes(m)).toEqual(['fired', 'lapsed']);
   });
 

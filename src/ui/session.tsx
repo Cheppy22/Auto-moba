@@ -1138,7 +1138,8 @@ export class Session {
       this.lastLeft = null;
       return;
     }
-    const t = this.content.tuning;
+    // the match's own tuning: a Blitz Act is shorter than a Classical one
+    const t = m.content.tuning;
     const left = t.phaseSeconds - (st.tick - st.phase.startTick) / t.tickRate;
     const prev = this.lastLeft;
     this.lastLeft = left;

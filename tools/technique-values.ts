@@ -71,7 +71,7 @@ for (const id of [...rows.keys()].sort()) {
     `${id.padEnd(24)} held ${String(held).padStart(5)}  win ${((100 * won) / Math.max(1, held)).toFixed(1)}%  value ${value.join(' / ')}  effect/holder ${Math.round(row.effect / Math.max(1, held))}`,
   );
 }
-const source = `${finished.length} AI-vs-AI matches (${files.map((f) => f.split('/').pop()).join(', ')}), K ${K}; grade baselines ${base.map((b) => (100 * b).toFixed(1) + '%').join(' / ')}`;
+const source = `${finished.length} matches with AI builds (${files.map((f) => f.split('/').pop()).join(', ')}), K ${K}; grade baselines ${base.map((b) => (100 * b).toFixed(1) + '%').join(' / ')}`;
 writeFileSync(
   new URL('../content/technique-values.json', import.meta.url),
   JSON.stringify({ source, techniques: out }, null, 2) + '\n',

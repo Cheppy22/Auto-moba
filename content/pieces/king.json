@@ -283,7 +283,7 @@
         {
           "stat": "soulPower",
           "kind": "add",
-          "value": 22
+          "value": 18
         },
         {
           "stat": "cdr",

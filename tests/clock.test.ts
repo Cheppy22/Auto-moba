@@ -33,15 +33,15 @@ const gambitEvents = (m: Match): Extract<GameEvent, { type: 'gambit' }>['payload
   m.events.flatMap((e) => (e.type === 'gambit' ? [e.payload] : []));
 
 describe('Clock school cards', () => {
-  it('Zugzwang discards the enemy’s dearest card of 17+ and that slot refills after 15 s', () => {
+  it('Zugzwang discards the enemy’s dearest card at its line and that slot refills after its time', () => {
     const m = quiet(301);
     setHand(m, 'A', ['zugzwang', 'advance', null]);
     m.state.tempo.A = 100;
     // nothing dear enough in Black's hand: the card cannot be played
     setHand(m, 'B', ['advance', 'hold_the_file', 'open_file']);
     expect(m.snapshot().hand[0]).toMatchObject({ usable: false, school: 'clock' });
-    expect(play(m).reason).toMatch(/17\+/);
-    // Fork (30) is dearer than Check (20); Advance (10) is below the line
+    expect(play(m).reason).toMatch(new RegExp(`${param('zugzwang', 'minCost')}\\+`));
+    // Fork is dearer than Check; Advance is below the line
     setHand(m, 'B', ['check', 'advance', 'fork']);
     const tempo = m.state.tempo.A;
     expect(play(m).ok).toBe(true);

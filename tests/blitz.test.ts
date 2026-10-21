@@ -6,14 +6,15 @@ const B = content.tuning.blitz;
 const blitz = (seed: number): Match => liveMatch(seed, { map: 'long', pace: 'blitz' });
 
 describe('Blitz pace', () => {
-  it('changes only the Act cap, the Endgame Act and Throne health; Classical is the same object', () => {
+  it('changes only the Act cap and length, the Endgame Act and Throne health; Classical is the same object', () => {
     expect(contentFor(content, undefined)).toBe(content);
     expect(contentFor(content, undefined, 'classical')).toBe(content);
     const long = contentFor(content, 'long');
     const fast = contentFor(content, 'long', 'blitz');
     expect(fast.tuning.maxPhases).toBe(B.maxActs);
     expect(fast.tuning.guardian.hp).toBe(B.throneHp);
-    expect(fast.tuning.phaseSeconds).toBe(long.tuning.phaseSeconds);
+    expect(fast.tuning.phaseSeconds).toBe(B.actSec);
+    expect(long.tuning.phaseSeconds).toBe(content.longBoard!.tuning.phaseSeconds);
     expect(fast.pressure.find((e) => e.rules.includes('endgame'))!.fromPhase).toBe(B.endgameAct);
     expect(long.pressure.find((e) => e.rules.includes('endgame'))!.fromPhase).toBe(7);
     expect(long.tuning.guardian.hp).toBe(content.tuning.guardian.hp);

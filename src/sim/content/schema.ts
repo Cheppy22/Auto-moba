@@ -949,12 +949,14 @@ export const TuningSchema = z.object({
   passiveGoldPerSec: z.number(),
   maxPhases: z.number().int(),
   /**
-   * Blitz pace (`MatchConfig.pace: 'blitz'`, review 4.2 item 2B): the same 240 s Acts, but at most
-   * `maxActs` of them, the Endgame rule from `endgameAct` and Thrones at `throneHp`. A match with
-   * no Checkmate when the last Act ends is adjudicated. Classical ignores this block.
+   * Blitz pace (`MatchConfig.pace: 'blitz'`, review 4.2 item 2B): at most `maxActs` Acts of
+   * `actSec` seconds, the Endgame rule from `endgameAct` and Thrones at `throneHp`. A match with no
+   * Checkmate when the last Act ends is adjudicated. Classical ignores this block.
    */
   blitz: z.object({
     maxActs: z.number().int(),
+    /** Seconds of play per Blitz Act (Classical: `phaseSeconds`), so a match on points lasts about 10 min. */
+    actSec: z.number(),
     endgameAct: z.number().int(),
     throneHp: z.number(),
     /** Endgame in Blitz: Thrones take this many times their damage (Classical: the pressure event's 1.5). */

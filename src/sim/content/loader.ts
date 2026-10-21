@@ -130,7 +130,10 @@ export function contentFor(
 /** A match's pace: Classical is the full match, Blitz the short one (`tuning.blitz`). */
 export type MatchPace = 'classical' | 'blitz';
 
-/** Blitz: at most `blitz.maxActs` Acts, the Endgame rule from `blitz.endgameAct`, `blitz.throneHp` Thrones. */
+/**
+ * Blitz: at most `blitz.maxActs` Acts of `blitz.actSec`, the Endgame rule from `blitz.endgameAct`,
+ * `blitz.throneHp` Thrones.
+ */
 function blitzContent(c: Content): Content {
   const b = c.tuning.blitz;
   return {
@@ -138,6 +141,7 @@ function blitzContent(c: Content): Content {
     tuning: {
       ...c.tuning,
       maxPhases: b.maxActs,
+      phaseSeconds: b.actSec,
       guardian: { ...c.tuning.guardian, hp: b.throneHp },
     },
     // Blitz's Endgame comes sooner and hits Thrones harder, so a short match ends in Checkmate

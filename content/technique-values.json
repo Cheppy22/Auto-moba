@@ -1,425 +1,425 @@
 {
-  "source": "799 AI-vs-AI matches (balance-long-data0.json), K 150; grade baselines 57.4% / 44.0% / 51.4%",
+  "source": "600 matches with AI builds (balance-long-p3ai.json, balance-player60-long-p3card.json, balance-no-gambits-A-player-long-p3idle.json), K 150; grade baselines 52.0% / 45.9% / 51.1%",
   "techniques": {
     "ambush": {
-      "held": 635,
-      "winRate": 0.5,
-      "value": [-0.04, -0.2, 0.05]
+      "held": 482,
+      "winRate": 0.48,
+      "value": [-0.4, -0.42, 0]
     },
     "bastion_immovable": {
-      "held": 57,
-      "winRate": 0.54,
-      "value": [0.04, 0.15, 0.22]
+      "held": 102,
+      "winRate": 0.51,
+      "value": [0.24, 0.09, 0.04]
     },
     "bastion_keep": {
-      "held": 36,
-      "winRate": 0.33,
-      "value": [-0.31, -0.34, -0.54]
+      "held": 13,
+      "winRate": 0.85,
+      "value": [0.3, 0.34, 0.44]
     },
     "battering_hits": {
-      "held": 754,
+      "held": 244,
       "winRate": 0.46,
-      "value": [-0.19, -0.22, -0.5]
+      "value": [-0.3, -0.11, -0.45]
     },
     "bind": {
-      "held": 265,
-      "winRate": 0.45,
-      "value": [-0.38, -0.46, -0.49]
+      "held": 16,
+      "winRate": 0.31,
+      "value": [-0.19, -0.15, -0.39]
     },
     "blood_price": {
-      "held": 173,
-      "winRate": 0.5,
-      "value": [0.03, 0.1, 0.03]
+      "held": 183,
+      "winRate": 0.46,
+      "value": [-0.41, -0.16, 0.1]
     },
     "borrowed_years": {
-      "held": 109,
-      "winRate": 0.57,
-      "value": [0.35, 0.37, 0.55]
+      "held": 364,
+      "winRate": 0.49,
+      "value": [-0.29, 0.11, 0.23]
     },
     "castle_wall": {
-      "held": 142,
-      "winRate": 0.51,
-      "value": [0.04, -0.02, 0.11]
+      "held": 77,
+      "winRate": 0.48,
+      "value": [-0.09, -0.1, -0.14]
     },
     "clamp": {
-      "held": 729,
-      "winRate": 0.49,
-      "value": [-0.19, -0.28, -0.09]
+      "held": 325,
+      "winRate": 0.48,
+      "value": [-0.07, -0.15, -0.19]
     },
     "counter_gambit": {
-      "held": 701,
-      "winRate": 0.49,
-      "value": [-0.37, 0.03, -0.13]
+      "held": 447,
+      "winRate": 0.53,
+      "value": [0.19, 0.24, 0.2]
     },
     "counterplay": {
-      "held": 732,
+      "held": 162,
       "winRate": 0.49,
-      "value": [-0.24, 0.18, 0.02]
+      "value": [-0.1, 0.37, -0.1]
     },
     "deep_breath": {
-      "held": 327,
-      "winRate": 0.44,
-      "value": [-0.34, -0.29, -0.73]
+      "held": 54,
+      "winRate": 0.56,
+      "value": [0.14, 0.08, 0.34]
     },
     "discovered_attack": {
-      "held": 392,
-      "winRate": 0.55,
-      "value": [0.27, 0.01, 0.43]
+      "held": 201,
+      "winRate": 0.56,
+      "value": [0.27, 0.34, 0.36]
     },
     "drink_me": {
-      "held": 74,
-      "winRate": 0.57,
-      "value": [0.16, 0.52, 0.25]
+      "held": 205,
+      "winRate": 0.52,
+      "value": [0.25, 0.36, 0.01]
     },
     "duelist_cuts": {
-      "held": 95,
-      "winRate": 0.45,
-      "value": [-0.25, -0.25, -0.27]
+      "held": 63,
+      "winRate": 0.46,
+      "value": [-0.17, -0.04, -0.18]
     },
     "duelist_untouchable": {
-      "held": 37,
-      "winRate": 0.38,
-      "value": [-0.25, -0.3, -0.42]
+      "held": 44,
+      "winRate": 0.34,
+      "value": [-0.43, -0.52, -0.49]
     },
     "eat_me": {
-      "held": 39,
-      "winRate": 0.44,
-      "value": [-0.05, -0.1, -0.26]
+      "held": 27,
+      "winRate": 0.41,
+      "value": [-0.08, -0.18, -0.18]
     },
     "echoing_decree": {
-      "held": 929,
+      "held": 418,
       "winRate": 0.49,
-      "value": [-0.11, -0.71, -0.04]
+      "value": [-0.19, -0.14, -0.14]
     },
     "errant_hunter": {
-      "held": 62,
-      "winRate": 0.53,
-      "value": [0.02, 0.21, 0.03]
+      "held": 29,
+      "winRate": 0.38,
+      "value": [-0.19, -0.06, -0.47]
     },
     "errant_siegebreaker": {
-      "held": 149,
-      "winRate": 0.58,
-      "value": [0.51, 0.74, 0.25]
+      "held": 171,
+      "winRate": 0.54,
+      "value": [0.07, 0.19, 0.55]
     },
     "escort": {
-      "held": 142,
-      "winRate": 0.45,
-      "value": [-0.22, -0.1, -0.35]
+      "held": 69,
+      "winRate": 0.55,
+      "value": [0.28, 0.51, -0.02]
     },
     "family_fork": {
-      "held": 766,
-      "winRate": 0.51,
-      "value": [0.16, -0.43, 0.17]
+      "held": 559,
+      "winRate": 0.48,
+      "value": [0.12, -0.61, -0.12]
     },
     "fianchetto": {
-      "held": 181,
-      "winRate": 0.51,
-      "value": [-0.06, 0.2, -0.01]
+      "held": 360,
+      "winRate": 0.47,
+      "value": [-0.02, -0.4, -0.23]
     },
     "hit_and_run": {
-      "held": 552,
-      "winRate": 0.5,
-      "value": [0.18, -0.11, 0.03]
+      "held": 526,
+      "winRate": 0.48,
+      "value": [-0.13, 0.09, -0.3]
     },
     "hungry_mask": {
-      "held": 66,
-      "winRate": 0.61,
-      "value": [0.33, 0.44, 0.56]
+      "held": 280,
+      "winRate": 0.53,
+      "value": [0.06, 0.14, 0.54]
     },
     "hunters_mark": {
-      "held": 1089,
-      "winRate": 0.51,
-      "value": [0.19, 0.08, -0.02]
+      "held": 1017,
+      "winRate": 0.5,
+      "value": [0.24, -0.22, 0.03]
     },
     "huntress_kill": {
-      "held": 121,
-      "winRate": 0.59,
-      "value": [0.33, 0.55, 0.51]
+      "held": 176,
+      "winRate": 0.57,
+      "value": [0.32, 0.5, 0.58]
     },
     "huntress_split": {
-      "held": 119,
-      "winRate": 0.66,
-      "value": [0.71, 0.75, 1.09]
+      "held": 164,
+      "winRate": 0.56,
+      "value": [0.15, 0.38, 0.53]
     },
     "interdiction": {
-      "held": 419,
+      "held": 630,
       "winRate": 0.5,
-      "value": [-0.07, 0.33, -0.07]
+      "value": [0.21, 0, 0.02]
     },
     "kings_walk": {
-      "held": 342,
-      "winRate": 0.49,
-      "value": [0.01, -0.22, -0.1]
+      "held": 307,
+      "winRate": 0.5,
+      "value": [0.02, 0.09, 0.01]
     },
     "lancer_breakaway": {
-      "held": 42,
-      "winRate": 0.67,
-      "value": [0.36, 0.4, 0.62]
+      "held": 64,
+      "winRate": 0.47,
+      "value": [-0.11, 0.05, -0.31]
     },
     "lancer_skewer": {
-      "held": 120,
-      "winRate": 0.51,
-      "value": [-0.08, 0.12, -0.07]
+      "held": 106,
+      "winRate": 0.46,
+      "value": [-0.2, -0.3, -0.14]
     },
     "lantern_of_the_drowned": {
-      "held": 66,
-      "winRate": 0.42,
-      "value": [-0.2, -0.36, -0.11]
+      "held": 14,
+      "winRate": 0.57,
+      "value": [0.07, 0.06, 0.16]
     },
     "light_miracle": {
-      "held": 77,
-      "winRate": 0.36,
-      "value": [-0.45, -0.28, -0.92]
+      "held": 47,
+      "winRate": 0.47,
+      "value": [-0.11, 0.1, -0.17]
     },
     "light_wrath": {
-      "held": 67,
-      "winRate": 0.57,
-      "value": [0.14, 0.42, 0.22]
+      "held": 81,
+      "winRate": 0.53,
+      "value": [0.16, 0.25, 0.14]
     },
     "living_wall": {
-      "held": 743,
-      "winRate": 0.51,
-      "value": [0.26, -0.17, 0.11]
+      "held": 566,
+      "winRate": 0.5,
+      "value": [0.22, -0.17, -0.01]
     },
     "long_diagonal": {
-      "held": 680,
-      "winRate": 0.5,
-      "value": [-0.11, -0.27, 0.1]
+      "held": 345,
+      "winRate": 0.46,
+      "value": [-0.22, -0.64, -0.33]
     },
     "long_range": {
-      "held": 222,
-      "winRate": 0.59,
-      "value": [0.51, 0.49, 0.67]
+      "held": 628,
+      "winRate": 0.54,
+      "value": [0.21, 0.02, 0.33]
     },
     "pact_of_ash": {
-      "held": 82,
-      "winRate": 0.48,
-      "value": [-0.15, 0.01, -0.1]
+      "held": 70,
+      "winRate": 0.6,
+      "value": [0.32, 0.61, 0.43]
     },
     "paladin_aegis": {
-      "held": 51,
-      "winRate": 0.47,
-      "value": [-0.06, 0.04, -0.28]
+      "held": 49,
+      "winRate": 0.57,
+      "value": [0.14, 0.35, 0.21]
     },
     "paladin_intercept": {
-      "held": 52,
-      "winRate": 0.42,
-      "value": [-0.21, -0.19, -0.38]
+      "held": 40,
+      "winRate": 0.75,
+      "value": [0.55, 0.71, 0.8]
     },
     "poisoned_piece": {
-      "held": 166,
-      "winRate": 0.53,
-      "value": [0.21, 0.55, -0.04]
+      "held": 484,
+      "winRate": 0.48,
+      "value": [-0.21, -0.01, -0.1]
     },
     "push_on": {
-      "held": 161,
-      "winRate": 0.5,
-      "value": [-0.02, -0.1, 0.21]
+      "held": 147,
+      "winRate": 0.52,
+      "value": [0.13, -0.06, 0.33]
     },
     "quake": {
-      "held": 548,
-      "winRate": 0.52,
-      "value": [0.25, -0.35, 0.33]
+      "held": 793,
+      "winRate": 0.49,
+      "value": [-0.07, -0.23, -0.03]
     },
     "rallying_cry": {
-      "held": 420,
+      "held": 502,
       "winRate": 0.49,
-      "value": [0.34, -0.13, 0.43]
+      "value": [0.18, -0.43, 0.12]
     },
     "ram_breach": {
-      "held": 82,
-      "winRate": 0.57,
-      "value": [0.33, 0.1, 0.49]
+      "held": 120,
+      "winRate": 0.53,
+      "value": [0.14, 0.12, 0.31]
     },
     "ram_lone": {
-      "held": 28,
-      "winRate": 0.61,
-      "value": [0.17, 0.12, 0.36]
-    },
-    "regent_ashes": {
-      "held": 86,
-      "winRate": 0.57,
-      "value": [0.23, 0.49, 0.24]
-    },
-    "regent_endless": {
-      "held": 112,
-      "winRate": 0.46,
-      "value": [-0.38, -0.24, -0.26]
-    },
-    "rook_lift": {
-      "held": 705,
-      "winRate": 0.5,
-      "value": [-0.05, 0.15, 0.07]
-    },
-    "royal_court": {
-      "held": 984,
-      "winRate": 0.5,
-      "value": [-0.04, 0.05, -0.07]
-    },
-    "royal_fork": {
-      "held": 247,
-      "winRate": 0.47,
-      "value": [-0.23, -0.42, -0.23]
-    },
-    "sanctified": {
-      "held": 158,
-      "winRate": 0.44,
-      "value": [-0.37, -0.44, -0.51]
-    },
-    "seventh_rank": {
-      "held": 253,
-      "winRate": 0.45,
-      "value": [-0.19, -0.25, -0.4]
-    },
-    "shadow_endless": {
-      "held": 78,
-      "winRate": 0.54,
-      "value": [0.15, 0.17, 0.1]
-    },
-    "shadow_harvest": {
-      "held": 139,
-      "winRate": 0.65,
-      "value": [0.58, 1.02, 1.03]
-    },
-    "shared_guard": {
-      "held": 1415,
-      "winRate": 0.49,
-      "value": [-0.12, -0.07, -0.2]
-    },
-    "shove": {
-      "held": 815,
-      "winRate": 0.48,
-      "value": [-0.36, -0.35, -0.23]
-    },
-    "slip": {
-      "held": 76,
-      "winRate": 0.47,
-      "value": [0.02, -0.07, -0.19]
-    },
-    "smothered_mate": {
-      "held": 244,
-      "winRate": 0.48,
-      "value": [-0.17, -0.07, -0.27]
-    },
-    "sovereign_divine": {
-      "held": 76,
-      "winRate": 0.59,
-      "value": [0.43, 0.66, 0.14]
-    },
-    "sovereign_wrath": {
       "held": 42,
       "winRate": 0.52,
-      "value": [0.04, 0.09, 0.08]
+      "value": [0.08, 0.14, 0]
+    },
+    "regent_ashes": {
+      "held": 67,
+      "winRate": 0.52,
+      "value": [0.06, 0.18, 0.02]
+    },
+    "regent_endless": {
+      "held": 37,
+      "winRate": 0.43,
+      "value": [-0.1, -0.2, -0.21]
+    },
+    "rook_lift": {
+      "held": 520,
+      "winRate": 0.47,
+      "value": [-0.07, -0.25, -0.13]
+    },
+    "royal_court": {
+      "held": 371,
+      "winRate": 0.5,
+      "value": [0, 0.24, -0.12]
+    },
+    "royal_fork": {
+      "held": 146,
+      "winRate": 0.54,
+      "value": [0.16, 0.13, 0.25]
+    },
+    "sanctified": {
+      "held": 27,
+      "winRate": 0.56,
+      "value": [0.07, 0.11, 0.1]
+    },
+    "seventh_rank": {
+      "held": 99,
+      "winRate": 0.52,
+      "value": [0.08, 0.24, 0.11]
+    },
+    "shadow_endless": {
+      "held": 55,
+      "winRate": 0.45,
+      "value": [-0.16, -0.11, -0.2]
+    },
+    "shadow_harvest": {
+      "held": 232,
+      "winRate": 0.61,
+      "value": [0.61, 0.84, 0.9]
+    },
+    "shared_guard": {
+      "held": 719,
+      "winRate": 0.5,
+      "value": [0.21, -0.1, -0.04]
+    },
+    "shove": {
+      "held": 80,
+      "winRate": 0.43,
+      "value": [-0.24, -0.37, -0.41]
+    },
+    "slip": {
+      "held": 119,
+      "winRate": 0.51,
+      "value": [0.23, 0.14, 0.18]
+    },
+    "smothered_mate": {
+      "held": 103,
+      "winRate": 0.53,
+      "value": [0.11, 0.1, 0.19]
+    },
+    "sovereign_divine": {
+      "held": 189,
+      "winRate": 0.56,
+      "value": [0.39, 0.53, 0.51]
+    },
+    "sovereign_wrath": {
+      "held": 10,
+      "winRate": 0.6,
+      "value": [0.07, 0.1, 0.09]
     },
     "spare_minute": {
-      "held": 730,
+      "held": 356,
       "winRate": 0.51,
-      "value": [0.19, 0.32, 0.08]
+      "value": [0.15, 0.43, 0.04]
     },
     "stampede": {
-      "held": 525,
-      "winRate": 0.52,
-      "value": [0.25, -0.37, 0.25]
+      "held": 550,
+      "winRate": 0.48,
+      "value": [-0.06, -0.62, -0.11]
     },
     "steamroller": {
-      "held": 316,
-      "winRate": 0.41,
-      "value": [-0.64, -0.44, -0.95]
+      "held": 37,
+      "winRate": 0.49,
+      "value": [-0.03, -0.02, -0.07]
     },
     "swindle": {
-      "held": 191,
-      "winRate": 0.44,
-      "value": [-0.37, -0.52, -0.47]
+      "held": 9,
+      "winRate": 0.22,
+      "value": [-0.16, -0.19, -0.28]
     },
     "tempo_thief": {
-      "held": 69,
-      "winRate": 0.59,
-      "value": [0.26, 0.43, 0.46]
+      "held": 314,
+      "winRate": 0.49,
+      "value": [0.2, -0.14, 0.03]
     },
     "the_vault": {
-      "held": 86,
-      "winRate": 0.45,
-      "value": [-0.19, 0, -0.34]
+      "held": 52,
+      "winRate": 0.58,
+      "value": [0.22, 0.31, 0.26]
     },
     "through_line": {
-      "held": 618,
-      "winRate": 0.51,
-      "value": [0.18, -0.49, 0.08]
+      "held": 682,
+      "winRate": 0.48,
+      "value": [-0.16, -0.64, -0.15]
     },
     "time_pressure": {
-      "held": 120,
-      "winRate": 0.54,
-      "value": [0.22, 0.27, 0.16]
+      "held": 489,
+      "winRate": 0.49,
+      "value": [-0.17, 0.2, -0.25]
     },
     "tithe": {
-      "held": 94,
-      "winRate": 0.6,
-      "value": [0.46, 0.53, 0.69]
+      "held": 479,
+      "winRate": 0.49,
+      "value": [-0.18, 0.13, 0.16]
     },
     "toll": {
-      "held": 312,
-      "winRate": 0.51,
-      "value": [-0.1, 0.39, 0.01]
+      "held": 229,
+      "winRate": 0.43,
+      "value": [-0.34, -0.39, -0.67]
     },
     "twin_blessing": {
-      "held": 691,
-      "winRate": 0.48,
-      "value": [-0.07, -0.46, -0.14]
+      "held": 382,
+      "winRate": 0.45,
+      "value": [-0.34, -0.38, -0.51]
     },
     "usurper_luck": {
-      "held": 28,
-      "winRate": 0.54,
-      "value": [0.06, 0.18, 0.01]
+      "held": 55,
+      "winRate": 0.42,
+      "value": [-0.27, -0.24, -0.3]
     },
     "usurper_regicide": {
-      "held": 46,
-      "winRate": 0.43,
-      "value": [-0.28, -0.04, -0.3]
+      "held": 56,
+      "winRate": 0.52,
+      "value": [0.18, 0.29, -0.18]
     },
     "vanguard_shockwave": {
-      "held": 110,
-      "winRate": 0.56,
-      "value": [0.17, 0.44, 0.34]
+      "held": 175,
+      "winRate": 0.54,
+      "value": [0.1, 0.33, 0.37]
     },
     "vanguard_spearhead": {
-      "held": 48,
-      "winRate": 0.58,
-      "value": [0.23, 0.16, 0.37]
+      "held": 69,
+      "winRate": 0.41,
+      "value": [-0.37, -0.37, -0.35]
     },
     "warlord_conquest": {
-      "held": 31,
-      "winRate": 0.65,
-      "value": [0.28, 0.33, 0.38]
+      "held": 76,
+      "winRate": 0.42,
+      "value": [-0.36, -0.3, -0.27]
     },
     "warlord_stand": {
-      "held": 25,
-      "winRate": 0.56,
-      "value": [0.12, 0.06, 0.19]
+      "held": 35,
+      "winRate": 0.57,
+      "value": [0.18, 0.18, 0.26]
     },
     "wind_up": {
-      "held": 1216,
-      "winRate": 0.55,
-      "value": [0.28, 0.17, 0.49]
+      "held": 898,
+      "winRate": 0.54,
+      "value": [0.33, 0.29, 0.34]
     },
     "windmill": {
-      "held": 231,
-      "winRate": 0.52,
-      "value": [0.06, 0.06, 0.08]
+      "held": 81,
+      "winRate": 0.49,
+      "value": [-0.06, -0.06, -0.1]
     },
     "zealot_unbowed": {
-      "held": 79,
-      "winRate": 0.48,
-      "value": [-0.07, 0.21, -0.3]
+      "held": 85,
+      "winRate": 0.35,
+      "value": [-0.59, -0.56, -0.76]
     },
     "zealot_vow": {
-      "held": 87,
-      "winRate": 0.47,
-      "value": [-0.13, -0.34, 0.12]
+      "held": 29,
+      "winRate": 0.55,
+      "value": [0.04, 0.16, 0.12]
     },
     "zwischenzug": {
-      "held": 255,
-      "winRate": 0.5,
-      "value": [-0.09, -0.18, 0.01]
+      "held": 129,
+      "winRate": 0.47,
+      "value": [-0.19, 0.04, -0.44]
     }
   }
 }
