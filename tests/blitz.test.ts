@@ -20,7 +20,7 @@ describe('Blitz pace', () => {
     expect(long.tuning.guardian.hp).toBe(content.tuning.guardian.hp);
   });
 
-  it('starts Thrones at 3000 and marks the state; Classical state has no pace', () => {
+  it('starts Thrones at the Blitz health and marks the state; Classical state has no pace', () => {
     const m = blitz(4);
     expect(m.state.pace).toBe('blitz');
     for (const team of ['A', 'B'] as const) {

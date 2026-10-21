@@ -187,7 +187,7 @@
     "id": "opening-card",
     "term": "Opening card",
     "aliases": ["opening card", "Opening card", "opening cards"],
-    "short": "The one card your Opening always puts in your first hand; it stays until you play it or Act 1 ends.",
+    "short": "The card your Opening puts in your first hand (the Italian Game draws one); it stays until you play it or Act 1 ends.",
     "more": "Each Opening names its own (the Sicilian Defence opens with Fork). The Italian Game has none: its first hand holds three different schools. Black follows the same rule.",
     "see": ["opening", "gambit"],
     "group": "Gambits"
@@ -276,8 +276,8 @@
     "id": "blitz",
     "term": "Blitz",
     "aliases": ["Blitz", "blitz"],
-    "short": "The short pace: at most 3 Acts of the usual length, with the Endgame rule from Act 2 and weaker Thrones.",
-    "more": "Thrones have 3000 health instead of 3800. If Act 3 ends without Checkmate the match is decided on points. Phones start on Blitz.",
+    "short": "The short pace: at most 3 Acts of 3 minutes, with the Endgame rule from Act 2 and weaker Thrones.",
+    "more": "Thrones have 2400 health instead of 3800 and take 150% more damage in the Endgame. If Act 3 ends without Checkmate the match is decided on points. Phones start on Blitz.",
     "see": ["classical", "adjudication", "act"],
     "group": "Match"
   },

@@ -196,7 +196,7 @@ export function openingInfo(c: Content, o: Opening): OpeningInfo {
   if (fav.length === 0)
     return {
       explain:
-        'No school is favoured: every card in the deck is equally likely, and your first hand holds three different schools.',
+        'No school is favoured: every card in the deck is equally likely. Your first hand holds three different schools, and the first of them is kept as your opening card.',
       plays: 'A flexible hand. Good when you do not know what Black will do.',
       cards: [],
       strongVs: [],

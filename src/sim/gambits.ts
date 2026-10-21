@@ -123,10 +123,11 @@ export function syncHands(ctx: Ctx, team: PlayTeam): void {
 
 /**
  * The first hand. An Opening's card goes in slot 0 and a run's book move in the next slot (slot 0
- * for the Italian Game, which has no Opening card); both stay until played or until Act 1 ends.
- * The Italian Game deals its other cards from schools not yet in the hand, so it still holds three
- * different schools. A book move that is the Opening's own card, or one a Standing Order keeps
- * always on, is not dealt twice.
+ * for the Italian Game, which has no fixed Opening card); both stay until played or until Act 1
+ * ends. The Italian Game deals its other cards from schools not yet in the hand, so it still holds
+ * three different schools, and the first of them (from any school) is held the same way: its
+ * opening card is drawn, not named. A book move that is the Opening's own card, or one a Standing
+ * Order keeps always on, is not dealt twice.
  */
 export function initHands(ctx: Ctx): void {
   for (const team of PLAY_TEAMS) {
@@ -160,6 +161,13 @@ export function initHands(ctx: Ctx): void {
           i,
           SCHOOLS.filter((sc) => !held.has(sc)),
         );
+        // its first card from any school is its opening card: held like the others' fixed one
+        // (2026-10-21: without a held card the Italian won about 38%, the other Openings 46-55%)
+        const h = hand[i];
+        if (i === kept.length && h.cardId !== null) {
+          h.opening = true;
+          h.expireTick = Number.MAX_SAFE_INTEGER;
+        }
       } else deal(ctx, team, i);
     }
   }
@@ -1404,12 +1412,16 @@ function clockPlan(ctx: Ctx, team: PlayTeam, def: GambitDef, theirs: Unit[]): Pl
       return { score: 1 + (held - 45) / 55 + fight, target: {} };
     }
     case 'zugzwang': {
-      // the enemy holds a dear card and has nearly the Tempo to play it
+      // the enemy holds a dear card, has nearly the Tempo for it and the board for it (its plan
+      // fires now): a card it is about to play. Discarding a card it had no use for yet wasted
+      // the Zugzwang (it was the third most played card and among the least winning, 2026-10-20)
       const slot = dearestSlot(ctx, foe, def);
       if (slot < 0) return null;
       const card = ctx.c.gambitById.get(s.hands[foe][slot].cardId!)!;
       const cost = cardCost(ctx, foe, card);
       if (s.tempo[foe] < cost - 10) return null;
+      if (card.piece && !teamPiece(ctx, foe, card.piece)?.alive) return null;
+      if ((plan(ctx, foe, card, true)?.score ?? 0) < 1) return null;
       return { score: 0.8 + cost / 30, target: {} };
     }
     case 'increment': {

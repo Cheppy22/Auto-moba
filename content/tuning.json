@@ -4,7 +4,7 @@
   "startingGold": 500,
   "passiveGoldPerSec": 1.5,
   "maxPhases": 10,
-  "blitz": { "maxActs": 3, "actSec": 200, "endgameAct": 2, "throneHp": 3000, "throneDamage": 2 },
+  "blitz": { "maxActs": 3, "actSec": 180, "endgameAct": 2, "throneHp": 2400, "throneDamage": 2.5 },
   "bell": {
     "alertsSec": [60, 30, 10],
     "pulseLastSec": 5,
@@ -86,7 +86,7 @@
     "planReserve": 40,
     "planQuota": { "top": 2, "mid": 2, "bot": 2 },
     "aiCardReserve": 40,
-    "aiPawnShare": 0.91
+    "aiPawnShare": 0.93
   },
   "relics": {
     "max": 3,

@@ -206,14 +206,15 @@ describe('The opening card', () => {
     expect(m.state.hands.A[0].opening).toBeUndefined();
   });
 
-  it('with the Italian Game, deals three different schools and no opening card', () => {
+  it('with the Italian Game, deals three different schools and holds the first as its opening card', () => {
     for (let seed = 20; seed < 60; seed++) {
       const m = withOpenings(seed, 'italian', 'italian');
       for (const team of ['A', 'B'] as const) {
         const cards = hand(m, team).filter((c): c is string => c !== null);
         expect(cards, `${seed} ${team}`).toHaveLength(3);
         expect(new Set(cards.map(school)).size, `${seed} ${team}`).toBe(3);
-        expect(m.state.hands[team].some((h) => h.opening)).toBe(false);
+        // its opening card is drawn, not named: slot 0, held until played or Act 1 ends
+        expect(m.state.hands[team].map((h) => !!h.opening)).toEqual([true, false, false]);
       }
     }
   });

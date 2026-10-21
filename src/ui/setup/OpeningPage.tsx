@@ -125,8 +125,9 @@ function OpeningCard(props: {
               </>
             ) : (
               <>
-                No <Term id="opening-card">opening card</Term>: your first hand holds three
-                different schools.
+                Your <Term id="opening-card">opening card</Term> is drawn, not named: the first of
+                your three cards (each from a different school) stays until you play it or Act 1
+                ends.
               </>
             )}
           </p>
