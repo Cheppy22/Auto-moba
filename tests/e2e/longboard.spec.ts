@@ -422,6 +422,7 @@ test.describe('the Long Board, phone portrait', () => {
     const shotB = await page.getByTestId('stage').screenshot();
     // switch to a from the Adjourn panel: the board repaints at once, the camera stays
     await page.getByTestId('adjourn').click();
+    await page.getByTestId('tab-settings-btn').click();
     await page.getByTestId('theme-a').click();
     await expect(page.getByTestId('theme-a')).toHaveAttribute('aria-checked', 'true');
     await page.getByTestId('resume').click();
@@ -457,6 +458,7 @@ test.describe('the Long Board, phone portrait', () => {
     const plain = await page.getByTestId('stage').screenshot();
     // on from the Adjourn panel: the next frames go through the ink pass
     await page.getByTestId('adjourn').click();
+    await page.getByTestId('tab-settings-btn').click();
     await expect(page.getByTestId('ink-toggle')).toHaveAttribute('aria-checked', 'false');
     await page.getByTestId('ink-toggle').click();
     await expect(page.getByTestId('ink-toggle')).toHaveAttribute('aria-checked', 'true');
@@ -470,6 +472,7 @@ test.describe('the Long Board, phone portrait', () => {
     expect(await page.evaluate(() => localStorage.getItem('automoba.ink'))).toBe('on');
     // and off again
     await page.getByTestId('adjourn').click();
+    await page.getByTestId('tab-settings-btn').click();
     await page.getByTestId('ink-toggle').click();
     await page.getByTestId('resume').click();
     await expect(page.getByTestId('stage')).toHaveAttribute('data-ink', 'off');

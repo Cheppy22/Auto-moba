@@ -123,7 +123,7 @@
 }
 .anext {
   font-style: normal;
-  font-size: 10px;
+  font-size: var(--fs-xs);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--brass-hi);
@@ -138,4 +138,22 @@
   border-style: dashed;
   border-color: var(--brass-dim);
   opacity: 0.7;
+}
+/* the Settings tab: sound and the mixer, the board theme and Ink, the tutorial (the mixer opens in the flow) */
+.adjourn-settings {
+  align-items: flex-start;
+  gap: var(--sp-3);
+  padding-top: var(--sp-2);
+}
+.adjourn-settings .sound-box {
+  align-items: flex-start;
+}
+.adjourn .adjourn-settings .sound-box .sound-panel {
+  position: relative;
+  top: auto;
+  left: auto;
+  right: auto;
+  transform: none;
+  margin-top: 6px;
+  width: min(300px, 100%);
 }

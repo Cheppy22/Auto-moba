@@ -42,7 +42,7 @@
   top: 0;
   right: 10px;
   padding: 1px 9px;
-  font-size: 11px;
+  font-size: var(--fs-xs);
   line-height: 18px;
   letter-spacing: 0.07em;
   text-transform: uppercase;
@@ -137,7 +137,7 @@
   display: inline-flex;
   align-items: center;
   padding: 0 7px;
-  font-size: 11px;
+  font-size: var(--fs-xs);
   line-height: 18px;
   white-space: nowrap;
   border-radius: 3px;
@@ -340,7 +340,7 @@
   }
 }
 .tslot-label {
-  font-size: 11px;
+  font-size: var(--fs-xs);
   line-height: 14px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -382,7 +382,7 @@
 .tslot-away {
   flex: none;
   font-style: normal;
-  font-size: 10px;
+  font-size: var(--fs-xs);
   line-height: 13px;
   color: var(--brass-hi);
 }
@@ -660,7 +660,7 @@ html[data-layout='portrait'] .ucard .tslots {
   max-width: 100%;
 }
 .bld-act small {
-  font-size: 11.5px;
+  font-size: var(--fs-xs);
   color: var(--brass-hi);
   text-align: center;
 }

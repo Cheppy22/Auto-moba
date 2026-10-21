@@ -156,7 +156,13 @@ function OpeningCard(props: {
                             <SchoolGlyph key={s} school={s} size={13} />
                           ))}
                           <SchoolGlyph school={m.other} size={13} />
-                          <b style={{ color: SCHOOL_COLOR[m.other] }}>{SCHOOL_NAME[m.other]}</b>
+                          <b
+                            style={{
+                              color: `color-mix(in srgb, ${SCHOOL_COLOR[m.other]} 65%, white)`,
+                            }}
+                          >
+                            {SCHOOL_NAME[m.other]}
+                          </b>
                         </span>
                         <span>{m.text}</span>
                       </li>

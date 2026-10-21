@@ -47,7 +47,7 @@ import {
   throne,
 } from './models';
 import { CLAY, LOOK, TABLE, TEAM } from './palette';
-import { FIG_SCALE, FigureLib, PieceFigure, SIZE, sizeFor } from './piece';
+import { farBoost, FIG_SCALE, FigureLib, PieceFigure, SIZE, sizeFor } from './piece';
 
 const PIECES: readonly PieceId[] = ['king', 'queen', 'rook', 'bishop', 'knight'];
 const isPiece = (s: unknown): s is PieceId =>
@@ -92,7 +92,7 @@ const HIT_SEC = 0.26;
 const TOWER_S = 1.45;
 const THRONE_S = 1.4;
 /** Throne model height (world units at scale 1). */
-const THRONE_H = 245;
+const THRONE_H = 215;
 
 type ChessUnit = SnapUnit & {
   piece?: string | null;
@@ -270,7 +270,11 @@ export class TableView {
   private readonly rim: Crowd;
   private readonly top: Crowd;
   private readonly blobs: Crowd;
+  /** Team-coloured discs under the pieces (read at the default zoom, visuals review D1). */
+  private readonly discs: Crowd;
   private readonly halos: Crowd;
+  /** The screen shape's piece size (`sizeFor`); `SIZE.k` is this times the far-shot boost. */
+  private baseK = SIZE.k;
   private readonly crystal: Crowd;
   private readonly key: DirectionalLight;
   private readonly back: DirectionalLight;
@@ -487,6 +491,32 @@ export class TableView {
     );
     this.halos.mesh.renderOrder = 2;
     this.scene.add(this.halos.mesh);
+    // a filled disc in the team colour under every piece (not pawns): who is who at a glance
+    const discTex = this.kit.texture('table-disc', 64, 64, (dg) => {
+      const rr = dg.createRadialGradient(32, 32, 0, 32, 32, 32);
+      rr.addColorStop(0, 'rgba(255,255,255,0.9)');
+      rr.addColorStop(0.8, 'rgba(255,255,255,0.8)');
+      rr.addColorStop(0.92, 'rgba(255,255,255,0.35)');
+      rr.addColorStop(1, 'rgba(255,255,255,0)');
+      dg.fillStyle = rr;
+      dg.fillRect(0, 0, 64, 64);
+    });
+    this.discs = new Crowd(
+      this.kit.geo('table-blob', () => new PlaneGeometry(2, 2).rotateX(-Math.PI / 2)),
+      this.kit.own(
+        new MeshBasicMaterial({
+          map: discTex,
+          transparent: true,
+          depthWrite: false,
+          opacity: 0.55,
+          fog: false,
+        }),
+      ),
+      140,
+      true,
+    );
+    this.discs.mesh.renderOrder = 1;
+    this.scene.add(this.discs.mesh);
 
     this.chips = new Chips(this.facet);
     if (this.long) this.chips.ground = (x, z) => this.board.relief.at(x, z);
@@ -652,7 +682,8 @@ export class TableView {
     this.cssH = this.canvas.clientHeight;
     this.renderer.setSize(w, h, false);
     this.cam.fit(w, h);
-    SIZE.k = sizeFor(this.cam.tiltDeg, this.cam.protoTilt);
+    this.baseK = sizeFor(this.cam.tiltDeg, this.cam.protoTilt);
+    this.scalePieces();
     this.board.setOrient(this.cam.orient);
     // key light from White's front-left, rim from behind the board (relative to the seat)
     const c = this.cam.camera.position;
@@ -711,9 +742,10 @@ export class TableView {
     for (const u of units) this.byId.set(u.id, u);
     this.open.clear();
     for (const sl of snap.slots) if (sl.open || this.lineup) this.open.add(sl.id);
-    this.board.sync(this.isOpen);
+    this.board.sync(this.isOpen, dt, this.motion?.matches === true);
 
     this.steer(frame, real);
+    this.scalePieces();
     const camera = this.cam.camera;
     const px = this.cam.pxNow();
     this.lib.ink.A.value = px * TEAM.A.inkPx;
@@ -725,10 +757,12 @@ export class TableView {
     this.tags.begin(camera);
     for (const c of this.crowdList) c.begin();
     this.blobs.begin();
+    this.discs.begin();
     this.halos.begin();
     this.syncUnits(units, frame.alpha, dt, real, px, frame.followId);
     for (const c of this.crowdList) c.end();
     this.blobs.end();
+    this.discs.end();
     this.halos.end();
     this.bars.end();
     this.tags.end();
@@ -743,6 +777,15 @@ export class TableView {
     this.drift();
     this.paint();
     this.drawn++;
+  }
+
+  /**
+   * Piece size for this frame: the screen shape's size times the far-shot boost (true size at the
+   * follow distance, up to `FAR_BOOST` at the default framing and beyond).
+   */
+  private scalePieces(): void {
+    const c = this.cam;
+    SIZE.k = this.baseK * farBoost(c.pose.d, c.followDist, c.home.d);
   }
 
   /** Draws the scene (through the ink pass when it is on). */
@@ -1246,7 +1289,8 @@ export class TableView {
       }
     }
     const k = 1 - Math.exp(-6 * dt);
-    const cap = 46;
+    // the spread grows with the far-shot boost, as the pieces do
+    const cap = (46 * SIZE.k) / this.baseK;
     for (const a of P) {
       let tx = a.ox + a.tx;
       let tz = a.oz + a.tz;
@@ -1403,6 +1447,8 @@ export class TableView {
       this.col.set(u.style ? styleEmblem(u.style).color : T.body);
       this.top.color(this.top.addXYZ(v.x, gy, v.z, 0, br, 14, br), this.col);
       this.blobs.addXYZ(v.x, gy + 0.8, v.z, 0, br * 1.5, 1, br * 1.5);
+      const dr = br * 1.5;
+      this.discs.color(this.discs.addXYZ(v.x, gy + 1.1, v.z, 0, dr, 1, dr), this.col.set(T.halo));
       const hr = br * LOOK.halo.size;
       this.col.set(T.halo);
       if (fork) this.col.lerp(this.tmpCol.set(GOLD), pulse);
@@ -1483,6 +1529,8 @@ export class TableView {
           break;
         }
         const elite = v.elite;
+        v.lift = (elite ? 40 : 26) * SIZE.k;
+        v.halfW = (elite ? 16 : 11) * SIZE.k;
         const key = elite ? `pawn${team}` : `${u.defId === 'ranged' ? 'ranged' : 'melee'}${team}`;
         const c = this.crowds[key] ?? this.crowds[`melee${team}`];
         const hop = Math.abs(Math.sin(v.phase * 1.2)) * (elite ? 5 : 4) * v.move;
@@ -1523,11 +1571,11 @@ export class TableView {
         c.color(i, this.damaged(v, frac));
         this.blobs.addXYZ(v.x, gy + 0.8, v.z, 0, 90 * TOWER_S, 1, 90 * TOWER_S);
         if (frac < 0.999 || u.shield > 0)
-          this.bars.add(v.x, 200 * TOWER_S + gy, v.z, 26 * px, 2.8 * px, frac, markCol);
+          this.bars.add(v.x, 170 * TOWER_S + gy, v.z, 26 * px, 2.8 * px, frac, markCol);
         if (u.shield > 0)
           this.bars.add(
             v.x,
-            200 * TOWER_S + gy + 2.8 * px * 1.7,
+            170 * TOWER_S + gy + 2.8 * px * 1.7,
             v.z,
             26 * px,
             2.8 * px * 0.6,
@@ -1541,11 +1589,11 @@ export class TableView {
         const i = c.add(v.x, gy, v.z, v.yaw, THRONE_S, 0, 0);
         c.color(i, this.damaged(v, frac));
         if (frac < 0.999 || u.shield > 0)
-          this.bars.add(v.x, 262 * THRONE_S + gy, v.z, 34 * px, 3.2 * px, frac, markCol);
+          this.bars.add(v.x, 232 * THRONE_S + gy, v.z, 34 * px, 3.2 * px, frac, markCol);
         if (u.shield > 0)
           this.bars.add(
             v.x,
-            262 * THRONE_S + gy + 3.2 * px * 1.7,
+            232 * THRONE_S + gy + 3.2 * px * 1.7,
             v.z,
             34 * px,
             3.2 * px * 0.6,
@@ -2111,6 +2159,7 @@ export class TableView {
             0,
           );
           this.cam.kick(0.12);
+          this.captureRing(x, z, this.byId.get(p.killer)?.team ?? (p.team === 'A' ? 'B' : 'A'));
           if (v?.fig && this.motion?.matches !== true) {
             // knocked flying from where the sim says it fell (the last drawn spot is stale after
             // a long frame) away from the killer's current spot, or backwards with no killer
@@ -2190,6 +2239,23 @@ export class TableView {
         );
         break;
     }
+  }
+
+  /**
+   * A capture marked where it happened, sized in screen pixels so it reads at any zoom (visuals
+   * review D1): two rings in the capturing side's colour open out and fade; with reduced motion
+   * one ring just fades where it is.
+   */
+  private captureRing(x: number, z: number, killer: string): void {
+    const px = this.cam.pxNow();
+    const gy = this.board.relief.at(x, z) + 2;
+    const col = killer === 'B' ? this.haloCol.B : killer === 'A' ? this.haloCol.A : this.haloCol.N;
+    if (this.motion?.matches === true) {
+      this.fx.ring(x, gy, z, col, 30 * px, 30 * px, 1.1, 1);
+      return;
+    }
+    this.fx.ring(x, gy, z, col, 12 * px, 52 * px, 1.2, 1.5);
+    this.fx.ring(x, gy, z, '#fff3c8', 8 * px, 34 * px, 0.8, 1, 0.16);
   }
 
   /** Chess events (gambits, Check, Checkmate), read loosely. */

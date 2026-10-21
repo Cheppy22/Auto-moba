@@ -23,7 +23,7 @@
 }
 .lane-letter {
   font-style: normal;
-  font-size: 11px;
+  font-size: var(--fs-xs);
   font-weight: 700;
   line-height: 1;
   letter-spacing: 0.04em;
@@ -215,7 +215,7 @@ html[data-layout='landscape'] .notices {
 }
 .roster-cell .fall i {
   font-style: normal;
-  font-size: 8px;
+  font-size: var(--fs-xs);
   font-weight: 700;
   line-height: 1.05;
   letter-spacing: 0;

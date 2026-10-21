@@ -60,6 +60,8 @@ test('the mixer opens in the pause menu too', async ({ page }) => {
   await startLive(page, '42', true);
   await page.getByTestId('adjourn').click();
   await expect(page.getByTestId('adjourn-panel')).toBeVisible();
+  // sound, the mixer, the board theme and the tutorial live on the Settings tab
+  await page.getByTestId('tab-settings-btn').click();
   await page.getByTestId('mixer-toggle').click();
   await expect(page.getByTestId('mixer-panel')).toBeVisible();
   await expect(page.getByTestId('vol-ambience')).toBeVisible();

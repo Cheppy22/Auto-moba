@@ -14,13 +14,25 @@ import { useEscape, useSession } from './session';
 /** Black's Opening stays hidden for the first minute of play (20 ticks a second). */
 const REVEAL_TICKS = 60 * 20;
 
-type Tab = 'lanes' | 'builds' | 'rules';
+type Tab = 'lanes' | 'builds' | 'rules' | 'settings';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'lanes', label: 'Lanes' },
   { id: 'builds', label: 'Builds' },
   { id: 'rules', label: 'Rules' },
+  { id: 'settings', label: 'Settings' },
 ];
+
+/** Sound, the board theme, Ink style and the tutorial: their own tab, so the match comes first. */
+function Settings() {
+  return (
+    <div class="col adjourn-settings" data-testid="tab-settings">
+      <SoundControls />
+      <ThemePicker />
+      <ReplayTutorial />
+    </div>
+  );
+}
 
 /** Read only: each White piece's slots, with what each Technique has done so far this match. */
 function Builds() {
@@ -123,13 +135,10 @@ export function Adjourn() {
       <div class="panel col adjourn-panel">
         <div class="row">
           <h2 class="grow">Adjourned</h2>
-          <SoundControls />
           <button class="btn primary" data-testid="resume" onClick={resume}>
             Resume
           </button>
         </div>
-        <ThemePicker />
-        <ReplayTutorial />
         <Mini />
         <div class="tabs" role="tablist">
           {TABS.map((t) => (
@@ -149,6 +158,7 @@ export function Adjourn() {
           {tab === 'lanes' && <Lanes />}
           {tab === 'builds' && <Builds />}
           {tab === 'rules' && <RulesList />}
+          {tab === 'settings' && <Settings />}
         </div>
       </div>
     </div>

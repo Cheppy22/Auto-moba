@@ -76,3 +76,9 @@ The approved order of work is in `docs/FABLE-REVIEW-1-2026-10-11.md` section 5 (
 - **Phase 5 next (screens):** the break sheet's Builds tab and Setup's First moves page are read-only placeholders (`src/ui/hud/BuildsTab.tsx`, `src/ui/setup/FirstMovesPage.tsx`); White takes "AI suggests" on Resume and at the start. Build the interactive screens per spec 4.2 (list in the spec's phase 4 notes).
 - **Open for phase 6:** Combination parents over-picked (Shared Guard, Family Fork, Rallying Cry, Echoing Decree); the AI almost never rerolls (it also ignores most obelisk free rerolls by the same rule); Tempo cards under 4%.
 - Gotcha: `npm run balance` without `--map long` plays the square map.
+
+## Visual polish batch 3 (2026-10-20, branch `wip/fix-visuals` from `proposal/next`)
+
+- **Done:** pieces grow on far shots (`farBoost`, up to 1.45×) with team base discs and screen-sized capture rings; closed clearings are stone lids with a brass seal (slide off when they open), the Pit a sand arena; Bastions rook towers, Thrones crowned keeps; colour map (CHESS.md "Look", `tests/colours.test.ts`, `--school-*` tokens = `SCHOOL_COLOR`); landscape break sheet in one header row, open tab on baize; Adjourn Settings tab; portrait row folds while the hand is open; 12 px text floor. Before/after shots: `docs/img/polish-2026-10-20/`. Render/UI only: `npm run baseline` identical.
+- **Not done (other agents or later):** review D4 (road outlines), D11 (follow framing), D12 (replay page), D13 (tap targets), D14 (title cluster), D15 (tile jargon); moving the Auto pawns switch into the drawer header (D6 second half); enlarging the tray token on landing (D1 second half).
+- **Gotchas:** the shared scratchpad is shared between sibling agents: keep scripts in a private subfolder (a sibling's script once ran inside this agent's runner). Specs that change Adjourn settings must click `tab-settings-btn` first.
