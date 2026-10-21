@@ -179,10 +179,13 @@ describe('relic draft', () => {
       toAct(m, 3);
       return m;
     };
-    const a = run(5);
+    // a seed whose match reaches Act 3 (a quick Checkmate in Act 2 has had only one break)
+    let seed = 5;
+    let a = run(seed);
+    while (a.state.phase.n < 3 && seed < 20) a = run(++seed);
     expect(a.state.relics.held.A).toHaveLength(2);
     expect(a.state.relics.held.B).toHaveLength(2);
-    expect(logHash(run(5))).toBe(logHash(a));
+    expect(logHash(run(seed))).toBe(logHash(a));
     const off = liveMatch(3, { relics: { A: 'none', B: 'none' } });
     toAct(off, 3);
     expect(off.state.relics.held.A).toHaveLength(0);
@@ -299,10 +302,11 @@ describe('wave 1 relic effects', () => {
 
   it('relic discounts never bring a card below 3 Tempo', () => {
     const m = fresh();
-    const sac = content.gambitById.get('pawn_sacrifice')!;
+    // the cheapest card (Increment, 7)
+    const sac = content.gambits.reduce((a, b) => (b.cost < a.cost ? b : a));
     const min = content.tuning.gambits.minCost;
     expect(min).toBe(3);
-    // Opening Theory's 5 off a 7-Tempo card in the Opening's schools
+    // Opening Theory's 5 off the cheapest card in the Opening's schools
     m.state.opening.A = content.openings.find((o) => o.schools.includes(sac.school))!.id;
     hold(m, 'A', { id: 'opening_theory' });
     expect(cardCost(m.ctx, 'A', sac)).toBe(min);

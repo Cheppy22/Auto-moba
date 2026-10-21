@@ -16,10 +16,10 @@
     {
       "round": 2,
       "name": "County",
-      "relics": 0,
-      "tempoBonus": 5,
+      "relics": 2,
+      "tempoBonus": 10,
       "counterOpening": false,
-      "relicMax": 2
+      "relicMax": 3
     },
     {
       "round": 3,

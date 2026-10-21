@@ -1136,7 +1136,7 @@ function plan(ctx: Ctx, team: PlayTeam, def: GambitDef, nested = false): Plan | 
       if (!q?.alive || hpPct(q) < 0.4) return null;
       const e = countNear(ctx, foe, q.x, q.y, 320, isPiece);
       if (e === 0) return null;
-      return { score: 0.8 + 0.25 * e, target: {} };
+      return { score: 1.1 + 0.25 * e, target: {} };
     }
     case 'siege': {
       const r = teamPiece(ctx, team, 'rook');
@@ -1148,7 +1148,7 @@ function plan(ctx: Ctx, team: PlayTeam, def: GambitDef, nested = false): Plan | 
         const d = dist(r.x, r.y, st.x, st.y);
         if (d > 650 * ctx.world.k) continue;
         const allies = countNear(ctx, team, st.x, st.y, 500 * ctx.world.k, isPiece);
-        const score = 0.7 + 0.2 * allies + (st.kind === 'guardian' ? 0.4 : 0) - d / 2000;
+        const score = 1 + 0.2 * allies + (st.kind === 'guardian' ? 0.4 : 0) - d / 2000;
         if (!best || score > best.score) best = { score, target: { targetId: st.id } };
       }
       return best;
@@ -1168,7 +1168,7 @@ function plan(ctx: Ctx, team: PlayTeam, def: GambitDef, nested = false): Plan | 
           n++;
         }
         if (n < 2) continue;
-        const score = 0.3 + hurt;
+        const score = 0.6 + hurt;
         if (!best || score > best.score) best = { score, target: { x: u.x, y: u.y } };
       }
       return best;
@@ -1182,7 +1182,7 @@ function plan(ctx: Ctx, team: PlayTeam, def: GambitDef, nested = false): Plan | 
         if (dist(k.x, k.y, e.x, e.y) > reach) continue;
         const allies = countNear(ctx, team, e.x, e.y, 400, isPiece);
         const guards = countNear(ctx, foe, e.x, e.y, 350, isPiece);
-        const score = 0.5 + (1 - hpPct(e)) * 0.9 + 0.2 * allies - 0.2 * Math.max(0, guards - 1);
+        const score = 0.9 + (1 - hpPct(e)) * 0.9 + 0.2 * allies - 0.2 * Math.max(0, guards - 1);
         if (!best || score > best.score) best = { score, target: { targetId: e.id } };
       }
       return best;
@@ -1226,7 +1226,7 @@ function plan(ctx: Ctx, team: PlayTeam, def: GambitDef, nested = false): Plan | 
         if (!pawn) continue;
         const e = countNear(ctx, foe, pawn.x, pawn.y, 400 * ctx.world.k, isPiece);
         if (e === 0) continue;
-        const score = 0.45 + 0.35 * e + (1 - hpPct(pawn)) * 0.5;
+        const score = 0.3 + 0.35 * e + (1 - hpPct(pawn)) * 0.5;
         if (!best || score > best.score) best = { score, target: { lane } };
       }
       return best;
@@ -1271,7 +1271,7 @@ function plan(ctx: Ctx, team: PlayTeam, def: GambitDef, nested = false): Plan | 
           if (!u.alive || u.team !== team || u.ev) continue;
           if ((u.hero ? u.hero.lane : u.kind === 'minion' ? u.lane : null) === lane) n++;
         }
-        const score = 0.1 * n;
+        const score = 0.07 * n;
         if (!best || score > best.score) best = { score, target: { lane } };
       }
       return best;
@@ -1410,7 +1410,7 @@ function clockPlan(ctx: Ctx, team: PlayTeam, def: GambitDef, theirs: Unit[]): Pl
       const card = ctx.c.gambitById.get(s.hands[foe][slot].cardId!)!;
       const cost = cardCost(ctx, foe, card);
       if (s.tempo[foe] < cost - 10) return null;
-      return { score: 1 + cost / 30, target: {} };
+      return { score: 0.8 + cost / 30, target: {} };
     }
     case 'increment': {
       // with Tempo for both and another card ready: ahead of it, so that card is refunded (it used

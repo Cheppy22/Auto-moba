@@ -231,7 +231,7 @@
           "effects": [
             {
               "type": "heal",
-              "maxHpPct": 0.02
+              "maxHpPct": 0.03
             }
           ]
         }
@@ -1394,8 +1394,8 @@
             {
               "type": "recast",
               "delaySec": 1,
-              "share": 0.5,
-              "bothStunSec": 0.5
+              "share": 0.7,
+              "bothStunSec": 0.8
             }
           ]
         }
@@ -1419,11 +1419,11 @@
           "effects": [
             {
               "type": "echo",
-              "share": 0.7
+              "share": 1.0
             },
             {
               "type": "regen",
-              "maxHpPct": 0.02,
+              "maxHpPct": 0.03,
               "durationSec": 4
             }
           ],
@@ -1436,7 +1436,7 @@
           "effects": [
             {
               "type": "regen",
-              "maxHpPct": 0.02,
+              "maxHpPct": 0.03,
               "durationSec": 4
             }
           ]
@@ -1539,7 +1539,7 @@
         {
           "on": "damaged",
           "hpBelow": 0.4,
-          "cooldownSec": 30,
+          "cooldownSec": 20,
           "target": "attacker",
           "effects": [
             {
@@ -1552,28 +1552,28 @@
         {
           "on": "damaged",
           "hpBelow": 0.4,
-          "cooldownSec": 30,
+          "cooldownSec": 20,
           "target": "self",
           "effects": [
             {
               "type": "statMod",
               "stat": "atkSpeed",
               "kind": "mul",
-              "value": 1.35,
+              "value": 1.5,
               "durationSec": 6
             },
             {
               "type": "statMod",
               "stat": "bladeDmg",
               "kind": "mul",
-              "value": 1.15,
+              "value": 1.3,
               "durationSec": 6
             },
             {
               "type": "statMod",
               "stat": "soulPower",
               "kind": "mul",
-              "value": 1.15,
+              "value": 1.3,
               "durationSec": 6
             }
           ]
@@ -1607,7 +1607,7 @@
           "effects": [
             {
               "type": "push",
-              "distance": 40
+              "distance": 60
             }
           ],
           "vs": "hero"
@@ -1620,7 +1620,7 @@
             {
               "type": "damage",
               "dmgType": "blade",
-              "bladeScale": 1.5
+              "bladeScale": 2.5
             }
           ],
           "vs": "structure"

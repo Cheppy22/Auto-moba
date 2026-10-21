@@ -38,7 +38,9 @@ for (const r of results) {
     }
   }
 }
-const lines = ['card | plays | cost | effect/play | effect/Tempo | kills-deaths/play | win% of plays'];
+const lines = [
+  'card | plays | cost | effect/play | effect/Tempo | kills-deaths/play | win% of plays',
+];
 for (const [id, s] of Object.entries(sum).sort((a, b) => b[1].n - a[1].n)) {
   const cost = content.gambitById.get(id)?.cost ?? 0;
   const eff = (s.bonus + s.prevented + s.healed) / s.n;

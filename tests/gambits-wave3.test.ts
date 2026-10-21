@@ -48,19 +48,20 @@ const card = (id: string): GambitDef => content.gambitById.get(id)!;
 
 describe('wave-3 cards in the content', () => {
   it('are universal, weight 1.5, in the schools the spec names', () => {
-    const want: [string, string, number, string][] = [
-      ['breakthrough', 'march', 13, 'lane'],
-      ['pin', 'initiative', 17, 'enemy'],
-      ['desperado', 'initiative', 13, 'ally'],
-      ['fortify', 'fortress', 17, 'lane'],
+    // costs and effect sizes are balance numbers (content/gambits.json); the shape is the spec's
+    const want: [string, string, string][] = [
+      ['breakthrough', 'march', 'lane'],
+      ['pin', 'initiative', 'enemy'],
+      ['desperado', 'initiative', 'ally'],
+      ['fortify', 'fortress', 'lane'],
     ];
-    for (const [id, school, cost, target] of want) {
-      expect(card(id)).toMatchObject({ school, cost, target, piece: null, weight: 1.5 });
+    for (const [id, school, target] of want) {
+      expect(card(id)).toMatchObject({ school, target, piece: null, weight: 1.5 });
     }
-    expect(card('breakthrough').params).toEqual({ extraMelee: 3 });
-    expect(card('pin').params).toEqual({ rootSec: 3, behindR: 300, slowMul: 0.6 });
-    expect(card('desperado').params).toEqual({ damageMul: 1.6, hpMax: 0.4, refund: 10 });
-    expect(card('fortify').params).toEqual({ shieldPct: 0.2 });
+    expect(Object.keys(card('breakthrough').params)).toEqual(['extraMelee']);
+    expect(Object.keys(card('pin').params).sort()).toEqual(['behindR', 'rootSec', 'slowMul']);
+    expect(Object.keys(card('desperado').params).sort()).toEqual(['damageMul', 'hpMax', 'refund']);
+    expect(Object.keys(card('fortify').params)).toEqual(['shieldPct']);
   });
 });
 
@@ -75,15 +76,16 @@ describe('Breakthrough', () => {
     ).length;
   }
 
-  it('adds three melee pawnlings to the next wave in that lane only, once', () => {
+  it('adds extra melee pawnlings to the next wave in that lane only, once', () => {
+    const extra = card('breakthrough').params.extraMelee;
     const m = playerMatch(60);
     expect(play(m, 'breakthrough', { lane: 'top' }).ok).toBe(true);
-    expect(m.state.breakthrough.A.top).toBe(3);
+    expect(m.state.breakthrough.A.top).toBe(extra);
     // the same lane cannot be armed twice, another lane can
     expect(play(m, 'breakthrough', { lane: 'top' }).reason).toMatch(/already/);
     const base = content.tuning.waves;
     const plain = base.melee + base.ranged + (m.state.phase.n >= base.extraMeleeFromPhase ? 1 : 0);
-    expect(wave(m, 'A', 'top')).toBe(plain + 3);
+    expect(wave(m, 'A', 'top')).toBe(plain + extra);
     expect(m.state.breakthrough.A.top).toBeUndefined();
     // the lane is back to its normal wave, and Black's waves never changed
     expect(wave(m, 'A', 'top')).toBe(plain);
@@ -91,30 +93,32 @@ describe('Breakthrough', () => {
     expect(wave(b, 'B', 'top')).toBe(plain);
   });
 
-  it('measures only its own extra pawnlings (3 extra, their Bastion damage)', () => {
+  it('measures only its own extra pawnlings (the extra ones, their Bastion damage)', () => {
+    const extra = card('breakthrough').params.extraMelee;
     const m = playerMatch(61);
     play(m, 'breakthrough', { lane: 'bot' });
     wave(m, 'A', 'bot');
     const run = m.state.feedback.runs.find((r) => r.cardId === 'breakthrough')!;
-    expect(run.met).toBe(3);
-    expect(run.ids).toHaveLength(3);
+    expect(run.met).toBe(extra);
+    expect(run.ids).toHaveLength(extra);
     for (const id of run.ids) expect(m.unitById(id)!.team).toBe('A');
   });
 });
 
 describe('Pin', () => {
-  it('roots an enemy piece for three seconds; it can still be struck and is not stunned', () => {
+  it('roots an enemy piece for its time; it can still be struck and is not stunned', () => {
+    const root = card('pin').params.rootSec * TPS;
     const m = playerMatch(62);
     const foe = piece(m, 'B', 'rook');
     expect(play(m, 'pin', { targetId: piece(m, 'A', 'rook').id }).reason).toMatch(/enemy/);
     expect(play(m, 'pin', { targetId: foe.id }).ok).toBe(true);
-    expect(foe.rootUntil).toBe(m.state.tick + 3 * TPS);
+    expect(foe.rootUntil).toBe(m.state.tick + root);
     expect(foe.stunUntil).toBeUndefined();
     expect(m.snapshot().units.find((u) => u.id === foe.id)!.pinned).toBe(true);
     const [x, y] = [foe.x, foe.y];
     expect(stepToward(m.ctx, foe, x + 300, y + 300, 1, true)).toBe(0);
     expect([foe.x, foe.y]).toEqual([x, y]);
-    m.state.tick += 3 * TPS;
+    m.state.tick += root;
     expect(stepToward(m.ctx, foe, x + 300, y + 300, 1, true)).toBeGreaterThan(0);
     expect(m.snapshot().units.find((u) => u.id === foe.id)!.pinned).toBeUndefined();
   });
@@ -148,7 +152,7 @@ describe('Pin', () => {
     m.step(1);
     expect(behind.stats.moveSpeed).toBeLessThan(speed);
     expect(front.stats.moveSpeed).toBe(frontSpeed);
-    m.step(3 * TPS + 5);
+    m.step(Math.max(card('pin').durationSec, card('pin').params.rootSec) * TPS + 5);
     expect(behind.stats.moveSpeed).toBe(speed);
   });
 
@@ -180,7 +184,7 @@ describe('Desperado', () => {
     expect(play(m, 'desperado', { targetId: piece(m, 'B', 'rook').id }).reason).toMatch(/your/);
     expect(play(m, 'desperado', { targetId: rook.id }).ok).toBe(true);
     m.step(1);
-    expect(rook.stats.bladeDmg / blade).toBeCloseTo(1.6, 2);
+    expect(rook.stats.bladeDmg / blade).toBeCloseTo(card('desperado').params.damageMul, 2);
     expect(m.snapshot().units.find((u) => u.id === rook.id)!.desperate).toBe(true);
     m.step(6 * TPS + 2);
     expect(rook.stats.bladeDmg / blade).toBeCloseTo(1, 2);
@@ -214,7 +218,7 @@ describe('Desperado', () => {
     play(m, 'desperado', { targetId: rook.id });
     const run = m.state.feedback.runs.find((r) => r.cardId === 'desperado')!;
     expect(run.ids).toEqual([rook.id]);
-    expect(run.attr).toMatchObject({ on: 'dealt', mul: 1.6 });
+    expect(run.attr).toMatchObject({ on: 'dealt', mul: card('desperado').params.damageMul });
     kill(m, rook, piece(m, 'B', 'queen').id);
     expect(run.fell).toBe(true);
     expect(run.refund).toBe(10);
@@ -225,12 +229,12 @@ describe('Fortify', () => {
   const outer = (m: Match, lane: LaneId): Unit => m.ctx.towers.A[lane][0]!;
   const shield = (u: Unit): number => u.shields.reduce((a, s) => a + s.amount, 0);
 
-  it('shields the front Bastion of the lane for 20% of its health for 20 seconds', () => {
+  it('shields the front Bastion of the lane for its share of its health for 20 seconds', () => {
     const m = playerMatch(69);
     const tower = outer(m, 'top');
     expect(shield(tower)).toBe(0);
     expect(play(m, 'fortify', { lane: 'top' }).ok).toBe(true);
-    expect(shield(tower)).toBeCloseTo(tower.stats.maxHp * 0.2, 3);
+    expect(shield(tower)).toBeCloseTo(tower.stats.maxHp * card('fortify').params.shieldPct, 3);
     expect(tower.shields[0].expiresTick).toBe(m.state.tick + 20 * TPS);
     expect(shield(m.ctx.towers.A.mid[0]!)).toBe(0);
     // a Bastion that is already shielded is not shielded again
@@ -248,7 +252,7 @@ describe('Fortify', () => {
     inner!.alive = false;
     const throne = m.ctx.guardians.A!;
     expect(play(m, 'fortify', { lane: 'bot' }).ok).toBe(true);
-    expect(shield(throne)).toBeCloseTo(throne.stats.maxHp * 0.2, 3);
+    expect(shield(throne)).toBeCloseTo(throne.stats.maxHp * card('fortify').params.shieldPct, 3);
   });
 
   it('soaks damage before the Bastion loses health, and says how much', () => {

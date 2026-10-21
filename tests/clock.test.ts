@@ -82,7 +82,10 @@ describe('Clock school cards', () => {
     m.state.tempo.B = 50;
     expect(play(m).ok).toBe(true);
     expect(m.state.tempo.B).toBe(50 - param('time_trouble', 'drain'));
-    expect(gambitEvents(m).at(-1)).toMatchObject({ cardId: 'time_trouble', drained: 20 });
+    expect(gambitEvents(m).at(-1)).toMatchObject({
+      cardId: 'time_trouble',
+      drained: param('time_trouble', 'drain'),
+    });
     // 10 s of income: Black's is slowed, White's is not
     const tally = { ...m.state.actTally.tempo };
     m.step(10 * TPS);
@@ -96,7 +99,9 @@ describe('Clock school cards', () => {
     expect(m.state.tempoSlow.B && m.state.tick < m.state.tempoSlow.B.untilTick).toBe(false);
     // the card's measured drain: the 20 now plus the income held back
     const end = m.events.find((e) => e.type === 'gambitEnd' && e.payload.cardId === 'time_trouble');
-    expect(end?.type === 'gambitEnd' && end.payload.drained).toBeGreaterThan(20);
+    expect(end?.type === 'gambitEnd' && end.payload.drained).toBeGreaterThan(
+      param('time_trouble', 'drain'),
+    );
   });
 
   it('Time Trouble drains no more than the enemy holds', () => {
@@ -166,13 +171,16 @@ describe('Clock school cards', () => {
     let before = m.state.tempo.A;
     expect(m.issue({ type: 'playGambit', slot: 1, lane: 'top' }).ok).toBe(true);
     expect(before - m.state.tempo.A).toBe(card('advance').cost - param('increment', 'refund'));
-    // a 7-Tempo card nets 3, not 2
+    // a cheap card nets at least the minimum, never less
+    const refund = param('increment', 'refund');
+    const min = content.tuning.gambits.minCost;
+    const sac = card('pawn_sacrifice').cost;
     setHand(m, 'A', [null, 'pawn_sacrifice', 'hold_the_file']);
     m.state.tempo.A = 100;
     m.issue({ type: 'fieldPawn', lane: 'top' });
     before = m.state.tempo.A;
     expect(m.issue({ type: 'playGambit', slot: 1, lane: 'top' }).ok).toBe(true);
-    expect(before - m.state.tempo.A).toBe(content.tuning.gambits.minCost);
+    expect(before - m.state.tempo.A).toBe(Math.max(min, sac - refund));
     // spending counts the full price; the give-back is income
     expect(m.state.tempoSpent.A.cards).toBe(
       card('increment').cost + card('advance').cost + card('pawn_sacrifice').cost,
@@ -184,23 +192,22 @@ describe('Clock school cards', () => {
     expect(m.state.tempo.A).toBe(100 - card('hold_the_file').cost);
     const end = m.events.find((e) => e.type === 'gambitEnd' && e.payload.cardId === 'increment');
     expect(end?.type === 'gambitEnd' && end.payload.refund).toBe(
-      param('increment', 'refund') + card('pawn_sacrifice').cost - content.tuning.gambits.minCost,
+      refund + Math.min(refund, sac - min),
     );
   });
 
   it('Increment with Opening Theory: a card at the 3-Tempo minimum gets nothing back', () => {
     const m = quiet(309);
     const min = content.tuning.gambits.minCost;
-    m.state.opening.A = content.openings.find((o) => o.schools.includes('sacrifice'))!.id;
+    // Increment itself is the cheapest card: in a Clock Opening, Opening Theory takes it to 3
+    m.state.opening.A = content.openings.find((o) => o.schools.includes('clock'))!.id;
     m.state.relics.held.A.push(heldRelic('opening_theory', { id: 'opening_theory' }));
-    const sac = card('pawn_sacrifice');
-    expect(cardCost(m.ctx, 'A', sac)).toBe(min);
+    const inc = card('increment');
+    expect(cardCost(m.ctx, 'A', inc)).toBe(min);
     m.state.increment.A = { value: param('increment', 'refund'), untilTick: m.state.tick + 600 };
-    setHand(m, 'A', ['pawn_sacrifice', null, null]);
+    setHand(m, 'A', ['increment', null, null]);
     m.state.tempo.A = 50;
-    m.issue({ type: 'fieldPawn', lane: 'top' });
-    m.state.tempo.A = 50;
-    expect(m.issue({ type: 'playGambit', slot: 0, lane: 'top' }).ok).toBe(true);
+    expect(m.issue({ type: 'playGambit', slot: 0 }).ok).toBe(true);
     expect(m.state.tempo.A).toBe(50 - min);
   });
 
@@ -248,10 +255,10 @@ describe('Clock school AI plans', () => {
     expect(pickFor(m, 'zugzwang')!.plan.score).toBeGreaterThanOrEqual(1);
   });
 
-  it('Increment fires with 60+ Tempo and another card ready to play, ahead of that card', () => {
+  it('Increment fires with the Tempo for itself and another card ready to play, ahead of it', () => {
     const m = quiet(322);
     m.state.tempo.A = 80; // Black's Time Trouble fits
-    m.state.tempo.B = 50;
+    m.state.tempo.B = card('increment').cost + card('time_trouble').cost - 1;
     expect(pickFor(m, 'increment', ['time_trouble', null])?.slot).not.toBe(0);
     m.state.tempo.B = 80;
     expect(pickFor(m, 'increment', ['time_trouble', null])?.slot).toBe(0);
@@ -282,8 +289,8 @@ describe('Clock school AI plans', () => {
 
   it('the AI plays every Clock card in ordinary AI-vs-AI matches', () => {
     const played = new Set<string>();
-    // seeds where the four come up within four Acts (re-picked when Techniques replaced items)
-    for (const seed of [25, 29]) {
+    // seeds until the four have come up within four Acts each
+    for (let seed = 25; played.size < 4 && seed < 40; seed++) {
       const m = runAi(seed, 4);
       for (const g of gambitEvents(m)) if (card(g.cardId).school === 'clock') played.add(g.cardId);
     }

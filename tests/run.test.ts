@@ -23,7 +23,6 @@ import {
   type MatchOutcome,
   type RunState,
 } from '../src/sim';
-import { drawWeight } from '../src/sim/gambits';
 import { adjudicate } from '../src/sim/runRules';
 import { aiTempoTurn } from '../src/sim/pawnPlan';
 import { giveGold } from '../src/sim/gold';
@@ -192,7 +191,7 @@ describe('Tournament run: steps', () => {
     expect(cfg.relicMax).toBe(5);
     expect(cfg.setup?.A).toBeUndefined();
     expect(nextMatchConfig(content, kit.run, true).setup?.A).toEqual(kit.run.court);
-    expect(cfg.start?.B?.tempoBonus).toBe(5);
+    expect(cfg.start?.B?.tempoBonus).toBe(T.rounds[1].tempoBonus);
     expect(cfg.start?.A?.relics?.map((r) => r.id)).toEqual(kit.run.relics.map((r) => r.id));
     // a piece that did not reach Rank 4 keeps its earlier archetype
     const b2 = beginMatch(content, kit.run, kit.run.court);
@@ -333,9 +332,11 @@ describe('Tournament run: in the match', () => {
     expect(rook.hp).toBe(rook.stats.maxHp);
     expect(piece(m, 'A', 'queen').hero!.techniques).toHaveLength(1);
     expect(m.state.tempo.B - m.state.tempo.A).toBe(15);
-    const withBook = drawWeight(m.ctx, 'A')(book);
-    m.state.run!.books.A = [];
-    expect(withBook).toBe(2 * drawWeight(m.ctx, 'A')(book));
+    // the book move starts in the first hand, held like the Opening's card
+    const slot = m.state.hands.A.find((h) => h.cardId === book.id)!;
+    expect(slot).toMatchObject({ opening: true });
+    const own = content.openingById.get(m.state.opening.A)!.openingCard;
+    if (own !== book.id) expect(slot.book).toBe(true);
     expect(m.snapshot().relics.max).toBe(5);
   });
 
