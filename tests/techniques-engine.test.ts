@@ -180,7 +180,10 @@ describe('targets around the victim, allies, regen and a Dubious price', () => {
     const base = k.stats.hpRegen;
     applyEffect(m.ctx, regen, { caster: k, target: k, powerMul: 1, origin: 'test' });
     recompute(m.ctx, k);
-    expect(k.stats.hpRegen - base).toBeCloseTo(0.02 * k.stats.maxHp, 3);
+    expect(k.stats.hpRegen - base).toBeCloseTo(
+      (regen as { maxHpPct: number }).maxHpPct * k.stats.maxHp,
+      3,
+    );
     const price = m.ctx.c.techniqueById.get('blood_price')!.dubious!.triggers![0].effects[0];
     expect(price.type).toBe('payHp');
     k.hp = k.stats.maxHp * 0.5;
