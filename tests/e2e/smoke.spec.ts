@@ -251,8 +251,10 @@ test('title, setup, gambits, pawn, fork, adjourn, checkmate and report', async (
   );
   expect(picked).toBe(true);
   // other pieces may be waiting too: "Let the AI choose" answers all of them
-  if ((await snap(page)).forks.length > 0) {
-    await expect(page.getByTestId('fork-more')).toBeVisible();
+  const waiting = (await snap(page)).forks.length;
+  if (waiting > 0) {
+    // the sheet shows the next one; "N more waiting" counts those behind it
+    if (waiting > 1) await expect(page.getByTestId('fork-more')).toBeVisible();
     await page.getByTestId('fork-auto').click();
   }
   await expect(page.getByTestId('forks')).toHaveCount(0);

@@ -155,7 +155,7 @@ for (const v of [SHAPES[0], SHAPES[1], SHAPES[3]]) {
         await expect(page.getByTestId(`ac-school-${school}`).locator('.ac-card')).toHaveCount(4);
       }
       await expect(page.getByTestId('ac-card-increment')).toContainText('English Opening');
-      await expect(page.getByTestId('ac-card-zugzwang')).toContainText('17 Tempo');
+      await expect(page.getByTestId('ac-card-zugzwang')).toContainText('14 Tempo');
       expect(await overflow(page)).toBeLessThanOrEqual(0);
       await shot(page, `rules-cards-${v.name}`);
     });

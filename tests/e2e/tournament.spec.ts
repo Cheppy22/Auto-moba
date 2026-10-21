@@ -8,6 +8,14 @@ const COURTS = (
   }
 ).courts;
 
+/** The round table (`content/tournament.json`): the County rung's line is built from it. */
+const COUNTY = (
+  JSON.parse(readFileSync('content/tournament.json', 'utf8')) as {
+    rounds: { relics: number; tempoBonus: number; relicMax?: number }[];
+  }
+).rounds[1];
+const relicWord = (n: number): string => `${n} relic${n === 1 ? '' : 's'}`;
+
 const shots = process.env.SHOTS_DIR;
 
 /** What these tests use of the session (`?run=test` adds `testEnd`). */
@@ -146,9 +154,13 @@ test('a run on a phone: draw, kit, win, Spoils, reload, Continue, lose, summary,
   await expect(page.getByTestId('rung-1').getByTestId('signature-relic')).toBeVisible();
   // every court starts with at least its signature relic
   await expect(page.getByTestId('rung-1')).toContainText('Starts with 1 relic');
-  await expect(page.getByTestId('rung-2')).toContainText('Starts with 1 relic and +5 Tempo');
+  await expect(page.getByTestId('rung-2')).toContainText(
+    `Starts with ${relicWord(Math.max(1, COUNTY.relics))} and +${COUNTY.tempoBonus} Tempo`,
+  );
   await expect(page.getByTestId('rung-1')).toContainText('Drafts no relics.');
-  await expect(page.getByTestId('rung-2')).toContainText('Holds at most 2 relics.');
+  await expect(page.getByTestId('rung-2')).toContainText(
+    `Holds at most ${relicWord(COUNTY.relicMax ?? 5)}.`,
+  );
   await shot(page, 'draw-phone');
   await fits(page, 'draw');
   const saved = (await stored(page, 'automoba.run')) as { round: number; status: string } | null;
