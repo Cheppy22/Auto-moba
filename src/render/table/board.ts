@@ -36,6 +36,9 @@ export const FRAME = 130;
 export const APRON = 340;
 /** Side of the lake plane round the Long Board (it reaches past the fog). */
 const LAKE_SIZE = 40000;
+/** A clearing's lid: seconds to slide off when it opens, and how far it slides (world units). */
+const LID_SEC = 1.1;
+const LID_SLIDE = 150;
 /** Board top is y = 0; the slab and frame sit just under it. */
 const SLAB = 46;
 
@@ -99,7 +102,21 @@ export class Board {
   private readonly topMat: MeshLambertMaterial;
   private readonly owned: { dispose(): void }[] = [];
   private orient: Orient | null = null;
-  private readonly gates: { mesh: Mesh; id: string }[] = [];
+  /**
+   * Covers over closed courts. Long Board: a stone lid that slides off its clearing and fades when
+   * the clearing opens (`t` 0 closed to 1 gone; reduced motion: a fade only).
+   */
+  private readonly gates: {
+    mesh: Mesh;
+    id: string;
+    mat: MeshBasicMaterial;
+    x: number;
+    z: number;
+    /** The way the lid slides: away from the board's spine. */
+    dx: number;
+    t: number;
+    open: boolean | null;
+  }[] = [];
   private readonly texSize: number;
   /** The Long Board's theme; null on the square board. */
   private style: MapStyle | null;
@@ -172,10 +189,10 @@ export class Board {
       this.cover = { canvas: gc, tex: coverTex, r: coverR };
       this.paintCover();
     }
-    const gateMat = this.own(
-      new MeshBasicMaterial({ map: coverTex, transparent: true, depthWrite: false }),
-    );
     for (const slot of content.map.slots) {
+      const gateMat = this.own(
+        new MeshBasicMaterial({ map: coverTex, transparent: true, depthWrite: false }),
+      );
       const side = slot.radius * 1.84;
       const mesh = new Mesh(
         this.own(
@@ -188,7 +205,16 @@ export class Board {
       const y = this.long ? this.relief.atSim(slot.x, slot.y) : 0;
       mesh.position.set(slot.x - hx, 1.2 + y, slot.y - hz);
       mesh.renderOrder = 2;
-      this.gates.push({ mesh, id: slot.id });
+      this.gates.push({
+        mesh,
+        id: slot.id,
+        mat: gateMat,
+        x: slot.x - hx,
+        z: slot.y - hz,
+        dx: slot.x < hx ? -1 : 1,
+        t: 0,
+        open: null,
+      });
       this.group.add(mesh);
     }
     this.buildProps();
@@ -390,9 +416,25 @@ export class Board {
       for (const g of this.gates) g.mesh.rotation.y = o === 'portrait' ? 0 : Math.PI / 2;
   }
 
-  /** Shows the iron gate over each court that is still closed. */
-  sync(open: (id: string) => boolean): void {
-    for (const g of this.gates) g.mesh.visible = !open(g.id);
+  /**
+   * Shows the cover over each court that is still closed. A Long Board lid that opens during play
+   * slides off sideways and fades (`dt` in seconds; with `reduced` it only fades); covers that are
+   * already open when the view first looks are simply gone.
+   */
+  sync(open: (id: string) => boolean, dt = 0, reduced = false): void {
+    for (const g of this.gates) {
+      const o = open(g.id);
+      if (g.open === null || !this.style) g.t = o ? 1 : 0;
+      else if (!o) g.t = 0;
+      else if (g.t < 1) g.t = Math.min(1, g.t + dt / (reduced ? 0.45 : LID_SEC));
+      g.open = o;
+      g.mesh.visible = g.t < 1;
+      if (!this.style || !g.mesh.visible) continue;
+      const e = g.t * g.t * (3 - 2 * g.t);
+      const slide = reduced ? 0 : e * LID_SLIDE;
+      g.mesh.position.x = g.x + g.dx * slide;
+      g.mat.opacity = 1 - Math.max(0, (g.t - (reduced ? 0 : 0.45)) / (reduced ? 1 : 0.55));
+    }
   }
 
   private paint(o: Orient): Texture {

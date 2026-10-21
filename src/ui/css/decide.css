@@ -69,9 +69,8 @@
   font-weight: 400;
   font-size: var(--fs-md);
   letter-spacing: 0.03em;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  /* an archetype name wraps to a second line; it is never cut off */
+  overflow-wrap: break-word;
   max-width: 100%;
 }
 .fs-emblem {
@@ -79,7 +78,7 @@
 }
 .fs-tag {
   font-style: normal;
-  font-size: 11px;
+  font-size: var(--fs-xs);
   line-height: 14px;
   letter-spacing: 0.02em;
 }
@@ -195,7 +194,7 @@
   border-left-color: var(--clock-hi);
 }
 .fs-delta dt {
-  font-size: 11.5px;
+  font-size: var(--fs-xs);
   line-height: 1.2;
   color: var(--dim);
 }
@@ -212,7 +211,7 @@
   color: var(--dim);
 }
 .fs-arrow {
-  font-size: 11px;
+  font-size: var(--fs-xs);
   color: var(--brass);
 }
 .fs-delta b {
@@ -254,14 +253,24 @@
   min-height: 44px;
   font-size: var(--fs-md);
 }
-.fs-choose {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.fs-choose,
+.fs-auto {
+  line-height: 1.2;
+  white-space: normal;
 }
 .fs-auto {
   color: var(--brass-hi);
   border-color: var(--brass-dim);
+}
+
+/* a phone held upright: three tabs share 340 px, so the emblem sits above the name and the name may wrap */
+html[data-layout='portrait'] .fs-opt {
+  flex-direction: column;
+  gap: 2px;
+  text-align: center;
+}
+html[data-layout='portrait'] .fs-opt-text {
+  align-items: center;
 }
 
 /* a phone held upright: the sheet keeps to the lower half, so the rules line goes for archetypes */
@@ -299,7 +308,7 @@ html[data-layout='landscape'] .fs-delta {
   padding: 1px 6px 2px;
 }
 html[data-layout='landscape'] .fs-delta dt {
-  font-size: 11px;
+  font-size: var(--fs-xs);
   line-height: 1.15;
 }
 html[data-layout='landscape'] .fs-delta dd {

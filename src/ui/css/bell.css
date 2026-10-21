@@ -145,7 +145,11 @@
   transform: translateY(0);
 }
 .bs-head {
+  position: relative;
+  z-index: 2;
   flex: none;
+  /* solid, so content scrolling in the body never shows through the title */
+  background: rgb(40, 32, 22);
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
@@ -277,6 +281,68 @@ html[data-layout='landscape'] .bs-body {
 }
 html[data-layout='landscape'] .bs-resume {
   min-height: 44px;
+}
+/* the open tab is the selected one: baize, as every selected option (colour map; review D8) */
+.bs-tabs .btn.on {
+  color: var(--ivory);
+  background: linear-gradient(180deg, #3a7d5e 0%, #2a5e46 100%);
+  border-bottom-color: var(--baize-hi);
+  box-shadow:
+    inset 0 0 0 1px var(--baize-hi),
+    var(--glow-baize);
+}
+/*
+ * Landscape phone (review D9): one header row, "Act N complete" on the left, the tabs, then
+ * Resume on the right, so the cards get the whole height below it and only the body scrolls.
+ */
+html[data-layout='landscape'] .breaksheet {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) minmax(0, max-content);
+  grid-template-rows: auto auto minmax(0, 1fr);
+  grid-template-areas:
+    'title tabs foot'
+    'tour tour tour'
+    'body body body';
+  align-items: center;
+  column-gap: var(--sp-3);
+}
+html[data-layout='landscape'] .bs-head {
+  display: contents;
+}
+html[data-layout='landscape'] .bs-title {
+  grid-area: title;
+}
+html[data-layout='landscape'] .bs-title > span {
+  display: none;
+}
+html[data-layout='landscape'] .bs-tabs {
+  grid-area: tabs;
+  gap: var(--sp-1);
+  border-bottom: 0;
+}
+html[data-layout='landscape'] .bs-tabs .btn {
+  padding: 0 var(--sp-2);
+}
+html[data-layout='landscape'] .bs-body {
+  grid-area: body;
+  align-self: stretch;
+  border-top: 1px solid var(--rule);
+}
+html[data-layout='landscape'] .bs-foot {
+  grid-area: foot;
+  padding-top: 0;
+  border-top: 0;
+}
+html[data-layout='landscape'] .bs-resume {
+  width: auto;
+  max-width: 230px;
+  padding: 2px var(--sp-3);
+  font-size: var(--fs-sm);
+  line-height: 1.2;
+  white-space: normal;
+}
+html[data-layout='landscape'] .breaksheet > :not(.bs-head, .bs-body, .bs-foot) {
+  grid-area: tour;
 }
 /* a refusal ("Pick a card ...", "you hold three relics") must show above the sheet, over its Resume bar */
 .hud[data-bell='break'] .toast {

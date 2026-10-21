@@ -7,6 +7,7 @@ import {
   betterFinish,
   finishLabel,
   finishOf,
+  isNewBest,
   generateOpponents,
   Match,
   newRun,
@@ -155,6 +156,19 @@ describe('Tournament run: steps', () => {
     expect(finishLabel(content, { v: 1, round: 3, champion: false })).toBe('Reached the Final');
     expect(betterFinish({ v: 1, round: 3, champion: false }, f)).toBe(f);
     expect(betterFinish(f, { v: 1, round: 2, champion: false })).toBe(f);
+  });
+
+  it('says "New best" only for a finish past the Club that beats the old one', () => {
+    const club = { v: 1, round: 0, champion: false } as const;
+    const county = { v: 1, round: 1, champion: false } as const;
+    const final = { v: 1, round: 3, champion: false } as const;
+    expect(isNewBest(null, club)).toBe(false);
+    expect(isNewBest(club, club)).toBe(false);
+    expect(isNewBest(null, county)).toBe(true);
+    expect(isNewBest(club, county)).toBe(true);
+    expect(isNewBest(final, county)).toBe(false);
+    expect(isNewBest(county, { ...county })).toBe(false);
+    expect(isNewBest(final, { v: 1, round: 3, champion: true })).toBe(true);
   });
 
   it('carries court, archetypes and relics; resets the rest (fresh match)', () => {

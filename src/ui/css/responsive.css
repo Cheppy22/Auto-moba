@@ -244,7 +244,7 @@ html[data-layout='desktop'] .pp-tab b {
   font-size: var(--fs-md);
 }
 html[data-layout='desktop'] .pp-tab-path {
-  font-size: 11px;
+  font-size: var(--fs-xs);
 }
 html[data-layout='desktop'] .pp-detail {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);

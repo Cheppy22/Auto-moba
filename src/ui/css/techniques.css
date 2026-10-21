@@ -173,7 +173,7 @@
   line-height: 1.1;
 }
 .fm-chip-src {
-  font-size: 11px;
+  font-size: var(--fs-xs);
   line-height: 1.1;
   color: var(--dim);
 }
@@ -410,7 +410,7 @@ html[data-layout='landscape'] .fm-page {
   color: var(--ivory);
 }
 .tt-l {
-  font-size: 11px;
+  font-size: var(--fs-xs);
   color: var(--dim);
 }
 .tt-total {

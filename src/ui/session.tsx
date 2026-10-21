@@ -6,6 +6,7 @@ import {
   applyReward,
   beginMatch,
   betterFinish,
+  isNewBest,
   contentFor,
   finishOf,
   Match,
@@ -810,7 +811,7 @@ export class Session {
     if (done) {
       const before = this.best;
       this.best = betterFinish(before, done);
-      this.runBestNew = this.best !== before && this.best === done;
+      this.runBestNew = isNewBest(before, done);
       saveBest(this.best);
     }
     saveRun(this.run);

@@ -413,7 +413,7 @@ html:not([data-layout='desktop']) .rp-page-scroll {
     right: 18px;
     bottom: 4px;
     margin: 0;
-    font-size: 10px;
+    font-size: var(--fs-xs);
   }
 }
 
@@ -443,7 +443,7 @@ html:not([data-layout='desktop']) .rp-page-scroll {
 }
 .rp-award-title {
   font-family: var(--font-display);
-  font-size: 11px;
+  font-size: var(--fs-xs);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--brass);
@@ -665,7 +665,7 @@ html:not([data-layout='desktop']) .rp-page-scroll {
   padding: 0 3px;
   border: 1px solid var(--brass);
   border-radius: 9px;
-  font-size: 11px;
+  font-size: var(--fs-xs);
   font-weight: 600;
   line-height: 1;
   color: var(--brass-hi);
@@ -844,12 +844,12 @@ html:not([data-layout='desktop']) .rp-page-scroll {
 }
 .ch-tick {
   fill: var(--dim);
-  font-size: 10.5px;
+  font-size: var(--fs-xs);
   font-variant-numeric: tabular-nums;
 }
 .ch-guide-label {
   fill: var(--faint);
-  font-size: 9.5px;
+  font-size: var(--fs-xs);
   letter-spacing: 0.04em;
 }
 .ch-rowlabel {
@@ -862,7 +862,7 @@ html:not([data-layout='desktop']) .rp-page-scroll {
   font-variant-numeric: tabular-nums;
 }
 .ch-value.sm {
-  font-size: 10.5px;
+  font-size: var(--fs-xs);
   fill: var(--dim);
 }
 .ch-rowbg {

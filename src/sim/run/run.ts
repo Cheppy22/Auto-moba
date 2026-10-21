@@ -247,6 +247,15 @@ export function betterFinish(a: BestFinish | null, b: BestFinish | null): BestFi
   return score(b) > score(a) ? b : a;
 }
 
+/**
+ * Whether a run that just ended earns the "New best" tag: it must beat an earlier best, or be the
+ * first run to get past the Club round (a first-round exit is nothing to celebrate).
+ */
+export function isNewBest(before: BestFinish | null, done: BestFinish): boolean {
+  if (done.round === 0 && !done.champion) return false;
+  return betterFinish(before, done) === done;
+}
+
 /** The best-finish line: "Champion", "Reached the Final", … "Out in the Club round". */
 export function finishLabel(c: Content, f: BestFinish): string {
   if (f.champion) return 'Champion';

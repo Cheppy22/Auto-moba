@@ -8,7 +8,7 @@ import { heroName, techniqueName } from './common';
 import type { ReportData } from './data';
 import { reducedMotion } from './parts';
 
-/** The path replay for one piece: map, scrub bar, fights, purchases and falls on a timeline. */
+/** The path replay for one piece: map, scrub bar, fights, Techniques taken and falls on a timeline. */
 export function ReplayPanel(props: { data: ReportData; id: number; active: boolean }) {
   const s = useSession();
   const { report } = props.data;
@@ -148,7 +148,7 @@ export function ReplayPanel(props: { data: ReportData; id: number; active: boole
           }}
           data-testid="scrub"
         />
-        <div class="timeline rp-timeline" title="fights, purchases, falls">
+        <div class="timeline rp-timeline" title="fights, Techniques, falls">
           {fights.map((f) => (
             <div
               key={`f${f.id}`}
@@ -202,7 +202,7 @@ export function ReplayPanel(props: { data: ReportData; id: number; active: boole
             <span style={{ color: 'var(--clock-hi)' }}>■</span> fights
           </span>
           <span>
-            <span class="gold">■</span> purchases
+            <span class="gold">■</span> Techniques
           </span>
           <span>
             <span style={{ color: 'var(--bad)' }}>✕</span> falls

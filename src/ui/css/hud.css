@@ -111,7 +111,7 @@
   animation: pulse 1.1s ease-in-out infinite;
 }
 .pts-label {
-  font-size: 10px;
+  font-size: var(--fs-xs);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--dim);
@@ -266,7 +266,7 @@
   height: 17px;
   border-radius: 50%;
   font-family: var(--font-body);
-  font-size: 11px;
+  font-size: var(--fs-xs);
   font-weight: 700;
   line-height: 1;
   color: #1a1206;
@@ -288,7 +288,7 @@
   bottom: -4px;
   padding: 0 3px;
   font-style: normal;
-  font-size: 10px;
+  font-size: var(--fs-xs);
   font-weight: 700;
   line-height: 13px;
   color: var(--brass-hi);
@@ -635,7 +635,7 @@
   border-radius: 8px;
 }
 .gs-cost small {
-  font-size: 9px;
+  font-size: var(--fs-xs);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -779,7 +779,7 @@
   background: #8a7a52;
 }
 .gstate {
-  font-size: 11px;
+  font-size: var(--fs-xs);
   line-height: 1.15;
   color: var(--brass-hi);
 }
@@ -817,7 +817,7 @@
   flex: none;
   padding: 0 5px;
   font-family: var(--font-body);
-  font-size: 9.5px;
+  font-size: var(--fs-xs);
   font-weight: 700;
   line-height: 14px;
   letter-spacing: 0.06em;
@@ -832,7 +832,7 @@
   right: 0;
   bottom: 0;
   height: 12px;
-  font-size: 9.5px;
+  font-size: var(--fs-xs);
   font-weight: 700;
   line-height: 12px;
   letter-spacing: 0.1em;
@@ -965,7 +965,7 @@
   color: #f3e9d0;
 }
 .pawn-text span {
-  font-size: 11.5px;
+  font-size: var(--fs-xs);
   color: var(--brass-hi);
   font-variant-numeric: lining-nums tabular-nums;
 }
@@ -1328,7 +1328,7 @@ html[data-layout='landscape'] .aim.lane .aim-hint {
   gap: 4px;
   min-width: 0;
   overflow: hidden;
-  font-size: 10px;
+  font-size: var(--fs-xs);
   line-height: 1;
   white-space: nowrap;
 }

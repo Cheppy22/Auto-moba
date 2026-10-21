@@ -95,7 +95,7 @@ The table below is round 1 (variant `a` keeps the hall, frame, brass and team co
 | Pawn     | ~0.44  | Armoured pawn soldier: ball helm with crest, kite shield, spear                      |
 | Pawnling | ~0.28  | A Staunton pawn on stubby legs (ranged ones wear a cone hat)                         |
 
-Structures never borrow a piece outline: **Bastion** = squat keep under a hipped roof with a tall pennant (no crenels); **Throne** = stepped octagonal dais, tall-backed throne, a giant glowing crown and two banners.
+Structures read as chess (2026-10-20, visuals review D3): **Bastion** = a rook tower (round tapering shaft on a moulded foot, team band, flared collar under four merlons, a team-coloured cap, a team banner), several times a Rook's size and on its plinth, so it never reads as a piece; **Throne** = a crowned keep on the stepped octagonal dais (octagonal keep with a team band and gate, eight merlons, a giant glowing crown with a cross on its roof, two banners).
 
 ## Styles (one bold colour block + signature gear)
 

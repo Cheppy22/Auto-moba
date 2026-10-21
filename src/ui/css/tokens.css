@@ -1,5 +1,11 @@
 :root {
-  /* Interface palette: ebony, walnut, mahogany, ivory, bone, brass, baize, silver-slate, clock red. */
+  /*
+   * Interface palette: ebony, walnut, mahogany, ivory, bone, brass, baize, silver-slate, clock red.
+   * One meaning per colour (docs/CHESS.md "Colour map"): brass = chrome, places, gold and the AI's
+   * pick; ivory / bone = text (ivory is also White); silver-slate = Black; baize green = good
+   * (selected, better); clock red = bad (danger, worse, a price, a warning); the stat words keep
+   * cobalt / moss / violet; the six schools have hues used nowhere else (--school-*).
+   */
   --ebony-0: #0d0b09;
   --ebony: #14110e;
   --walnut: #2a1e16;
@@ -15,15 +21,15 @@
   --baize-hi: #5fae86;
   --slate: #9aa5b8;
   --clock: #b8392c;
-  --clock-hi: #e0675a;
+  --clock-hi: #e7645c;
   --clock-deep: #5a1d17;
   --a: #efe6d2;
   --b: #9aa5b8;
   --a-trim: #c9a35a;
   --b-trim: #b4bdcc;
-  --good: #9cb874;
-  --warn: #e0a93e;
-  --bad: #d9574a;
+  --good: var(--baize-hi);
+  --warn: var(--clock-hi);
+  --bad: #e45c5a;
   --gold: var(--brass-hi);
   --accent: var(--baize-hi);
 
@@ -38,8 +44,16 @@
   --soul-3: #ddc8ff;
   --kw-true: #f6f0e2;
   --kw-gold: #f0d58a;
-  --kw-price: #ec6a70;
+  --kw-price: var(--bad);
   --kw-rule: #c9a24a;
+
+  /* gambit schools (mirrors SCHOOL_COLOR in src/ui/schools.tsx; tests/colours.test.ts checks both) */
+  --school-march: #e47b30;
+  --school-initiative: #e7729b;
+  --school-fortress: #807fde;
+  --school-sacrifice: #b357ad;
+  --school-position: #4ab6c7;
+  --school-clock: #d1d343;
 
   --text: #efe6d2;
   --dim: #cbbd9f;

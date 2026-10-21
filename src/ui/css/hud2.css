@@ -156,7 +156,7 @@ html[data-layout='desktop'] .hud.v2 {
 }
 .tray[data-count='4'] .tray-time,
 .tray[data-count='5'] .tray-time {
-  font-size: 9px;
+  font-size: var(--fs-xs);
   letter-spacing: -0.02em;
 }
 .tray-item.leaving {
@@ -164,7 +164,7 @@ html[data-layout='desktop'] .hud.v2 {
 }
 .tray-time {
   font-style: normal;
-  font-size: 10px;
+  font-size: var(--fs-xs);
   font-weight: 700;
   font-variant-numeric: lining-nums tabular-nums;
   letter-spacing: 0;
@@ -261,7 +261,7 @@ html[data-layout='desktop'] .hud.v2 {
 }
 .v2-label {
   font-family: var(--font-display);
-  font-size: 11px;
+  font-size: var(--fs-xs);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--b);
@@ -299,7 +299,7 @@ html[data-layout='desktop'] .hud.v2 {
   height: 16px;
   border-radius: 50%;
   font-family: var(--font-body);
-  font-size: 10.5px;
+  font-size: var(--fs-xs);
   font-weight: 700;
   line-height: 1;
   color: #14110e;
@@ -347,6 +347,10 @@ html[data-layout='desktop'] .hud.v2 {
 .v2-drawer {
   position: relative;
   pointer-events: none;
+}
+/* a fork sheet is a modal: the gambit drawer is out of the way, not showing through the scrim beside it */
+.v2-bottom[data-forking='true'] .v2-drawer {
+  visibility: hidden;
 }
 /* everything that opens upward is out of flow, so the bar (what the camera reserves) stays put */
 .dr-float {
@@ -523,10 +527,10 @@ html[data-layout='desktop'] .hud.v2 {
 .hud.v2 .roster.row .rank-num {
   width: 18px;
   height: 18px;
-  font-size: 11.5px;
+  font-size: var(--fs-xs);
 }
 .hud.v2 .roster.row .lane-tag {
-  font-size: 11px;
+  font-size: var(--fs-xs);
   line-height: 14px;
 }
 .roster.row .rname {
@@ -534,7 +538,7 @@ html[data-layout='desktop'] .hud.v2 {
   margin-top: 3px;
   overflow: hidden;
   font-family: var(--font-display);
-  font-size: 10.5px;
+  font-size: var(--fs-xs);
   line-height: 1.1;
   letter-spacing: 0.04em;
   white-space: nowrap;
@@ -545,7 +549,7 @@ html[data-layout='desktop'] .hud.v2 {
   margin-top: 3px;
 }
 .hud.v2 .roster.row .roster-cell .fall i {
-  font-size: 10px;
+  font-size: var(--fs-xs);
 }
 .hud.v2 .roster.row .relic-row {
   grid-column: 1 / -1;
@@ -572,7 +576,7 @@ html[data-layout='desktop'] .hud.v2 {
   height: calc(32px * var(--u));
 }
 .hud.v2 .pts-label {
-  font-size: calc(9.5px * var(--u));
+  font-size: max(var(--fs-xs), calc(9.5px * var(--u)));
   letter-spacing: 0.03em;
   white-space: nowrap;
 }
@@ -593,11 +597,11 @@ html[data-layout='desktop'] .hud.v2 {
   font-size: calc(12px * var(--u));
 }
 .hud.v2 .tray-time {
-  font-size: calc(10px * var(--u));
+  font-size: max(var(--fs-xs), calc(10px * var(--u)));
 }
 .hud.v2 .btoken-rank,
 .roster.row .rname {
-  font-size: calc(10.5px * var(--u));
+  font-size: max(var(--fs-xs), calc(10.5px * var(--u)));
 }
 .hud.v2 .tray-item > svg {
   width: calc(24px * var(--u));
@@ -610,14 +614,14 @@ html[data-layout='desktop'] .hud.v2 {
 .hud.v2 .roster.row .rank-num {
   width: calc(18px * var(--u));
   height: calc(18px * var(--u));
-  font-size: calc(11.5px * var(--u));
+  font-size: max(var(--fs-xs), calc(11.5px * var(--u)));
 }
 .hud.v2 .roster.row .lane-tag {
-  font-size: calc(11px * var(--u));
+  font-size: max(var(--fs-xs), calc(11px * var(--u)));
   line-height: calc(14px * var(--u));
 }
 .hud.v2 .roster.row .roster-cell .fall i {
-  font-size: calc(10px * var(--u));
+  font-size: max(var(--fs-xs), calc(10px * var(--u)));
 }
 .hud.v2 .roster.row .style-badge {
   width: calc(18px * var(--u));
@@ -633,7 +637,7 @@ html[data-layout='desktop'] .hud.v2 {
   height: calc(26px * var(--u));
 }
 .hud.v2 .pawn-text span {
-  font-size: calc(11.5px * var(--u));
+  font-size: max(var(--fs-xs), calc(11.5px * var(--u)));
 }
 .hud.v2 .gname {
   font-size: calc(13px * var(--u));
@@ -644,7 +648,7 @@ html[data-layout='desktop'] .hud.v2 {
   font-size: calc(12px * var(--u));
 }
 .hud.v2 .gstate {
-  font-size: calc(11px * var(--u));
+  font-size: max(var(--fs-xs), calc(11px * var(--u)));
 }
 .hud.v2 .relic-icon {
   width: calc(36px * var(--u));
@@ -653,7 +657,8 @@ html[data-layout='desktop'] .hud.v2 {
 
 /* ---------- notices, piece card ---------- */
 .hud.v2 .notices {
-  top: calc(var(--hud-top, 150px) + 8px);
+  /* --hang: what hangs under the bar (Black's seals, the capture trays), so a notice never sits on it */
+  top: calc(var(--hud-top, 150px) + 8px + var(--hang, 0px));
   width: min(calc(100% - 24px), calc(400px * var(--u)));
 }
 .hud.v2 .ucard {
@@ -782,6 +787,10 @@ html[data-layout='desktop'] .hud.v2 {
   bottom: auto;
   max-height: calc(100% - var(--hud-top, 54px) - 16px);
 }
+.hud.v2[data-shape='side'] .ucard.side-B {
+  top: calc(var(--hud-top, 54px) + 8px + var(--hang, 0px));
+  max-height: calc(100% - var(--hud-top, 54px) - 16px - var(--hang, 0px));
+}
 .hud.v2[data-shape='side'] .ucard.side-A {
   left: calc(var(--hud-left, 80px) + 8px);
   right: auto;
@@ -879,7 +888,7 @@ html[data-layout='desktop'] .hud.v2 {
   height: calc(14px * var(--u));
   padding: 0 2px;
   font-style: normal;
-  font-size: calc(10px * var(--u));
+  font-size: max(var(--fs-xs), calc(10px * var(--u)));
   font-weight: 700;
   line-height: 1;
   color: var(--b-trim);
@@ -1116,15 +1125,17 @@ html[data-layout='desktop'] .hud.v2 {
 .hud.v2[data-shape='stack'] .v2-top:has(.v2-black .relic-row) .tray {
   top: calc(100% + 46px);
 }
-/* a banner waits below a tray that is showing */
-.hud.v2[data-shape='stack']:has(.tray-item) .notices {
-  top: calc(var(--hud-top, 110px) + 52px);
-}
 /* so does Black's piece card, which opens in the same spot: the trays (44 px, 2 px under the bar)
  * and the seals row (they push the trays down 44 px more) hang out of the bar's flow, so the
  * card starts below whatever hangs there instead of sitting under it with its close button */
 .hud.v2[data-shape='stack'] {
   --hang: 0px;
+}
+.hud.v2[data-shape='stack']:has(.v2-black .relic-row) {
+  --hang: 44px;
+}
+.hud.v2[data-shape='side']:has(.v2-black .relic-row) {
+  --hang: calc(36px * var(--u));
 }
 .hud.v2[data-shape='stack']:has(.tray-item) {
   --hang: 52px;
@@ -1162,5 +1173,26 @@ html[data-layout='desktop'] .hud.v2 {
   }
   .hud.v2[data-shape='stack'] .adjourn {
     padding: 4px 7px;
+  }
+}
+
+/*
+ * While the hand is open (portrait, the stack shape), your row folds into a thin strip of portraits
+ * and rings: names, fall lines and relic seals step aside so the hand and the board keep the room
+ * (review D6). The camera's inset stays the collapsed one (CourtLayout), so the board never jumps.
+ */
+.hud.v2:not([data-shape='side']) .v2-bottom:has(.v2-drawer[data-open='true']) .roster-cell {
+  min-height: 0;
+  padding: 3px 2px 2px;
+}
+.hud.v2:not([data-shape='side']) .v2-bottom:has(.v2-drawer[data-open='true']) .roster.row .rname,
+.hud.v2:not([data-shape='side']) .v2-bottom:has(.v2-drawer[data-open='true']) .roster.row .fall,
+.hud.v2:not([data-shape='side']) .v2-bottom:has(.v2-drawer[data-open='true']) .relic-row {
+  display: none;
+}
+/* a landscape phone's one-row top bar: at the 12 px floor the score labels drop " pts" there too */
+@media (max-height: 520px) {
+  .hud.v2[data-shape='side'] .pts-tail {
+    display: none;
   }
 }

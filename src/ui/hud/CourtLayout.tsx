@@ -49,6 +49,10 @@ export function CourtLayout(props: {
   const top = useRef<HTMLDivElement>(null);
   const bottom = useRef<HTMLDivElement>(null);
   const mine = useRef<HTMLDivElement>(null);
+  // the row folds into a strip while the hand is open (CSS); the camera keeps the collapsed inset
+  const openRef = useRef(false);
+  openRef.current = open;
+  const lastBottom = useRef(0);
   // aiming a card needs the board, not the hand: the drawer folds away
   const aiming = s.ui.aim !== null;
   useEffect(() => {
@@ -75,13 +79,16 @@ export function CourtLayout(props: {
       const topPx = t ? t.bottom : 0;
       // stack: the bottom stack; side: only the drawer's bar in the bottom-right corner (the
       // pieces run down the left edge), so the board frames clear of it
-      const bottomPx = side
+      const measured = side
         ? d
           ? window.innerHeight - d.top
           : 0
         : b
           ? window.innerHeight - b.top
           : 0;
+      const bottomPx =
+        !side && openRef.current && lastBottom.current > 0 ? lastBottom.current : measured;
+      lastBottom.current = bottomPx;
       root.setProperty('--hud-top', px(topPx));
       root.setProperty('--hud-bottom', px(bottomPx));
       root.setProperty('--hud-left', px(side && m ? m.right : 0));
@@ -130,7 +137,7 @@ export function CourtLayout(props: {
       />
       <PieceCard />
       <Tutor snap={snap} held={held} stopped={props.stopped} drawerOpen={open} />
-      <div class="v2-bottom" ref={bottom}>
+      <div class="v2-bottom" ref={bottom} data-forking={forkIds.length > 0}>
         <Drawer snap={snap} open={open} onOpen={openDrawer} />
         <div class="v2-mine" ref={mine}>
           <Roster team="A" forks={forkIds} snap={snap} row />

@@ -9,7 +9,6 @@ import {
   octa,
   type Part,
   prism,
-  ring,
   rod,
   slab,
   spike,
@@ -133,84 +132,113 @@ export function pawn(team: Team): BufferGeometry {
   ]);
 }
 
-/** Bastion: a squat keep under a hipped roof with a tall pennant (never crenellated: that's the Rook). */
+/**
+ * Battlements round the top of a round tower: `n` merlons on a circle of radius `r` at height `y`
+ * (each a block facing outward), the gaps between them being the crenels.
+ */
+function merlons(n: number, r: number, y: number, w: number, h: number, c: string): Part[] {
+  const out: Part[] = [];
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * PI * 2 + PI / n;
+    out.push({
+      g: box(w, h, w * 0.8),
+      c,
+      p: [Math.sin(a) * r, y + h / 2, Math.cos(a) * r],
+      r: [0, a, 0],
+    });
+  }
+  return out;
+}
+
+/**
+ * Bastion: a chess rook tower (visuals review D3): a round, slightly tapering shaft on a moulded
+ * foot, a band and cap in the team colour, a flared collar under four merlons, and a team banner
+ * above. Low poly (eight sides) and about 250 triangles.
+ */
 export function bastion(team: Team): BufferGeometry {
   const b = BUILD[team];
   const t = TEAM[team];
   return merge([
-    { g: prism(52, 58, 12, 8), c: b.stoneDark },
-    { g: box(66, 64, 66), c: b.stone, p: [0, 44, 0] },
-    { g: box(70, 6, 70), c: b.stoneDark, p: [0, 14, 0] },
-    { g: box(70, 5, 70), c: t.trim, p: [0, 76, 0] },
-    { g: box(18, 26, 4), c: TABLE.ink, p: [0, 25, 33] },
-    { g: box(8, 12, 4), c: TABLE.ink, p: [-20, 54, 33] },
-    { g: box(8, 12, 4), c: TABLE.ink, p: [20, 54, 33] },
-    { g: cone(56, 46, 4), c: b.roof, p: [0, 78, 0], r: [0, PI / 4, 0] },
-    { g: gem(5), c: t.trim, p: [0, 126, 0] },
-    { g: rod([0, 124, 0], [0, 188, 0], 3.2), c: TABLE.frameDark },
+    { g: prism(40, 45, 12, 8), c: b.stoneDark },
+    { g: prism(31, 36, 60, 8), c: b.stone, p: [0, 12, 0] },
+    { g: prism(32.5, 32.5, 6, 8), c: t.trim, p: [0, 44, 0] },
+    { g: prism(41, 31, 12, 8), c: b.stone, p: [0, 72, 0] },
+    { g: prism(41, 41, 6, 8), c: b.stoneDark, p: [0, 84, 0] },
+    // the cap inside the battlements: team colour, seen from the camera above
+    { g: prism(33, 33, 2, 8), c: b.roof, p: [0, 89, 0] },
+    ...merlons(4, 35, 90, 22, 15, b.stone),
+    { g: box(14, 22, 4), c: TABLE.ink, p: [0, 12, 33] },
+    { g: box(5, 13, 4), c: TABLE.ink, p: [0, 54, 31] },
+    { g: rod([0, 90, 0], [0, 150, 0], 3.2), c: TABLE.frameDark },
     {
       g: slab(
         [
           [0, 0],
-          [38, -6],
-          [0, -22],
+          [34, -5],
+          [0, -20],
         ],
         2,
       ),
       c: b.pennant,
-      p: [1.5, 186, 0],
+      p: [1.5, 149, 0],
     },
   ]);
 }
 
-/** Throne: a stepped dais, a tall-backed throne and a giant crown above it, flanked by banners. */
+/**
+ * Throne: a crowned keep (visuals review D3) on the stepped dais: an octagonal keep with a team
+ * band and a gate, battlements, and a giant glowing crown on its roof, flanked by banners.
+ */
 export function throne(team: Team): BufferGeometry {
   const b = BUILD[team];
   const t = TEAM[team];
   const p: Part[] = [
     { g: prism(112, 122, 12, 8), c: b.stoneDark },
     { g: prism(92, 100, 12, 8), c: b.stone, p: [0, 12, 0] },
-    { g: prism(72, 78, 12, 8), c: b.stoneDark, p: [0, 24, 0] },
-    { g: prism(73, 73, 3, 8), c: t.trim, p: [0, 35, 0] },
-    { g: box(62, 22, 50), c: t.body, p: [0, 47, 6] },
-    { g: box(64, 6, 52), c: t.trim, p: [0, 59, 6] },
-    { g: box(12, 34, 50), c: t.body, p: [-34, 62, 6] },
-    { g: box(12, 34, 50), c: t.body, p: [34, 62, 6] },
-    { g: box(66, 112, 14), c: t.body, p: [0, 92, -18] },
-    { g: box(42, 82, 3), c: t.cloth, p: [0, 90, -10] },
-    { g: cone(40, 34, 4), c: t.body, p: [0, 148, -18], r: [0, PI / 4, 0], s: [1, 1, 0.35] },
-    { g: ring(26, 4, 8), c: t.trim, p: [0, 196, -18], glow: true },
+    { g: prism(93, 93, 3, 8), c: t.trim, p: [0, 24, 0] },
+    { g: prism(56, 63, 92, 8), c: b.stone, p: [0, 24, 0] },
+    { g: prism(58.5, 58.5, 7, 8), c: t.trim, p: [0, 62, 0] },
+    { g: prism(70, 57, 14, 8), c: b.stone, p: [0, 116, 0] },
+    { g: prism(70, 70, 6, 8), c: b.stoneDark, p: [0, 130, 0] },
+    { g: prism(60, 60, 2, 8), c: b.roof, p: [0, 136, 0] },
+    ...merlons(8, 62, 136, 22, 16, b.stone),
+    { g: box(26, 40, 4), c: TABLE.ink, p: [0, 26, 58] },
+    { g: box(7, 18, 4), c: TABLE.ink, p: [-22, 86, 55] },
+    { g: box(7, 18, 4), c: TABLE.ink, p: [22, 86, 55] },
+    // the crown on the roof: a glowing band, five points and a cross
+    { g: prism(34, 30, 14, 8), c: t.trim, p: [0, 138, 0], glow: true },
   ];
-  for (let i = 0; i < 6; i++) {
-    const a = (i / 6) * PI * 2;
+  for (let i = 0; i < 5; i++) {
+    const a = (i / 5) * PI * 2;
     p.push({
       g: spike(
-        [Math.cos(a) * 26, 196, -18 + Math.sin(a) * 26],
-        [Math.cos(a) * 32, 222, -18 + Math.sin(a) * 32],
-        5,
+        [Math.sin(a) * 30, 150, Math.cos(a) * 30],
+        [Math.sin(a) * 38, 186, Math.cos(a) * 38],
+        7,
         4,
       ),
       c: t.trim,
       glow: true,
     });
   }
-  p.push({ g: box(6, 34, 6), c: t.trim, p: [0, 228, -18], glow: true });
-  p.push({ g: box(22, 6, 6), c: t.trim, p: [0, 232, -18], glow: true });
+  p.push({ g: gem(9), c: t.trim, p: [0, 160, 0], glow: true });
+  p.push({ g: box(7, 38, 7), c: t.trim, p: [0, 188, 0], glow: true });
+  p.push({ g: box(24, 7, 7), c: t.trim, p: [0, 194, 0], glow: true });
   for (const s of [-1, 1]) {
-    p.push({ g: rod([s * 86, 36, -10], [s * 86, 190, -10], 4), c: TABLE.frameDark });
+    p.push({ g: rod([s * 86, 36, -10], [s * 86, 176, -10], 4), c: TABLE.frameDark });
     p.push({
       g: slab(
         [
           [-16, 0],
           [16, 0],
-          [16, -64],
-          [0, -50],
-          [-16, -64],
+          [16, -60],
+          [0, -47],
+          [-16, -60],
         ],
         2,
       ),
       c: b.pennant,
-      p: [s * 86, 184, -10],
+      p: [s * 86, 170, -10],
     });
   }
   return merge(p);

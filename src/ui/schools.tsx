@@ -20,14 +20,18 @@ export const SCHOOL_NAME: Record<School, string> = {
   clock: 'Clock',
 };
 
-/** School colours: brass, ruby, slate blue, amethyst, baize green, bone. */
+/**
+ * School colours: copper, rose, indigo, magenta, teal, citrine. Each hue is used by its school
+ * only (docs/CHESS.md "Colour map"): never brass (chrome), bone (text), baize (selected), clock red
+ * (bad) or the stat words' cobalt, moss and violet. Mirrored as `--school-*` in tokens.css.
+ */
 export const SCHOOL_COLOR: Record<School, string> = {
-  march: '#c9a35a',
-  initiative: '#b5475c',
-  fortress: '#6f8fb3',
-  sacrifice: '#8b6bb8',
-  position: '#3d8a63',
-  clock: '#cbbd9f',
+  march: '#e47b30',
+  initiative: '#e7729b',
+  fortress: '#807fde',
+  sacrifice: '#b357ad',
+  position: '#4ab6c7',
+  clock: '#d1d343',
 };
 
 export const SCHOOL_JOB: Record<School, string> = {
