@@ -428,8 +428,8 @@
   cursor: pointer;
 }
 .spoil-book.on {
-  border-color: var(--brass-hi);
-  box-shadow: inset 0 0 0 1px var(--brass-hi);
+  border-color: var(--good);
+  box-shadow: inset 0 0 0 1px var(--good);
 }
 .spoil-book .spoil-fine {
   font-size: var(--fs-sm);
