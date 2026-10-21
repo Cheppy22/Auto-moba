@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { RelicAim, RelicDef, Stats } from '../src/sim';
 import { relicHeadline, relicPlan, type PlanInput } from '../src/ui/relicPlan';
+import { recompute } from '../src/sim/stats';
 import { content, liveMatch } from './helpers';
 
 const def = (id: string): RelicDef => content.relicById.get(id)!;
@@ -156,6 +157,9 @@ describe('fork preview', () => {
     const queen = m.state.teams.A.heroIds
       .map((id) => m.unitById(id)!)
       .find((u) => u.hero!.defId === 'queen')!;
+    // no first-move Technique, so the tilt is the archetype's own (Long Range would scale it)
+    queen.hero!.techniques = [];
+    recompute(m.ctx, queen);
     m.state.forks.push({ heroId: queen.id, rank: 4, deadlineTick: null });
     const prev = m.forkPreview(queen.id, 'regent')!;
     expect(prev).not.toBeNull();

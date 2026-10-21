@@ -403,7 +403,11 @@ describe('Check and Checkmate', () => {
 
   it('King first, Throne later: the Throne falling while he is down is checkmate', () => {
     const m = playerMatch(15);
-    kill(m, piece(m, 'B', 'king'));
+    // no first-move Technique (The Vault would keep him standing on 1 health)
+    const king = piece(m, 'B', 'king');
+    king.hero!.techniques = [];
+    recompute(m.ctx, king);
+    kill(m, king);
     expect(m.state.check.B).toBe(true);
     kill(m, m.ctx.guardians.B!);
     expect(m.state.winner).toBe('A');

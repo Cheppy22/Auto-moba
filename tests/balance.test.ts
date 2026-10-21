@@ -75,6 +75,9 @@ describe('balance tooling', () => {
       relics: { A: 'none' },
     });
     expect(p.pawns.A).toBeGreaterThan(0);
-    expect(p.pace.A.gaps.every((g) => g >= 60)).toBe(true);
+    // at most one card a minute; Increment does not use up the minute (it is played with the card
+    // it refunds), so only a gap right after one may be shorter
+    const short = p.pace.A.gaps.filter((g) => g < 60).length;
+    expect(short).toBeLessThanOrEqual(p.gambits.A.increment ?? 0);
   });
 });
